@@ -94,6 +94,24 @@ body::before {
   align-items: center;
   gap: 18px;
   margin-bottom: 20px;
+  /* Collée en haut : recherche, cloche et thème restent à portée en défilant.
+     Elle déborde sur le padding de .app pour que le contenu ne passe pas sur
+     les côtés ; sa hauteur est publiée dans --topbar-h (TopBar.tsx) pour les
+     autres éléments collants (menu des Réglages). Sous les menus (60),
+     modales (70) et toasts (80). */
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  margin: -18px -22px 20px;
+  padding: 12px 22px;
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s;
+}
+.topbar.is-stuck {
+  border-bottom-color: var(--border-soft);
 }
 
 .brand {
@@ -3489,11 +3507,11 @@ button.ev-row:hover {
   max-width: 980px;
 }
 .settings-layout .set-card {
-  scroll-margin-top: 16px;
+  scroll-margin-top: calc(var(--topbar-h, 0px) + 16px);
 }
 .set-nav {
   position: sticky;
-  top: 16px;
+  top: calc(var(--topbar-h, 0px) + 16px);
   display: flex;
   flex-direction: column;
   gap: 2px;

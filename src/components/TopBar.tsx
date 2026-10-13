@@ -46,12 +46,32 @@ export default function TopBar({
 }: Props) {
   const now = useClock(showClock)
   const spinRef = useRef<HTMLButtonElement>(null)
+  const barRef = useRef<HTMLElement>(null)
+  const [stuck, setStuck] = useState(false)
+
+  // Hauteur publiée pour les autres éléments collants (elle change quand la
+  // barre passe sur deux lignes en écran étroit), et liseré dès qu'on défile.
+  useEffect(() => {
+    const bar = barRef.current
+    if (!bar) return
+    const ro = new ResizeObserver(() =>
+      document.documentElement.style.setProperty('--topbar-h', `${bar.offsetHeight}px`),
+    )
+    ro.observe(bar)
+    const onScroll = () => setStuck(window.scrollY > 4)
+    onScroll()
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => {
+      ro.disconnect()
+      window.removeEventListener('scroll', onScroll)
+    }
+  }, [])
 
   const time = now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })
   const date = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <header className="topbar">
+    <header className={`topbar${stuck ? ' is-stuck' : ''}`} ref={barRef}>
       <div className="brand">
         <span className="logo" aria-hidden="true">
           ⚡
