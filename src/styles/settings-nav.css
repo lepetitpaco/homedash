@@ -9,14 +9,10 @@
 .settings-layout .settings-page {
   grid-template-columns: minmax(0, 1fr);
 }
-/* Cartes en colonnes façon maçonnerie : leurs hauteurs sont très inégales
-   (Repos suivis est longue, Sauvegardes courte), une grille laisserait des
-   trous. Contenu statique, donc pas de cartes qui sautent. */
 /* Une partie à la fois : la carte prend la largeur, sans dépasser ce qui reste
    lisible pour des formulaires. */
 .set-cards > .card {
   margin: 0 0 14px;
-  max-width: 1400px;
 }
 .settings-layout .set-card {
   scroll-margin-top: calc(var(--topbar-h, 0px) + 16px);
@@ -76,9 +72,6 @@
 }
 /* Barre d'enregistrement : toujours à portée, discrète tant que rien n'a changé. */
 .settings-layout .set-actions {
-  /* même largeur que les cartes, sinon la barre déborde à droite */
-  max-width: 1400px;
-  box-sizing: border-box;
   position: sticky;
   bottom: calc(var(--footer-h, 0px) + 12px);
   z-index: 6;
@@ -125,7 +118,10 @@
   flex: 1 1 16rem;
   min-width: 0;
 }
-.settings-layout .set-accounts {
+
+/* Une seule largeur pour toute la colonne (barre de compte, carte, barre
+   Enregistrer) : plafonner chaque élément séparément les faisait diverger. */
+.settings-layout .settings-page {
   max-width: 1400px;
-  box-sizing: border-box;
+  min-width: 0;
 }

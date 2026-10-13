@@ -3,6 +3,11 @@
 Une version par fonctionnalité livrée, la plus récente en haut. Affiché dans l'onglet 📰 Changelog ;
 une version plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.6.1 — 2026-10-13
+
+- Réglages : la barre du compte, la carte et la barre « Enregistrer » ont la même largeur.
+- Réglages → Affichage : explication plus claire de « Largeur d'une carte ».
+
 ## 1.6.0 — 2026-10-13
 
 - Onglet **Changelog** : les nouveautés de chaque version.
