@@ -1,0 +1,232 @@
+/* ═══ Barre de l'onglet GitHub ══════════════════════════════════════════════ */
+.gh-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.7rem;
+  margin-bottom: 12px;
+  padding: 0.45rem 0.8rem;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  flex-wrap: wrap;
+}
+.gh-bar-user {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.gh-bar-user > span {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.gh-bar-user select,
+.gh-bar-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.18rem 0.4rem;
+  cursor: pointer;
+}
+.gh-bar-user select:hover,
+.gh-bar-btn:hover:not(:disabled) {
+  border-color: #60a5fa;
+}
+.gh-bar-user strong {
+  font-family: ui-monospace, monospace;
+  color: var(--text);
+}
+.gh-bar-sep {
+  width: 1px;
+  height: 1.1rem;
+  background: var(--border);
+}
+.gh-bar-state {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.gh-bar-stats {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+.gh-bar-err {
+  color: var(--sig-bad);
+  font-size: 0.72rem;
+}
+.gh-bar-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+.gh-bar-btn.is-bell.is-on {
+  border-color: color-mix(in srgb, #3fb950 55%, transparent);
+}
+.gh-bar-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ↻ par carte */
+.gh-card-refresh {
+  background: none;
+  border: 1px solid transparent;
+  border-radius: 0.3rem;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 0.05rem 0.3rem;
+  cursor: pointer;
+}
+.gh-card-refresh:hover {
+  border-color: var(--border);
+  color: #60a5fa;
+}
+.gh-bar-btn.is-auto {
+  font-variant-numeric: tabular-nums;
+}
+.gh-bar-btn.is-auto.is-on {
+  border-color: color-mix(in srgb, #3fb950 45%, transparent);
+  color: var(--sig-ok);
+}
+
+/* ── Repos sur une seule ligne dans l'onglet GitHub ─────────────────────────
+   La tuile d'origine prenait 3 lignes par repo (nom, owner·note, chips). Ici tout
+   tient sur une ligne : nom, compteurs, liens, clone. Scopé à .gh-page pour ne
+   pas toucher au rendu de la carte si elle retourne dans l'onglet Raccourcis. */
+.gh-page .repo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(620px, 100%), 1fr));
+  gap: 4px;
+  padding: 6px;
+}
+.gh-page .repo {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.22rem 0.5rem;
+  border-radius: 0.4rem;
+  min-width: 0;
+}
+.gh-page .repo-top {
+  flex: 0 0 auto;
+  order: 1;
+}
+.gh-page .repo-name {
+  font-size: 0.82rem;
+  flex: 0 0 auto;
+}
+.gh-page .repo-sub {
+  order: 2;
+  margin: 0;
+  font-size: 0.68rem;
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-page .repo-live {
+  order: 3;
+  margin: 0;
+  flex: 0 0 auto;
+}
+.gh-page .repo-actions {
+  order: 4;
+  margin: 0;
+  flex: 0 0 auto;
+  display: flex;
+  gap: 0.2rem;
+}
+.gh-page .repo-chip {
+  font-size: 0.66rem;
+  padding: 0.05rem 0.35rem;
+}
+/* le bouton clone part à la fin de la ligne */
+.gh-page .repo-top {
+  order: 5;
+  margin-left: auto;
+}
+
+
+/* champ neutralisé : sa valeur n'a pas d'effet dans la configuration courante */
+.set-field.is-off {
+  opacity: 0.5;
+}
+.set-field input:disabled {
+  cursor: not-allowed;
+}
+
+.set-notif-log {
+  font-size: 0.74rem;
+  font-family: ui-monospace, monospace;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.5rem;
+}
+
+/* ═══ Indicateur de fetch ════════════════════════════════════════════════════
+   Un clic sur ↻ doit se voir tout de suite : barre indéterminée en haut de la
+   page, ↻ qui tourne, et liseré animé sous l'entête de la carte concernée.   */
+.gh-progress {
+  height: 2px;
+  margin-bottom: 10px;
+  border-radius: 2px;
+  overflow: hidden;
+  background: color-mix(in srgb, #60a5fa 18%, transparent);
+  position: relative;
+}
+.gh-progress::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  width: 35%;
+  background: linear-gradient(90deg, transparent, #60a5fa, transparent);
+  animation: gh-sweep 1.1s ease-in-out infinite;
+}
+@keyframes gh-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+.gh-card.is-busy > .group-head {
+  position: relative;
+}
+.gh-card.is-busy > .group-head::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--accent), transparent);
+  background-size: 40% 100%;
+  background-repeat: no-repeat;
+  animation: gh-sweep 1.1s ease-in-out infinite;
+}
+
+.gh-card-refresh.is-busy,
+.gh-bar-btn.is-busy {
+  color: #60a5fa;
+  animation: gh-rotate 0.9s linear infinite;
+}
+@keyframes gh-rotate {
+  to {
+    transform: rotate(360deg);
+  }
+}
+

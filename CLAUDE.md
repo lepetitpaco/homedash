@@ -57,14 +57,27 @@ DATA_DIR=$PWD/data PUBLIC_DIR=$PWD/dist PORT=7999 HOST=127.0.0.1 python3 backend
   sont rafraîchis en parallèle et l'onglet GitHub ne fait que choisir lequel il
   affiche (`?account=`). Ne pas réintroduire d'état partagé entre comptes dans
   `github.py`. `localgit` importe `accounts` sous le nom `github` : même API,
-  agrégée sur tous les comptes. Une config sans `github_accounts` = le compte
-  « main » ; `github` est tenu égal au premier compte (le front y lit org/login).
+  agrégée sur tous les comptes.
+- **Un seul format de config.** `accounts.migrate()` convertit les anciens
+  (section `github` unique, clé `org` + noms courts, jeton `github_token`) et
+  réécrit le fichier ; il tourne dans `load_sections()`, donc au démarrage ET
+  après une restauration — une vieille sauvegarde passe par le même chemin.
+  Aucun autre code ne lit l'ancien format : ne pas en réintroduire de repli,
+  c'est exactement ce qui a fait afficher deux fois chaque repo de la carte Repos.
   Ajouter/supprimer un compte écrit la config tout de suite (le serveur doit le
   connaître pour y ranger un jeton) : Réglages exige donc un brouillon enregistré.
+- **Toute requête passe par `Handler._refused()`** : `Host` dans `ALLOWED_HOSTS`
+  (+ `HOMEDASH_HOSTS`), et pour une écriture ni `Origin` étrangère, ni
+  `Sec-Fetch-Site: cross-site`, ni corps autre que `application/json`. Sans ça,
+  n'importe quel site ouvert dans le navigateur pouvait restaurer une config
+  (POST `text/plain`, sans pré-vol) ou la lire par DNS rebinding. Toute nouvelle
+  écriture côté front envoie donc `Content-Type: application/json` dès qu'elle a
+  un corps. Les lectures-modifications-écritures de config passent sous
+  `server._config_lock`.
 - Les jetons vivent dans `data/secrets.json` → `github_tokens` {id: jeton} (600),
   **jamais** dans `config.json` : celui-ci transite entier par `GET /api/config`
-  et part dans les sauvegardes. L'ancien `github_token` et `GH_TOKEN` valent pour
-  « main ». `apply_token()` vide le cache ETag et l'amorçage du journal du compte :
+  et part dans les sauvegardes. Pas de `GH_TOKEN` ni de `.env` : un jeton se
+  colle dans Réglages, nulle part ailleurs. `apply_token()` vide le cache ETag et l'amorçage du journal du compte :
   les repos visibles d'un jeton et pas de l'autre passeraient sinon pour des
   nouveautés. Les événements portent `account`, et leur `tag` est préfixé de l'id
   pour que deux comptes ne se remplacent pas la même notification.
@@ -74,8 +87,7 @@ DATA_DIR=$PWD/data PUBLIC_DIR=$PWD/dist PORT=7999 HOST=127.0.0.1 python3 backend
   court reste la clé partout (caches, journal, onglet Local qui la retrouve dans
   l'URL de son remote) ; tout appel passe par `owner(repo)`. Conséquence : deux
   repos de même nom chez deux propriétaires ne peuvent pas être suivis ensemble,
-  et Réglages le refuse (`track()`). L'ancienne clé `org` ne sert plus qu'à lire
-  les noms courts des configs d'avant ; le premier enregistrement les réécrit.
+  et Réglages le refuse (`track()`).
 - Un jeton voit tous les repos de son compte (perso et orgs) : Réglages les
   propose tous, un onglet par propriétaire, listes chargées une fois par compte.
   Renovate est sauté pour un compte sans repo dérivé : sinon un compte neuf
@@ -105,7 +117,7 @@ DATA_DIR=$PWD/data PUBLIC_DIR=$PWD/dist PORT=7999 HOST=127.0.0.1 python3 backend
   (constaté sur un clone réel). Un repli sur les seuls objets libres marcherait sur
   neuf dépôts sur dix et casserait sur le dixième.
 - `localgit.py` : le verdict d'une branche vient de GitHub (`on_github`) quand le
-  repo est dans la section `github`, et des `refs/remotes/origin/*` locaux sinon.
+  repo est suivi par un compte GitHub, et des `refs/remotes/origin/*` locaux sinon.
   Ne pas inverser cette priorité : le ref local est précisément ce qui survit à
   la suppression d'une branche distante tant qu'on n'a pas fait `fetch --prune`,
   et c'est l'écart entre les deux qui donne à cet onglet son intérêt.
@@ -213,3 +225,27 @@ DATA_DIR=$PWD/data PUBLIC_DIR=$PWD/dist PORT=7999 HOST=127.0.0.1 python3 backend
   autre machine elle est absente. La cloche l'explique au lieu de planter. Même
   chose pour `navigator.clipboard` dans l'onglet Local : il est *absent*, donc
   l'appel jette avant de rendre une promesse — un `.catch()` seul ne suffit pas.
+
+## Tests
+
+```bash
+python3 -m unittest discover -s tests -t .      # depuis la racine, ~10 s
+```
+
+Stdlib uniquement (`unittest`), sur l'hôte : les tests `gitread` créent de vrais
+dépôts temporaires et comparent chaque lecture à git lui-même — sans git (image
+Docker), ils sont sautés. `tests/_path.py` pointe `DATA_DIR` vers un dossier
+temporaire et retire `GH_TOKEN` : aucun test ne touche `data/` ni le réseau.
+
+- `test_localgit` : verdicts de l'onglet Local, dont les invariants ci-dessus
+  (« à supprimer » ⇒ niveau sûr, jamais la courante ni une protégée, `_commands`
+  sur `delete`) vérifiés sur toutes les combinaisons d'entrées.
+- `test_gitread` : refs libres/empaquetées, HEAD, commits, ahead/behind, packs à
+  deltas `ofs` **et** `ref`, clone frais, `modified()` contre `git status`, et
+  aucune écriture dans `.git`.
+- `test_accounts` : migration de l'ancien format, jetons, isolation des modules
+  par compte, routage de `pr_for_branch`.
+- `test_store` : écriture atomique, `secrets.json` en 600 dès le temporaire,
+  `validate_config`.
+
+Un `@expectedFailure` documente un défaut connu plutôt que de le taire.

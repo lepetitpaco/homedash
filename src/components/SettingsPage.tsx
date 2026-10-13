@@ -71,7 +71,6 @@ type Props = {
 type GhCfg = {
   id?: string
   label?: string
-  org?: string
   me?: string
   repos?: string[]
   branch_repos?: string[]
@@ -102,12 +101,12 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
 
   useEffect(() => setDraft(config), [config])
 
-  // Une config d'avant n'a que `github` : c'est le compte « main ».
+  // Toujours au moins un compte : le serveur convertit les anciennes configs.
   const accList: GhCfg[] = useMemo(
     () =>
       (draft?.github_accounts as GhCfg[] | undefined)?.length
         ? (draft!.github_accounts as GhCfg[])
-        : [{ id: 'main', label: '', ...((draft?.github ?? {}) as GhCfg) }],
+        : [{ id: 'main', label: '' }],
     [draft],
   )
   const gh: GhCfg = accList.find((a) => a.id === sel) ?? accList[0]
@@ -137,15 +136,8 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
       .catch(() => setOwners([]))
   }, [connected, auth?.login, selId])
 
-  /**
-   * Chaque repo porte son propriétaire : `mon-org/api`. Les anciens noms
-   * courts (`admin`) appartiennent à l'ancienne clé `org` — on les lit ainsi, et
-   * le prochain enregistrement les réécrit en entier. Plus rien à deviner, donc
-   * plus de champ « Organisation » à changer par mégarde.
-   */
-  const legacyOrg = String(gh?.org ?? '').trim()
-  const full = (k: string) => (k.includes('/') || !legacyOrg ? k : `${legacyOrg}/${k}`)
-  const cardKey = (i: { name: string; owner?: string }) => (i.owner ? `${i.owner}/${i.name}` : full(i.name))
+  /** Chaque repo porte son propriétaire : `mon-org/api`. */
+  const cardKey = (i: { name: string; owner?: string }) => (i.owner ? `${i.owner}/${i.name}` : i.name)
   const cardRepos = useMemo(
     () => (draft?.repos?.items ?? []).map(cardKey),
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -214,8 +206,8 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   const patchGh = (patch: Partial<GhCfg>) => setDraft(withAcc(patch))
 
   const items: RepoItem[] = draft.repos?.items ?? []
-  const fullList = (v: unknown) => asList(v).map(full)
-  // Clé absente = mêmes repos que les PRs, comme le backend (anciennes configs).
+  const fullList = asList
+  // Clé absente = mêmes repos que les PRs, comme le backend.
   const branchList = Array.isArray(gh.branch_repos) ? fullList(gh.branch_repos) : fullList(gh.repos)
   const uses: Record<Use, string[]> = { prs: fullList(gh.repos), branches: branchList, card: cardRepos }
   const tracked = [...new Set([...uses.prs, ...uses.branches, ...uses.card])].sort()
@@ -356,14 +348,13 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   const cleaned = (config: Config): Config => {
     const clean = (o: Record<string, unknown> = {}) => {
       const out = { ...o }
-      for (const key of ['org', 'me', 'upstream_repo', 'renovate_author']) {
+      for (const key of ['me', 'upstream_repo', 'renovate_author']) {
         if (typeof out[key] === 'string' && !(out[key] as string).trim()) delete out[key]
       }
       return out
     }
     return {
       ...config,
-      github: clean(config.github),
       ...(config.github_accounts ? { github_accounts: config.github_accounts.map(clean) } : {}),
     }
   }

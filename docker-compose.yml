@@ -1,20 +1,21 @@
 services:
   homedash:
     build: .
-    # Une instance = une connexion GitHub. Pour une seconde instance (le perso à
-    # côté du boulot), surcharger ces trois variables — voir README :
-    #   HOMEDASH_NAME=homedash-perso HOMEDASH_PORT=7778 HOMEDASH_DATA=./data-perso \
-    #     docker compose -p homedash-perso up -d --build
+    # Une instance gère plusieurs comptes GitHub. Pour des données complètement
+    # séparées, une seconde instance : surcharger ces trois variables (README) :
+    #   HOMEDASH_NAME=homedash-2 HOMEDASH_PORT=7778 HOMEDASH_DATA=./data-2 \
+    #     docker compose -p homedash-2 up -d --build
     container_name: ${HOMEDASH_NAME:-homedash}
     restart: always
     ports:
-      # bind local uniquement : data/ contient des mots de passe et un token GitHub
+      # bind local uniquement : data/ contient des mots de passe et des jetons GitHub
       - "127.0.0.1:${HOMEDASH_PORT:-7777}:80"
     environment:
       - TZ=Europe/Paris
-      # Facultatif : le jeton se saisit dans Réglages. S'il est fourni ici, la
-      # page le signale et un jeton collé dans Réglages passe devant.
-      - GH_TOKEN=${GH_TOKEN:-}
+      # Noms supplémentaires sous lesquels la page est servie, si tu l'ouvres au
+      # réseau (`homedash.lan,192.168.1.20`). Tout autre `Host` est refusé : c'est
+      # ce qui empêche un site tiers de lire l'API par DNS rebinding.
+      - HOMEDASH_HOSTS=${HOMEDASH_HOSTS:-}
       # Ce que vaut /host côté hôte : sert à écrire les commandes à copier avec
       # les vrais chemins, et à comprendre un chemin absolu de l'hôte.
       - HOST_HOME=${HOME}

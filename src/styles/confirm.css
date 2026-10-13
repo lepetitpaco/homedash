@@ -1,0 +1,81 @@
+/* ── modale de confirmation (remplace window.confirm) ────────────────────── */
+.modal-confirm {
+  width: min(440px, 100%);
+}
+.modal-confirm .modal-body p {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--text-dim);
+  overflow-wrap: anywhere;
+}
+.btn-danger {
+  background: #b42318;
+  border-color: #b42318;
+  color: #fff;
+  font-weight: 600;
+}
+.btn-danger:hover {
+  background: #c8321f;
+}
+
+/* Repos suivis : un cadre par propriétaire ; ajout : un onglet par compte */
+.set-owner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+.set-owner-head {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.76rem;
+  color: var(--text-dim);
+}
+.set-owner-head img,
+.set-tab img {
+  width: 16px;
+  height: 16px;
+  border-radius: 4px;
+}
+.set-owner-head span,
+.set-tab span {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.set-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.set-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.22rem 0.55rem;
+}
+.set-tab:hover {
+  color: var(--text);
+}
+.set-tab.is-active {
+  border-color: #60a5fa;
+  color: var(--text);
+  background: color-mix(in srgb, #60a5fa 12%, transparent);
+}
+.set-filter {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.78rem;
+  padding: 0.28rem 0.45rem;
+}
+

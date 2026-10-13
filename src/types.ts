@@ -33,9 +33,9 @@ export type ReposConfig = {
   title?: string
   icon?: string
   color?: string
-  /** Absent = repris de `github.org`, pour n'avoir qu'une source de vérité. */
+  /** Propriétaire d'une entrée qui n'en a pas. */
   defaultOwner?: string
-  /** Absent = repris de `github.me`. */
+  /** Absent = l'utilisateur observé du premier compte GitHub. */
   me?: string
   /** Onglets proposés sur chaque repo. `{owner}` / `{repo}` sont interpolés dans `path`. */
   actions?: RepoAction[]
@@ -125,9 +125,7 @@ export type Config = {
   notes?: NotesConfig
   stats?: StatsConfig
   groups: Group[]
-  /** Réglages des cartes GitHub — lus par le backend, opaques pour le front. */
-  github?: Record<string, unknown>
-  /** Comptes GitHub : `{id, label, …réglages}`. Absent = un seul compte, la section `github`. */
+  /** Comptes GitHub : `{id, label, …réglages}`. Le serveur convertit les anciens formats au chargement. */
   github_accounts?: Record<string, unknown>[]
   /** Onglet Local — `roots`, `max_depth`, `ignore`… lus par le backend. */
   local?: Record<string, unknown>

@@ -269,6 +269,13 @@ def _verdict(b, default_branch):
                                f"jamais poussée : ni ref distant, ni amont configuré, ni PR "
                                f"— {ahead} commit(s) de travail en cours, sur ce disque seul",
                                None)
+    elif b["push_ahead"] is None:
+        # GitHub la connaît, mais aucun origin/<b> sur ce disque (jamais fetchée,
+        # ou poussée vers un autre remote) : rien pour comparer. « À jour » serait
+        # une affirmation sans fondement.
+        state, advice, flag = ("unknown",
+                               f"existe sur GitHub mais pas d'origin/{name} local : "
+                               f"`git fetch` pour comparer", None)
     elif b["push_ahead"] and b["push_behind"]:
         state, advice, flag = ("diverged",
                                f"divergée de origin/{name} : {b['push_ahead']} devant, "
@@ -309,6 +316,10 @@ def _safety(b, default_branch):
         return {"level": "pushed", "label": "↑ sur GitHub",
                 "detail": f"pas encore mergée, mais origin/{b['name']} a les mêmes "
                           f"{ahead} commit(s) : rien n'existe uniquement ici"}
+    if on_gh and b["push_ahead"] is None:
+        return {"level": "partial", "label": "? non comparée",
+                "detail": f"origin/{b['name']} existe sur GitHub mais pas sur ce disque : "
+                          "impossible de dire ce qui n'y est pas — `git fetch` d'abord"}
     if on_gh:
         n = b["push_ahead"] or 0
         return {"level": "partial", "label": f"⚠ {n} non poussé{'s' if n > 1 else ''}",

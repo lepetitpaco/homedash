@@ -30,6 +30,8 @@ const STATE: Record<string, { label: string; cls: string; title: string }> = {
                    title: 'En avance sur sa branche distante' },
   behind:        { label: 'en retard',        cls: 'is-info',
                    title: 'En retard sur le distant' },
+  unknown:       { label: 'non comparée',     cls: 'is-info',
+                   title: 'Existe sur GitHub, mais pas de copie locale de la branche distante : git fetch pour comparer' },
   ok:            { label: 'à jour',           cls: 'is-mute', title: 'Rien à faire' },
   protected:     { label: 'référence',        cls: 'is-mute', title: 'Branche de référence' },
 }

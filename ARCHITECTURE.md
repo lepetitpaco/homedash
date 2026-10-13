@@ -16,7 +16,21 @@ homedash/
 │   └── backup.py             · instantanés de data/, export, restauration
 │
 ├── src/                      ← front React + Vite (inchangé dans son principe)
+│   ├── App.tsx               · assemblage : onglets, barre du haut, vue courante
+│   ├── hooks/                · l'état de la page, hors rendu
+│   │   ├── useConfigState.ts · chargement + écriture de config.json, témoin d'enregistrement
+│   │   ├── useContextMenus.ts· menus clic droit (lien, catégorie) et modale d'édition
+│   │   ├── useSearch.ts      · recherche unifiée et ses raccourcis clavier
+│   │   ├── useTabs.ts        · onglet ouvert, retour depuis l'historique, titre du navigateur
+│   │   ├── useUsage.ts       · compteurs d'ouverture et rangées de tuiles
+│   │   ├── usePrefs.ts       · thème et catégories repliées (localStorage)
+│   │   └── useCopy.ts        · presse-papier + témoin ✓
+│   ├── styles/               · index.css importe les tranches DANS L'ORDRE de la cascade
+│   │   └── base, links, ui, github, settings-page, github-bar, local, events,
+│   │       settings, confirm, settings-nav, accounts, bell (.css)
 │   ├── components/
+│   │   ├── Section.tsx       · un bloc de page (carte GitHub, infos, repos, notes, catégorie…)
+│   │   ├── GithubView.tsx    · onglet GitHub : barre + cartes
 │   │   ├── GhBranches.tsx    · nouvelles cartes GitHub, au design homedash
 │   │   ├── GhPrs.tsx
 │   │   ├── GhRenovate.tsx

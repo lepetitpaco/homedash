@@ -71,11 +71,7 @@ export default function SetConnect({ account, auth, onChange }: Props) {
             <strong>{auth.login}</strong>
             {auth.name ? <span> · {auth.name}</span> : null}
             <span className="set-ok"> ✓ connecté</span>
-            <em>
-              {auth.source === 'env'
-                ? 'jeton lu dans GH_TOKEN (.env) — en coller un ici le remplace'
-                : 'jeton enregistré depuis cette page, jamais renvoyé au navigateur'}
-            </em>
+            <em>jeton enregistré côté serveur, jamais renvoyé au navigateur</em>
           </div>
           <div className="set-account-actions">
             <button onClick={() => setEditing((v) => !v)} disabled={busy}>

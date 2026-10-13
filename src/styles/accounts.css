@@ -1,0 +1,135 @@
+/* ═══ Sélecteur de compte GitHub ════════════════════════════════════════════ */
+.gh-accounts {
+  display: inline-flex;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+}
+.gh-account {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: none;
+  border: 0;
+  border-radius: 0.38rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.22rem 0.6rem;
+}
+.gh-account img {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+.gh-account:hover {
+  color: var(--text);
+}
+.gh-account.is-active {
+  background: var(--panel);
+  color: var(--text);
+  box-shadow: 0 0 0 1px color-mix(in srgb, #60a5fa 55%, transparent);
+}
+.gh-account.is-off {
+  opacity: 0.6;
+}
+.gh-account-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+/* Réglages : compte GitHub en cours d'édition */
+.set-accounts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--panel);
+}
+.set-accounts .gh-account {
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+}
+.set-accounts-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  margin-right: 0.3rem;
+}
+.set-accounts-hint {
+  flex-basis: 100%;
+}
+.set-account-add {
+  border-style: dashed !important;
+}
+.set-account-new {
+  display: inline-flex;
+  gap: 0.3rem;
+}
+.set-account-new input {
+  background: var(--panel-2);
+  border: 1px solid #60a5fa;
+  border-radius: 0.35rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.2rem 0.45rem;
+}
+.set-account-new button {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.74rem;
+  padding: 0.2rem 0.5rem;
+}
+.set-danger-link {
+  background: none !important;
+  border: 0 !important;
+  color: var(--sig-bad) !important;
+  padding: 0 !important;
+  text-decoration: underline;
+  cursor: pointer;
+}
+.ev-account {
+  font-size: 0.66rem;
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  padding: 0 0.3rem;
+  margin-right: 0.35rem;
+}
+
+/* Onglet Local : un onglet par dossier lu */
+.loc-roots-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 2px;
+  padding: 2px;
+  margin-bottom: 10px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+}
+.loc-roots-count {
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  font-variant-numeric: tabular-nums;
+}
+.loc-roots-todo {
+  font-size: 0.68rem;
+  color: var(--sig-ok);
+}
+

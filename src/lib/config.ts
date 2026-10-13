@@ -101,7 +101,6 @@ function normalizeRepos(
   raw: ReposConfig | undefined,
   github: Record<string, unknown> | undefined,
 ): ReposConfig | undefined {
-  const org = typeof github?.org === 'string' ? github.org : undefined
   const me = typeof github?.me === 'string' ? github.me : undefined
   const items = raw?.items ?? []
   if (items.length === 0) return undefined
@@ -109,7 +108,7 @@ function normalizeRepos(
   return {
     ...raw,
     items,
-    defaultOwner: raw?.defaultOwner ?? org ?? '',
+    defaultOwner: raw?.defaultOwner ?? '',
     me: raw?.me ?? me,
     title: raw?.title ?? 'Repos',
     icon: raw?.icon ?? '🐙',
@@ -207,7 +206,7 @@ export function normalizeConfig(raw: Config): Normalized {
   // on vient de supprimer le dernier lien, disparaîtrait de la page.
   const groups = (raw.groups ?? []).filter((g) => g?.name && Array.isArray(g.links))
   const infos = normalizeInfos(raw.infos)
-  const repos = normalizeRepos(raw.repos, raw.github)
+  const repos = normalizeRepos(raw.repos, raw.github_accounts?.[0])
   const notes = normalizeNotes(raw.notes)
   const stats = normalizeStats(raw.stats)
   const layout = raw.layout?.length ? raw.layout : DEFAULT_LAYOUT

@@ -46,7 +46,6 @@ export type VersionGroup = { version: string; items: Pr[]; gate?: Gate | null }
 export type GithubData = {
   enabled: boolean
   error?: string | null
-  org: string
   user: string
   users: string[]
   updated_at: number

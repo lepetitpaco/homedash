@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """homedash — serveur unique : fichiers statiques + API JSON + données GitHub.
 
-Remplace server.js. Python stdlib uniquement, aucune dépendance.
+Python stdlib uniquement, aucune dépendance.
 """
 
 import json
@@ -25,6 +25,24 @@ PORT       = int(os.environ.get("PORT", "80"))
 HOST       = os.environ.get("HOST", "0.0.0.0")
 MAX_BODY   = 2 * 1024 * 1024
 
+# Noms sous lesquels la page est servie. Le port est publié sur 127.0.0.1 : tout
+# autre `Host` vient d'un nom de domaine qu'un site tiers a fait pointer sur
+# cette machine (DNS rebinding) pour lire l'API comme s'il était chez lui. Qui
+# ouvre l'accès au réseau ajoute ses noms à HOMEDASH_HOSTS (séparés par des
+# virgules : `homedash.lan,192.168.1.20`).
+ALLOWED_HOSTS = {"localhost", "127.0.0.1", "::1", "host.docker.internal"} | {
+    h.strip().lower() for h in os.environ.get("HOMEDASH_HOSTS", "").split(",") if h.strip()
+}
+
+
+def _hostname(value):
+    """`localhost:7777` → `localhost`, `[::1]:7777` → `::1`, URL d'Origin comprise."""
+    if not value:
+        return ""
+    if "://" in value:
+        return (urllib.parse.urlsplit(value).hostname or "").lower()
+    return (urllib.parse.urlsplit("//" + value).hostname or "").lower()
+
 MIME = {
     ".html": "text/html; charset=utf-8",
     ".js":   "text/javascript; charset=utf-8",
@@ -41,13 +59,27 @@ MIME = {
     ".webmanifest": "application/manifest+json; charset=utf-8",
 }
 
+# Toute écriture de config passe sous ce verrou : Réglages (PUT complet) et les
+# écritures partielles du serveur (comptes, login adopté) lisent-modifient-écrivent
+# le même fichier, et la dernière arrivée effacerait l'autre.
+_config_lock = threading.RLock()
+
 def load_sections():
-    """(Re)configure les couches GitHub et Local depuis config.json. À chaud."""
-    try:
-        cfg = store.read(store.CONFIG, {})
-    except ValueError as e:
-        print(f"⚠ {e}", file=sys.stderr, flush=True)
-        return
+    """(Re)configure les couches GitHub et Local depuis config.json. À chaud.
+    Une config d'un ancien format (y compris une vieille sauvegarde restaurée)
+    est convertie ici, une fois, et réécrite."""
+    with _config_lock:
+        try:
+            cfg = store.read(store.CONFIG, {})
+        except ValueError as e:
+            print(f"⚠ {e}", file=sys.stderr, flush=True)
+            return
+        cfg, changed = accounts.migrate(cfg or {})
+        if changed and not store.validate_config(cfg):
+            store.backup_config()
+            store.write(store.CONFIG, cfg)
+            print("ℹ config convertie au format courant", flush=True)
+        accounts.migrate_secrets(cfg["github_accounts"][0]["id"])
     accounts.configure(cfg)
     localgit.configure(cfg.get("local") or {})
 
@@ -67,6 +99,10 @@ def adopt_login(acc_id, login):
     """Premier branchement d'un compte : son login devient l'utilisateur observé,
     pour que l'onglet GitHub ait de quoi s'afficher dès la connexion. Ne remplace
     jamais une valeur déjà saisie."""
+    with _config_lock:
+        _adopt_login(acc_id, login)
+
+def _adopt_login(acc_id, login):
     cfg = accounts.normalized(store.read(store.CONFIG, {}) or {})
     acc = next((a for a in cfg["github_accounts"] if a["id"] == acc_id), None)
     if not acc:
@@ -87,10 +123,11 @@ def adopt_login(acc_id, login):
 
 def edit_accounts(change):
     """Lit la config, applique `change(liste des comptes)`, réécrit, recharge."""
-    cfg = accounts.normalized(store.read(store.CONFIG, {}) or {})
-    result = change(cfg["github_accounts"])
-    store.backup_config()
-    store.write(store.CONFIG, accounts.normalized(cfg))
+    with _config_lock:
+        cfg = accounts.normalized(store.read(store.CONFIG, {}) or {})
+        result = change(cfg["github_accounts"])
+        store.backup_config()
+        store.write(store.CONFIG, accounts.normalized(cfg))
     reload_all()
     return result
 
@@ -133,6 +170,34 @@ class Handler(BaseHTTPRequestHandler):
     def _err(self, status, message):
         self._json({"error": message}, status)
 
+    def _refused(self, write):
+        """Raison de refuser la requête, ou None.
+
+        Sans ces contrôles, n'importe quel site ouvert dans le navigateur peut
+        écrire ici : un POST `text/plain` part sans pré-vol CORS, et la réponse
+        illisible n'empêche pas l'écriture (une restauration remplace toute la
+        config). Trois verrous, chacun suffisant contre un cas :
+          · `Host` connu — contre le DNS rebinding, qui rend la page « même
+            origine » et lui ouvre aussi les lectures ;
+          · `Origin` / `Sec-Fetch-Site` — une écriture venue d'un autre site ;
+          · corps en `application/json` — un formulaire ou un `text/plain` ne
+            peut pas le poser sans pré-vol, et le pré-vol n'est pas servi.
+        """
+        if _hostname(self.headers.get("Host")) not in ALLOWED_HOSTS:
+            return "hôte non autorisé (HOMEDASH_HOSTS)"
+        if not write:
+            return None
+        origin = self.headers.get("Origin")
+        if origin and origin != "null" and _hostname(origin) not in ALLOWED_HOSTS:
+            return "origine non autorisée"
+        if origin == "null" or self.headers.get("Sec-Fetch-Site") == "cross-site":
+            return "requête intersite refusée"
+        if int(self.headers.get("Content-Length") or 0) > 0:
+            ctype = (self.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            if ctype != "application/json":
+                return "Content-Type application/json attendu"
+        return None
+
     def _body(self):
         length = int(self.headers.get("Content-Length") or 0)
         if length > MAX_BODY:
@@ -145,6 +210,9 @@ class Handler(BaseHTTPRequestHandler):
     # ── routage ───────────────────────────────────────────────────────────────
     def do_GET(self):
         path = urllib.parse.urlparse(self.path).path
+        refused = self._refused(write=False)
+        if refused:
+            return self._err(403, refused)
         try:
             if path.startswith("/api/"):
                 return self._api_get(path)
@@ -155,13 +223,22 @@ class Handler(BaseHTTPRequestHandler):
     do_HEAD = do_GET
 
     def do_PUT(self):
+        refused = self._refused(write=True)
+        if refused:
+            return self._err(403, refused)
         return self._api_write(urllib.parse.urlparse(self.path).path)
 
     def do_POST(self):
+        refused = self._refused(write=True)
+        if refused:
+            return self._err(403, refused)
         return self._api_write(urllib.parse.urlparse(self.path).path)
 
     def do_DELETE(self):
         path = urllib.parse.urlparse(self.path).path
+        refused = self._refused(write=True)
+        if refused:
+            return self._err(403, refused)
         if path == "/api/usage":
             store.write(store.USAGE, {})
             return self._json({})
@@ -174,7 +251,6 @@ class Handler(BaseHTTPRequestHandler):
                 return self._err(404, "compte inconnu")
             accounts.set_token(mod.ACCOUNT["id"], None)
             reload_all()
-            # un GH_TOKEN d'environnement peut reprendre la main : on le dit
             return self._json({"source": mod.token_source(), **mod.whoami()})
         if path.startswith("/api/github/accounts/"):
             acc_id = urllib.parse.unquote(path[len("/api/github/accounts/"):])
@@ -272,14 +348,15 @@ class Handler(BaseHTTPRequestHandler):
             if path == "/api/config":
                 if self.command != "PUT":
                     return self._err(405, "PUT attendu")
-                cfg     = self._body()
+                cfg = self._body()
+                if isinstance(cfg, dict):
+                    cfg = accounts.normalized(cfg)
                 problem = store.validate_config(cfg)
                 if problem:
                     return self._err(422, problem)
-                if "github_accounts" in cfg:
-                    cfg = accounts.normalized(cfg)   # `github` suit le premier compte
-                store.backup_config()
-                store.write(store.CONFIG, cfg)
+                with _config_lock:
+                    store.backup_config()
+                    store.write(store.CONFIG, cfg)
                 reload_all()              # github/local ont peut-être changé
                 return self._json({"ok": True, "savedAt": time.time()})
 
@@ -323,7 +400,8 @@ class Handler(BaseHTTPRequestHandler):
                 problem = backup.check(data)
                 if problem:
                     return self._err(422, problem)
-                before = backup.restore(data)
+                with _config_lock:
+                    before = backup.restore(data)
                 reload_all()
                 return self._json({"ok": True, "before": before})
 

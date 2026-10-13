@@ -42,13 +42,20 @@ def read(name, default):
     except Exception as e:
         raise ValueError(f"{name} illisible : {e}") from e
 
-def write(name, payload):
-    """Écriture atomique : temporaire dans le même répertoire puis rename."""
+def write(name, payload, mode=0o644):
+    """Écriture atomique : temporaire dans le même répertoire puis rename.
+    `mode` s'applique dès la création du temporaire : `secrets.json` ne doit
+    jamais exister, même un instant, lisible par d'autres."""
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     target = path_of(name)
     tmp    = target.with_suffix(target.suffix + ".tmp")
     with _lock(name):
-        with open(tmp, "w", encoding="utf-8") as f:
+        try:
+            tmp.unlink()            # un reste d'écriture interrompue garderait ses droits
+        except FileNotFoundError:
+            pass
+        fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, mode)
+        with open(fd, "w", encoding="utf-8") as f:
             json.dump(payload, f, indent=2, ensure_ascii=False)
             f.write("\n")
             f.flush()
@@ -72,8 +79,7 @@ def write_secret(key, value):
             data.pop(key, None)
         else:
             data[key] = value
-        write(SECRETS, data)
-        os.chmod(path_of(SECRETS), 0o600)
+        write(SECRETS, data, mode=0o600)
 
 def backup_config():
     try:
@@ -105,6 +111,41 @@ def validate_config(cfg):
     gh = cfg.get("github")
     if gh is not None and not isinstance(gh, dict):
         return '"github" doit être un objet'
+    accs = cfg.get("github_accounts")
+    if accs is not None:
+        if not isinstance(accs, list):
+            return '"github_accounts" doit être un tableau'
+        seen = set()
+        for i, acc in enumerate(accs):
+            if not isinstance(acc, dict):
+                return f"github_accounts[{i}] doit être un objet"
+            if not isinstance(acc.get("id"), str) or not acc["id"].strip():
+                return f"github_accounts[{i}].id manquant"
+            if acc["id"] in seen:
+                return f"github_accounts[{i}].id en double : {acc['id']}"
+            seen.add(acc["id"])
+            for key in ("repos", "branch_repos", "base_site_repos", "users"):
+                v = acc.get(key)
+                if v is not None and not (isinstance(v, list) and all(isinstance(x, str) for x in v)):
+                    return f"github_accounts[{i}].{key} doit être une liste de textes"
+            for key in ("merged_count", "cache_ttl", "auto_refresh"):
+                v = acc.get(key)
+                if v is not None and (isinstance(v, bool) or not isinstance(v, int) or v < 0):
+                    return f"github_accounts[{i}].{key} doit être un entier positif"
+    repos = cfg.get("repos")
+    if repos is not None:
+        if not isinstance(repos, dict):
+            return '"repos" doit être un objet'
+        items = repos.get("items")
+        if items is not None:
+            if not isinstance(items, list):
+                return '"repos.items" doit être un tableau'
+            for i, item in enumerate(items):
+                if not isinstance(item, dict) or not isinstance(item.get("name"), str) or not item["name"].strip():
+                    return f"repos.items[{i}].name manquant"
+    ui = cfg.get("ui")
+    if ui is not None and not isinstance(ui, dict):
+        return '"ui" doit être un objet'
     loc = cfg.get("local")
     if loc is not None:
         if not isinstance(loc, dict):

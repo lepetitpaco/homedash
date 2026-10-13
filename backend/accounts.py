@@ -6,16 +6,17 @@ globales — jeton, cache ETag, données, amorçage du journal —, donc les com
 se rafraîchissent en parallèle sans rien partager, et l'onglet GitHub ne fait
 que choisir lequel il affiche.
 
-Config : `github_accounts` = [{"id", "label", …réglages d'un compte…}]. Une
-config d'avant n'a que la section `github` : elle devient le compte « main ».
-`github` reste tenu à jour avec le premier compte (le front y lit org/login
-pour la carte Repos).
+Config : `github_accounts` = [{"id", "label", …réglages d'un compte…}], seule
+forme lue. Les anciennes (section `github` unique, clé `org` et noms courts,
+jeton dans `github_token`) sont converties une fois par `migrate()`, appelé à
+chaque chargement de config — une vieille sauvegarde restaurée passe donc par
+le même chemin. Rien d'autre dans le code ne connaît l'ancien format.
 
-Jetons : `secrets.json` → `github_tokens` = {id: jeton}. L'ancien
-`github_token` et `GH_TOKEN` valent pour le compte « main » (ou le premier).
+Jetons : `secrets.json` → `github_tokens` = {id: jeton}.
 """
 
 import importlib.util
+import json
 import re
 import sys
 import threading
@@ -32,12 +33,11 @@ _lock   = threading.RLock()
 
 # ── Config ────────────────────────────────────────────────────────────────────
 def from_config(cfg):
-    """Liste des comptes de la config, anciennes configs comprises."""
+    """Liste des comptes de la config (déjà migrée)."""
     accs = cfg.get("github_accounts")
-    if isinstance(accs, list) and accs:
+    if isinstance(accs, list):
         return [a for a in accs if isinstance(a, dict) and a.get("id")]
-    gh = cfg.get("github") or {}
-    return [{"id": "main", "label": gh.get("label") or "", **gh}]
+    return []
 
 
 def settings_of(acc):
@@ -46,12 +46,68 @@ def settings_of(acc):
 
 
 def normalized(cfg):
-    """Config avec `github_accounts` explicite et `github` = premier compte.
-    Appelé avant toute écriture de config qui touche aux comptes."""
-    accs = from_config(cfg)
-    cfg["github_accounts"] = accs
-    cfg["github"] = settings_of(accs[0]) if accs else {}
-    return cfg
+    """Config au format courant. Appelé avant toute écriture qui touche aux comptes."""
+    return migrate(cfg)[0]
+
+
+def _full(name, org):
+    name = str(name).strip()
+    return f"{org}/{name}" if org and name and "/" not in name else name
+
+
+def migrate(cfg):
+    """Ancien format → format courant. Renvoie (config, a_changé).
+
+    · section `github` seule → `github_accounts` = [{"id": "main", …}] ;
+    · clé `org` + noms courts → `propriétaire/repo`, `org` disparaît ;
+    · entrées de la carte Repos sans `owner` → l'org du premier compte ;
+    · la section `github` (copie du premier compte) disparaît.
+    Idempotent : une config déjà migrée ressort identique."""
+    before = json.dumps(cfg, sort_keys=True)
+    accs = cfg.get("github_accounts")
+    if not isinstance(accs, list) or not accs:
+        gh = cfg.get("github") if isinstance(cfg.get("github"), dict) else {}
+        accs = [{"id": "main", "label": gh.get("label") or "",
+                 **{k: v for k, v in gh.items() if k not in ("id", "label")}}]
+    first_org = ""
+    out = []
+    for acc in accs:
+        if not isinstance(acc, dict) or not acc.get("id"):
+            continue
+        acc = dict(acc)
+        org = str(acc.pop("org", "") or "").strip()
+        first_org = first_org or org
+        for key in ("repos", "branch_repos", "base_site_repos"):
+            if isinstance(acc.get(key), list):
+                acc[key] = [_full(r, org) for r in acc[key] if str(r).strip()]
+        if acc.get("upstream_repo"):
+            acc["upstream_repo"] = _full(acc["upstream_repo"], org)
+        out.append(acc)
+    cfg["github_accounts"] = out or [{"id": "main", "label": ""}]
+    cfg.pop("github", None)
+
+    repos = cfg.get("repos")
+    if first_org and isinstance(repos, dict) and isinstance(repos.get("items"), list):
+        repos["items"] = [
+            {**i, "owner": first_org} if isinstance(i, dict) and not i.get("owner") else i
+            for i in repos["items"]
+        ]
+        if repos.get("defaultOwner") is None:
+            repos["defaultOwner"] = first_org
+    return cfg, json.dumps(cfg, sort_keys=True) != before
+
+
+def migrate_secrets(first_id):
+    """L'ancien jeton unique (`github_token`) rejoint `github_tokens` sous le
+    premier compte, s'il n'en a pas déjà un."""
+    legacy = store.read_secret("github_token")
+    if not legacy:
+        return
+    with _lock:
+        saved = _tokens()
+        saved.setdefault(first_id, legacy)
+        store.write_secret("github_tokens", saved)
+        store.write_secret("github_token", None)
 
 
 def slug(label, taken):
@@ -68,21 +124,9 @@ def _tokens():
     return dict(saved) if isinstance(saved, dict) else {}
 
 
-def _token_for(acc_id, first_id):
-    saved = _tokens()
-    if saved.get(acc_id):
-        return saved[acc_id], "ui"
-    # Héritage d'une instance à un seul compte : l'ancien jeton et GH_TOKEN
-    # reviennent au compte principal.
-    if acc_id in ("main", first_id):
-        legacy = store.read_secret("github_token")
-        if legacy:
-            return legacy, "ui"
-        mod = _mods.get(acc_id)
-        env = mod._find_token() if mod else None
-        if env:
-            return env, "env"
-    return None, None
+def _token_for(acc_id):
+    tok = _tokens().get(acc_id)
+    return (tok, "ui") if tok else (None, None)
 
 
 def set_token(acc_id, value):
@@ -94,22 +138,17 @@ def set_token(acc_id, value):
         else:
             saved.pop(acc_id, None)
         store.write_secret("github_tokens", saved)
-        if acc_id == (_order[0] if _order else "main"):
-            store.write_secret("github_token", None)   # l'ancien emplacement n'a plus cours
         mod = _mods.get(acc_id)
         if mod:
-            tok, src = _token_for(acc_id, _order[0] if _order else acc_id)
-            mod.apply_token(tok, src)
+            mod.apply_token(*_token_for(acc_id))
 
 
 def forget(acc_id):
-    """Compte supprimé : son jeton part avec lui, ancien emplacement compris."""
+    """Compte supprimé : son jeton part avec lui."""
     with _lock:
         saved = _tokens()
         if saved.pop(acc_id, None) is not None:
             store.write_secret("github_tokens", saved)
-        if acc_id == "main":
-            store.write_secret("github_token", None)
 
 
 # ── Chargement ────────────────────────────────────────────────────────────────
@@ -137,8 +176,7 @@ def configure(cfg):
             _labels[acc["id"]] = acc.get("label") or ""
             mod.ACCOUNT.update(id=acc["id"], label=acc.get("label") or "")
             mod.configure(settings_of(acc))
-            tok, src = _token_for(acc["id"], ids[0])
-            mod.apply_token(tok, src)
+            mod.apply_token(*_token_for(acc["id"]))
 
 
 def get(acc_id=None):

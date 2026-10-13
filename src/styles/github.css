@@ -1,0 +1,541 @@
+/* ═══ Cartes GitHub ═══════════════════════════════════════════════════════════
+   Densité assumée : ces cartes affichent 40+ lignes et doivent tenir dans un
+   écran sans scroll interne. Chaque ligne fait au maximum deux lignes de texte,
+   et le contenu long est tronqué avec l'intitulé complet en infobulle.        */
+.gh-body {
+  display: flex;
+  flex-direction: column;
+}
+
+.gh-row {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.2rem 0.7rem;
+  border-top: 1px solid var(--border-soft);
+  min-width: 0;
+}
+.gh-row:first-child {
+  border-top: 0;
+}
+.gh-row:hover {
+  background: color-mix(in srgb, var(--accent) 6%, transparent);
+}
+.gh-row.is-stale {
+  opacity: 0.55;
+}
+.gh-row.is-stale:hover {
+  opacity: 0.85;
+}
+
+/* Une PR mergée dont la CI tourne encore est ce qu'on attend pour propager :
+   elle est mise en avant, jamais grisée comme une PR terminée. */
+.gh-row.is-running {
+  background: color-mix(in srgb, #d29922 9%, transparent);
+  box-shadow: inset 3px 0 0 #d29922;
+}
+.gh-row.is-broken {
+  background: color-mix(in srgb, #f85149 9%, transparent);
+  box-shadow: inset 3px 0 0 #f85149;
+}
+
+/* PRs ou branches partageant un nom de branche d'un repo à l'autre : un même
+   chantier, à merger ensemble. Liseré en --sig-branch, pas de teinte en dur. */
+.gh-prgroup {
+  border-top: 1px solid var(--border-soft);
+  box-shadow: inset 3px 0 0 var(--sig-branch);
+  background: color-mix(in srgb, #8b5cf6 6%, transparent);
+}
+.gh-prgroup:first-child {
+  border-top: 0;
+}
+.gh-prgroup .gh-row {
+  border-top-color: transparent;
+}
+.gh-prgroup-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.7rem 0;
+  font-size: 0.66rem;
+  min-width: 0;
+  white-space: nowrap;
+}
+.gh-prgroup-head .gh-branch-inline {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gh-prgroup-count {
+  margin-left: auto;
+  color: var(--text-faint);
+  flex-shrink: 0;
+}
+
+.gh-repo {
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.25rem;
+  padding: 0.05rem 0.3rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.gh-main {
+  min-width: 0;
+}
+.gh-line {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-width: 0;
+}
+.gh-title,
+.gh-branch {
+  color: var(--text);
+  text-decoration: none;
+  font-size: 0.78rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: block;
+}
+.gh-branch {
+  font-family: ui-monospace, monospace;
+  color: var(--sig-branch);
+}
+.gh-title:hover,
+.gh-branch:hover {
+  text-decoration: underline;
+}
+.gh-branch-inline {
+  font-family: ui-monospace, monospace;
+  color: var(--sig-branch);
+}
+
+.gh-meta {
+  font-size: 0.64rem;
+  color: var(--text-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-meta.is-running {
+  color: #d29922;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.gh-meta.is-broken {
+  color: #f85149;
+}
+.gh-num {
+  color: var(--text-faint);
+}
+.gh-link {
+  color: var(--accent);
+  text-decoration: none;
+}
+.gh-link:hover {
+  text-decoration: underline;
+}
+
+.gh-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.05rem;
+  white-space: nowrap;
+}
+.gh-date {
+  font-size: 0.64rem;
+  color: var(--text-dim);
+}
+.gh-sub {
+  font-size: 0.6rem;
+  color: var(--text-faint);
+}
+
+.gh-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.62rem;
+  padding: 0.05rem 0.4rem;
+  border-radius: 0.55rem;
+  white-space: nowrap;
+  text-decoration: none;
+}
+.gh-badge.is-pass {
+  background: color-mix(in srgb, #3fb950 18%, transparent);
+  color: var(--sig-ok);
+}
+.gh-badge.is-fail {
+  background: color-mix(in srgb, #f85149 18%, transparent);
+  color: var(--sig-bad);
+}
+.gh-badge.is-pending {
+  background: color-mix(in srgb, #d29922 20%, transparent);
+  color: var(--sig-warn);
+}
+.gh-badge.is-unknown {
+  background: var(--panel-2);
+  color: var(--text-faint);
+}
+a.gh-badge:hover {
+  filter: brightness(1.2);
+}
+
+/* ── Étiquettes de rôle et d'attente ── */
+.gh-tag {
+  font-size: 0.55rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.45rem;
+  white-space: nowrap;
+  flex: none;
+}
+.gh-tag.is-creator {
+  background: color-mix(in srgb, #60a5fa 20%, transparent);
+  color: var(--sig-info);
+}
+.gh-tag.is-contributor {
+  background: color-mix(in srgb, #a78bfa 20%, transparent);
+  color: var(--sig-branch);
+}
+.gh-tag.is-merged {
+  background: var(--panel-2);
+  color: var(--text-faint);
+}
+/* Branche d'un groupe multi-repos sans PR : la pièce manquante du chantier. */
+.gh-tag.is-nopr {
+  background: color-mix(in srgb, #d29922 20%, transparent);
+  color: var(--sig-warn);
+}
+.gh-tag.is-wait-running,
+.gh-tag.is-wait-open {
+  background: color-mix(in srgb, #d29922 20%, transparent);
+  color: var(--sig-warn);
+}
+.gh-tag.is-wait-blocked {
+  background: color-mix(in srgb, #f85149 20%, transparent);
+  color: var(--sig-bad);
+}
+.gh-tag.is-wait-ready {
+  background: color-mix(in srgb, #3fb950 18%, transparent);
+  color: var(--sig-ok);
+}
+
+.gh-who {
+  color: var(--text-faint);
+}
+.gh-chip {
+  display: inline-block;
+  margin-left: 0.2rem;
+  padding: 0 0.25rem;
+  border-radius: 0.4rem;
+  font-family: ui-monospace, monospace;
+  font-size: 0.58rem;
+  background: var(--panel-2);
+  color: var(--text-faint);
+}
+.gh-chip.is-me {
+  background: color-mix(in srgb, #60a5fa 20%, transparent);
+  color: var(--sig-info);
+}
+
+/* ── Séparateurs et versions ── */
+.gh-divider {
+  padding: 0.2rem 0.7rem;
+  font-size: 0.58rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-faint);
+  background: color-mix(in srgb, var(--accent) 5%, transparent);
+  border-top: 1px solid var(--border-soft);
+}
+.gh-version {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.1rem 0.7rem 0.1rem 1.2rem;
+  border-top: 1px dashed var(--border-soft);
+}
+.gh-vtag {
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  font-weight: 600;
+  background: var(--panel-2);
+  border-radius: 0.45rem;
+  padding: 0.05rem 0.4rem;
+  color: var(--text-dim);
+}
+
+/* ── Bandeau de feu vert / rouge ── */
+.gh-gate {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  margin: 0.25rem 0.7rem;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid;
+  border-radius: 0.35rem;
+}
+.gh-gate-icon {
+  font-size: 0.85rem;
+  line-height: 1.2;
+}
+.gh-gate-title {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.gh-gate-detail {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+}
+.gh-gate.is-running {
+  background: color-mix(in srgb, #d29922 10%, transparent);
+  border-color: color-mix(in srgb, #d29922 45%, transparent);
+}
+.gh-gate.is-running .gh-gate-title {
+  color: var(--sig-warn);
+}
+.gh-gate.is-ready {
+  background: color-mix(in srgb, #3fb950 10%, transparent);
+  border-color: color-mix(in srgb, #3fb950 45%, transparent);
+}
+.gh-gate.is-ready .gh-gate-title {
+  color: var(--sig-ok);
+}
+.gh-gate.is-blocked {
+  background: color-mix(in srgb, #f85149 10%, transparent);
+  border-color: color-mix(in srgb, #f85149 45%, transparent);
+}
+.gh-gate.is-blocked .gh-gate-title {
+  color: var(--sig-bad);
+}
+.gh-gate.is-open {
+  background: color-mix(in srgb, #60a5fa 10%, transparent);
+  border-color: color-mix(in srgb, #60a5fa 45%, transparent);
+}
+.gh-gate.is-open .gh-gate-title {
+  color: var(--sig-info);
+}
+
+/* ── Contrôles d'entête ── */
+.gh-user,
+.gh-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.62rem;
+  padding: 0.1rem 0.3rem;
+  cursor: pointer;
+}
+.gh-user:hover,
+.gh-btn:hover {
+  border-color: var(--accent);
+  color: var(--text);
+}
+.gh-btn.is-bell.is-on {
+  border-color: color-mix(in srgb, #3fb950 55%, transparent);
+}
+.gh-btn.is-bell.is-denied,
+.gh-btn.is-bell.is-insecure,
+.gh-btn.is-bell.is-unsupported {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.gh-cleanup {
+  background: none;
+  border: 0;
+  border-top: 1px solid var(--border-soft);
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.62rem;
+  text-align: left;
+  padding: 0.25rem 0.7rem;
+  cursor: pointer;
+}
+.gh-cleanup:hover {
+  color: var(--accent);
+  text-decoration: underline;
+}
+
+.gh-empty {
+  padding: 0.5rem 0.7rem;
+  font-size: 0.66rem;
+  color: var(--text-faint);
+}
+
+.gh-spin {
+  width: 0.5rem;
+  height: 0.5rem;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: gh-pulse 1s ease-in-out infinite;
+  flex: none;
+}
+.gh-dot {
+  width: 0.4rem;
+  height: 0.4rem;
+  border-radius: 50%;
+  background: #d29922;
+  flex: none;
+  animation: gh-pulse 1.2s ease-in-out infinite;
+}
+@keyframes gh-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.3;
+  }
+}
+
+/* ═══ Onglets ════════════════════════════════════════════════════════════════ */
+.tabs {
+  display: flex;
+  gap: 0.25rem;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 500;
+  padding: 0.4rem 0.85rem;
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+.tab:hover {
+  color: var(--text);
+}
+.tab.is-active {
+  color: var(--text);
+  border-bottom-color: #60a5fa;
+}
+
+/* ═══ Onglet GitHub : grille 2×2 ample ══════════════════════════════════════
+   Page dédiée, donc on respire : deux colonnes larges, et la carte Repos prend
+   toute la largeur puisqu'elle contient déjà sa propre grille de tuiles.      */
+.gh-page {
+  /* Autant de colonnes de 560 px que l'écran en contient : 1 sur portable,
+     2 sur un écran courant, 3 à 4 sur un grand écran. Une grille et non des
+     colonnes CSS : les cartes se remplissent en direct, et en colonnes CSS
+     elles sauteraient d'une colonne à l'autre à chaque rafraîchissement. */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(560px, 100%), 1fr));
+  gap: 14px;
+  align-items: start;
+}
+.gh-page > .repos-card {
+  grid-column: 1 / -1;
+}
+
+/* Densité ample : la page dédiée n'a plus besoin de compacter à l'extrême. */
+.gh-page .gh-row {
+  grid-template-columns: 7rem minmax(0, 1fr) auto;
+  gap: 0.7rem;
+  padding: 0.42rem 0.9rem;
+}
+.gh-page .gh-repo {
+  font-size: 0.72rem;
+  padding: 0.1rem 0.4rem;
+}
+.gh-page .gh-title,
+.gh-page .gh-branch {
+  font-size: 0.88rem;
+}
+.gh-page .gh-meta {
+  font-size: 0.73rem;
+  margin-top: 0.12rem;
+}
+.gh-page .gh-badge {
+  font-size: 0.72rem;
+  padding: 0.12rem 0.5rem;
+}
+.gh-page .gh-date {
+  font-size: 0.73rem;
+}
+.gh-page .gh-sub {
+  font-size: 0.68rem;
+}
+.gh-page .gh-tag {
+  font-size: 0.62rem;
+  padding: 0.1rem 0.38rem;
+}
+.gh-page .gh-chip {
+  font-size: 0.66rem;
+  padding: 0.05rem 0.32rem;
+}
+.gh-page .gh-divider {
+  font-size: 0.66rem;
+  padding: 0.35rem 0.9rem;
+}
+.gh-page .gh-version {
+  padding: 0.22rem 0.9rem 0.22rem 1.5rem;
+}
+.gh-page .gh-vtag {
+  font-size: 0.72rem;
+}
+.gh-page .gh-gate {
+  margin: 0.4rem 0.9rem;
+  padding: 0.5rem 0.7rem;
+}
+.gh-page .gh-gate-title {
+  font-size: 0.82rem;
+}
+.gh-page .gh-gate-detail {
+  font-size: 0.72rem;
+}
+.gh-page .gh-empty,
+.gh-page .gh-cleanup {
+  font-size: 0.76rem;
+  padding: 0.5rem 0.9rem;
+}
+.gh-page .gh-user,
+.gh-page .gh-btn {
+  font-size: 0.72rem;
+  padding: 0.15rem 0.4rem;
+}
+
+/* compteurs vivants sur les tuiles de repo */
+.repo-live {
+  display: flex;
+  gap: 0.3rem;
+  margin-top: 0.2rem;
+}
+.repo-stat {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.4rem;
+  padding: 0.02rem 0.32rem;
+}
+.repo-stat.is-wait {
+  color: var(--sig-warn);
+  border-color: color-mix(in srgb, #d29922 40%, transparent);
+}
+.repo-stat.is-fail {
+  color: var(--sig-bad);
+  border-color: color-mix(in srgb, #f85149 40%, transparent);
+}
+

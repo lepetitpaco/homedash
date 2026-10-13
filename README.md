@@ -37,6 +37,7 @@ Au premier lancement, `data/` est créé avec une config minimale. Rien à prép
 docker compose logs -f          # suivre les logs
 docker compose down             # arrêter (les données restent dans data/)
 docker compose up -d --build    # reconstruire après une mise à jour du code
+python3 -m unittest discover -s tests -t .   # tests (Python 3.9+, git pour ceux de gitread)
 ```
 
 Le conteneur redémarre tout seul avec Docker (`restart: always`).
@@ -61,7 +62,10 @@ Pour suivre plusieurs comptes GitHub, ce n'est pas nécessaire : une instance g�
   n'est lancée : les `.git` sont relus directement, fichier par fichier.
 - Le port n'écoute que sur `127.0.0.1`. La config est modifiable depuis la page et peut contenir des
   mots de passe (panneau Infos) : pour l'ouvrir au réseau, remplace `127.0.0.1:${HOMEDASH_PORT:-7777}:80`
-  par `${HOMEDASH_PORT:-7777}:80` dans `docker-compose.yml`, en connaissance de cause.
+  par `${HOMEDASH_PORT:-7777}:80` dans `docker-compose.yml` **et** déclare les noms utilisés pour y
+  accéder : `HOMEDASH_HOSTS=homedash.lan,192.168.1.20 docker compose up -d`.
+- Le serveur refuse toute requête dont l'hôte n'est pas reconnu, et toute écriture venue d'un autre site :
+  une page web ouverte dans ton navigateur ne peut ni lire ni modifier homedash.
 
 ## Documentation
 

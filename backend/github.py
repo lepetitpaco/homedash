@@ -18,7 +18,6 @@ import urllib.request
 from collections import OrderedDict, defaultdict
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
-from pathlib import Path
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import events
@@ -34,7 +33,7 @@ except ZoneInfoNotFoundError:
 
 # ── Configuration (clé "github" de config.json) ───────────────────────────────
 DEFAULTS = {
-    "org": "", "me": "", "repos": [], "branch_repos": [], "base_site_repos": [],
+    "me": "", "repos": [], "branch_repos": [], "base_site_repos": [],
     "upstream_repo": "base-site", "renovate_author": "renovate[bot]",
     "users": [], "merged_count": 10, "cache_ttl": 120, "auto_refresh": 15,
 }
@@ -57,10 +56,9 @@ def configure(github_cfg):
             CFG["users"] = [CFG["me"]] if CFG.get("me") else []
         # `users` accepte l'ancien format {login: prefix} comme le nouveau [login]
         CFG["users"] = list(CFG["users"])
-        # Un repo hors de l'org s'écrit `propriétaire/repo` (projets perso, autre
-        # org). Partout ailleurs le repo reste désigné par son seul nom — c'est la
-        # clé que l'onglet Local retrouve dans l'URL de son remote — et `owner()`
-        # rend le propriétaire au moment de l'appel.
+        # Chaque repo s'écrit `propriétaire/repo`. Partout ailleurs il reste
+        # désigné par son seul nom — c'est la clé que l'onglet Local retrouve dans
+        # l'URL de son remote — et `owner()` rend le propriétaire à l'appel.
         _OWNERS.clear()
         for key in ("repos", "branch_repos", "base_site_repos"):
             names = []
@@ -77,12 +75,16 @@ def configure(github_cfg):
             own, _, name = up.rpartition("/")
             _OWNERS[name] = own
             CFG["upstream_repo"] = name
+        # Socle laissé au défaut (`base-site`) : il vit chez le propriétaire de
+        # ses repos dérivés.
+        name = CFG.get("upstream_repo")
+        if name and name not in _OWNERS and CFG.get("base_site_repos"):
+            _OWNERS[name] = _OWNERS.get(CFG["base_site_repos"][0], "")
 
 def owner(repo, hint=None):
     """Propriétaire d'un repo : celui écrit dans la config (`propriétaire/repo`),
-    sinon celui du remote local (`hint`), sinon l'ancienne clé `org` — les
-    configs d'avant le format complet n'ont que des noms courts."""
-    return _OWNERS.get(repo) or hint or CFG.get("org") or ""
+    sinon celui du remote local (`hint`)."""
+    return _OWNERS.get(repo) or hint or ""
 
 def enabled():
     # Plus d'organisation obligatoire : chaque repo porte son propriétaire.
@@ -94,7 +96,7 @@ def enabled():
 # ici ne sait qu'il existe d'autres comptes ; c'est `accounts` qui donne le
 # jeton (`apply_token`) et route les requêtes.
 _TOKEN = None
-_SOURCE = None                    # "ui" | "env" | None
+_SOURCE = None                    # "ui" | None
 ACCOUNT = {"id": "main", "label": ""}
 
 def apply_token(value, source):
@@ -116,17 +118,6 @@ def token():
 
 def token_source():
     return _SOURCE
-
-def _find_token():
-    for var in ("GH_TOKEN", "GITHUB_TOKEN"):
-        if os.environ.get(var):
-            return os.environ[var].strip()
-    path = Path(__file__).resolve().parent.parent / ".env"
-    if path.exists():
-        for line in path.read_text().splitlines():
-            if line.startswith(("GH_TOKEN=", "GITHUB_TOKEN=")):
-                return line.split("=", 1)[1].strip().strip('"').strip("'") or None
-    return None
 
 def probe(path, tok, params=None):
     """(statut, contenu, en-têtes) sans cache — pour la page Réglages, qui a
@@ -956,7 +947,6 @@ def payload(token):
 
     return {
         "enabled":    True,
-        "org":        CFG.get("org", ""),
         "user":       user,
         "users":      CFG.get("users", []),
         "updated_at": ts,

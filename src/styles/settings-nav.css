@@ -1,0 +1,120 @@
+/* ═══ Réglages : menu de navigation + barre d'enregistrement fixe ══════════ */
+.settings-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+/* Une seule colonne de cartes : avec un menu, l'œil descend au lieu de zigzaguer. */
+.settings-layout .settings-page {
+  grid-template-columns: minmax(0, 1fr);
+}
+/* Cartes en colonnes façon maçonnerie : leurs hauteurs sont très inégales
+   (Repos suivis est longue, Sauvegardes courte), une grille laisserait des
+   trous. Contenu statique, donc pas de cartes qui sautent. */
+.set-cards {
+  column-width: 520px;
+  column-gap: 14px;
+}
+.set-cards > .card {
+  break-inside: avoid;
+  width: 100%;
+  margin: 0 0 14px;
+}
+.settings-layout .set-card {
+  scroll-margin-top: calc(var(--topbar-h, 0px) + 16px);
+}
+.set-nav {
+  position: sticky;
+  top: calc(var(--topbar-h, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.set-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 0.35rem 0.35rem 0;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.4rem 0.6rem;
+  text-align: left;
+}
+.set-nav-item:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.set-nav-item.is-active {
+  color: var(--text);
+  border-left-color: #60a5fa;
+  background: color-mix(in srgb, #60a5fa 10%, transparent);
+}
+@media (max-width: 860px) {
+  .settings-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .set-nav {
+    flex-direction: row;
+    overflow-x: auto;
+    top: var(--topbar-h, 0px);
+    z-index: 5;
+    background: var(--bg, var(--panel));
+    padding: 4px 0;
+  }
+  .set-nav-item {
+    border-left: 0;
+    border-bottom: 2px solid transparent;
+    border-radius: 0.35rem 0.35rem 0 0;
+    white-space: nowrap;
+  }
+  .set-nav-item.is-active {
+    border-bottom-color: #60a5fa;
+  }
+}
+/* Barre d'enregistrement : toujours à portée, discrète tant que rien n'a changé. */
+.settings-layout .set-actions {
+  position: sticky;
+  bottom: 12px;
+  z-index: 6;
+  align-items: center;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: var(--panel);
+  box-shadow: 0 10px 30px -12px rgb(0 0 0 / 0.5);
+}
+.set-actions-note {
+  flex: 1;
+  font-size: 0.74rem;
+  color: var(--text-faint);
+}
+.set-actions .set-save:disabled,
+.set-actions .set-cancel:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+.set-actions .set-save:disabled {
+  background: var(--panel-2);
+  border-color: var(--border);
+  color: var(--text-faint);
+}
+.set-actions.is-dirty {
+  border-color: color-mix(in srgb, #fbbf24 60%, transparent);
+  background: color-mix(in srgb, #fbbf24 8%, var(--panel));
+}
+.set-actions.is-dirty .set-actions-note {
+  color: var(--sig-warn);
+  font-weight: 600;
+}
+.set-actions.is-dirty .set-save {
+  font-size: 0.84rem;
+  padding: 0.38rem 1rem;
+  box-shadow: 0 0 0 3px color-mix(in srgb, #2a8a50 35%, transparent);
+}
+

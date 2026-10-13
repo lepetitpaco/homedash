@@ -1,0 +1,15 @@
+/* Feuilles de style, dans l'ordre de la cascade : chaque fichier est une
+   tranche contiguë de l'ancien styles.css, ne pas réordonner. */
+@import './base.css';
+@import './links.css';
+@import './ui.css';
+@import './github.css';
+@import './settings-page.css';
+@import './github-bar.css';
+@import './local.css';
+@import './events.css';
+@import './settings.css';
+@import './confirm.css';
+@import './settings-nav.css';
+@import './accounts.css';
+@import './bell.css';

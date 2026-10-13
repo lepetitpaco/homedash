@@ -1,0 +1,348 @@
+/* ═══ Onglet Local : dépôts git du disque ═════════════════════════════════════
+   Même grammaire visuelle que les cartes GitHub (.gh-*) : c'est la même lecture,
+   d'un côté le distant, de l'autre le disque. Seules les commandes à copier et
+   l'avertissement « lecture seule » ont besoin de leurs propres règles.        */
+.loc-warning {
+  margin: 0 0 12px;
+  padding: 0.4rem 0.7rem;
+  border: 1px solid var(--border-soft);
+  border-radius: 0.45rem;
+  background: var(--panel);
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+.loc-warning code {
+  font-size: 0.7rem;
+  color: var(--text-dim);
+}
+
+.loc-head-tags {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+  flex-wrap: wrap;
+}
+.loc-head {
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--sig-branch);
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.3rem;
+  padding: 0.02rem 0.32rem;
+  max-width: 16rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.loc-sub {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.7rem;
+  padding: 0.2rem 0.9rem 0.35rem;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  font-family: ui-monospace, monospace;
+  border-bottom: 1px solid var(--border-soft);
+}
+.loc-sub > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.loc-stale {
+  color: var(--sig-warn);
+}
+
+/* La branche courante n'est pas une ligne comme les autres : c'est celle sur
+   laquelle la prochaine commande tapée s'appliquera. */
+.gh-row.is-current {
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
+.gh-badge.is-ok {
+  background: color-mix(in srgb, #3fb950 18%, transparent);
+  color: var(--sig-ok);
+}
+.gh-badge.is-warn {
+  background: color-mix(in srgb, #d29922 20%, transparent);
+  color: var(--sig-warn);
+}
+.gh-badge.is-danger {
+  background: color-mix(in srgb, #f85149 18%, transparent);
+  color: var(--sig-bad);
+}
+.gh-badge.is-info {
+  background: color-mix(in srgb, #60a5fa 18%, transparent);
+  color: var(--sig-info);
+}
+.gh-badge.is-mute {
+  background: var(--panel-2);
+  color: var(--text-faint);
+}
+
+.loc-num.is-ok {
+  color: var(--sig-ok);
+}
+.loc-num.is-warn {
+  color: var(--sig-warn);
+}
+.loc-num.is-danger {
+  color: var(--sig-bad);
+}
+
+/* ── Commandes proposées ──────────────────────────────────────────────────────
+   Volontairement du texte à copier, jamais un bouton qui exécute : la page lit
+   des dépôts, elle ne les touche pas. Le monospace et le fond distinct disent
+   qu'on quitte l'affichage pour entrer dans ce qu'on va taper soi-même.        */
+.loc-cmds {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.5rem 0.9rem 0.7rem;
+  border-top: 1px solid var(--border-soft);
+}
+.loc-cmd {
+  border: 1px solid var(--border-soft);
+  border-radius: 0.4rem;
+  padding: 0.4rem 0.5rem;
+  background: var(--panel-2);
+}
+.loc-cmd.is-danger {
+  border-color: color-mix(in srgb, #f85149 45%, var(--border));
+  background: color-mix(in srgb, #f85149 7%, var(--panel-2));
+}
+.loc-cmd-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.3rem;
+}
+.loc-cmd-label {
+  font-size: 0.74rem;
+  color: var(--text);
+  font-weight: 600;
+}
+.loc-cmd.is-danger .loc-cmd-label {
+  color: var(--sig-bad);
+}
+.loc-cmd-line {
+  display: block;
+  font-family: ui-monospace, monospace;
+  font-size: 0.72rem;
+  color: var(--sig-info);
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.3rem;
+  padding: 0.3rem 0.4rem;
+  overflow-x: auto;
+  white-space: pre;
+  user-select: all;
+}
+.loc-cmd-hint {
+  margin: 0.3rem 0 0;
+  font-size: 0.68rem;
+  color: var(--text-faint);
+  line-height: 1.35;
+}
+
+.loc-copy {
+  flex: none;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.68rem;
+  padding: 0.1rem 0.35rem;
+  cursor: pointer;
+}
+.loc-copy:hover {
+  border-color: #60a5fa;
+  color: var(--text);
+}
+.loc-copy.is-copied {
+  border-color: color-mix(in srgb, #3fb950 55%, transparent);
+  color: var(--sig-ok);
+}
+
+/* Les commandes globales ne sont pas dans une carte : elles précèdent la grille. */
+.loc-cmds.is-global {
+  padding: 0;
+  border-top: 0;
+  margin-bottom: 12px;
+}
+
+/* ── Onglet Local : la conclusion avant le détail ─────────────────────────────
+   Trois colonnes : ce qu'il faut faire, ce que c'est, où ça en est. La première
+   est la seule qu'on lit quand on parcourt vingt-cinq branches, donc elle est
+   large, colorée, et ne porte qu'un verdict — la justification est en infobulle. */
+.loc-row {
+  grid-template-columns: 8.2rem minmax(0, 1fr) auto;
+  align-items: start;
+  padding: 0.42rem 0.9rem;
+  gap: 0.7rem;
+}
+.loc-action {
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 0.3rem;
+  padding: 0.1rem 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: help;
+  border: 1px solid transparent;
+}
+.loc-action.is-delete {
+  background: color-mix(in srgb, #3fb950 16%, transparent);
+  border-color: color-mix(in srgb, #3fb950 40%, transparent);
+  color: var(--sig-ok);
+}
+.loc-action.is-keep {
+  background: color-mix(in srgb, #f85149 14%, transparent);
+  border-color: color-mix(in srgb, #f85149 45%, transparent);
+  color: var(--sig-bad);
+}
+.loc-action.is-current {
+  background: color-mix(in srgb, #60a5fa 16%, transparent);
+  border-color: color-mix(in srgb, #60a5fa 40%, transparent);
+  color: var(--sig-info);
+}
+.loc-action.is-ref,
+.loc-action.is-work {
+  background: var(--panel-2);
+  color: var(--text-faint);
+}
+
+/* Le liseré reprend la couleur du verdict : la colonne se lit même en survolant
+   la page trop vite pour lire les mots. */
+.loc-row.is-delete {
+  box-shadow: inset 3px 0 0 #3fb950;
+}
+.loc-row.is-keep {
+  box-shadow: inset 3px 0 0 #f85149;
+  background: color-mix(in srgb, #f85149 5%, transparent);
+}
+.loc-row.is-current {
+  box-shadow: inset 3px 0 0 #60a5fa;
+}
+
+/* « Où vit ce contenu ? » — collé au nom de la branche, c'est la justification
+   du verdict de gauche. */
+.loc-safe {
+  flex: none;
+  font-size: 0.63rem;
+  padding: 0.02rem 0.3rem;
+  border-radius: 0.4rem;
+  cursor: help;
+  white-space: nowrap;
+}
+.loc-safe.is-merged,
+.loc-safe.is-squash {
+  background: color-mix(in srgb, #3fb950 15%, transparent);
+  color: var(--sig-ok);
+}
+.loc-safe.is-pushed {
+  background: color-mix(in srgb, #60a5fa 16%, transparent);
+  color: var(--sig-info);
+}
+.loc-safe.is-partial {
+  background: color-mix(in srgb, #d29922 20%, transparent);
+  color: var(--sig-warn);
+}
+.loc-safe.is-local {
+  background: color-mix(in srgb, #f85149 18%, transparent);
+  color: var(--sig-bad);
+}
+
+.loc-flag {
+  font-family: ui-monospace, monospace;
+  font-size: 0.62rem;
+  color: var(--text-faint);
+  background: var(--panel-2);
+  border-radius: 0.25rem;
+  padding: 0 0.22rem;
+}
+
+.gh-tag.is-safe {
+  background: color-mix(in srgb, #3fb950 16%, transparent);
+  color: var(--sig-ok);
+}
+
+.loc-lock {
+  display: inline-block;
+  margin-right: 0.45rem;
+  padding: 0.02rem 0.35rem;
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, #3fb950 16%, transparent);
+  border: 1px solid color-mix(in srgb, #3fb950 40%, transparent);
+  color: var(--sig-ok);
+  font-weight: 600;
+}
+
+/* « à vérifier » : git *peut* la supprimer, mais rien ne dit qu'il le faut.
+   Ni le vert de « à supprimer », ni le rouge de « à garder ». */
+.loc-action.is-check {
+  background: color-mix(in srgb, #d29922 18%, transparent);
+  border-color: color-mix(in srgb, #d29922 45%, transparent);
+  color: var(--sig-warn);
+}
+.loc-row.is-check {
+  box-shadow: inset 3px 0 0 #d29922;
+}
+
+/* ── Rappel de ménage local ───────────────────────────────────────────────────
+   Trois points d'appel, du plus discret au plus contextuel : la pastille de
+   l'onglet (visible partout), le bouton de la barre GitHub (visible quand on
+   relit ses PRs) et la puce sur la PR mergée elle-même (visible au moment exact
+   où la branche vient de devenir inutile). Tous mènent au même endroit.       */
+.tab-badge {
+  margin-left: 0.35rem;
+  min-width: 1.05rem;
+  padding: 0 0.28rem;
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, #3fb950 22%, transparent);
+  border: 1px solid color-mix(in srgb, #3fb950 45%, transparent);
+  color: var(--sig-ok);
+  font-size: 0.66rem;
+  font-weight: 700;
+  line-height: 1.15rem;
+  display: inline-block;
+  text-align: center;
+}
+
+.gh-bar-btn.is-cleanup {
+  background: color-mix(in srgb, #3fb950 14%, transparent);
+  border-color: color-mix(in srgb, #3fb950 45%, transparent);
+  color: var(--sig-ok);
+  font-weight: 600;
+}
+.gh-bar-btn.is-cleanup:hover {
+  background: color-mix(in srgb, #3fb950 24%, transparent);
+}
+
+/* Chip et non lien souligné : la ligne du dessus est un gros lien vers la PR, et
+   une cible d'une ligne de texte se rate d'un pixel. Fond + bordure + padding
+   donnent une zone cliquable franche et disent que ça n'ouvre pas GitHub. */
+.gh-broom {
+  display: inline-block;
+  margin: 0.05rem 0;
+  padding: 0.08rem 0.4rem;
+  border: 1px solid color-mix(in srgb, #3fb950 40%, transparent);
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, #3fb950 14%, transparent);
+  font: inherit;
+  font-size: 0.68rem;
+  color: var(--sig-ok);
+  cursor: pointer;
+  vertical-align: baseline;
+}
+.gh-broom:hover {
+  background: color-mix(in srgb, #3fb950 26%, transparent);
+  border-color: color-mix(in srgb, #3fb950 65%, transparent);
+}
+

@@ -12,6 +12,7 @@ export type BranchState =
   | 'diverged'
   | 'unpushed'
   | 'behind'
+  | 'unknown'
   | 'ok'
   | 'protected'
 
