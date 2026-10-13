@@ -51,7 +51,7 @@ Notifications bureau : **désactivées par défaut**, à activer en bas du panne
 
 ## ⚙ Réglages
 
-Les modifications s'enregistrent avec **Enregistrer** (`⌘S`). La barre du bas signale ce qui n'est pas
+Le menu de gauche affiche une partie à la fois. Les modifications s'enregistrent avec **Enregistrer** (`⌘S`), toutes parties confondues. La barre du bas signale ce qui n'est pas
 enregistré.
 
 | Partie | Ce qu'on y fait |
@@ -61,7 +61,7 @@ enregistré.
 | 🐙 Onglet GitHub | Fréquence de rafraîchissement, carte Renovate |
 | 💻 Dépôts locaux | Dossiers où chercher tes clones |
 | 💾 Sauvegardes | Instantané, export, restauration (l'état actuel est toujours sauvegardé avant) |
-| 🎛 Affichage | Thème, horloge, notifications, mise en page : largeur de la page (% de l'écran), colonnes GitHub / Local et Réglages (0 = auto) |
+| 🎛 Affichage | Thème, horloge, notifications, mise en page : largeur de la page (% de l'écran), colonnes GitHub / Local (0 = auto) |
 
 Un seul jeton voit ton compte **et** tes organisations : un second compte ne sert que pour un autre
 compte GitHub.

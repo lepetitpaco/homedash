@@ -16,6 +16,7 @@ import {
   type NotifState,
 } from '../lib/notifications'
 import { DEFAULT_UI, GH_TOKENS } from '../lib/config'
+import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import type { Config, RepoItem } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
@@ -34,7 +35,10 @@ const NOTIF_LABEL: Record<NotifState, string> = {
   on: 'Actives',
 }
 
-/** Parties de la page, dans l'ordre : le menu de gauche y mène. */
+/** Parties qui règlent un compte GitHub : la barre de choix du compte s'affiche au-dessus. */
+const ACCOUNT_SECTIONS: string[] = ['set-account', 'set-repos', 'set-ghtab']
+
+/** Parties de la page, dans l'ordre : le menu de gauche affiche l'une ou l'autre. */
 const SECTIONS = [
   { id: 'set-account', icon: '🔑', label: 'Compte & équipe' },
   { id: 'set-repos', icon: '📦', label: 'Repos suivis' },
@@ -48,7 +52,7 @@ const SECTIONS = [
 const DISPLAY_FIELDS: {
   title: string
   fields: {
-    key: 'maxTiles' | 'linkWidth' | 'railWidth' | 'sidebarWidth' | 'healthcheckInterval' | 'pageWidth' | 'cardColumns' | 'cardWidth' | 'settingsColumns'
+    key: 'maxTiles' | 'linkWidth' | 'railWidth' | 'sidebarWidth' | 'healthcheckInterval' | 'pageWidth' | 'cardColumns' | 'cardWidth'
     label: string
     unit?: string
     hint: string
@@ -70,7 +74,6 @@ const DISPLAY_FIELDS: {
       { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran' },
       { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
       { key: 'cardWidth', label: 'Largeur mini d’une carte', unit: 'px', hint: 'avec colonnes à 0 : en dessous, une carte passe à la ligne' },
-      { key: 'settingsColumns', label: 'Colonnes des Réglages', hint: 'nombre de colonnes de cette page — 0 = selon la largeur' },
     ],
   },
 ]
@@ -179,38 +182,22 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   // « User » sont des collaborateurs croisés sur un repo, pas des comptes à lister.
   const accounts = useMemo(() => owners.filter((o, i) => i === 0 || o.type === 'Organization'), [owners])
 
-  // Partie visible : surlignée dans le menu. La bande d'observation est le haut
-  // de l'écran, là où l'œil lit — pas le milieu, sinon une carte courte en bas
-  // de page ne serait jamais « active ».
   const cleanedRef = useRef<(c: Config) => Config>((c) => c)
-  const [active, setActive] = useState<string>(SECTIONS[0].id)
-  // Après un clic dans le menu, on garde son choix le temps du défilement : en
-  // colonnes, plusieurs cartes sont visibles à la fois et l'observateur
-  // reprendrait sinon celle de la première colonne.
-  const pinned = useRef(0)
-  useEffect(() => {
-    if (!draft) return
-    const seen = new Map<string, boolean>()
-    const io = new IntersectionObserver(
-      (entries) => {
-        for (const e of entries) seen.set(e.target.id, e.isIntersecting)
-        if (Date.now() < pinned.current) return
-        const first = SECTIONS.find((sec) => seen.get(sec.id))
-        if (first) setActive(first.id)
-      },
-      { rootMargin: '-15% 0px -60% 0px' },
-    )
-    for (const sec of SECTIONS) {
-      const el = document.getElementById(sec.id)
-      if (el) io.observe(el)
+  // Une seule partie à l'écran ; le menu de gauche passe de l'une à l'autre.
+  // Mémorisée : on revient là où on réglait.
+  const [active, setActive] = useState<string>(() => {
+    try {
+      const saved = localStorage.getItem(SECTION_KEY)
+      if (SECTIONS.some((sec) => sec.id === saved)) return saved as string
+    } catch {
+      /* stockage indisponible */
     }
-    return () => io.disconnect()
-  }, [!!draft])
-
+    return SECTIONS[0].id
+  })
   const jump = (id: string) => {
     setActive(id)
-    pinned.current = Date.now() + 1000
-    document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    window.scrollTo({ top: 0 })
+    presetSettingsSection(id)
   }
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(config), [draft, config])
@@ -413,6 +400,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
       </nav>
 
       <div className="settings-page">
+        {ACCOUNT_SECTIONS.includes(active) ? (
         <div className="set-accounts">
           <span className="set-accounts-title">Compte GitHub</span>
           {accList.map((a) => {
@@ -454,12 +442,14 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             </span>
           )}
           <span className="set-hint set-accounts-hint">
-            Les trois cartes suivantes règlent ce compte. Chaque compte a son jeton et est suivi en
+            Ce que tu règles ici concerne ce compte. Chaque compte a son jeton et est suivi en
             parallèle ; l'onglet GitHub choisit lequel il affiche.
           </span>
         </div>
+        ) : null}
 
         <div className="set-cards">
+        {active === 'set-account' ? (
         <Card id="set-account" icon="🔑" title={`Compte & équipe · ${labelOf(gh)}`}>
           <div className="set-grid">
             <label className="set-field">
@@ -494,7 +484,9 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             </div>
           ) : null}
         </Card>
+        ) : null}
 
+        {active === 'set-repos' ? (
         <Card id="set-repos" icon="📦" title={`Repos suivis · ${labelOf(gh)}`}>
           <SetRepos
             account={selId}
@@ -506,7 +498,9 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             onRemove={untrack}
           />
         </Card>
+        ) : null}
 
+        {active === 'set-ghtab' ? (
         <Card id="set-ghtab" icon="🐙" title={`Onglet GitHub · ${labelOf(gh)}`}>
           <div className="set-grid">
             <label className="set-field">
@@ -546,7 +540,9 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             onWatched={(base_site_repos) => patchGh({ base_site_repos })}
           />
         </Card>
+        ) : null}
 
+        {active === 'set-local' ? (
         <Card id="set-local" icon="💻" title="Dépôts locaux">
           <SetLocal
             roots={local.roots ?? []}
@@ -555,11 +551,15 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             onMaxDepth={(max_depth) => patchLocal({ max_depth })}
           />
         </Card>
+        ) : null}
 
+        {active === 'set-backups' ? (
         <Card id="set-backups" icon="💾" title="Sauvegardes">
           <SetBackups />
         </Card>
+        ) : null}
 
+        {active === 'set-display' ? (
         <Card id="set-display" icon="🎛" title="Affichage">
           {DISPLAY_FIELDS.map((section) => (
             <div key={section.title}>
@@ -646,6 +646,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             ))}
           </div>
         </Card>
+        ) : null}
         </div>
 
         <div className={`set-actions${dirty ? ' is-dirty' : ''}`}>

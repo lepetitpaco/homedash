@@ -12,15 +12,11 @@
 /* Cartes en colonnes façon maçonnerie : leurs hauteurs sont très inégales
    (Repos suivis est longue, Sauvegardes courte), une grille laisserait des
    trous. Contenu statique, donc pas de cartes qui sautent. */
-.set-cards {
-  /* `columns` prend un nombre (Réglages → Affichage) ou une largeur (auto). */
-  columns: var(--set-cols, 520px);
-  column-gap: 14px;
-}
+/* Une partie à la fois : la carte prend la largeur, sans dépasser ce qui reste
+   lisible pour des formulaires. */
 .set-cards > .card {
-  break-inside: avoid;
-  width: 100%;
   margin: 0 0 14px;
+  max-width: 1400px;
 }
 .settings-layout .set-card {
   scroll-margin-top: calc(var(--topbar-h, 0px) + 16px);
@@ -119,9 +115,3 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, #2a8a50 35%, transparent);
 }
 
-
-@media (max-width: 900px) {
-  .set-cards {
-    columns: 1;
-  }
-}

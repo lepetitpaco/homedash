@@ -23,7 +23,6 @@ export const DEFAULT_UI: UiConfig = {
   pageWidth: 100,
   cardColumns: 0,
   cardWidth: 560,
-  settingsColumns: 0,
   healthcheckInterval: 60,
   healthcheckTimeout: 4000,
   defaultColor: '#7c8698',

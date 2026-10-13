@@ -105,8 +105,6 @@ export type UiConfig = {
   cardColumns: number
   /** Largeur mini d'une carte GitHub / Local quand les colonnes sont automatiques. */
   cardWidth: number
-  /** Colonnes de la page Réglages ; 0 = automatique. */
-  settingsColumns: number
   healthcheckInterval: number
   healthcheckTimeout: number
   defaultColor: string

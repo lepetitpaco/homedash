@@ -25,6 +25,7 @@ import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { setUnread } from './lib/notifications'
+import { presetSettingsSection } from './lib/settingsNav'
 import type { FlatLink, UiConfig } from './types'
 
 export default function App() {
@@ -231,12 +232,21 @@ export default function App() {
           error={local.error}
           busy={local.busy}
           onRefresh={local.refresh}
-          onSettings={() => selectTab('settings')}
+          onSettings={() => {
+            presetSettingsSection('set-local')
+            selectTab('settings')
+          }}
         />
       ) : view === 'settings' ? (
         <SettingsPage config={raw} onSave={persist} onReload={reload} saving={saveState.kind === 'saving'} />
       ) : view === 'github' ? (
-        <GithubView ctx={ctx} onSettings={() => selectTab('settings')} />
+        <GithubView
+          ctx={ctx}
+          onSettings={() => {
+            presetSettingsSection('set-account')
+            selectTab('settings')
+          }}
+        />
       ) : (
         <>
           <QuickTiles
@@ -341,6 +351,5 @@ function layoutVars(ui: UiConfig): React.CSSProperties {
     ['--link-w' as string]: `${ui.linkWidth}px`,
     ['--page-max' as string]: ui.pageWidth > 0 && ui.pageWidth < 100 ? `${ui.pageWidth}%` : 'none',
     ['--cards-cols' as string]: ui.cardColumns > 0 ? `repeat(${ui.cardColumns}, minmax(0, 1fr))` : auto,
-    ['--set-cols' as string]: ui.settingsColumns > 0 ? String(ui.settingsColumns) : '520px',
   }
 }
