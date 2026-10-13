@@ -175,3 +175,11 @@
     order: -1;
   }
 }
+.sp-divider {
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border-soft);
+}
+.sp-plain li {
+  padding: 0.2rem 0.5rem;
+  font-size: 0.82rem;
+}

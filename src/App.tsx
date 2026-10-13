@@ -92,11 +92,14 @@ export default function App() {
     cfg,
     links,
     notes,
+    gh: gh.data?.enabled ? gh.data : null,
+    local: local.data,
     searchRef,
     paused: !!menus.draft,
     track,
     copy,
     openNote: setOpenNoteId,
+    openLocal,
   })
 
   // --- rendu ---------------------------------------------------------------
@@ -224,6 +227,11 @@ export default function App() {
           counts={counts}
           gh={gh.data?.enabled ? gh.data : null}
           repos={cfg.repos}
+          local={local.data}
+          onOpenLocal={() => {
+            search.setQuery('')
+            openLocal()
+          }}
           copy={copy}
           onActivate={search.activate}
           onHover={search.setActiveIndex}

@@ -1,5 +1,6 @@
 import { noteTitle, notePreview, type Note } from '../lib/notes'
-import type { GithubData } from '../lib/ghboard'
+import type { Branch, GithubData, Pr } from '../lib/ghboard'
+import type { LocalData, LocalRepo } from '../lib/local'
 import type { FlatLink, Health, InfoGroup, InfoItem, RepoItem, ReposConfig } from '../types'
 import Favicon from './Favicon'
 import SearchPreview from './SearchPreview'
@@ -7,6 +8,9 @@ import SearchPreview from './SearchPreview'
 export type Hit =
   | { kind: 'link'; key: string; link: FlatLink }
   | { kind: 'repo'; key: string; repo: RepoItem; owner: string }
+  | { kind: 'pr'; key: string; pr: Pr; merged: boolean }
+  | { kind: 'branch'; key: string; branch: Branch }
+  | { kind: 'local'; key: string; local: LocalRepo }
   | { kind: 'info'; key: string; group: InfoGroup; item: InfoItem }
   | { kind: 'note'; key: string; note: Note }
 
@@ -25,6 +29,8 @@ type Props = {
   counts: Record<string, number>
   gh: GithubData | null
   repos: ReposConfig | undefined
+  local: LocalData | null
+  onOpenLocal: () => void
   copy: (key: string, value: string) => Promise<void>
   onActivate: (hit: Hit) => void
   onHover: (index: number) => void
@@ -45,6 +51,8 @@ export default function SearchResults({
   counts,
   gh,
   repos,
+  local,
+  onOpenLocal,
   copy,
   onActivate,
   onHover,
@@ -128,6 +136,57 @@ export default function SearchResults({
             )
           }
 
+          if (hit.kind === 'pr' || hit.kind === 'branch') {
+            const isPr = hit.kind === 'pr'
+            const url = isPr ? hit.pr.url : hit.branch.url
+            const repo = isPr ? hit.pr.repo : hit.branch.repo
+            const color = isPr ? '#60a5fa' : '#3fb950'
+            return (
+              <a
+                key={hit.key}
+                {...common}
+                href={url}
+                target="_blank"
+                rel="noreferrer"
+                onClick={() => onActivate(hit)}
+              >
+                <span className="favicon monogram" style={{ background: `${color}22`, color }}>
+                  {isPr ? '🔀' : '🌿'}
+                </span>
+                <span className="result-main">
+                  <span className="result-name">
+                    {isPr ? `#${hit.pr.number} ${hit.pr.title}` : hit.branch.name}
+                  </span>
+                  <span className="result-sub">{repo}</span>
+                </span>
+                <span className="chip" style={{ borderColor: `${color}55`, color }}>
+                  {isPr ? (hit.merged ? 'PR mergée' : 'PR') : 'branche'}
+                </span>
+              </a>
+            )
+          }
+
+          if (hit.kind === 'local') {
+            const color = '#94a3b8'
+            return (
+              <button key={hit.key} {...common} onClick={() => onActivate(hit)}>
+                <span className="favicon monogram" style={{ background: `${color}22`, color }}>
+                  💻
+                </span>
+                <span className="result-main">
+                  <span className="result-name">{hit.local.name}</span>
+                  <span className="result-sub">
+                    {hit.local.display}
+                    {hit.local.head ? ` · ${hit.local.head}` : ''}
+                  </span>
+                </span>
+                <span className="chip" style={{ borderColor: `${color}55`, color }}>
+                  local
+                </span>
+              </button>
+            )
+          }
+
           if (hit.kind === 'info') {
             const masked = hit.item.secret && !revealSecrets
             const color = hit.group.color ?? infoColor
@@ -179,6 +238,8 @@ export default function SearchResults({
         counts={counts}
         gh={gh}
         repos={repos}
+        local={local}
+        onOpenLocal={onOpenLocal}
         copiedKey={copiedKey}
         infoColor={infoColor}
         noteColor={noteColor}

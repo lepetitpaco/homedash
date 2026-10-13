@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import type { Hit } from '../components/SearchResults'
 import type { Normalized } from '../lib/config'
+import type { GithubData } from '../lib/ghboard'
+import type { LocalData } from '../lib/local'
 import type { Note } from '../lib/notes'
 import { rank } from '../lib/search'
 import type { FlatLink } from '../types'
@@ -9,16 +11,32 @@ type Options = {
   cfg: Normalized | null
   links: FlatLink[]
   notes: Note[]
+  /** Compte GitHub affiché : ses PRs et branches sont cherchables. */
+  gh: GithubData | null
+  local: LocalData | null
   searchRef: RefObject<HTMLInputElement | null>
   /** Une modale est ouverte : le clavier lui appartient. */
   paused: boolean
   track: (id: string) => void
   copy: (key: string, value: string) => Promise<void>
   openNote: (id: string) => void
+  openLocal: () => void
 }
 
-/** Recherche unifiée (liens, repos, infos, notes) et ses raccourcis clavier. */
-export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, openNote }: Options) {
+/** Recherche unifiée (liens, repos, PRs, branches, dépôts locaux, infos, notes) et ses raccourcis clavier. */
+export function useSearch({
+  cfg,
+  links,
+  notes,
+  gh,
+  local,
+  searchRef,
+  paused,
+  track,
+  copy,
+  openNote,
+  openLocal,
+}: Options) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
 
@@ -66,6 +84,45 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
       10,
     ).map(({ repo, owner }) => ({ kind: 'repo', key: `repo:${owner}/${repo.name}`, repo, owner }))
 
+    // Un dépôt local qui porte le nom d'un repo de la carte Repos est montré DANS
+    // la carte de ce repo (côté GitHub + côté disque) : pas de doublon.
+    const repoNames = new Set(repoItems.map(({ repo }) => repo.name.toLowerCase()))
+    const localHits: Hit[] = rank(
+      (local?.repos ?? []).filter((r) => !repoNames.has((r.repo ?? r.name).toLowerCase())),
+      (r) => [
+        [r.name, 1],
+        [r.display, 0.5],
+        [r.head ?? undefined, 0.4],
+      ],
+      q,
+      8,
+    ).map((r) => ({ kind: 'local', key: `local:${r.path}`, local: r }))
+
+    const prHits: Hit[] = rank(
+      [
+        ...(gh?.prs ?? []).map((pr) => ({ pr, merged: false })),
+        ...(gh?.merged ?? []).map((pr) => ({ pr, merged: true })),
+      ],
+      ({ pr }) => [
+        [pr.title, 1],
+        [`#${pr.number}`, 0.9],
+        [pr.branch, 0.7],
+        [pr.repo, 0.5],
+      ],
+      q,
+      8,
+    ).map(({ pr, merged }) => ({ kind: 'pr', key: `pr:${pr.repo}#${pr.number}`, pr, merged }))
+
+    const branchHits: Hit[] = rank(
+      gh?.branches.active ?? [],
+      (b) => [
+        [b.name, 1],
+        [b.repo, 0.5],
+      ],
+      q,
+      8,
+    ).map((branch) => ({ kind: 'branch', key: `branch:${branch.repo}/${branch.name}`, branch }))
+
     const infoHits: Hit[] = rank(
       infoItems,
       ({ group, item }) => [
@@ -84,8 +141,8 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
       note,
     }))
 
-    return [...linkHits, ...repoHits, ...infoHits, ...noteHits]
-  }, [query, links, repoItems, infoItems, notes])
+    return [...linkHits, ...repoHits, ...localHits, ...prHits, ...branchHits, ...infoHits, ...noteHits]
+  }, [query, links, repoItems, local, gh, infoItems, notes])
 
   useEffect(() => setActiveIndex(0), [query])
 
@@ -99,6 +156,12 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
         track(hit.key)
         return
       }
+      if (hit.kind === 'pr' || hit.kind === 'branch') return // le lien s'ouvre de lui-même
+      if (hit.kind === 'local') {
+        openLocal()
+        setQuery('')
+        return
+      }
       if (hit.kind === 'info') {
         void copy(hit.key, hit.item.value)
         return
@@ -107,7 +170,7 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
       openNote(hit.note.id)
       setQuery('')
     },
-    [copy, track, openNote],
+    [copy, track, openNote, openLocal],
   )
 
   // --- clavier -------------------------------------------------------------
@@ -146,6 +209,8 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
         } else if (hit.kind === 'repo') {
           window.open(`https://github.com/${hit.owner}/${hit.repo.name}`, '_blank', 'noopener')
           track(hit.key)
+        } else if (hit.kind === 'pr' || hit.kind === 'branch') {
+          window.open(hit.kind === 'pr' ? hit.pr.url : hit.branch.url, '_blank', 'noopener')
         } else {
           activate(hit)
         }

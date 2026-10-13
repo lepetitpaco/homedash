@@ -77,7 +77,7 @@ compte GitHub.
 
 | Touche | Action |
 | --- | --- |
-| `/` ou `⌘K` | Rechercher (liens, repos, infos, notes) ; la carte de la sélection s'affiche à droite |
+| `/` ou `⌘K` | Rechercher : liens, repos, PRs, branches, dépôts locaux, infos, notes. La carte de la sélection s'affiche à droite |
 | `↑` `↓` `↵` | Parcourir, ouvrir / copier |
 | `Échap` | Effacer, fermer |
 | `⌘S` | Enregistrer les réglages |

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { template } from '../lib/config'
 import type { CiState, GithubData } from '../lib/ghboard'
+import type { LocalData, LocalRepo } from '../lib/local'
 import { noteTitle } from '../lib/notes'
 import type { Health, ReposConfig } from '../types'
 import Favicon from './Favicon'
@@ -15,6 +16,8 @@ type Props = {
   counts: Record<string, number>
   gh: GithubData | null
   repos: ReposConfig | undefined
+  local: LocalData | null
+  onOpenLocal: () => void
   copiedKey: string | null
   infoColor: string
   noteColor: string
@@ -45,6 +48,15 @@ export default function SearchPreview(props: Props) {
         <LinkPreview {...props} hit={hit} />
       ) : hit.kind === 'repo' ? (
         <RepoPreview {...props} hit={hit} />
+      ) : hit.kind === 'pr' ? (
+        <PrPreview {...props} hit={hit} />
+      ) : hit.kind === 'branch' ? (
+        <BranchPreview {...props} hit={hit} />
+      ) : hit.kind === 'local' ? (
+        <div className="sp-card" style={{ ['--accent' as string]: '#94a3b8' }}>
+          <LocalHead repo={hit.local} />
+          <LocalBody {...props} repo={hit.local} />
+        </div>
       ) : hit.kind === 'info' ? (
         <InfoPreview {...props} hit={hit} />
       ) : (
@@ -100,15 +112,8 @@ function LinkPreview({
   )
 }
 
-function RepoPreview({
-  hit,
-  gh,
-  repos,
-  counts,
-  copiedKey,
-  copy,
-  onActivate,
-}: Props & { hit: Extract<Hit, { kind: 'repo' }> }) {
+function RepoPreview(props: Props & { hit: Extract<Hit, { kind: 'repo' }> }) {
+  const { hit, gh, repos, counts, copiedKey, copy, onActivate } = props
   const { repo, owner } = hit
   const base = `https://github.com/${owner}/${repo.name}`
   const vars = { owner, repo: repo.name, me: repos?.me ?? '' }
@@ -117,6 +122,10 @@ function RepoPreview({
   const branches = data ? data.branches.active.filter((b) => b.repo === repo.name) : []
   const clone = repos?.cloneTemplate ? template(repos.cloneTemplate, vars) : null
   const opened = counts[`repo:${owner}/${repo.name}`] ?? 0
+  // Le même repo cloné sur le disque : sa carte réunit les deux côtés.
+  const onDisk = props.local?.repos.find(
+    (r) => (r.repo ?? r.name).toLowerCase() === repo.name.toLowerCase(),
+  )
   return (
     <div className="sp-card" style={{ ['--accent' as string]: repos?.color ?? '#a78bfa' }}>
       <div className="sp-head">
@@ -169,6 +178,13 @@ function RepoPreview({
       ) : (
         <p className="sp-empty">Connecte GitHub (Réglages) pour voir ses PRs et branches ici.</p>
       )}
+
+      {onDisk ? (
+        <>
+          <div className="sp-section sp-divider">💻 Sur ton disque · {onDisk.display}</div>
+          <LocalBody {...props} repo={onDisk} />
+        </>
+      ) : null}
 
       <div className="sp-facts">
         <span>{opened ? `ouvert ${opened} fois` : 'jamais ouvert d’ici'}</span>
@@ -257,5 +273,140 @@ function NotePreview({
         </button>
       </div>
     </div>
+  )
+}
+
+function PrPreview({ hit }: Props & { hit: Extract<Hit, { kind: 'pr' }> }) {
+  const { pr, merged } = hit
+  const failing = pr.ci.checks.filter((c) => c.state === 'fail').slice(0, 5)
+  return (
+    <div className="sp-card" style={{ ['--accent' as string]: merged ? '#a78bfa' : '#60a5fa' }}>
+      <div className="sp-head">
+        <span className="sp-icon sp-emoji">🔀</span>
+        <div className="sp-title">
+          <strong>{pr.title}</strong>
+          <span className="sp-chip">
+            {pr.repo} #{pr.number}
+            {merged ? ' · mergée' : ''}
+          </span>
+        </div>
+      </div>
+      <div className="sp-facts">
+        <span>
+          {CI_ICON[pr.ci.state]} CI : {pr.ci.label || pr.ci.state}
+        </span>
+        {pr.branch ? <span>🌿 {pr.branch}</span> : null}
+        {pr.version ? <span>📦 {pr.version}</span> : null}
+        {merged && pr.merged_at ? <span>mergée {pr.merged_at.slice(0, 10)}</span> : null}
+        {!merged && pr.created_at ? <span>ouverte {pr.created_at.slice(0, 10)}</span> : null}
+      </div>
+      {failing.length ? (
+        <>
+          <div className="sp-section">❌ Vérifications en échec</div>
+          <ul className="sp-list">
+            {failing.map((c) => (
+              <li key={c.name}>
+                <a href={c.url} target="_blank" rel="noreferrer">
+                  {c.icon} {c.name}
+                </a>
+              </li>
+            ))}
+          </ul>
+        </>
+      ) : null}
+      <div className="sp-actions">
+        <a className="btn btn-primary" href={pr.url} target="_blank" rel="noreferrer">
+          Ouvrir la PR ↗
+        </a>
+      </div>
+    </div>
+  )
+}
+
+function BranchPreview({ hit }: Props & { hit: Extract<Hit, { kind: 'branch' }> }) {
+  const { branch: b } = hit
+  return (
+    <div className="sp-card" style={{ ['--accent' as string]: '#3fb950' }}>
+      <div className="sp-head">
+        <span className="sp-icon sp-emoji">🌿</span>
+        <div className="sp-title">
+          <strong>{b.name}</strong>
+          <span className="sp-chip">{b.repo}</span>
+        </div>
+      </div>
+      <div className="sp-facts">
+        <span>{b.merged ? '✓ mergée' : `${b.ahead} commit(s) d’avance sur ${b.base}`}</span>
+        {b.creator ? <span>👤 {b.creator}</span> : null}
+        {b.authors.length > 1 ? <span>👥 {b.authors.join(', ')}</span> : null}
+        {b.date ? <span>dernier commit {b.date.slice(0, 10)}</span> : null}
+      </div>
+      <div className="sp-actions">
+        <a className="btn btn-primary" href={b.url} target="_blank" rel="noreferrer">
+          Ouvrir la branche ↗
+        </a>
+        {b.pr ? (
+          <a className="btn" href={b.pr.url} target="_blank" rel="noreferrer">
+            PR #{b.pr.number}
+            {b.pr.merged ? ' (mergée)' : ''}
+          </a>
+        ) : null}
+      </div>
+    </div>
+  )
+}
+
+function LocalHead({ repo }: { repo: LocalRepo }) {
+  return (
+    <div className="sp-head">
+      <span className="sp-icon sp-emoji">💻</span>
+      <div className="sp-title">
+        <strong>{repo.name}</strong>
+        <span className="sp-chip">{repo.display}</span>
+      </div>
+    </div>
+  )
+}
+
+/**
+ * L'état d'un dépôt du disque, en lecture seule comme l'onglet Local : les
+ * commandes sont du texte à copier.
+ */
+function LocalBody({ repo, copiedKey, copy, onOpenLocal }: Props & { repo: LocalRepo }) {
+  const toDelete = repo.branches.filter((b) => b.action.kind === 'delete')
+  const toCheck = repo.branches.filter((b) => b.action.kind === 'check')
+  const cmd = repo.commands[0]
+  return (
+    <>
+      {repo.error ? <p className="sp-empty">⚠ {repo.error}</p> : null}
+      <div className="sp-facts">
+        <span>📍 {repo.detached ? 'HEAD détachée' : (repo.head ?? '?')}</span>
+        <span>{repo.counts.branches} branche(s)</span>
+        {repo.dirty?.count ? <span>✏️ {repo.dirty.count} fichier(s) modifié(s)</span> : null}
+        {repo.stashes ? <span>📦 {repo.stashes} stash</span> : null}
+        {repo.counts.unpushed ? <span>⬆ {repo.counts.unpushed} à pousser</span> : null}
+      </div>
+      {toDelete.length || toCheck.length ? (
+        <ul className="sp-list sp-plain">
+          {toDelete.slice(0, 5).map((b) => (
+            <li key={b.name}>🗑 {b.name}</li>
+          ))}
+          {toCheck.slice(0, 3).map((b) => (
+            <li key={b.name}>🔍 {b.name}</li>
+          ))}
+        </ul>
+      ) : (
+        <p className="sp-empty">✓ rien à nettoyer</p>
+      )}
+      <div className="sp-actions">
+        {cmd ? (
+          <button className="btn" title={cmd.cmd} onClick={() => void copy(`sp:cmd:${repo.path}`, cmd.cmd)}>
+            {copiedKey === `sp:cmd:${repo.path}` ? '✓ copiée' : `Copier : ${cmd.label}`}
+          </button>
+        ) : null}
+        <button className="btn" onClick={onOpenLocal}>
+          Voir dans l’onglet Local
+        </button>
+      </div>
+    </>
   )
 }
