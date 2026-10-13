@@ -1,26 +1,44 @@
-/* ═══ Onglet Changelog ══════════════════════════════════════════════════════ */
-.cl-page {
-  max-width: 1100px;
+/* ═══ Version et changelog (barre du haut) ════════════════════════════════════
+   Le panneau reprend celui de la cloche (.bell-panel) ; ici, le bouton de
+   version et le contenu du changelog. */
+.version-btn {
+  height: 34px;
+  padding: 0 10px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--panel);
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.version-btn:hover,
+.version-btn.is-open {
+  color: var(--text);
+  border-color: #6366f177;
+}
+/* Mise à jour disponible : la seule fois où ce bouton doit attirer l'œil. */
+.version-btn.is-update {
+  color: var(--sig-info);
+  font-weight: 600;
+  border-color: color-mix(in srgb, #60a5fa 55%, var(--border));
+  background: color-mix(in srgb, #60a5fa 12%, var(--panel));
+}
+.cl-body {
+  padding: 0 0.9rem 0.6rem;
 }
 .cl-update {
-  --accent: #60a5fa;
-  padding: 0.9rem 1rem;
-  border-color: color-mix(in srgb, #60a5fa 45%, var(--border));
+  margin: 0.4rem 0 0.2rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid color-mix(in srgb, #60a5fa 45%, var(--border));
+  border-radius: 0.5rem;
   background: color-mix(in srgb, #60a5fa 6%, var(--panel));
 }
-.cl-update-head {
-  display: flex;
-  align-items: baseline;
-  gap: 0.6rem;
-  flex-wrap: wrap;
-}
-.cl-update-head span,
 .cl-update p {
-  font-size: 0.78rem;
+  margin: 0.45rem 0 0.3rem;
+  font-size: 0.76rem;
   color: var(--text-dim);
-}
-.cl-update p {
-  margin: 0.5rem 0 0.3rem;
 }
 .cl-update .cl-safe {
   color: var(--sig-ok);
@@ -41,30 +59,23 @@
 }
 .cl-cmd code {
   flex: 1;
-  font-size: 0.82rem;
+  font-size: 0.78rem;
 }
 .cl-cmd span {
   font-size: 0.72rem;
   color: var(--sig-info);
 }
-.cl-status {
-  font-size: 0.72rem;
-  color: var(--text-faint);
-  margin-left: auto;
-}
-.cl-body {
-  padding: 0.2rem 1rem 0.8rem;
-}
 .cl-entry {
-  padding: 0.7rem 0;
+  padding: 0.65rem 0;
   border-top: 1px solid var(--border-soft);
 }
-.cl-entry:first-child {
+.cl-body > .cl-entry:first-child {
   border-top: 0;
 }
 .cl-update .cl-entry {
-  border-top: 1px solid color-mix(in srgb, #60a5fa 25%, var(--border-soft));
-  margin-top: 0.6rem;
+  border-top-color: color-mix(in srgb, #60a5fa 25%, var(--border-soft));
+  margin-top: 0.5rem;
+  padding-bottom: 0;
 }
 .cl-entry-head {
   display: flex;
@@ -94,8 +105,8 @@
   border-color: color-mix(in srgb, #60a5fa 40%, transparent);
 }
 .cl-entry ul {
-  margin: 0.35rem 0 0;
+  margin: 0.3rem 0 0;
   padding-left: 1.1rem;
-  font-size: 0.84rem;
+  font-size: 0.8rem;
   line-height: 1.5;
 }

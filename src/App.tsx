@@ -3,8 +3,8 @@ import ConfirmHost from './components/ConfirmHost'
 import ContextMenu from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import EventBell from './components/EventBell'
-import ChangelogView from './components/ChangelogView'
 import EventFeed from './components/EventFeed'
+import VersionMenu from './components/VersionMenu'
 import Footer from './components/Footer'
 import GithubView from './components/GithubView'
 import LocalRepos from './components/LocalRepos'
@@ -164,13 +164,6 @@ export default function App() {
       badge: local.todo,
       badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
     },
-    {
-      id: 'changelog',
-      icon: '📰',
-      label: 'Changelog',
-      badge: changelog.data?.update ? 1 : 0,
-      badgeTitle: `homedash ${changelog.data?.latest ?? ''} est disponible`,
-    },
     { id: 'settings', icon: '⚙', label: 'Réglages' },
   ]
   // La recherche court-circuite les onglets : ses résultats valent partout.
@@ -192,6 +185,9 @@ export default function App() {
         hasChecks={hasChecks}
         onRefresh={refresh}
         onAddGroup={menus.newGroup}
+        version={
+          <VersionMenu data={changelog.data} busy={changelog.busy} onCheck={() => void changelog.check()} />
+        }
         bell={
           // Le journal n'est plus un onglet : une cloche qu'on consulte sans
           // quitter ce qu'on fait. « Tout voir » ouvre l'historique complet.
@@ -248,8 +244,6 @@ export default function App() {
             selectTab('settings')
           }}
         />
-      ) : view === 'changelog' ? (
-        <ChangelogView data={changelog.data} busy={changelog.busy} onCheck={() => void changelog.check()} />
       ) : view === 'settings' ? (
         <SettingsPage config={raw} onSave={persist} onReload={reload} saving={saveState.kind === 'saving'} />
       ) : view === 'github' ? (

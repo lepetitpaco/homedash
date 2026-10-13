@@ -49,12 +49,12 @@ visibles dans l'onglet du navigateur. Clic = les derniers événements ; **Tout 
 
 Notifications bureau : **désactivées par défaut**, à activer en bas du panneau de la cloche.
 
-### 📰 Changelog
+### Version et nouveautés (en haut à droite)
 
-Ce qui a changé à chaque version. Quand une version plus récente est publiée, un encadré l'annonce avec la
-commande à copier (`git pull && docker compose up -d --build`), l'onglet affiche une pastille et la cloche
-une notification. Tes données sont sauvegardées automatiquement avant la mise à jour (Réglages →
-Sauvegardes, instantané « avant-x-y-z »).
+Le numéro de version (`v1.7.0`) ouvre le changelog : ce qui a changé à chaque version. Quand une version
+plus récente est publiée, il passe en bleu (`⬆ 1.8.0`) et la cloche le signale ; le panneau donne la
+commande à copier (`git pull && docker compose up -d --build`). Tes données sont sauvegardées
+automatiquement avant la mise à jour (Réglages → Sauvegardes, instantané « avant-x-y-z »).
 
 ## ⚙ Réglages
 

@@ -1,7 +1,7 @@
 """Version installée, changelog, et « une mise à jour est disponible ».
 
 La version est celle du haut de `CHANGELOG.md`, copié dans l'image au build :
-c'est la même source pour l'onglet Changelog et pour la comparaison avec le
+c'est la même source pour le panneau de version (barre du haut) et pour la comparaison avec le
 dépôt GitHub de homedash. Celle-ci passe par le jeton d'un compte connecté (le
 dépôt peut être privé) ; sans jeton ou sans accès, l'onglet le dit et rien ne
 sonne.

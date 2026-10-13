@@ -5,7 +5,7 @@
 **À chaque livraison :**
 - Nouvelle fonctionnalité ou changement visible → **entrée en tête de `CHANGELOG.md`**
   (`## X.Y.Z — AAAA-MM-JJ` puis des puces). Feature = version mineure, correctif = patch. C'est cette
-  version qui s'affiche dans l'onglet Changelog et qui déclenche « mise à jour disponible » chez les autres.
+  version qui s'affiche en haut à droite (`VersionMenu`) et qui déclenche « mise à jour disponible » chez les autres.
 - Comportement visible modifié → `GUIDE.md` à jour.
 
 ## Commandes

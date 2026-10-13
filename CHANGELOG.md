@@ -1,7 +1,12 @@
 # Changelog
 
-Une version par fonctionnalité livrée, la plus récente en haut. Affiché dans l'onglet 📰 Changelog ;
+Une version par fonctionnalité livrée, la plus récente en haut. Affiché en cliquant sur le numéro de version, en haut à droite ;
 une version plus récente sur GitHub déclenche la notification « mise à jour disponible ».
+
+## 1.7.0 — 2026-10-13
+
+- Le changelog quitte les onglets : un clic sur le **numéro de version**, en haut à droite, l'affiche. Il
+  passe en bleu quand une mise à jour est disponible.
 
 ## 1.6.1 — 2026-10-13
 

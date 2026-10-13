@@ -16,6 +16,8 @@ type Props = {
   onAddGroup: () => void
   /** Cloche du journal, posée à gauche des boutons. */
   bell?: React.ReactNode
+  /** Version installée / mise à jour disponible. */
+  version?: React.ReactNode
 }
 
 function useClock(enabled: boolean) {
@@ -43,6 +45,7 @@ export default function TopBar({
   onRefresh,
   onAddGroup,
   bell,
+  version,
 }: Props) {
   const now = useClock(showClock)
   const spinRef = useRef<HTMLButtonElement>(null)
@@ -107,6 +110,7 @@ export default function TopBar({
             <em>{date}</em>
           </div>
         ) : null}
+        {version}
         {bell}
         {hasChecks ? (
           <button
