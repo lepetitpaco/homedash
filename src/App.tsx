@@ -221,6 +221,10 @@ export default function App() {
           noteColor={cfg.notes.color ?? '#facc15'}
           noteIcon={cfg.notes.icon ?? '📝'}
           emptyHint="Aucun résultat."
+          counts={counts}
+          gh={gh.data?.enabled ? gh.data : null}
+          repos={cfg.repos}
+          copy={copy}
           onActivate={search.activate}
           onHover={search.setActiveIndex}
         />

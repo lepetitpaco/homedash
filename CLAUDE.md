@@ -3,9 +3,18 @@
 À lire avant toute modification (humain ou IA). Fichiers et routes : `ARCHITECTURE.md`.
 
 **À chaque livraison :**
-- Nouvelle fonctionnalité ou changement visible → **entrée en tête de `CHANGELOG.md`**
-  (`## X.Y.Z — AAAA-MM-JJ` puis des puces). Feature = version mineure, correctif = patch. C'est cette
-  version qui s'affiche en haut à droite (`VersionMenu`) et qui déclenche « mise à jour disponible » chez les autres.
+- Ce qui change pour l'utilisateur → **entrée en tête de `CHANGELOG.md`** (`## X.Y.Z — AAAA-MM-JJ`
+  puis des puces écrites pour l'utilisateur). Chaque nouvelle version déclenche « mise à jour
+  disponible » chez tout le monde : on n'en crée que si ça vaut un `git pull`.
+
+  | Changement | Version |
+  | --- | --- |
+  | Action requise de l'utilisateur, ou rupture (nouvelle variable obligatoire, port, données non migrables) | majeure `2.0.0` |
+  | Nouvelle fonctionnalité visible | mineure `1.8.0` |
+  | Correction visible par l'utilisateur | patch `1.7.1` |
+  | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
+
+  Plusieurs changements livrés ensemble = une seule version.
 - Comportement visible modifié → `GUIDE.md` à jour.
 
 ## Commandes

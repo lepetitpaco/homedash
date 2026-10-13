@@ -51,8 +51,8 @@ Notifications bureau : **désactivées par défaut**, à activer en bas du panne
 
 ### Version et nouveautés (en haut à droite)
 
-Le numéro de version (`v1.7.0`) ouvre le changelog : ce qui a changé à chaque version. Quand une version
-plus récente est publiée, il passe en bleu (`⬆ 1.8.0`) et la cloche le signale ; le panneau donne la
+Le numéro de version (`v1.7.0`) ouvre une fenêtre avec le changelog : ce qui a changé à chaque version. Quand une version
+plus récente est publiée, il passe en bleu (`⬆ 1.8.0`) et la cloche le signale ; la fenêtre donne la
 commande à copier (`git pull && docker compose up -d --build`). Tes données sont sauvegardées
 automatiquement avant la mise à jour (Réglages → Sauvegardes, instantané « avant-x-y-z »).
 
@@ -77,7 +77,7 @@ compte GitHub.
 
 | Touche | Action |
 | --- | --- |
-| `/` ou `⌘K` | Rechercher (liens, infos, notes) |
+| `/` ou `⌘K` | Rechercher (liens, repos, infos, notes) ; la carte de la sélection s'affiche à droite |
 | `↑` `↓` `↵` | Parcourir, ouvrir / copier |
 | `Échap` | Effacer, fermer |
 | `⌘S` | Enregistrer les réglages |

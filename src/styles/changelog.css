@@ -1,6 +1,5 @@
 /* ═══ Version et changelog (barre du haut) ════════════════════════════════════
-   Le panneau reprend celui de la cloche (.bell-panel) ; ici, le bouton de
-   version et le contenu du changelog. */
+   Le bouton de version, et la modale du changelog (.modal, celle des éditions). */
 .version-btn {
   height: 34px;
   padding: 0 10px;
@@ -25,8 +24,25 @@
   border-color: color-mix(in srgb, #60a5fa 55%, var(--border));
   background: color-mix(in srgb, #60a5fa 12%, var(--panel));
 }
+.cl-modal {
+  width: min(640px, calc(100vw - 32px));
+  max-height: min(80vh, 760px);
+  display: flex;
+  flex-direction: column;
+}
+.cl-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.cl-status {
+  font-size: 0.72rem;
+  font-weight: 400;
+  color: var(--text-faint);
+}
 .cl-body {
-  padding: 0 0.9rem 0.6rem;
+  overflow-y: auto;
+  min-height: 0;
 }
 .cl-update {
   margin: 0.4rem 0 0.2rem;

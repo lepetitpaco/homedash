@@ -17,7 +17,7 @@ type Options = {
   openNote: (id: string) => void
 }
 
-/** Recherche unifiée (liens, infos, notes) et ses raccourcis clavier. */
+/** Recherche unifiée (liens, repos, infos, notes) et ses raccourcis clavier. */
 export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, openNote }: Options) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -28,6 +28,15 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
       group.items.map((item) => ({ group, item, key: `info:${group.title}/${item.label}` })),
     )
   }, [cfg])
+
+  const repoItems = useMemo(
+    () =>
+      (cfg?.repos?.items ?? []).map((repo) => ({
+        repo,
+        owner: repo.owner ?? cfg?.repos?.defaultOwner ?? '',
+      })),
+    [cfg],
+  )
 
   // --- recherche unifiée ---------------------------------------------------
   const hits: Hit[] = useMemo(() => {
@@ -45,6 +54,17 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
       q,
       25,
     ).map((link) => ({ kind: 'link', key: `link:${link.id}`, link }))
+
+    const repoHits: Hit[] = rank(
+      repoItems,
+      ({ repo, owner }) => [
+        [repo.name, 1],
+        [repo.note, 0.7],
+        [owner, 0.5],
+      ],
+      q,
+      10,
+    ).map(({ repo, owner }) => ({ kind: 'repo', key: `repo:${owner}/${repo.name}`, repo, owner }))
 
     const infoHits: Hit[] = rank(
       infoItems,
@@ -64,8 +84,8 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
       note,
     }))
 
-    return [...linkHits, ...infoHits, ...noteHits]
-  }, [query, links, infoItems, notes])
+    return [...linkHits, ...repoHits, ...infoHits, ...noteHits]
+  }, [query, links, repoItems, infoItems, notes])
 
   useEffect(() => setActiveIndex(0), [query])
 
@@ -73,6 +93,10 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
     (hit: Hit) => {
       if (hit.kind === 'link') {
         track(hit.link.id)
+        return
+      }
+      if (hit.kind === 'repo') {
+        track(hit.key)
         return
       }
       if (hit.kind === 'info') {
@@ -119,6 +143,9 @@ export function useSearch({ cfg, links, notes, searchRef, paused, track, copy, o
         if (hit.kind === 'link') {
           window.open(hit.link.url, '_blank', 'noopener')
           track(hit.link.id)
+        } else if (hit.kind === 'repo') {
+          window.open(`https://github.com/${hit.owner}/${hit.repo.name}`, '_blank', 'noopener')
+          track(hit.key)
         } else {
           activate(hit)
         }

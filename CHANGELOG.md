@@ -3,6 +3,13 @@
 Une version par fonctionnalité livrée, la plus récente en haut. Affiché en cliquant sur le numéro de version, en haut à droite ;
 une version plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.8.0 — 2026-10-13
+
+- **Recherche** : la carte complète de l'élément sélectionné s'affiche à côté des résultats (raccourci,
+  repo avec ses PRs et branches, info, note), avec ses actions.
+- Les **repos** sont maintenant trouvables dans la recherche.
+- Le changelog s'ouvre dans une fenêtre, centrée à l'écran.
+
 ## 1.7.0 — 2026-10-13
 
 - Le changelog quitte les onglets : un clic sur le **numéro de version**, en haut à droite, l'affiche. Il
