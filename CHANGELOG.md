@@ -75,8 +75,43 @@ plus récente sur GitHub déclenche la notification « mise à jour disponible �
 
 ## 1.0.0 — 2026-10-13
 
-- Première version partagée.
-- Raccourcis, infos à copier, notes, recherche.
-- Onglet **GitHub** : branches actives, PRs, CI, Renovate ; plusieurs comptes.
-- Onglet **Local** : branches mergées qui traînent dans tes clones, en lecture seule.
-- Cloche d'activité, sauvegardes automatiques, tout se règle dans la page.
+- Première version partagée, et début du dépôt git.
+- Tout se règle dans la page : jeton GitHub, repos suivis, équipe, dossiers de dépôts. Plus aucun script
+  ni fichier à éditer.
+- **Plusieurs comptes GitHub** dans une même page, avec un sélecteur dans l'onglet GitHub.
+- **Sauvegardes** : instantané quotidien, export, restauration.
+- L'onglet Activité devient la **cloche** de la barre du haut ; notifications système en sourdine par
+  défaut, non-lus affichés dans l'onglet du navigateur.
+- Vraies fenêtres de confirmation, onglets par dossier dans l'onglet Local.
+
+<!-- Versions 0.x : reconstituées après coup, à partir des dates de création des fichiers. Le dépôt git
+     ne commence qu'à la 1.0.0 : ces versions n'ont pas de tag. -->
+
+## 0.6.0 — 2026-10-01
+
+- Carte **PRs ouvertes** dans l'onglet GitHub.
+- **Notifications système** pour les événements du journal.
+- Onglet Local revu : verdict par branche, commandes de ménage à copier.
+
+## 0.5.0 — 2026-08-28
+
+- **Journal d'activité** tenu par le serveur : CI cassée ou réparée, PR mergée, branche à nettoyer.
+
+## 0.4.0 — 2026-08-26
+
+- Onglet **Local** : relit les `.git` de tes clones (sans jamais lancer git) et repère les branches
+  mergées qui traînent.
+
+## 0.3.0 — 2026-08-25
+
+- Serveur Python à la place de Node ; notes et compteurs stockés côté serveur.
+- Onglet **GitHub** (reprise de ghboard) : branches actives, PRs mergées, Renovate.
+
+## 0.2.0 — 2026-08-03
+
+- **homedash** : page d'accueil du navigateur. Raccourcis et tuiles, recherche unifiée, infos à copier,
+  notes, voyants en ligne / hors ligne, modification au clic droit.
+
+## 0.1.0 — 2026-04-23
+
+- **ghboard**, l'ancêtre : tableau de bord GitHub en Python (branches, PRs, CI), page HTML générée.
