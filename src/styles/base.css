@@ -88,7 +88,11 @@ body::before {
   --gutter: clamp(10px, 1.6vw, 28px);
   max-width: var(--page-max, none);
   margin: 0 auto;
-  padding: 18px var(--gutter) 40px;
+  padding: 18px var(--gutter) 0;
+  /* Colonne pleine hauteur : le pied de page reste en bas même sur une page courte. */
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
 }
 
 /* ── topbar ──────────────────────────────────────────────────────────────── */

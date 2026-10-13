@@ -4,6 +4,7 @@ import ContextMenu from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
+import Footer from './components/Footer'
 import GithubView from './components/GithubView'
 import LocalRepos from './components/LocalRepos'
 import QuickTiles from './components/QuickTiles'
@@ -289,22 +290,7 @@ export default function App() {
         </>
       )}
 
-      {ui.showFooter ? (
-        <footer className="footer">
-          <span>
-            <kbd>/</kbd> ou <kbd>⌘K</kbd> rechercher
-          </span>
-          <span>
-            <kbd>↑</kbd>
-            <kbd>↓</kbd> naviguer
-          </span>
-          <span>
-            <kbd>↵</kbd> ouvrir / copier
-          </span>
-          <span>clic droit : modifier</span>
-          <span className="footer-right">{links.length} liens</span>
-        </footer>
-      ) : null}
+      {ui.showFooter ? <Footer count={links.length} /> : null}
 
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />

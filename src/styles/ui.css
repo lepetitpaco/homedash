@@ -4,9 +4,17 @@
   flex-wrap: wrap;
   align-items: center;
   gap: 14px;
-  margin-top: 8px;
-  padding-top: 12px;
+  /* Collé en bas, comme la barre du haut : même fond flouté, et il déborde sur
+     la marge latérale de .app pour que le contenu ne passe pas sur les côtés. */
+  position: sticky;
+  bottom: 0;
+  z-index: 40;
+  margin: auto calc(-1 * var(--gutter)) 0;
+  padding: 9px var(--gutter);
   border-top: 1px solid var(--border-soft);
+  background: color-mix(in srgb, var(--bg) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   font-size: 11px;
   color: var(--text-faint);
 }
