@@ -9,12 +9,13 @@
 
   | Changement | Version |
   | --- | --- |
-  | Action requise de l'utilisateur, ou rupture (nouvelle variable obligatoire, port, données non migrables) | majeure `2.0.0` |
-  | Nouvelle fonctionnalité visible | mineure `1.8.0` |
-  | Correction visible par l'utilisateur | patch `1.7.1` |
+  | Action requise de l'utilisateur, ou rupture (variable obligatoire, port, données non migrables) | majeure `2.0.0` |
+  | Nouvelle capacité : on peut faire quelque chose qu'on ne pouvait pas | mineure `1.7.0` |
+  | Ajustement visible (mise en page, texte, réglage d'un comportement existant) ou correction | patch `1.6.1` |
   | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
 
-  Plusieurs changements livrés ensemble = une seule version.
+  Plusieurs changements livrés ensemble = une seule version. Après le commit : `git tag -a vX.Y.Z -m
+  "X.Y.Z"` puis `git push --follow-tags`.
 - Comportement visible modifié → `GUIDE.md` à jour.
 
 ## Commandes
