@@ -137,6 +137,9 @@ export default function App() {
     openLocal,
     linkMenu: menus.linkMenu,
     groupMenu: menus.groupMenu,
+    infoMenu: menus.infoMenu,
+    infoGroupMenu: menus.infoGroupMenu,
+    infoPanelMenu: menus.infoPanelMenu,
   }
   const searching = search.query.trim().length > 0
   const hasChecks = links.some((l) => l.check) && ui.healthcheckInterval > 0
@@ -296,7 +299,11 @@ export default function App() {
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
       {menus.draft ? (
-        <EditDialog draft={menus.draft} groups={cfg.groups} onSave={menus.saveDraft} onClose={menus.closeDraft} />
+        <EditDialog
+          draft={menus.draft}
+          groups={cfg.groups}
+          infoGroups={cfg.infos?.groups ?? []}
+          onSave={menus.saveDraft} onClose={menus.closeDraft} />
       ) : null}
 
       <SaveToast state={saveState} onClose={() => setSaveState({ kind: 'idle' })} />

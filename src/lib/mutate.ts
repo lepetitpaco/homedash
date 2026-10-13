@@ -1,4 +1,4 @@
-import type { Config, Group, Link } from '../types'
+import type { Config, Group, InfoGroup, InfoItem, InfosConfig, Link } from '../types'
 
 /** Un lien est repéré par son groupe et sa position dans ce groupe. */
 export type LinkRef = { group: string; index: number }
@@ -145,4 +145,92 @@ export function moveGroup(cfg: Config, name: string, dir: -1 | 1): Config {
   const [group] = next.groups.splice(index, 1)
   next.groups.splice(target, 0, group)
   return next
+}
+
+// ── panneau Infos ───────────────────────────────────────────────────────────
+// Groupes repérés par leur position : deux groupes peuvent porter le même titre.
+
+/** Une info est repérée par l'index de son groupe et sa position dans ce groupe. */
+export type InfoRef = { group: number; index: number }
+
+/** Le panneau sous sa forme objet, quelle que soit celle du JSON (l'ancienne est un tableau). */
+function infosOf(cfg: Config): InfosConfig {
+  const raw = cfg.infos
+  const infos: InfosConfig = Array.isArray(raw) ? { groups: raw } : raw ? raw : { groups: [] }
+  infos.groups = infos.groups ?? []
+  cfg.infos = infos
+  return infos
+}
+
+const moved = <T,>(list: T[], from: number, dir: -1 | 1) => {
+  const to = from + dir
+  if (to < 0 || to >= list.length) return false
+  ;[list[from], list[to]] = [list[to], list[from]]
+  return true
+}
+
+export function addInfo(cfg: Config, group: number, item: InfoItem): Config {
+  const next = clone(cfg)
+  const g = infosOf(next).groups[group]
+  if (!g) return cfg
+  g.items = [...(g.items ?? []), item]
+  return next
+}
+
+/** Modifie une info, et la déplace si `targetGroup` diffère de son groupe actuel. */
+export function updateInfo(cfg: Config, ref: InfoRef, item: InfoItem, targetGroup = ref.group): Config {
+  const next = clone(cfg)
+  const groups = infosOf(next).groups
+  const from = groups[ref.group]
+  if (!from?.items?.[ref.index]) return cfg
+  if (targetGroup === ref.group) {
+    from.items[ref.index] = item
+    return next
+  }
+  const to = groups[targetGroup]
+  if (!to) return cfg
+  from.items.splice(ref.index, 1)
+  to.items = [...(to.items ?? []), item]
+  return next
+}
+
+export function removeInfo(cfg: Config, ref: InfoRef): Config {
+  const next = clone(cfg)
+  const g = infosOf(next).groups[ref.group]
+  if (!g?.items?.[ref.index]) return cfg
+  g.items.splice(ref.index, 1)
+  return next
+}
+
+export function moveInfo(cfg: Config, ref: InfoRef, dir: -1 | 1): Config {
+  const next = clone(cfg)
+  const g = infosOf(next).groups[ref.group]
+  return g?.items && moved(g.items, ref.index, dir) ? next : cfg
+}
+
+export function addInfoGroup(cfg: Config, group: Omit<InfoGroup, 'items'>): Config {
+  const next = clone(cfg)
+  infosOf(next).groups.push({ ...group, items: [] })
+  return next
+}
+
+export function updateInfoGroup(cfg: Config, index: number, patch: Omit<InfoGroup, 'items'>): Config {
+  const next = clone(cfg)
+  const groups = infosOf(next).groups
+  if (!groups[index]) return cfg
+  groups[index] = { ...patch, items: groups[index].items ?? [] }
+  return next
+}
+
+export function removeInfoGroup(cfg: Config, index: number): Config {
+  const next = clone(cfg)
+  const groups = infosOf(next).groups
+  if (!groups[index]) return cfg
+  groups.splice(index, 1)
+  return next
+}
+
+export function moveInfoGroup(cfg: Config, index: number, dir: -1 | 1): Config {
+  const next = clone(cfg)
+  return moved(infosOf(next).groups, index, dir) ? next : cfg
 }

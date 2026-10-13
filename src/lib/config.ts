@@ -78,7 +78,10 @@ export type Normalized = {
 function normalizeInfos(raw: Config['infos']): InfosConfig | undefined {
   if (!raw) return undefined
   const infos: InfosConfig = Array.isArray(raw) ? { groups: raw } : raw
-  const groups = (infos.groups ?? []).filter((g: InfoGroup) => g.items?.length > 0)
+  // Les groupes vides restent : un groupe tout juste créé depuis la page doit
+  // apparaître pour qu'on puisse y ajouter sa première info. Les index sont
+  // ceux du JSON, c'est ce que les menus d'édition désignent.
+  const groups = (infos.groups ?? []).map((g: InfoGroup) => ({ ...g, items: g.items ?? [] }))
   if (groups.length === 0) return undefined
   return {
     title: infos.title ?? 'Infos & accès',

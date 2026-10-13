@@ -11,7 +11,9 @@ Tes liens, tuiles (épinglés + plus cliqués), infos à copier, notes.
 - **Tout se modifie au clic droit** : sur un lien (modifier, épingler, surveiller, supprimer…) ou sur
   une catégorie (ajouter un lien, renommer, couleur…). Le **＋** de la barre du haut crée une catégorie.
 - **Lien surveillé** : un voyant vert/rouge dit si le site répond.
-- **Infos** : un clic copie. Les valeurs *secrètes* se copient sans s'afficher.
+- **Infos** (WiFi, IP, accès…) : un clic copie. Les valeurs *secrètes* se copient sans s'afficher.
+  Clic droit sur une ligne ou un titre de groupe pour modifier, ou **＋** dans l'en-tête du panneau.
+  Pas encore de panneau ? Clic droit sur une catégorie → *Ajouter un panneau Infos*.
 
 ### 🐙 GitHub
 

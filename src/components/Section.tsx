@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import type { InfoRef } from '../lib/mutate'
 import type { Normalized, ResolvedSection } from '../lib/config'
 import type { useGithub } from '../lib/ghboard'
 import type { useHealth } from '../lib/health'
@@ -35,6 +36,9 @@ export type SectionCtx = {
   openLocal: () => void
   linkMenu: (e: React.MouseEvent, link: FlatLink) => void
   groupMenu: (e: React.MouseEvent, name: string) => void
+  infoMenu: (e: React.MouseEvent, ref: InfoRef) => void
+  infoGroupMenu: (e: React.MouseEvent, index: number) => void
+  infoPanelMenu: (e: React.MouseEvent) => void
 }
 
 /** Un bloc de page : carte GitHub, infos, repos, notes, stats ou catégorie de liens. */
@@ -82,7 +86,14 @@ export default function Section({ section, ctx }: { section: ResolvedSection; ct
     ) : null
   }
   if (section.kind === 'infos') {
-    return cfg.infos ? <InfoPanel infos={cfg.infos} /> : null
+    return cfg.infos ? (
+      <InfoPanel
+        infos={cfg.infos}
+        onContextItem={ctx.infoMenu}
+        onContextGroup={ctx.infoGroupMenu}
+        onAdd={ctx.infoPanelMenu}
+      />
+    ) : null
   }
   if (section.kind === 'repos') {
     return cfg.repos ? <RepoCard repos={cfg.repos} onOpen={track} gh={gh.data} /> : null

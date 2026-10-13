@@ -726,3 +726,42 @@
   font-size: 13px;
 }
 
+
+/* Édition du panneau Infos : ＋ de l'en-tête, groupe encore vide, œil de la
+   modale pour une valeur secrète. */
+.info-add {
+  margin-left: 4px;
+  font-size: 12px;
+  line-height: 1;
+  padding: 2px 6px;
+}
+.info-empty {
+  display: block;
+  width: 100%;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 12px;
+  padding: 6px 8px;
+  text-align: left;
+  cursor: pointer;
+}
+.info-empty:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--accent) 60%, var(--border));
+}
+.info-group-title {
+  cursor: context-menu;
+}
+.field-reveal {
+  margin-left: 6px;
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  font-size: 11px;
+  color: var(--sig-info);
+  cursor: pointer;
+}

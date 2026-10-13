@@ -4,18 +4,30 @@ import type { MenuItem, MenuState } from '../components/ContextMenu'
 import type { Draft } from '../components/EditDialog'
 import {
   addGroup,
+  addInfo,
+  addInfoGroup,
   addLink,
   duplicateLink,
   moveGroup,
+  moveInfo,
+  moveInfoGroup,
   moveLink,
   removeGroup,
+  removeInfo,
+  removeInfoGroup,
   removeLink,
   toggleLinkFlag,
   updateGroup,
+  updateInfo,
+  updateInfoGroup,
   updateLink,
+  type InfoRef,
   type LinkRef,
 } from '../lib/mutate'
-import type { Config, FlatLink, Link } from '../types'
+import type { Config, FlatLink, InfoGroup, InfoItem, Link } from '../types'
+
+const infoGroupsOf = (raw: Config): InfoGroup[] =>
+  (Array.isArray(raw.infos) ? raw.infos : raw.infos?.groups) ?? []
 
 /**
  * Édition au clic droit : menus d'un lien et d'une catégorie, et la modale
@@ -127,6 +139,17 @@ export function useContextMenus(
           label: 'Nouvelle catégorie…',
           onSelect: () => setDraft({ kind: 'group', name: null, values: { name: '', icon: '📁' } }),
         },
+        // Le panneau Infos n'existe qu'une fois créé : c'est ici qu'on le crée.
+        ...(infoGroupsOf(raw).length
+          ? []
+          : [
+              {
+                label: 'Ajouter un panneau Infos…',
+                hint: 'valeurs à copier',
+                onSelect: () =>
+                  setDraft({ kind: 'infoGroup', index: null, values: { title: '', icon: '📌' } }),
+              },
+            ]),
         {
           label: 'Supprimer la catégorie',
           danger: true,
@@ -148,9 +171,147 @@ export function useContextMenus(
     [raw, persist],
   )
 
+  // --- panneau Infos ------------------------------------------------------
+  const removeInfoAsk = useCallback(
+    (ref: InfoRef, item: InfoItem) => {
+      if (!raw) return
+      void confirmDialog({
+        title: `Supprimer « ${item.label} » ?`,
+        body: 'La version précédente reste dans config.prev.json et dans les sauvegardes.',
+        confirmLabel: 'Supprimer',
+        danger: true,
+      }).then((ok) => ok && persist(removeInfo(raw, ref)))
+    },
+    [raw, persist],
+  )
+
+  const infoMenu = useCallback(
+    (e: React.MouseEvent, ref: InfoRef) => {
+      if (!raw) return
+      e.preventDefault()
+      e.stopPropagation()
+      const group = infoGroupsOf(raw)[ref.group]
+      const item = group?.items?.[ref.index]
+      if (!item) return
+      const items: MenuItem[] = [
+        {
+          label: 'Modifier…',
+          onSelect: () => setDraft({ kind: 'info', ref, group: ref.group, values: { ...item } }),
+        },
+        { label: 'Copier la valeur', onSelect: () => void copy(`info:${ref.group}:${ref.index}`, item.value) },
+        {
+          label: item.secret ? 'Ne plus masquer' : 'Masquer (secret)',
+          onSelect: () =>
+            persist(updateInfo(raw, ref, { ...item, secret: item.secret ? undefined : true })),
+        },
+        { sep: true },
+        {
+          label: 'Ajouter une info…',
+          onSelect: () =>
+            setDraft({ kind: 'info', ref: null, group: ref.group, values: { label: '', value: '' } }),
+        },
+        { label: 'Monter', disabled: ref.index === 0, onSelect: () => persist(moveInfo(raw, ref, -1)) },
+        {
+          label: 'Descendre',
+          disabled: ref.index >= group.items.length - 1,
+          onSelect: () => persist(moveInfo(raw, ref, 1)),
+        },
+        { sep: true },
+        { label: 'Supprimer', danger: true, onSelect: () => removeInfoAsk(ref, item) },
+      ]
+      setMenu({ x: e.clientX, y: e.clientY, title: item.label, items })
+    },
+    [raw, persist, copy, removeInfoAsk],
+  )
+
+  const infoGroupMenu = useCallback(
+    (e: React.MouseEvent, index: number) => {
+      if (!raw) return
+      e.preventDefault()
+      e.stopPropagation()
+      const groups = infoGroupsOf(raw)
+      const group = groups[index]
+      if (!group) return
+      const { items: list = [], ...meta } = group
+      const items: MenuItem[] = [
+        {
+          label: 'Ajouter une info…',
+          onSelect: () =>
+            setDraft({ kind: 'info', ref: null, group: index, values: { label: '', value: '' } }),
+        },
+        { label: 'Modifier le groupe…', onSelect: () => setDraft({ kind: 'infoGroup', index, values: meta }) },
+        { sep: true },
+        { label: 'Monter', disabled: index === 0, onSelect: () => persist(moveInfoGroup(raw, index, -1)) },
+        {
+          label: 'Descendre',
+          disabled: index >= groups.length - 1,
+          onSelect: () => persist(moveInfoGroup(raw, index, 1)),
+        },
+        {
+          label: 'Nouveau groupe…',
+          onSelect: () => setDraft({ kind: 'infoGroup', index: null, values: { title: '', icon: '📌' } }),
+        },
+        { sep: true },
+        {
+          label: 'Supprimer le groupe',
+          danger: true,
+          onSelect: () => {
+            void confirmDialog({
+              title: `Supprimer le groupe « ${group.title} » ?`,
+              body: [
+                `Ses ${list.length} info(s) partent avec lui.`,
+                'La version précédente reste dans config.prev.json et dans les sauvegardes.',
+              ],
+              confirmLabel: 'Supprimer le groupe',
+              danger: true,
+            }).then((ok) => ok && persist(removeInfoGroup(raw, index)))
+          },
+        },
+      ]
+      setMenu({ x: e.clientX, y: e.clientY, title: `${group.icon ?? ''} ${group.title}`.trim(), items })
+    },
+    [raw, persist],
+  )
+
+  /** En-tête du panneau (clic droit ou bouton ＋). */
+  const infoPanelMenu = useCallback(
+    (e: React.MouseEvent) => {
+      if (!raw) return
+      e.preventDefault()
+      e.stopPropagation()
+      const groups = infoGroupsOf(raw)
+      const items: MenuItem[] = [
+        ...groups.map((g, i) => ({
+          label: `Ajouter une info dans ${g.icon ?? ''} ${g.title}…`.replace('  ', ' '),
+          onSelect: () =>
+            setDraft({ kind: 'info', ref: null, group: i, values: { label: '', value: '' } }),
+        })),
+        { sep: true },
+        {
+          label: 'Nouveau groupe…',
+          onSelect: () => setDraft({ kind: 'infoGroup', index: null, values: { title: '', icon: '📌' } }),
+        },
+      ]
+      setMenu({ x: e.clientX, y: e.clientY, title: 'Infos & accès', items })
+    },
+    [raw],
+  )
+
   const saveDraft = useCallback(
     (d: Draft) => {
       if (!raw) return
+      if (d.kind === 'info') {
+        const item = cleanInfo(d.values)
+        persist(d.ref ? updateInfo(raw, d.ref, item, d.group) : addInfo(raw, d.group, item))
+        setDraft(null)
+        return
+      }
+      if (d.kind === 'infoGroup') {
+        const meta = { ...d.values, title: d.values.title.trim() }
+        persist(d.index !== null ? updateInfoGroup(raw, d.index, meta) : addInfoGroup(raw, meta))
+        setDraft(null)
+        return
+      }
       if (d.kind === 'link') {
         persist(
           d.ref
@@ -181,9 +342,19 @@ export function useContextMenus(
     closeDraft: () => setDraft(null),
     linkMenu,
     groupMenu,
+    infoMenu,
+    infoGroupMenu,
+    infoPanelMenu,
     saveDraft,
     newGroup,
   }
+}
+
+function cleanInfo(values: InfoItem): InfoItem {
+  const item: InfoItem = { label: values.label.trim(), value: values.value.trim() }
+  if (values.note?.trim()) item.note = values.note.trim()
+  if (values.secret) item.secret = true
+  return item
 }
 
 /**
