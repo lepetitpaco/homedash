@@ -1,0 +1,29 @@
+# ── Données de l'instance : config, notes, jetons, journal, sauvegardes ──────
+# Jamais versionnées : chacun a les siennes, créées au premier démarrage.
+data/
+data-*/
+*.json.bak
+backups/
+
+# ── Secrets ───────────────────────────────────────────────────────────────────
+.env
+.env.*
+secrets.json
+*.pem
+*.key
+
+# ── Exports de sauvegarde téléchargés depuis la page ──────────────────────────
+homedash-*.json
+
+# ── Build et dépendances ──────────────────────────────────────────────────────
+node_modules/
+dist/
+*.zip
+
+# ── Poste de travail ──────────────────────────────────────────────────────────
+.claude/
+.vscode/
+.idea/
+.DS_Store
+*.log
+*.swp

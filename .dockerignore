@@ -1,0 +1,16 @@
+# Le contexte de build ne doit jamais emporter les données ni les secrets.
+data
+data-*
+.env
+.env.*
+.claude
+.git
+node_modules
+dist
+*.zip
+.DS_Store
+*.log
+README.md
+GUIDE.md
+CLAUDE.md
+ARCHITECTURE.md

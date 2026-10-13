@@ -1,0 +1,29 @@
+services:
+  homedash:
+    build: .
+    # Une instance = une connexion GitHub. Pour une seconde instance (le perso à
+    # côté du boulot), surcharger ces trois variables — voir README :
+    #   HOMEDASH_NAME=homedash-perso HOMEDASH_PORT=7778 HOMEDASH_DATA=./data-perso \
+    #     docker compose -p homedash-perso up -d --build
+    container_name: ${HOMEDASH_NAME:-homedash}
+    restart: always
+    ports:
+      # bind local uniquement : data/ contient des mots de passe et un token GitHub
+      - "127.0.0.1:${HOMEDASH_PORT:-7777}:80"
+    environment:
+      - TZ=Europe/Paris
+      # Facultatif : le jeton se saisit dans Réglages. S'il est fourni ici, la
+      # page le signale et un jeton collé dans Réglages passe devant.
+      - GH_TOKEN=${GH_TOKEN:-}
+      # Ce que vaut /host côté hôte : sert à écrire les commandes à copier avec
+      # les vrais chemins, et à comprendre un chemin absolu de l'hôte.
+      - HOST_HOME=${HOME}
+    volumes:
+      # le répertoire entier, pas fichier par fichier : permet l'écriture atomique
+      - ${HOMEDASH_DATA:-./data}:/app/data
+      # Onglet Local : le dossier personnel, en LECTURE SEULE. Les dossiers
+      # réellement parcourus se choisissent dans Réglages (local.roots) — rien à
+      # modifier ici. `:ro` est une ceinture par-dessus des bretelles : le backend
+      # ne sait de toute façon que lire (backend/gitread.py relit les fichiers
+      # .git lui-même, aucune commande git n'est lancée).
+      - ${HOME}:/host:ro
