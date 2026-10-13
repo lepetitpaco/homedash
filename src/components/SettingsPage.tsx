@@ -44,6 +44,37 @@ const SECTIONS = [
   { id: 'set-display', icon: '🎛', label: 'Affichage' },
 ] as const
 
+/** Réglages numériques de « Affichage » : ce que chacun change, en une phrase. */
+const DISPLAY_FIELDS: {
+  title: string
+  fields: {
+    key: 'maxTiles' | 'linkWidth' | 'railWidth' | 'sidebarWidth' | 'healthcheckInterval' | 'pageWidth' | 'cardColumns' | 'cardWidth' | 'settingsColumns'
+    label: string
+    unit?: string
+    hint: string
+  }[]
+}[] = [
+  {
+    title: 'Onglet Raccourcis',
+    fields: [
+      { key: 'maxTiles', label: 'Tuiles « les plus utilisés »', hint: 'nombre de liens dans la rangée des plus cliqués' },
+      { key: 'linkWidth', label: 'Largeur d’un lien', unit: 'px', hint: 'plus petit = plus de liens par ligne' },
+      { key: 'railWidth', label: 'Colonne des titres', unit: 'px', hint: 'largeur de la colonne où s’affiche le nom de chaque catégorie' },
+      { key: 'sidebarWidth', label: 'Blocs Notes / Stats', unit: 'px', hint: 'largeur mini de chaque bloc sous les tuiles' },
+      { key: 'healthcheckInterval', label: 'Test des voyants', unit: 's', hint: 'fréquence de vérification des liens surveillés' },
+    ],
+  },
+  {
+    title: 'Mise en page',
+    fields: [
+      { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran' },
+      { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
+      { key: 'cardWidth', label: 'Largeur mini d’une carte', unit: 'px', hint: 'avec colonnes à 0 : en dessous, une carte passe à la ligne' },
+      { key: 'settingsColumns', label: 'Colonnes des Réglages', hint: 'nombre de colonnes de cette page — 0 = selon la largeur' },
+    ],
+  },
+]
+
 function Card({ id, icon, title, children }: { id: string; icon: string; title: string; children: ReactNode }) {
   return (
     <section className="card set-card" id={id}>
@@ -530,42 +561,37 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
         </Card>
 
         <Card id="set-display" icon="🎛" title="Affichage">
-          <div className="set-grid">
-            {(
-              [
-                ['maxTiles', 'Tuiles « les plus utilisés »'],
-                ['railWidth', 'Largeur du rail de titre'],
-                ['linkWidth', 'Largeur mini d’un lien'],
-                ['sidebarWidth', 'Largeur mini des blocs du haut'],
-                ['healthcheckInterval', 'Test des liens surveillés (s)'],
-                ['pageWidth', 'Largeur de la page (% de l’écran)'],
-                ['cardColumns', 'Colonnes GitHub / Local (0 = auto)'],
-                ['cardWidth', 'Largeur mini d’une carte en auto (px)'],
-                ['settingsColumns', 'Colonnes des Réglages (0 = auto)'],
-              ] as const
-            ).map(([key, label]) => (
-              <label className="set-field" key={key}>
-                <span>{label}</span>
-                <input
-                  type="number"
-                  min={0}
-                  placeholder={String(DEFAULT_UI[key])}
-                  value={(draft.ui?.[key] as number | undefined) ?? ''}
-                  onChange={(e) =>
-                    setDraft({
-                      ...draft,
-                      ui: { ...(draft.ui ?? {}), [key]: num(e.target.value, 0) },
-                    })
-                  }
-                />
-              </label>
-            ))}
-          </div>
+          {DISPLAY_FIELDS.map((section) => (
+            <div key={section.title}>
+              <h3 className="set-sub">{section.title}</h3>
+              <div className="set-grid">
+                {section.fields.map(({ key, label, unit, hint }) => (
+                  <label className="set-field" key={key}>
+                    <span>
+                      {label} {unit ? <b className="set-unit">{unit}</b> : null}
+                      <em>{hint}</em>
+                    </span>
+                    <input
+                      type="number"
+                      min={0}
+                      placeholder={`${DEFAULT_UI[key]} (défaut)`}
+                      value={(draft.ui?.[key] as number | undefined) ?? ''}
+                      onChange={(e) =>
+                        setDraft({
+                          ...draft,
+                          ui: { ...(draft.ui ?? {}), [key]: num(e.target.value, 0) },
+                        })
+                      }
+                    />
+                  </label>
+                ))}
+              </div>
+            </div>
+          ))}
           <h3 className="set-sub">Notifications</h3>
           <p className="set-hint">
-            État : <strong>{NOTIF_LABEL[bell]}</strong>. Le test envoie une notification tout de
-            suite, puis une seconde 6 secondes plus tard — change d'onglet entre les deux pour
-            vérifier qu'elles arrivent quand tu ne regardes pas.
+            Notifications du bureau quand un événement arrive (CI cassée, PR mergée…), en plus de la
+            cloche. État : <strong>{NOTIF_LABEL[bell]}</strong>. « Tester » en envoie une tout de suite.
           </p>
           <div className="set-add">
             <button
@@ -601,13 +627,13 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
           <div className="set-toggles">
             {(
               [
-                ['showClock', 'Horloge'],
-                ['showTiles', 'Rangées de tuiles'],
-                ['showFooter', 'Pied de page'],
-                ['favicons', 'Favicons'],
+                ['showClock', 'Horloge', 'heure et date dans la barre du haut'],
+                ['showTiles', 'Tuiles', 'rangées « épinglés » et « les plus utilisés » en haut de Raccourcis'],
+                ['showFooter', 'Pied de page', 'raccourcis clavier rappelés en bas de page'],
+                ['favicons', 'Favicons', 'icône du site devant chaque lien'],
               ] as const
-            ).map(([key, label]) => (
-              <label className="set-toggle" key={key}>
+            ).map(([key, label, hint]) => (
+              <label className="set-toggle" key={key} title={hint}>
                 <input
                   type="checkbox"
                   checked={(draft.ui?.[key] as boolean | undefined) ?? true}
@@ -615,7 +641,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
                     setDraft({ ...draft, ui: { ...(draft.ui ?? {}), [key]: e.target.checked } })
                   }
                 />
-                {label}
+                {label} <em>{hint}</em>
               </label>
             ))}
           </div>
