@@ -3,6 +3,7 @@ import ConfirmHost from './components/ConfirmHost'
 import ContextMenu from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import EventBell from './components/EventBell'
+import ChangelogView from './components/ChangelogView'
 import EventFeed from './components/EventFeed'
 import Footer from './components/Footer'
 import GithubView from './components/GithubView'
@@ -25,6 +26,7 @@ import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
+import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
 import { presetSettingsSection } from './lib/settingsNav'
 import type { FlatLink, UiConfig } from './types'
@@ -42,6 +44,7 @@ export default function App() {
   // l'onglet et le rappel dans la barre GitHub. Le rappel de ménage lui-même est
   // devenu un événement du journal, écrit par le serveur.
   const local = useLocal(tab === 'local')
+  const changelog = useChangelog()
   const events = useEvents(openLocal)
   const { collapsed, toggleGroup, effectiveTheme, switchTheme } = usePrefs(cfg?.ui.theme)
   const { copiedKey, copy } = useCopy()
@@ -161,6 +164,13 @@ export default function App() {
       badge: local.todo,
       badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
     },
+    {
+      id: 'changelog',
+      icon: '📰',
+      label: 'Changelog',
+      badge: changelog.data?.update ? 1 : 0,
+      badgeTitle: `homedash ${changelog.data?.latest ?? ''} est disponible`,
+    },
     { id: 'settings', icon: '⚙', label: 'Réglages' },
   ]
   // La recherche court-circuite les onglets : ses résultats valent partout.
@@ -238,6 +248,8 @@ export default function App() {
             selectTab('settings')
           }}
         />
+      ) : view === 'changelog' ? (
+        <ChangelogView data={changelog.data} busy={changelog.busy} onCheck={() => void changelog.check()} />
       ) : view === 'settings' ? (
         <SettingsPage config={raw} onSave={persist} onReload={reload} saving={saveState.kind === 'saving'} />
       ) : view === 'github' ? (

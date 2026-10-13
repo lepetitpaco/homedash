@@ -12,6 +12,7 @@ backend/                  Python stdlib, aucune dépendance
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
   backup.py               instantanés, export, restauration
+  updates.py              version installée (CHANGELOG.md), mise à jour disponible sur GitHub
 src/
   App.tsx                 assemblage : barre du haut, onglets, vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
@@ -19,7 +20,8 @@ src/
   lib/                    appels API et polling (ghboard, local, events, admin…)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 tests/                    unittest stdlib
-data/                     (non versionné) config.json, secrets.json, notes, journal, backups/
+CHANGELOG.md              une entrée par version ; la première = version installée
+data/                     (non versionné) config.json, secrets.json, notes, journal, backups/, version.json
 ```
 
 ## API
@@ -38,6 +40,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (limité au dossier personnel) |
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |
 | `/api/backups[/{nom}[/restore]]` | GET, POST, DELETE | Instantanés |
+| `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.

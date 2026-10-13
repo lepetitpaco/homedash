@@ -1,4 +1,4 @@
-export type TabId = 'links' | 'github' | 'events' | 'local' | 'settings'
+export type TabId = 'links' | 'github' | 'events' | 'local' | 'changelog' | 'settings'
 
 export type Tab = {
   id: TabId

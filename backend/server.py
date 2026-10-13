@@ -19,6 +19,7 @@ import accounts
 import events
 import localgit
 import store
+import updates
 
 PUBLIC_DIR = Path(os.environ.get("PUBLIC_DIR", "/app/public")).resolve()
 PORT       = int(os.environ.get("PORT", "80"))
@@ -274,6 +275,8 @@ class Handler(BaseHTTPRequestHandler):
 
     # ── lectures ──────────────────────────────────────────────────────────────
     def _api_get(self, path):
+        if path == "/api/changelog":
+            return self._json(updates.payload())
         if path == "/api/config":
             try:
                 return self._json(store.read(store.CONFIG, {}))
@@ -443,6 +446,10 @@ class Handler(BaseHTTPRequestHandler):
                 return self._json({"ok": True, "section": section or "all",
                                    "started": started})
 
+            if path == "/api/changelog/check":
+                updates.check()
+                return self._json(updates.payload())
+
             if path == "/api/local/refresh":
                 # Lecture seule de bout en bout : ce POST ne fait que relancer un
                 # parcours des .git, il n'écrit rien et n'exécute aucune commande.
@@ -497,9 +504,13 @@ def main():
             {"name": "Liens", "icon": "⭐", "links": [
                 {"name": "GitHub", "url": "https://github.com/", "pinned": True}]}]})
         print("ℹ config.json créé — tout se règle dans l'onglet Réglages", flush=True)
+    # Avant load_sections() : si la version a changé, les données sont
+    # sauvegardées telles quelles, avant toute migration de config.
+    updates.on_start()
     load_sections()
 
     backup.start_auto()
+    updates.start()
 
     connected = [m for m in accounts.all_mods() if m.token()]
     if not connected:

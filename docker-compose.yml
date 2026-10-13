@@ -16,6 +16,9 @@ services:
       # réseau (`homedash.lan,192.168.1.20`). Tout autre `Host` est refusé : c'est
       # ce qui empêche un site tiers de lire l'API par DNS rebinding.
       - HOMEDASH_HOSTS=${HOMEDASH_HOSTS:-}
+      # Dépôt dont le CHANGELOG.md sert à détecter une mise à jour (lu avec le jeton
+      # d'un compte connecté, qui doit y avoir accès).
+      - HOMEDASH_REPO=${HOMEDASH_REPO:-davidgennaoui/homedash}
       # Ce que vaut /host côté hôte : sert à écrire les commandes à copier avec
       # les vrais chemins, et à comprendre un chemin absolu de l'hôte.
       - HOST_HOME=${HOME}

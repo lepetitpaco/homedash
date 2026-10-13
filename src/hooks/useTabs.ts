@@ -15,6 +15,7 @@ export function useTabs(title: string | undefined) {
         savedTab === 'links' ||
         savedTab === 'github' ||
         savedTab === 'local' ||
+        savedTab === 'changelog' ||
         savedTab === 'settings'
       )
         setTab(savedTab)
@@ -51,6 +52,7 @@ export function useTabs(title: string | undefined) {
       github: 'GitHub',
       events: 'Activité',
       local: 'Local',
+      changelog: 'Changelog',
       settings: 'Réglages',
     }[tab]
     initTitleCounter(`${label} · ${title}`)

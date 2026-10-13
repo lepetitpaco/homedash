@@ -73,7 +73,7 @@ const DISPLAY_FIELDS: {
     fields: [
       { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran' },
       { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
-      { key: 'cardWidth', label: 'Largeur mini d’une carte', unit: 'px', hint: 'avec colonnes à 0 : en dessous, une carte passe à la ligne' },
+      { key: 'cardWidth', label: 'Largeur d’une carte', unit: 'px', hint: 'si « Colonnes » est à 0 : taille d’une carte GitHub / Local ; plus elle est petite, plus il en tient côte à côte' },
     ],
   },
 ]

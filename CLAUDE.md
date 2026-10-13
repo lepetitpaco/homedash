@@ -1,7 +1,12 @@
 # CLAUDE.md — règles du code
 
 À lire avant toute modification (humain ou IA). Fichiers et routes : `ARCHITECTURE.md`.
-Comportement visible modifié → mettre `GUIDE.md` à jour.
+
+**À chaque livraison :**
+- Nouvelle fonctionnalité ou changement visible → **entrée en tête de `CHANGELOG.md`**
+  (`## X.Y.Z — AAAA-MM-JJ` puis des puces). Feature = version mineure, correctif = patch. C'est cette
+  version qui s'affiche dans l'onglet Changelog et qui déclenche « mise à jour disponible » chez les autres.
+- Comportement visible modifié → `GUIDE.md` à jour.
 
 ## Commandes
 
@@ -31,6 +36,11 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 7. **Écritures atomiques** via `store.write()` ; lecture-modification-écriture de config sous
    `server._config_lock` ; `store.validate_config()` avant toute écriture.
 8. **Pas de `window.confirm` / `alert`** : `confirmDialog()` (dit ce qui change et ce qui est conservé).
+9. **Une mise à jour ne casse jamais les données des autres.** `data/` n'est jamais versionné ni écrasé
+   par le code. Changer le format de `config.json` = une étape de plus dans `accounts.migrate()`
+   (idempotente, testée), jamais un renommage ou une suppression de clé ailleurs. Une clé nouvelle a un
+   défaut côté code : une config ancienne sans elle doit marcher telle quelle. Au démarrage d'une
+   nouvelle version, `updates.on_start()` sauvegarde `data/` **avant** la migration.
 
 ## Pièges connus
 

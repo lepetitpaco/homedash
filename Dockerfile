@@ -19,6 +19,8 @@ ENV TZ=Europe/Paris \
     PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY backend ./backend
+# Version installée et onglet Changelog : lus au runtime par backend/updates.py
+COPY CHANGELOG.md ./
 COPY --from=build /app/dist ./public
 EXPOSE 80
 CMD ["python", "backend/server.py"]

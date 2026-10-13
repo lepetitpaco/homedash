@@ -49,6 +49,13 @@ visibles dans l'onglet du navigateur. Clic = les derniers événements ; **Tout 
 
 Notifications bureau : **désactivées par défaut**, à activer en bas du panneau de la cloche.
 
+### 📰 Changelog
+
+Ce qui a changé à chaque version. Quand une version plus récente est publiée, un encadré l'annonce avec la
+commande à copier (`git pull && docker compose up -d --build`), l'onglet affiche une pastille et la cloche
+une notification. Tes données sont sauvegardées automatiquement avant la mise à jour (Réglages →
+Sauvegardes, instantané « avant-x-y-z »).
+
 ## ⚙ Réglages
 
 Le menu de gauche affiche une partie à la fois. Les modifications s'enregistrent avec **Enregistrer** (`⌘S`), toutes parties confondues. La barre du bas signale ce qui n'est pas

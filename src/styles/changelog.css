@@ -1,0 +1,101 @@
+/* ═══ Onglet Changelog ══════════════════════════════════════════════════════ */
+.cl-page {
+  max-width: 1100px;
+}
+.cl-update {
+  --accent: #60a5fa;
+  padding: 0.9rem 1rem;
+  border-color: color-mix(in srgb, #60a5fa 45%, var(--border));
+  background: color-mix(in srgb, #60a5fa 6%, var(--panel));
+}
+.cl-update-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+.cl-update-head span,
+.cl-update p {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+}
+.cl-update p {
+  margin: 0.5rem 0 0.3rem;
+}
+.cl-update .cl-safe {
+  color: var(--sig-ok);
+}
+.cl-cmd {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+  width: 100%;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  background: var(--panel-2);
+  padding: 0.45rem 0.6rem;
+  font: inherit;
+  color: var(--text);
+  cursor: pointer;
+  text-align: left;
+}
+.cl-cmd code {
+  flex: 1;
+  font-size: 0.82rem;
+}
+.cl-cmd span {
+  font-size: 0.72rem;
+  color: var(--sig-info);
+}
+.cl-status {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+  margin-left: auto;
+}
+.cl-body {
+  padding: 0.2rem 1rem 0.8rem;
+}
+.cl-entry {
+  padding: 0.7rem 0;
+  border-top: 1px solid var(--border-soft);
+}
+.cl-entry:first-child {
+  border-top: 0;
+}
+.cl-update .cl-entry {
+  border-top: 1px solid color-mix(in srgb, #60a5fa 25%, var(--border-soft));
+  margin-top: 0.6rem;
+}
+.cl-entry-head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.6rem;
+}
+.cl-version {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.cl-entry-head time {
+  font-size: 0.72rem;
+  color: var(--text-faint);
+}
+.cl-tag {
+  font-size: 0.66rem;
+  font-weight: 600;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  color: var(--sig-ok);
+  background: color-mix(in srgb, #3fb950 14%, transparent);
+  border: 1px solid color-mix(in srgb, #3fb950 40%, transparent);
+}
+.cl-tag.is-new {
+  color: var(--sig-info);
+  background: color-mix(in srgb, #60a5fa 14%, transparent);
+  border-color: color-mix(in srgb, #60a5fa 40%, transparent);
+}
+.cl-entry ul {
+  margin: 0.35rem 0 0;
+  padding-left: 1.1rem;
+  font-size: 0.84rem;
+  line-height: 1.5;
+}
