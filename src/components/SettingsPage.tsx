@@ -15,7 +15,7 @@ import {
   toggleNotifications,
   type NotifState,
 } from '../lib/notifications'
-import { DEFAULT_UI, GH_TOKENS } from '../lib/config'
+import { DEFAULT_UI, GH_TOKENS, SIZE_LIMITS } from '../lib/config'
 import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import type { Config, RepoItem } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -47,6 +47,9 @@ const SECTIONS = [
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes' },
   { id: 'set-display', icon: '🎛', label: 'Affichage' },
 ] as const
+
+/** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
+const limitOf = (key: string) => SIZE_LIMITS.find(([k]) => k === key)
 
 /** Réglages numériques de « Affichage » : ce que chacun change, en une phrase. */
 const DISPLAY_FIELDS: {
@@ -573,15 +576,18 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
                     </span>
                     <input
                       type="number"
-                      min={0}
+                      min={limitOf(key)?.[1] ?? 0}
+                      max={limitOf(key)?.[2]}
                       placeholder={`${DEFAULT_UI[key]} (défaut)`}
-                      value={(draft.ui?.[key] as number | undefined) ?? ''}
-                      onChange={(e) =>
-                        setDraft({
-                          ...draft,
-                          ui: { ...(draft.ui ?? {}), [key]: num(e.target.value, 0) },
-                        })
-                      }
+                      value={(draft.ui?.[key] as number | undefined) || (limitOf(key) ? '' : (draft.ui?.[key] ?? ''))}
+                      onChange={(e) => {
+                        const ui: Record<string, unknown> = { ...(draft.ui ?? {}) }
+                        const v = num(e.target.value, 0)
+                        // Taille vidée ou à 0 : on retire la clé, le défaut s'applique.
+                        if (limitOf(key) && v <= 0) delete ui[key]
+                        else ui[key] = v
+                        setDraft({ ...draft, ui })
+                      }}
                     />
                   </label>
                 ))}

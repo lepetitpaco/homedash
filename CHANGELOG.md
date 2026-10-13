@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.6.1 — 2026-10-13
+
+- Réglages → Affichage : une taille à 0 ou vide reprend sa valeur par défaut (une colonne de titres ou un
+  lien à 0 px cassait la mise en page), et chaque taille a un minimum.
+- La page ne peut plus défiler en largeur.
+- Changelog : le `code` s'affiche comme du code.
+
 ## 1.6.0 — 2026-10-13
 
 - La recherche trouve aussi les **PRs** (titre, `#numéro`, branche), les **branches actives** et les

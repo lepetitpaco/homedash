@@ -60,6 +60,10 @@ body {
 }
 
 body {
+  /* Jamais de défilement horizontal : un élément trop large ne doit pas
+     décaler toute la page. `clip` (et non `hidden`) garde la barre du haut et
+     le pied de page collants. */
+  overflow-x: clip;
   background: var(--bg);
   color: var(--text);
   font-family: ui-sans-serif, -apple-system, 'Segoe UI', Inter, Roboto, sans-serif;

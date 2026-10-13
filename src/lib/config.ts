@@ -32,6 +32,15 @@ export const DEFAULT_UI: UiConfig = {
   searchPlaceholder: 'Rechercher…   /  ou  ⌘K',
 }
 
+/** Réglages de taille : [clé, minimum, maximum]. 0 ou vide = valeur par défaut. */
+export const SIZE_LIMITS: [keyof UiConfig & ('railWidth' | 'linkWidth' | 'sidebarWidth' | 'cardWidth' | 'pageWidth'), number, number][] = [
+  ['railWidth', 120, 480],
+  ['linkWidth', 120, 800],
+  ['sidebarWidth', 200, 1200],
+  ['cardWidth', 280, 1600],
+  ['pageWidth', 30, 100],
+]
+
 const DEFAULT_REPO_ACTIONS: RepoAction[] = [
   { label: 'PRs', path: '/pulls' },
   { label: 'Branches', path: '/branches' },
@@ -207,6 +216,12 @@ export function normalizeConfig(raw: Config): Normalized {
     ...(raw.ui ?? {}),
   }
   if (ui.theme !== 'light' && ui.theme !== 'dark') ui.theme = DEFAULT_UI.theme
+  // Tailles de mise en page : 0, vide ou absurde = défaut ; sinon bornées. Une
+  // colonne de titres ou un lien à 0 px cassait toute la grille.
+  for (const [key, min, max] of SIZE_LIMITS) {
+    const v = Number(ui[key])
+    ui[key] = !Number.isFinite(v) || v <= 0 ? DEFAULT_UI[key] : Math.min(max, Math.max(min, v))
+  }
 
   // On garde les catégories vides : sinon une catégorie tout juste créée, ou dont
   // on vient de supprimer le dernier lien, disparaîtrait de la page.

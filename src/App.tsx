@@ -350,10 +350,10 @@ function SaveToast({ state, onClose }: { state: SaveState; onClose: () => void }
  * Largeur en % de l'écran ; colonnes à 0 = automatiques.
  */
 function layoutVars(ui: UiConfig): React.CSSProperties {
-  const auto = `repeat(auto-fill, minmax(min(${ui.cardWidth || 560}px, 100%), 1fr))`
+  const auto = `repeat(auto-fill, minmax(min(${ui.cardWidth}px, 100%), 1fr))`
   return {
     ['--link-w' as string]: `${ui.linkWidth}px`,
-    ['--page-max' as string]: ui.pageWidth > 0 && ui.pageWidth < 100 ? `${ui.pageWidth}%` : 'none',
+    ['--page-max' as string]: ui.pageWidth < 100 ? `${ui.pageWidth}%` : 'none',
     ['--cards-cols' as string]: ui.cardColumns > 0 ? `repeat(${ui.cardColumns}, minmax(0, 1fr))` : auto,
   }
 }

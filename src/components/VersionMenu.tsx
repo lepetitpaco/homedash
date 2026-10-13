@@ -119,9 +119,15 @@ function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boo
   )
 }
 
-/** `**gras**` du Markdown, seul formatage utilisé dans CHANGELOG.md. */
+/** `**gras**` et `` `code` `` du Markdown, seuls formatages utilisés dans CHANGELOG.md. */
 function renderBold(text: string) {
-  return text.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part,
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) =>
+    part.startsWith('**') && part.endsWith('**') ? (
+      <strong key={i}>{part.slice(2, -2)}</strong>
+    ) : part.startsWith('`') && part.endsWith('`') && part.length > 1 ? (
+      <code key={i}>{part.slice(1, -1)}</code>
+    ) : (
+      part
+    ),
   )
 }
