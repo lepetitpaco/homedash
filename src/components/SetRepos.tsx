@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getRepos, type GhRepo, type Owner } from '../lib/admin'
 
-export type Use = 'prs' | 'branches' | 'card'
+export type Use = 'prs' | 'branches' | 'github' | 'home'
 
 type Props = {
   /** Compte GitHub dont le jeton sert à lister. */
@@ -18,7 +18,7 @@ type Props = {
 }
 
 /**
- * Ce qu'un repo suivi alimente. Les trois sont actifs par défaut ; on n'en
+ * Ce qu'un repo suivi alimente. Tout est actif par défaut sauf Accueil ; on n'en
  * coupe un que pour une raison précise (un repo dont on ne veut que le lien, un
  * repo trop bavard en branches…).
  */
@@ -36,10 +36,16 @@ const USES: { key: Use; label: string; on: string; off: string }[] = [
     off: 'Ses branches n’apparaissent pas, et l’onglet Local juge ses branches sur tes seuls refs locaux (à jour de ton dernier git fetch).',
   },
   {
-    key: 'card',
-    label: 'Carte',
-    on: 'Il a sa ligne dans la carte Repos (liens PRs, Branches, Actions, clone…).',
-    off: 'Pas de ligne dans la carte Repos.',
+    key: 'github',
+    label: 'GitHub',
+    on: 'Il a sa ligne dans la carte Repos de l’onglet GitHub (liens, compteurs de branches et PRs, clone).',
+    off: 'Pas de ligne dans la carte Repos de l’onglet GitHub.',
+  },
+  {
+    key: 'home',
+    label: 'Accueil',
+    on: 'Il a sa carte dans la carte Repos de l’onglet Raccourcis (page d’accueil).',
+    off: 'Pas de carte dans l’onglet Raccourcis.',
   },
 ]
 
@@ -84,7 +90,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
   }, [connected, account, logins.join(',')])
 
   const tracked = useMemo(
-    () => [...new Set([...uses.prs, ...uses.branches, ...uses.card])].sort(),
+    () => [...new Set([...uses.prs, ...uses.branches, ...uses.github, ...uses.home])].sort(),
     [uses],
   )
 
@@ -140,8 +146,9 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
     <>
       <h3 className="set-sub">Repos suivis</h3>
       <p className="set-hint">
-        Un repo suivi alimente les cartes de l'onglet GitHub, la carte Repos et l'onglet Local. Clique une
-        pastille pour couper l'un des trois — survole-la pour voir l'effet.
+        Un repo suivi alimente les cartes de l'onglet GitHub, la carte Repos et l'onglet Local. Chaque
+        pastille s'allume ou s'éteint d'un clic — survole-la pour voir l'effet. <b>GitHub</b> et{' '}
+        <b>Accueil</b> placent le repo dans la carte Repos de l'onglet GitHub et / ou de Raccourcis.
       </p>
 
       {groups.length ? (

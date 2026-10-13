@@ -21,7 +21,14 @@ export type RepoItem = {
   name: string
   owner?: string
   note?: string
+  /** Onglets où le repo a sa carte : absent = l'onglet GitHub seulement. */
+  in?: RepoTab[]
 }
+
+/** `github` = une ligne dans la carte Repos de l'onglet GitHub ; `links` = une carte dans Raccourcis. */
+export type RepoTab = 'github' | 'links'
+
+export const repoTabs = (item: RepoItem): RepoTab[] => item.in ?? ['github']
 
 export type RepoAction = {
   label: string

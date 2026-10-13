@@ -9,6 +9,7 @@ import type {
   ReposConfig,
   UiConfig,
 } from '../types'
+import { repoTabs, type RepoTab } from '../types'
 
 export const DEFAULT_UI: UiConfig = {
   theme: 'dark',
@@ -81,6 +82,19 @@ const DEFAULT_SIDEBAR = ['notes', 'stats']
 export type GhKind = 'gh:branches' | 'gh:prs' | 'gh:renovate' | 'gh:merged'
 
 export const GH_TOKENS: GhKind[] = ['gh:branches', 'gh:prs', 'gh:renovate', 'gh:merged']
+export const DEFAULT_GH_LAYOUT: string[] = ['repos', ...GH_TOKENS]
+
+/**
+ * Une liste d'onglet contient toujours `repos` : ce sont les pastilles
+ * GitHub / Accueil de chaque repo qui décident de ce qui s'affiche où. Une
+ * liste écrite à la main sans `repos` le reçoit à `at`.
+ */
+function withRepos(list: string[], at: number): string[] {
+  if (list.includes('repos')) return list
+  const out = [...list]
+  out.splice(Math.max(0, at), 0, 'repos')
+  return out
+}
 
 // Une variante par jeton : TypeScript ne discrimine un membre que si son `kind`
 // est un littéral, pas une union.
@@ -90,7 +104,8 @@ export type ResolvedSection =
   | { kind: 'gh:renovate'; key: string }
   | { kind: 'gh:merged'; key: string }
   | { kind: 'infos'; key: string }
-  | { kind: 'repos'; key: string }
+  /** `tab` : chaque onglet ne montre que les repos cochés pour lui (Réglages → Repos suivis). */
+  | { kind: 'repos'; key: string; tab?: RepoTab }
   | { kind: 'notes'; key: string }
   | { kind: 'stats'; key: string }
   | { kind: 'group'; key: string; group: Group }
@@ -274,16 +289,25 @@ export function normalizeConfig(raw: Config): Normalized {
   )
 
   const sidebar = resolveList(sidebarList, groups, has, used, namedAnywhere)
-  const sections = resolveList(layout, groups, has, used, namedAnywhere)
+  const sections = resolveList(withRepos(layout, layout.indexOf('infos') + 1), groups, has, used, namedAnywhere)
   // `used` séparé : l'onglet GitHub est une page à part, ses cartes ne sont pas
   // en concurrence avec celles du tableau principal.
   const githubSections = resolveList(
-    raw.githubLayout?.length ? raw.githubLayout : GH_TOKENS,
+    withRepos(raw.githubLayout?.length ? raw.githubLayout : DEFAULT_GH_LAYOUT, 0),
     groups,
     has,
     new Set<string>(),
     namedAnywhere,
   )
+  // La carte Repos d'un onglet ne montre que les repos cochés pour lui ; sans
+  // aucun, elle n'apparaît pas dans cet onglet.
+  const tagRepos = (list: ResolvedSection[], tab: RepoTab) =>
+    list
+      .filter((s) => s.kind !== 'repos' || (repos?.items ?? []).some((i) => repoTabs(i).includes(tab)))
+      .map((s) => (s.kind === 'repos' ? { ...s, tab } : s))
+  sections.splice(0, sections.length, ...tagRepos(sections, 'links'))
+  githubSections.splice(0, githubSections.length, ...tagRepos(githubSections, 'github'))
+
   // filet de sécurité : aucune catégorie ne disparaît par oubli dans `layout`
   for (const g of groups) {
     const key = `group:${g.name}`

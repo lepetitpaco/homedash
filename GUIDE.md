@@ -64,7 +64,7 @@ enregistré.
 | Partie | Ce qu'on y fait |
 | --- | --- |
 | 🔑 Compte & équipe | Jeton GitHub, membres de l'équipe (★ = affiché par défaut), **＋ compte** pour un autre compte GitHub |
-| 📦 Repos suivis | Ajouter / retirer des repos. Trois pastilles par repo : **PRs**, **Branches**, **Carte** (lien dans Raccourcis) |
+| 📦 Repos suivis | Ajouter / retirer des repos. Pastilles par repo : **PRs**, **Branches**, **GitHub** (ligne dans la carte Repos de l'onglet GitHub), **Accueil** (carte dans Raccourcis) |
 | 🐙 Onglet GitHub | Fréquence de rafraîchissement, carte Renovate |
 | 💻 Dépôts locaux | Dossiers où chercher tes clones |
 | 💾 Sauvegardes | Instantané, export, restauration (l'état actuel est toujours sauvegardé avant) |

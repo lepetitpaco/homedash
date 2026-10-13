@@ -1,4 +1,5 @@
 import type { Dispatch, SetStateAction } from 'react'
+import { repoTabs } from '../types'
 import type { InfoRef } from '../lib/mutate'
 import type { Normalized, ResolvedSection } from '../lib/config'
 import type { useGithub } from '../lib/ghboard'
@@ -96,7 +97,10 @@ export default function Section({ section, ctx }: { section: ResolvedSection; ct
     ) : null
   }
   if (section.kind === 'repos') {
-    return cfg.repos ? <RepoCard repos={cfg.repos} onOpen={track} gh={gh.data} /> : null
+    if (!cfg.repos) return null
+    const tab = section.tab ?? 'github'
+    const items = cfg.repos.items.filter((i) => repoTabs(i).includes(tab))
+    return items.length ? <RepoCard repos={{ ...cfg.repos, items }} onOpen={track} gh={gh.data} /> : null
   }
   if (section.kind === 'notes') {
     return (

@@ -15,9 +15,9 @@ import {
   toggleNotifications,
   type NotifState,
 } from '../lib/notifications'
-import { DEFAULT_UI, DISPLAY_PRESETS, GH_TOKENS, SIZE_LIMITS } from '../lib/config'
+import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
 import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
-import type { Config, RepoItem } from '../types'
+import { repoTabs, type Config, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
 import SetConnect from './SetConnect'
@@ -175,8 +175,13 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
 
   /** Chaque repo porte son propriétaire : `mon-org/api`. */
   const cardKey = (i: { name: string; owner?: string }) => (i.owner ? `${i.owner}/${i.name}` : i.name)
-  const cardRepos = useMemo(
-    () => (draft?.repos?.items ?? []).map(cardKey),
+  const githubRepos = useMemo(
+    () => (draft?.repos?.items ?? []).filter((i) => repoTabs(i).includes('github')).map(cardKey),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [draft],
+  )
+  const homeRepos = useMemo(
+    () => (draft?.repos?.items ?? []).filter((i) => repoTabs(i).includes('links')).map(cardKey),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [draft],
   )
@@ -230,8 +235,13 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   const fullList = asList
   // Clé absente = mêmes repos que les PRs, comme le backend.
   const branchList = Array.isArray(gh.branch_repos) ? fullList(gh.branch_repos) : fullList(gh.repos)
-  const uses: Record<Use, string[]> = { prs: fullList(gh.repos), branches: branchList, card: cardRepos }
-  const tracked = [...new Set([...uses.prs, ...uses.branches, ...uses.card])].sort()
+  const uses: Record<Use, string[]> = {
+    prs: fullList(gh.repos),
+    branches: branchList,
+    github: githubRepos,
+    home: homeRepos,
+  }
+  const tracked = [...new Set([...uses.prs, ...uses.branches, ...uses.github, ...uses.home])].sort()
   const nameOf = (k: string) => k.split('/').pop() ?? k
 
   const itemOf = (key: string): RepoItem => {
@@ -245,10 +255,21 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
    * réécrit en `propriétaire/repo`, y compris les entrées de la carte.
    */
   const writeUses = (next: Record<Use, string[]>, extra: Partial<GhCfg> = {}) => {
+    // Une entrée de carte par repo coché GitHub et / ou Accueil ; `in` absent = GitHub seul.
+    const card = [...new Set([...next.github, ...next.home])]
+    const placed = (i: RepoItem): RepoItem => {
+      const key = cardKey(i)
+      const tabs: RepoTab[] = [
+        ...(next.github.includes(key) ? (['github'] as const) : []),
+        ...(next.home.includes(key) ? (['links'] as const) : []),
+      ]
+      const { in: _old, ...rest } = i
+      return tabs.length === 1 && tabs[0] === 'github' ? rest : { ...rest, in: tabs }
+    }
     const keep = items
-      .filter((i) => next.card.includes(cardKey(i)))
-      .map((i) => (i.owner ? i : { ...i, ...itemOf(cardKey(i)) }))
-    const added = next.card.filter((k) => !keep.some((i) => cardKey(i) === k)).map(itemOf)
+      .filter((i) => card.includes(cardKey(i)))
+      .map((i) => placed(i.owner ? i : { ...i, ...itemOf(cardKey(i)) }))
+    const added = card.filter((k) => !keep.some((i) => cardKey(i) === k)).map((k) => placed(itemOf(k)))
     setDraft({
       ...withAcc({
         repos: next.prs,
@@ -269,7 +290,8 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
     const clash = tracked.find((k) => k !== key && nameOf(k).toLowerCase() === nameOf(key).toLowerCase())
     if (clash) return `${clash} est déjà suivi : deux repos du même nom ne peuvent pas être suivis ensemble.`
     const add = (l: string[]) => (l.includes(key) ? l : [...l, key].sort())
-    writeUses({ prs: add(uses.prs), branches: add(uses.branches), card: add(uses.card) })
+    // Accueil n'est pas coché d'office : la page d'accueil reste aux raccourcis.
+    writeUses({ ...uses, prs: add(uses.prs), branches: add(uses.branches), github: add(uses.github) })
     return null
   }
 
@@ -281,12 +303,12 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   const untrack = (key: string) => {
     const drop = (l: string[]) => l.filter((x) => x !== key)
     writeUses(
-      { prs: drop(uses.prs), branches: drop(uses.branches), card: drop(uses.card) },
+      { prs: drop(uses.prs), branches: drop(uses.branches), github: drop(uses.github), home: drop(uses.home) },
       { base_site_repos: drop(fullList(gh.base_site_repos)) },
     )
   }
 
-  const layout = draft.githubLayout?.length ? draft.githubLayout : [...GH_TOKENS]
+  const layout = draft.githubLayout?.length ? draft.githubLayout : [...DEFAULT_GH_LAYOUT]
   const setRenovateShown = (on: boolean) =>
     setDraft({
       ...draft,

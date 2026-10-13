@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.8.0 — 2026-10-13
+
+- Réglages → Repos suivis : la pastille « Carte » devient **GitHub** et **Accueil**. Chaque repo choisit
+  s'il apparaît dans la carte Repos de l'onglet GitHub (une ligne, avec ses branches et PRs), dans celle
+  de Raccourcis, ou les deux. Par défaut : onglet GitHub seulement.
+
 ## 1.7.1 — 2026-10-13
 
 - Fenêtre du changelog : la commande de mise à jour est toujours affichée en haut, prête à coller dans
