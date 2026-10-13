@@ -90,7 +90,9 @@ body::before {
   /* Toute la largeur : les grilles décident elles-mêmes combien de colonnes y
      tiennent. Seule la marge suit l'écran. */
   --gutter: clamp(10px, 1.6vw, 28px);
-  max-width: var(--page-max, none);
+  /* % de l'écran (Réglages → Affichage), jamais moins de 1 400 px : sur un
+     portable, 60 % rendrait la page minuscule. */
+  max-width: max(var(--page-max, 100%), min(100%, 1400px));
   margin: 0 auto;
   padding: 18px var(--gutter) 0;
   /* Colonne pleine hauteur : le pied de page reste en bas même sur une page courte. */

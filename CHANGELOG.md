@@ -4,6 +4,14 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.7.0 — 2026-10-13
+
+- Réglages → Affichage : **presets** Ultra-wide 49", Ultra-wide 34" et MacBook Pro ; un clic remplit les
+  réglages.
+- Valeurs par défaut taillées pour un 49" : page centrée à 60 %, GitHub et Local sur 2 colonnes. La page ne
+  descend jamais sous 1 400 px, donc rien ne change sur un portable.
+- Réglages : les champs d'une même rangée sont alignés.
+
 ## 1.6.1 — 2026-10-13
 
 - Réglages → Affichage : une taille à 0 ou vide reprend sa valeur par défaut (une colonne de titres ou un

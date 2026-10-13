@@ -353,7 +353,7 @@ function layoutVars(ui: UiConfig): React.CSSProperties {
   const auto = `repeat(auto-fill, minmax(min(${ui.cardWidth}px, 100%), 1fr))`
   return {
     ['--link-w' as string]: `${ui.linkWidth}px`,
-    ['--page-max' as string]: ui.pageWidth < 100 ? `${ui.pageWidth}%` : 'none',
+    ['--page-max' as string]: `${ui.pageWidth}%`,
     ['--cards-cols' as string]: ui.cardColumns > 0 ? `repeat(${ui.cardColumns}, minmax(0, 1fr))` : auto,
   }
 }

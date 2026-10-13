@@ -30,6 +30,12 @@
   font-size: 0.76rem;
   color: var(--text-dim);
 }
+/* Les descriptions font 1 à 3 lignes : le champ est poussé en bas pour que
+   ceux d'une même rangée restent alignés. */
+.set-field > input,
+.set-field > select {
+  margin-top: auto;
+}
 .set-field em {
   color: var(--text-faint);
   font-style: normal;
@@ -205,4 +211,33 @@
 #set-display .set-toggles {
   flex-direction: column;
   gap: 0.35rem;
+}
+.set-presets {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.5rem;
+}
+.set-preset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  padding: 0.55rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.set-preset span {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+}
+.set-preset:hover {
+  border-color: #6366f177;
+}
+.set-preset.is-on {
+  border-color: #60a5fa;
+  background: color-mix(in srgb, #60a5fa 10%, var(--panel-2));
 }

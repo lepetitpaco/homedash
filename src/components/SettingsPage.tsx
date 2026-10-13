@@ -15,7 +15,7 @@ import {
   toggleNotifications,
   type NotifState,
 } from '../lib/notifications'
-import { DEFAULT_UI, GH_TOKENS, SIZE_LIMITS } from '../lib/config'
+import { DEFAULT_UI, DISPLAY_PRESETS, GH_TOKENS, SIZE_LIMITS } from '../lib/config'
 import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import type { Config, RepoItem } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -74,7 +74,7 @@ const DISPLAY_FIELDS: {
   {
     title: 'Mise en page',
     fields: [
-      { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran' },
+      { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran ; jamais moins de 1 400 px' },
       { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
       { key: 'cardWidth', label: 'Largeur d’une carte', unit: 'px', hint: 'onglets GitHub et Local, quand « Colonnes » est à 0 : largeur minimum d’une carte. Exemple sur un écran de 1 800 px : 560 → 3 cartes par ligne, 400 → 4' },
     ],
@@ -564,6 +564,25 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
 
         {active === 'set-display' ? (
         <Card id="set-display" icon="🎛" title="Affichage">
+          <h3 className="set-sub">Presets</h3>
+          <p className="set-hint">Un clic remplit les réglages ci-dessous ; ajuste si besoin, puis Enregistrer.</p>
+          <div className="set-presets">
+            {DISPLAY_PRESETS.map((p) => {
+              const on = Object.entries(p.ui).every(
+                ([k, v]) => ((draft.ui?.[k as keyof typeof p.ui] as number | undefined) || DEFAULT_UI[k as keyof typeof p.ui]) === v,
+              )
+              return (
+                <button
+                  key={p.id}
+                  className={`set-preset${on ? ' is-on' : ''}`}
+                  onClick={() => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...p.ui } })}
+                >
+                  <strong>{p.label}</strong>
+                  <span>{p.hint}</span>
+                </button>
+              )
+            })}
+          </div>
           {DISPLAY_FIELDS.map((section) => (
             <div key={section.title}>
               <h3 className="set-sub">{section.title}</h3>
