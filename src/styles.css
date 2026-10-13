@@ -83,9 +83,12 @@ body::before {
 }
 
 .app {
-  max-width: min(2400px, 97vw);
+  /* Toute la largeur : les grilles décident elles-mêmes combien de colonnes y
+     tiennent. Seule la marge suit l'écran. */
+  --gutter: clamp(10px, 1.6vw, 28px);
+  max-width: 3200px;
   margin: 0 auto;
-  padding: 18px 22px 40px;
+  padding: 18px var(--gutter) 40px;
 }
 
 /* ── topbar ──────────────────────────────────────────────────────────────── */
@@ -102,8 +105,8 @@ body::before {
   position: sticky;
   top: 0;
   z-index: 40;
-  margin: -18px -22px 20px;
-  padding: 12px 22px;
+  margin: -18px calc(-1 * var(--gutter)) 20px;
+  padding: 12px var(--gutter);
   background: color-mix(in srgb, var(--bg) 88%, transparent);
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
@@ -1980,18 +1983,17 @@ a.gh-badge:hover {
    Page dédiée, donc on respire : deux colonnes larges, et la carte Repos prend
    toute la largeur puisqu'elle contient déjà sa propre grille de tuiles.      */
 .gh-page {
+  /* Autant de colonnes de 560 px que l'écran en contient : 1 sur portable,
+     2 sur un écran courant, 3 à 4 sur un grand écran. Une grille et non des
+     colonnes CSS : les cartes se remplissent en direct, et en colonnes CSS
+     elles sauteraient d'une colonne à l'autre à chaque rafraîchissement. */
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(min(560px, 100%), 1fr));
   gap: 14px;
   align-items: start;
 }
 .gh-page > .repos-card {
   grid-column: 1 / -1;
-}
-@media (max-width: 1100px) {
-  .gh-page {
-    grid-template-columns: 1fr;
-  }
 }
 
 /* Densité ample : la page dédiée n'a plus besoin de compacter à l'extrême. */
@@ -2108,7 +2110,6 @@ a.gh-badge:hover {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(245px, 1fr));
   gap: 0.6rem;
-  max-width: 1100px;
 }
 .set-field {
   display: flex;
@@ -2149,7 +2150,6 @@ a.gh-badge:hover {
 }
 .set-table {
   width: 100%;
-  max-width: 680px;
   border-collapse: collapse;
   font-size: 0.78rem;
 }
@@ -2184,7 +2184,6 @@ a.gh-badge:hover {
 .set-add {
   display: flex;
   gap: 0.35rem;
-  max-width: 680px;
 }
 .set-add input {
   flex: 1;
@@ -2445,7 +2444,6 @@ a.gh-badge:hover {
   border: 1px solid var(--border-soft);
   border-radius: 0.35rem;
   padding: 0.3rem 0.5rem;
-  max-width: 680px;
 }
 
 /* ═══ Indicateur de fetch ════════════════════════════════════════════════════
@@ -2857,7 +2855,20 @@ a.gh-badge:hover {
    intérêt. C'est aussi ce qui le rend utilisable en barre latérale.          */
 .ev-card {
   --accent: #60a5fa;
-  max-width: 860px;
+}
+/* Une liste de lignes courtes : en pleine largeur elle deviendrait illisible,
+   on la répartit plutôt en colonnes de lecture. */
+.ev-card > .gh-body {
+  column-width: 520px;
+  column-gap: 0;
+  column-rule: 1px solid var(--border-soft);
+}
+.ev-card .ev-row,
+.ev-card .ev-day-head {
+  break-inside: avoid;
+}
+.ev-card .ev-day-head {
+  break-after: avoid;
 }
 .ev-card .group-toggle {
   flex-wrap: wrap;
@@ -3055,7 +3066,6 @@ button.ev-row:hover {
   display: flex;
   flex-direction: column;
   gap: 0.45rem;
-  max-width: 680px;
 }
 .set-account {
   display: flex;
@@ -3148,7 +3158,6 @@ button.ev-row:hover {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  max-width: 680px;
 }
 .set-pick-list {
   list-style: none;
@@ -3249,7 +3258,6 @@ button.ev-row:hover {
   border: 1px solid var(--border);
   border-radius: 0.45rem;
   background: var(--panel-2);
-  max-width: 680px;
 }
 .set-browser-head {
   display: flex;
@@ -3331,7 +3339,6 @@ button.ev-row:hover {
 }
 .set-tracked {
   list-style: none;
-  max-width: 680px;
   border: 1px solid var(--border-soft);
   border-radius: 0.4rem;
 }
@@ -3372,7 +3379,6 @@ button.ev-row:hover {
   border: 1px solid var(--border-soft);
   border-radius: 0.45rem;
   padding: 0.5rem 0.7rem;
-  max-width: 680px;
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -3434,7 +3440,6 @@ button.ev-row:hover {
 
 /* Repos suivis : un cadre par propriétaire ; ajout : un onglet par compte */
 .set-owner {
-  max-width: 680px;
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
@@ -3504,7 +3509,18 @@ button.ev-row:hover {
 /* Une seule colonne de cartes : avec un menu, l'œil descend au lieu de zigzaguer. */
 .settings-layout .settings-page {
   grid-template-columns: minmax(0, 1fr);
-  max-width: 980px;
+}
+/* Cartes en colonnes façon maçonnerie : leurs hauteurs sont très inégales
+   (Repos suivis est longue, Sauvegardes courte), une grille laisserait des
+   trous. Contenu statique, donc pas de cartes qui sautent. */
+.set-cards {
+  column-width: 520px;
+  column-gap: 14px;
+}
+.set-cards > .card {
+  break-inside: avoid;
+  width: 100%;
+  margin: 0 0 14px;
 }
 .settings-layout .set-card {
   scroll-margin-top: calc(var(--topbar-h, 0px) + 16px);
@@ -3547,7 +3563,7 @@ button.ev-row:hover {
   .set-nav {
     flex-direction: row;
     overflow-x: auto;
-    top: 0;
+    top: var(--topbar-h, 0px);
     z-index: 5;
     background: var(--bg, var(--panel));
     padding: 4px 0;

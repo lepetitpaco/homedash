@@ -161,12 +161,17 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   // de page ne serait jamais « active ».
   const cleanedRef = useRef<(c: Config) => Config>((c) => c)
   const [active, setActive] = useState<string>(SECTIONS[0].id)
+  // Après un clic dans le menu, on garde son choix le temps du défilement : en
+  // colonnes, plusieurs cartes sont visibles à la fois et l'observateur
+  // reprendrait sinon celle de la première colonne.
+  const pinned = useRef(0)
   useEffect(() => {
     if (!draft) return
     const seen = new Map<string, boolean>()
     const io = new IntersectionObserver(
       (entries) => {
         for (const e of entries) seen.set(e.target.id, e.isIntersecting)
+        if (Date.now() < pinned.current) return
         const first = SECTIONS.find((sec) => seen.get(sec.id))
         if (first) setActive(first.id)
       },
@@ -181,6 +186,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
 
   const jump = (id: string) => {
     setActive(id)
+    pinned.current = Date.now() + 1000
     document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }
 
@@ -431,6 +437,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
           </span>
         </div>
 
+        <div className="set-cards">
         <Card id="set-account" icon="🔑" title={`Compte & équipe · ${labelOf(gh)}`}>
           <div className="set-grid">
             <label className="set-field">
@@ -616,6 +623,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             ))}
           </div>
         </Card>
+        </div>
 
         <div className={`set-actions${dirty ? ' is-dirty' : ''}`}>
           <span className="set-actions-note">
