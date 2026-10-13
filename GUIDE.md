@@ -61,7 +61,7 @@ enregistré.
 | 🐙 Onglet GitHub | Fréquence de rafraîchissement, carte Renovate |
 | 💻 Dépôts locaux | Dossiers où chercher tes clones |
 | 💾 Sauvegardes | Instantané, export, restauration (l'état actuel est toujours sauvegardé avant) |
-| 🎛 Affichage | Thème, horloge, notifications, mise en page : largeur max, colonnes GitHub / Local et Réglages (0 = auto) |
+| 🎛 Affichage | Thème, horloge, notifications, mise en page : largeur de la page (% de l'écran), colonnes GitHub / Local et Réglages (0 = auto) |
 
 Un seul jeton voit ton compte **et** tes organisations : un second compte ne sert que pour un autre
 compte GitHub.

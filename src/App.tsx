@@ -333,13 +333,13 @@ function SaveToast({ state, onClose }: { state: SaveState; onClose: () => void }
 
 /**
  * Réglages de mise en page (Réglages → Affichage) traduits en variables CSS.
- * 0 = libre : la page prend l'écran, les grilles calculent leurs colonnes.
+ * Largeur en % de l'écran ; colonnes à 0 = automatiques.
  */
 function layoutVars(ui: UiConfig): React.CSSProperties {
   const auto = `repeat(auto-fill, minmax(min(${ui.cardWidth || 560}px, 100%), 1fr))`
   return {
     ['--link-w' as string]: `${ui.linkWidth}px`,
-    ['--page-max' as string]: ui.pageWidth > 0 ? `${ui.pageWidth}px` : 'none',
+    ['--page-max' as string]: ui.pageWidth > 0 && ui.pageWidth < 100 ? `${ui.pageWidth}%` : 'none',
     ['--cards-cols' as string]: ui.cardColumns > 0 ? `repeat(${ui.cardColumns}, minmax(0, 1fr))` : auto,
     ['--set-cols' as string]: ui.settingsColumns > 0 ? String(ui.settingsColumns) : '520px',
   }

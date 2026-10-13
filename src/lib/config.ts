@@ -20,7 +20,7 @@ export const DEFAULT_UI: UiConfig = {
   maxTiles: 10,
   railWidth: 232,
   linkWidth: 280,
-  pageWidth: 0,
+  pageWidth: 100,
   cardColumns: 0,
   cardWidth: 560,
   settingsColumns: 0,

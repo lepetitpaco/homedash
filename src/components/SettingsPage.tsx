@@ -538,7 +538,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
                 ['linkWidth', 'Largeur mini d’un lien'],
                 ['sidebarWidth', 'Largeur mini des blocs du haut'],
                 ['healthcheckInterval', 'Test des liens surveillés (s)'],
-                ['pageWidth', 'Largeur max de la page (px, 0 = tout l’écran)'],
+                ['pageWidth', 'Largeur de la page (% de l’écran)'],
                 ['cardColumns', 'Colonnes GitHub / Local (0 = auto)'],
                 ['cardWidth', 'Largeur mini d’une carte en auto (px)'],
                 ['settingsColumns', 'Colonnes des Réglages (0 = auto)'],
