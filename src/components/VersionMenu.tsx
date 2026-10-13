@@ -65,20 +65,25 @@ export default function VersionMenu({
             </div>
 
             <div className="modal-body cl-body">
-              {data.update ? (
-                <div className="cl-update">
-                  <strong>⬆️ La version {data.latest} est disponible</strong>
-                  <p>Dans le dossier du projet :</p>
-                  <button className="cl-cmd" onClick={copy} title="Copier la commande">
-                    <code>{data.command}</code>
-                    <span>{copied ? '✓ copié' : 'copier'}</span>
-                  </button>
-                  <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
-                  {data.incoming.map((e) => (
-                    <Entry key={e.version} entry={e} fresh />
-                  ))}
-                </div>
-              ) : null}
+              {/* Toujours là : la commande à coller dans un terminal pour mettre à jour. */}
+              <div className={`cl-update${data.update ? '' : ' is-idle'}`}>
+                <strong>
+                  {data.update ? `⬆️ La version ${data.latest} est disponible` : 'Mettre à jour homedash'}
+                </strong>
+                <p>
+                  {data.update
+                    ? 'Colle cette commande dans un terminal :'
+                    : 'Tu es à jour. Quand une version sortira, colle cette commande dans un terminal :'}
+                </p>
+                <button className="cl-cmd" onClick={copy} title="Copier la commande">
+                  <code>{data.command}</code>
+                  <span>{copied ? '✓ copié' : 'copier'}</span>
+                </button>
+                <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
+                {data.incoming.map((e) => (
+                  <Entry key={e.version} entry={e} fresh />
+                ))}
+              </div>
               {data.entries.map((e, i) => (
                 <Entry key={e.version} entry={e} current={i === 0} />
               ))}

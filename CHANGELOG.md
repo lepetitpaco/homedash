@@ -4,6 +4,11 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.7.1 — 2026-10-13
+
+- Fenêtre du changelog : la commande de mise à jour est toujours affichée en haut, prête à coller dans
+  n'importe quel terminal (avec le `cd` vers le dossier du projet).
+
 ## 1.7.0 — 2026-10-13
 
 - Réglages → Affichage : **presets** Ultra-wide 49", Ultra-wide 34" et MacBook Pro ; un clic remplit les

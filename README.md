@@ -33,8 +33,8 @@ docker compose down                         # arrêter (les données restent)
 git pull && docker compose up -d --build    # mettre à jour
 ```
 
-Quand une nouvelle version est publiée, la cloche 🔔 et le numéro de version en haut à droite te le disent, avec la
-commande à copier. Tes données sont sauvegardées automatiquement avant chaque mise à jour.
+Quand une nouvelle version est publiée, la cloche 🔔 et le numéro de version en haut à droite te le disent. Un
+clic sur ce numéro donne la commande de mise à jour, prête à coller dans n'importe quel terminal. Tes données sont sauvegardées automatiquement avant chaque mise à jour.
 
 Mode d'emploi complet : **[GUIDE.md](GUIDE.md)**.
 

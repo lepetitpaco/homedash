@@ -126,3 +126,8 @@
   font-size: 0.8rem;
   line-height: 1.5;
 }
+/* À jour : la commande reste là, sans attirer l'œil. */
+.cl-update.is-idle {
+  border-color: var(--border-soft);
+  background: var(--panel-2);
+}

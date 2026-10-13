@@ -17,6 +17,7 @@ Deux protections pour les données de chacun :
 import base64
 import os
 import re
+import shlex
 import threading
 import time
 from pathlib import Path
@@ -31,7 +32,10 @@ REPO        = os.environ.get("HOMEDASH_REPO", "davidgennaoui/homedash")
 BRANCH      = os.environ.get("HOMEDASH_BRANCH", "main")
 CHECK_EVERY = 6 * 3600
 VERSION     = "version.json"
-COMMAND     = "git pull && docker compose up -d --build"
+# Avec le dossier du projet (transmis par compose), la commande se colle depuis
+# n'importe quel terminal ; sans lui, elle suppose qu'on y est déjà.
+_DIR        = os.environ.get("HOMEDASH_DIR", "").strip()
+COMMAND     = (f"cd {shlex.quote(_DIR)} && " if _DIR else "") + "git pull && docker compose up -d --build"
 
 _state = {"latest": None, "incoming": [], "checked_at": None, "error": None}
 _lock  = threading.Lock()
