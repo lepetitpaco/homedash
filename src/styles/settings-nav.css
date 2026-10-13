@@ -13,7 +13,8 @@
    (Repos suivis est longue, Sauvegardes courte), une grille laisserait des
    trous. Contenu statique, donc pas de cartes qui sautent. */
 .set-cards {
-  column-width: 520px;
+  /* `columns` prend un nombre (Réglages → Affichage) ou une largeur (auto). */
+  columns: var(--set-cols, 520px);
   column-gap: 14px;
 }
 .set-cards > .card {
@@ -118,3 +119,9 @@
   box-shadow: 0 0 0 3px color-mix(in srgb, #2a8a50 35%, transparent);
 }
 
+
+@media (max-width: 900px) {
+  .set-cards {
+    columns: 1;
+  }
+}

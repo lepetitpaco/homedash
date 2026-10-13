@@ -441,7 +441,8 @@ a.gh-badge:hover {
      colonnes CSS : les cartes se remplissent en direct, et en colonnes CSS
      elles sauteraient d'une colonne à l'autre à chaque rafraîchissement. */
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(min(560px, 100%), 1fr));
+  /* Réglages → Affichage : nombre fixe de colonnes, ou auto (largeur mini). */
+  grid-template-columns: var(--cards-cols, repeat(auto-fill, minmax(min(560px, 100%), 1fr)));
   gap: 14px;
   align-items: start;
 }
@@ -539,3 +540,10 @@ a.gh-badge:hover {
   border-color: color-mix(in srgb, #f85149 40%, transparent);
 }
 
+
+/* Écran étroit : une colonne, même si un nombre fixe est réglé. */
+@media (max-width: 900px) {
+  .gh-page {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

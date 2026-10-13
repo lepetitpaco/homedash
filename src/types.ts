@@ -99,6 +99,14 @@ export type UiConfig = {
   railWidth: number
   /** Largeur mini d'un lien dans une bande : plus elle est basse, plus il y a de liens par rangée. */
   linkWidth: number
+  /** Largeur max de la page en px ; 0 = tout l'écran. */
+  pageWidth: number
+  /** Colonnes de cartes des onglets GitHub et Local ; 0 = autant que l'écran en contient. */
+  cardColumns: number
+  /** Largeur mini d'une carte GitHub / Local quand les colonnes sont automatiques. */
+  cardWidth: number
+  /** Colonnes de la page Réglages ; 0 = automatique. */
+  settingsColumns: number
   healthcheckInterval: number
   healthcheckTimeout: number
   defaultColor: string

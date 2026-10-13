@@ -15,7 +15,7 @@ import {
   toggleNotifications,
   type NotifState,
 } from '../lib/notifications'
-import { GH_TOKENS } from '../lib/config'
+import { DEFAULT_UI, GH_TOKENS } from '../lib/config'
 import type { Config, RepoItem } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
@@ -538,12 +538,18 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
                 ['linkWidth', 'Largeur mini d’un lien'],
                 ['sidebarWidth', 'Largeur mini des blocs du haut'],
                 ['healthcheckInterval', 'Test des liens surveillés (s)'],
+                ['pageWidth', 'Largeur max de la page (px, 0 = tout l’écran)'],
+                ['cardColumns', 'Colonnes GitHub / Local (0 = auto)'],
+                ['cardWidth', 'Largeur mini d’une carte en auto (px)'],
+                ['settingsColumns', 'Colonnes des Réglages (0 = auto)'],
               ] as const
             ).map(([key, label]) => (
               <label className="set-field" key={key}>
                 <span>{label}</span>
                 <input
                   type="number"
+                  min={0}
+                  placeholder={String(DEFAULT_UI[key])}
                   value={(draft.ui?.[key] as number | undefined) ?? ''}
                   onChange={(e) =>
                     setDraft({

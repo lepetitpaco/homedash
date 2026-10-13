@@ -25,7 +25,7 @@ import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { setUnread } from './lib/notifications'
-import type { FlatLink } from './types'
+import type { FlatLink, UiConfig } from './types'
 
 export default function App() {
   const { raw, cfg, error, saveState, setSaveState, persist, reload } = useConfigState()
@@ -165,7 +165,7 @@ export default function App() {
   const view: TabId | 'search' = searching ? 'search' : tab
 
   return (
-    <div className="app" style={{ ['--link-w' as string]: `${ui.linkWidth}px` }}>
+    <div className="app" style={layoutVars(ui)}>
       <TopBar
         title={cfg.title}
         subtitle={cfg.subtitle}
@@ -329,4 +329,18 @@ function SaveToast({ state, onClose }: { state: SaveState; onClose: () => void }
       {state.kind === 'saving' ? 'enregistrement…' : '✓ config.json enregistré'}
     </div>
   )
+}
+
+/**
+ * Réglages de mise en page (Réglages → Affichage) traduits en variables CSS.
+ * 0 = libre : la page prend l'écran, les grilles calculent leurs colonnes.
+ */
+function layoutVars(ui: UiConfig): React.CSSProperties {
+  const auto = `repeat(auto-fill, minmax(min(${ui.cardWidth || 560}px, 100%), 1fr))`
+  return {
+    ['--link-w' as string]: `${ui.linkWidth}px`,
+    ['--page-max' as string]: ui.pageWidth > 0 ? `${ui.pageWidth}px` : 'none',
+    ['--cards-cols' as string]: ui.cardColumns > 0 ? `repeat(${ui.cardColumns}, minmax(0, 1fr))` : auto,
+    ['--set-cols' as string]: ui.settingsColumns > 0 ? String(ui.settingsColumns) : '520px',
+  }
 }

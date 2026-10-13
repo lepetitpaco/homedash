@@ -86,7 +86,7 @@ body::before {
   /* Toute la largeur : les grilles décident elles-mêmes combien de colonnes y
      tiennent. Seule la marge suit l'écran. */
   --gutter: clamp(10px, 1.6vw, 28px);
-  max-width: 3200px;
+  max-width: var(--page-max, none);
   margin: 0 auto;
   padding: 18px var(--gutter) 40px;
 }
