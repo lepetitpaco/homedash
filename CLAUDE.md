@@ -90,6 +90,14 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - Champs login/jeton : `autoComplete="off"` + `data-1p-ignore` / `data-bwignore` / `data-lpignore`.
 - `navigator.clipboard` et `Notification` sont **absents** hors localhost/HTTPS : tester avant d'appeler.
 - `src/styles/index.css` : l'ordre des imports **est** la cascade.
+- Tailles d'affichage : `SIZE_LIMITS` (config.ts) — 0 ou vide = défaut, sinon bornées ; une taille à 0 px
+  cassait la grille. Les défauts = le preset 49" (`DISPLAY_PRESETS`) ; la page ne descend jamais sous
+  1 400 px (`base.css`), sinon 60 % rendrait un portable illisible.
+- Barre du haut et pied de page ont un `backdrop-filter` : tout `position: fixed` déclenché depuis eux
+  (modale) passe par `createPortal(…, document.body)`, sinon il se cale sur la barre et non sur l'écran.
+- Recherche : une nouvelle source = un `kind` dans `Hit`, son `rank()` dans `useSearch`, sa ligne dans
+  `SearchResults` et sa carte dans `SearchPreview`. Un dépôt local homonyme d'un repo suivi est montré
+  dans la carte du repo, pas en doublon.
 - Panneau Infos : groupes et infos désignés par **index** (`InfoRef`), donc `normalizeInfos()` garde les
   groupes vides — en filtrer décalerait les index et l'édition viserait la mauvaise ligne.
 - Les valeurs « secrètes » du panneau Infos sont en clair dans `config.json` : le masquage n'est qu'à
