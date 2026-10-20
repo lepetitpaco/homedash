@@ -93,7 +93,7 @@ Le jeton se renouvelle ensuite tout seul.
 
 Le **＋** au bout de la barre d'onglets (ou Réglages → Onglets perso) ajoute un onglet vers **un site**
 (`https://…`) ou **un fichier / dossier de ton disque** (`~/Documents/procédure.pdf`, ou 📁 pour le
-choisir). Icône (un emoji), nom, adresse, et ce que fait un clic :
+choisir). Icône (un emoji ; vide = l'icône du site), nom, adresse, et ce que fait un clic :
 
 - **dans homedash** : le site ou le fichier s'affiche sous la barre d'onglets. Revenir sur l'onglet ne
   le recharge pas (↻ pour ça). Dans un navigateur, ça marche pour les fichiers (PDF, images, texte, HTML,
@@ -147,7 +147,8 @@ Ce qu'elle apporte :
 - **Le plus simple** : dans le dossier homedash, `sh desktop/build-local.sh --install`. L'appli est
   construite sur ton Mac (Docker suffit, pas besoin de Node), pour le bon processeur, et copiée dans
   Applications. Construite sur place, macOS ne la bloque pas.
-- **Le `.dmg`** de la dernière release `desktop-v…` du repo sur GitHub (`-arm64` pour un Mac Apple
+- **Le `.dmg`** de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest) du
+  repo sur GitHub (`-arm64` pour un Mac Apple
   Silicon, `-x64` pour un Mac Intel) : glisse homedash dans Applications. Téléchargée et non signée par
   Apple, macOS la bloque au premier lancement : *Réglages Système → Confidentialité et sécurité → Ouvrir
   quand même* (une seule fois), ou `xattr -dr com.apple.quarantine /Applications/homedash.app`.

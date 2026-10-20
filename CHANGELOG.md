@@ -4,6 +4,11 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.13.2 — 2026-10-20
+
+- Onglets perso : sans emoji choisi, l'onglet prend **l'icône du site**. Dans l'appli de bureau, c'est
+  celle que le site affiche en direct (Gmail, Chat…).
+
 ## 1.13.1 — 2026-10-20
 
 - Basecamp : la notification « You've got Boosts! » ouvre Basecamp au lieu d'une page introuvable.

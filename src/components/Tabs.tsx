@@ -3,7 +3,8 @@ export type TabId = 'links' | 'github' | 'basecamp' | 'events' | 'local' | 'sett
 
 export type Tab = {
   id: TabId
-  icon: string
+  /** Emoji, ou une image (icône d'un site pour un onglet perso). */
+  icon: React.ReactNode
   label: string
   /** Compteur d'actions en attente, affiché en pastille. 0 ou absent = rien. */
   badge?: number

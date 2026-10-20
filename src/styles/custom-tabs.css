@@ -129,3 +129,16 @@
   grid-column: 1 / -1;
   margin: 0;
 }
+
+/* Icône du site dans un onglet perso : alignée sur le texte de l'onglet. */
+.tab .favicon {
+  width: 15px;
+  height: 15px;
+  vertical-align: -2px;
+}
+.tab .favicon.monogram {
+  display: inline-grid;
+  place-items: center;
+  font-size: 0.6rem;
+  border: 1px solid;
+}

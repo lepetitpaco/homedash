@@ -68,9 +68,9 @@ export default function SetTabs({ tabs, onChange }: { tabs: CustomTab[]; onChang
                 <input
                   className="xset-icon"
                   value={t.icon ?? ''}
-                  placeholder={isLocal(t.url) ? '📄' : '🌐'}
+                  placeholder={isLocal(t.url) ? '📄' : 'auto'}
                   maxLength={4}
-                  title="Icône (un emoji)"
+                  title="Icône : un emoji, ou vide pour celle du site"
                   onChange={(e) => patch(t.id, { icon: e.target.value })}
                   autoComplete="off"
                   data-1p-ignore

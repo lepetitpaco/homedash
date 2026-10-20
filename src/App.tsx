@@ -5,6 +5,7 @@ import EditDialog from './components/EditDialog'
 import BasecampBell from './components/BasecampBell'
 import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
+import Favicon from './components/Favicon'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
@@ -51,6 +52,12 @@ export default function App() {
   const [visited, setVisited] = useState<string[]>([])
   // Non-lus lus dans le titre de chaque onglet perso (appli de bureau seulement).
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({})
+  // Icône affichée par chaque site, telle que la webview la voit (appli de bureau).
+  const [tabIcons, setTabIcons] = useState<Record<string, string>>({})
+  const setIcon = useCallback(
+    (key: string, url: string) => setTabIcons((c) => (c[key] === url ? c : { ...c, [key]: url })),
+    [],
+  )
   const setCount = useCallback(
     (key: string, n: number) => setTabCounts((c) => (c[key] === n ? c : { ...c, [key]: n })),
     [],
@@ -213,7 +220,23 @@ export default function App() {
     ...customTabs.map(
       (t): Tab => ({
         id: tabKey(t),
-        icon: t.icon || (isLocal(t.url) ? '📄' : '🌐'),
+        // Emoji choisi, sinon l'icône du site : celle qu'il affiche (appli de
+        // bureau), ou celle du service de favicons (comme les liens).
+        icon: t.icon ? (
+          t.icon
+        ) : isLocal(t.url) ? (
+          '📄'
+        ) : tabIcons[tabKey(t)] ? (
+          <img className="favicon" src={tabIcons[tabKey(t)]} alt="" />
+        ) : (
+          <Favicon
+            url={srcOf(t.url)}
+            name={t.label}
+            color={ui.defaultColor}
+            enabled={ui.favicons}
+            provider={ui.faviconProvider}
+          />
+        ),
         label: t.label,
         title: t.url,
         ...(t.embed ? {} : { href: srcOf(t.url) }),
@@ -289,6 +312,7 @@ export default function App() {
             hidden={view !== tabKey(t)}
             onSettings={openTabSettings}
             onCount={(n) => setCount(tabKey(t), n)}
+            onFavicon={(url) => setIcon(tabKey(t), url)}
           />
         ))}
 

@@ -20,11 +20,14 @@ export default function CustomTabView({
   hidden,
   onSettings,
   onCount,
+  onFavicon,
 }: {
   tab: CustomTab
   hidden: boolean
   onSettings: () => void
   onCount?: (n: number) => void
+  /** Icône que le site affiche en ce moment (appli de bureau seulement). */
+  onFavicon?: (url: string) => void
 }) {
   // Changer `key` recrée l'iframe : c'est son ↻ (un site tiers ne se laisse pas recharger d'ici).
   const [gen, setGen] = useState(0)
@@ -37,6 +40,8 @@ export default function CustomTabView({
 
   const countRef = useRef(onCount)
   countRef.current = onCount
+  const faviconRef = useRef(onFavicon)
+  faviconRef.current = onFavicon
 
   useEffect(() => {
     const el = view.current
@@ -52,11 +57,17 @@ export default function CustomTabView({
       if (isMainFrame && errorCode !== -3) setFailed(errorDescription || `erreur ${errorCode}`)
     }
     const onLoad = () => setFailed(null)
+    const onIcon = (e: Event) => {
+      const url = (e as Event & { favicons: string[] }).favicons?.[0]
+      if (url && /^https?:\/\//.test(url)) faviconRef.current?.(url)
+    }
     el.addEventListener('page-title-updated', onTitle)
+    el.addEventListener('page-favicon-updated', onIcon)
     el.addEventListener('did-fail-load', onFail)
     el.addEventListener('did-finish-load', onLoad)
     return () => {
       el.removeEventListener('page-title-updated', onTitle)
+      el.removeEventListener('page-favicon-updated', onIcon)
       el.removeEventListener('did-fail-load', onFail)
       el.removeEventListener('did-finish-load', onLoad)
     }
