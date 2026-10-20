@@ -4,7 +4,7 @@
 # installer de plus). L'appli est ensuite signée « ad hoc » (obligatoire sur
 # Apple Silicon) avec codesign, présent sur tout Mac.
 #
-#   sh desktop/build-local.sh            → desktop/dist/homedash-darwin-<arch>/homedash.app
+#   sh desktop/build-local.sh            → desktop/dist.noindex/homedash-darwin-<arch>/homedash.app
 #   sh desktop/build-local.sh --install  → et la copie dans /Applications
 #   ARCH=x64 sh desktop/build-local.sh   → pour un Mac Intel (release.sh fait les deux)
 #
@@ -28,7 +28,7 @@ iconutil -c icns build/icon.iconset -o build/icon.icns
 # Seuls ces trois fichiers vont dans l'appli.
 cp main.js preload.js package.json build/app/
 PACK="npx -y @electron/packager@18 build/app homedash --platform=darwin --arch=$ARCH \
-  --electron-version=$ELECTRON --app-version=$APP_VERSION --icon=build/icon.icns --out=dist --overwrite \
+  --electron-version=$ELECTRON --app-version=$APP_VERSION --icon=build/icon.icns --out=dist.noindex --overwrite \
   --app-bundle-id=com.github.davidgennaoui.homedash --extend-info=Info.extra.plist"
 if command -v npx >/dev/null 2>&1; then
   $PACK
@@ -36,7 +36,7 @@ else
   docker run --rm -v "$PWD":/b -w /b node:22-bookworm $PACK
 fi
 
-APP="dist/homedash-darwin-$ARCH/homedash.app"
+APP="dist.noindex/homedash-darwin-$ARCH/homedash.app"
 codesign --force --deep -s - "$APP"
 echo "✓ $(pwd)/$APP"
 if [ "${1:-}" = --install ]; then

@@ -1,3 +1,4 @@
 node_modules/
-dist/
+# .noindex : Spotlight ignore ces builds (sinon trois « homedash » proposés)
+dist.noindex/
 build/
