@@ -3,17 +3,25 @@
 Page d'accueil de navigateur auto-hébergée : raccourcis, notes, tableau de bord GitHub (branches, PRs, CI)
 et un onglet **Local** qui repère les branches mergées qui traînent dans tes clones.
 
-## Installer
+## Installation facile (Mac)
 
-Il faut Docker.
+Il faut **Docker Desktop** lancé, et l'accès au repo. Ouvre le Terminal, va dans le dossier où tu ranges
+tes projets, puis colle tout le bloc d'un coup :
 
 ```bash
+cd ~/dev        # ou n'importe quel dossier à toi (mkdir -p ~/dev d'abord s'il n'existe pas)
 git clone https://github.com/davidgennaoui/homedash.git
 cd homedash
-docker compose up -d --build
+docker compose up -d --build            # le serveur (2-3 min la première fois)
+sh desktop/build-local.sh --install     # l'appli de bureau, dans Applications (2 min)
+open -a homedash                        # et c'est parti
 ```
 
-Ouvre **http://localhost:7777**, puis **⚙ Réglages** :
+L'appli s'ouvre sur homedash. Pas d'appli voulue ? Saute les deux dernières lignes et ouvre
+**http://localhost:7777** dans ton navigateur. Dans Docker Desktop, coche *Start Docker Desktop when you
+sign in* : homedash redémarre alors tout seul avec le Mac.
+
+Puis **⚙ Réglages** :
 
 1. **Compte** : colle un jeton GitHub (voir ci-dessous).
 2. **Repos suivis** : clique **＋** sur tes repos.
@@ -22,9 +30,9 @@ Ouvre **http://localhost:7777**, puis **⚙ Réglages** :
 
 C'est tout. Aucun fichier à éditer.
 
-**Appli de bureau (Mac, facultatif)** : homedash dans sa fenêtre, avec Gmail, Google Chat… affichés dans
-ses onglets et leurs non-lus en pastille. Le container reste nécessaire, l'appli l'affiche. `.dmg` dans
-les releases `desktop-v…`, ou `sh desktop/build-local.sh --install`. Détails : [GUIDE.md](GUIDE.md).
+**Appli de bureau** : homedash dans sa fenêtre, avec Gmail, Google Chat… affichés dans ses onglets et
+leurs non-lus en pastille. Le container reste nécessaire : l'appli l'affiche. Aussi en `.dmg` dans les
+releases `desktop-v…` du repo. Détails : [GUIDE.md](GUIDE.md).
 
 **Jeton GitHub** : *GitHub → Settings → Developer settings → Fine-grained tokens*, en lecture seule :
 *Contents*, *Pull requests*, *Checks*, *Metadata* (+ *Members* sur l'organisation pour l'équipe).

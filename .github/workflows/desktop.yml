@@ -1,16 +1,15 @@
-# Appli de bureau (desktop/) : construite sur macOS, jointe à la release
-# GitHub du tag (homedash-X.Y.Z-arm64.dmg, -x64.dmg). Pas de signature Apple :
-# signature « ad hoc » seulement (voir GUIDE.md, premier lancement).
+# Appli de bureau : sur un tag `desktop-vX.Y.Z`, construit les .dmg (arm64,
+# x64) et les publie dans la release du tag. Même recette qu'en local :
+# desktop/release.sh.
 #
-# Déclenchée par un tag `desktop-vX.Y.Z`, PAS par les versions de homedash :
-# l'appli charge l'interface depuis le serveur, elle ne change que quand
-# desktop/ change. Et le repo est privé : une minute macOS en coûte 10 du quota.
+# PAS sur les tags de homedash (vX.Y.Z) : l'appli charge l'interface depuis le
+# container, elle ne change que quand desktop/ change. Repo privé : une minute
+# macOS compte pour 10 du quota (~50 min par release).
 name: Appli de bureau
 
 on:
   push:
     tags: ['desktop-v*']
-  workflow_dispatch:
 
 permissions:
   contents: write
@@ -18,32 +17,12 @@ permissions:
 jobs:
   mac:
     runs-on: macos-latest
-    defaults:
-      run:
-        working-directory: desktop
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: npm
-          cache-dependency-path: desktop/package-lock.json
-      - run: npm ci --no-audit --no-fund
-      # Version de l'appli = celle du tag (desktop-v1.0.0 → 1.0.0).
-      - if: startsWith(github.ref, 'refs/tags/desktop-v')
-        run: npm version "${GITHUB_REF_NAME#desktop-v}" --no-git-tag-version --allow-same-version
-      - run: npm run dist
+      - run: sh desktop/release.sh "${GITHUB_REF_NAME#desktop-v}"
         env:
-          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-      - uses: actions/upload-artifact@v4
-        with:
-          name: homedash-mac
-          path: |
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
-      - if: startsWith(github.ref, 'refs/tags/desktop-v')
-        uses: softprops/action-gh-release@v2
-        with:
-          files: |
-            desktop/dist/*.dmg
-            desktop/dist/*.zip
+          GH_TOKEN: ${{ github.token }}

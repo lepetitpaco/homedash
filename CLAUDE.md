@@ -89,8 +89,10 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 
 **Appli de bureau (`desktop/`)**
 - Elle charge la page du container, elle n'embarque ni front ni backend : une fonction de la page se
-  livre par le container, pas par un nouveau `.dmg`. On ne reconstruit (tag `desktop-vX.Y.Z`, CI macOS,
-  repo privé = minutes ×10) que si `main.js` / `preload.js` changent.
+  livre par le container, pas par un nouveau `.dmg`. On ne publie (`git tag desktop-vX.Y.Z && git push
+  origin desktop-vX.Y.Z` → CI macOS, repo privé = minutes ×10) que si `main.js`, `preload.js` ou la
+  version d'Electron changent. Une seule recette, locale comme en CI : `build-local.sh` (Node sinon
+  Docker) et `release.sh` (les deux .dmg + la release).
 - La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
   dans l'appli, iframe sinon.
 - `will-attach-webview` impose session partagée, sans preload ni Node ; le pont IPC n'écoute que la page

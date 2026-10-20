@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- Ajouté à l'Info.plist de l'appli : macOS montre ces phrases quand un onglet
+     perso (Google Meet…) demande la caméra ou le micro. -->
+<plist version="1.0">
+<dict>
+  <key>NSCameraUsageDescription</key>
+  <string>Appels vidéo (Google Meet…) dans un onglet perso.</string>
+  <key>NSMicrophoneUsageDescription</key>
+  <string>Appels (Google Meet…) dans un onglet perso.</string>
+  <key>LSApplicationCategoryType</key>
+  <string>public.app-category.developer-tools</string>
+</dict>
+</plist>

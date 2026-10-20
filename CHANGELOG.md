@@ -4,6 +4,10 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.13.1 — 2026-10-20
+
+- Basecamp : la notification « You've got Boosts! » ouvre Basecamp au lieu d'une page introuvable.
+
 ## 1.13.0 — 2026-10-20
 
 - **Appli de bureau** pour Mac (facultative) : homedash dans sa propre fenêtre, dans le Dock. Les onglets

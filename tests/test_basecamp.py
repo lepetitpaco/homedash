@@ -216,6 +216,24 @@ class BasecampTest(unittest.TestCase):
         posts = [u for m, u, _ in self.net.requests if m == "POST"]
         self.assertEqual(len(posts), 2)        # échange + un seul renouvellement
 
+    def test_api_links_are_turned_into_site_links(self):
+        boost = {**notif(13), "type": "BoostReport",
+                 "app_url": "https://3.basecampapi.com/123/my/boosts"}
+        self.assertEqual(basecamp.normalize_unreads({"unreads": [boost]})[0]["url"],
+                         "https://app.basecamp.com/123/my/boosts")
+        self.assertEqual(basecamp.web_url("https://3.basecampapi.com/123/buckets/9/todos/4.json",
+                                          "https://3.basecamp.com"),
+                         "https://3.basecamp.com/123/buckets/9/todos/4")
+        site = "https://app.basecamp.com/123/m/1"
+        self.assertEqual(basecamp.web_url(site), site)
+
+    def test_api_links_follow_the_account_site(self):
+        self.net.readings["unreads"].append({**notif(14), "app_url": "https://3.basecampapi.com/123/my/boosts"})
+        self.connect()
+        self.build()
+        urls = [n["url"] for n in basecamp.payload()["unreads"]]
+        self.assertIn("https://3.basecamp.com/123/my/boosts", urls)      # app_href du compte (IDENTITY)
+
     # ── journal ──────────────────────────────────────────────────────────────
     def test_first_read_is_silent_then_only_news_is_logged(self):
         self.connect()

@@ -46,6 +46,7 @@ COLUMN      = "/card_tables/columns/{}.json"
 BOARD       = "/card_tables/{}.json"
 
 _COLUMN_ID = re.compile(r"/card_tables/(?:columns|lists)/(\d+)")
+_API_HOST  = re.compile(r"^https://(\d+)\.basecampapi\.com/")
 _BOARD_ID  = re.compile(r"/card_tables/(\d+)(?:\.json)?$")
 
 _lock   = threading.Lock()
@@ -275,7 +276,25 @@ def status():
 
 
 # ── Lecture ──────────────────────────────────────────────────────────────────
-def _task(a):
+SITE = "https://app.basecamp.com"
+
+def _site():
+    """Le site du compte (`app_href` donné par Launchpad), sans le chemin."""
+    p = urllib.parse.urlsplit(_secret().get("app_href") or SITE)
+    return f"{p.scheme}://{p.netloc}" if p.netloc else SITE
+
+def web_url(url, site=SITE):
+    """Lien à ouvrir dans le navigateur. Certaines notifs (« You've got
+    Boosts! ») n'ont pour `app_url` qu'une adresse de l'API, illisible dans un
+    navigateur : on la ramène sur le site du compte
+    (3.basecampapi.com/123/my/boosts → app.basecamp.com/123/my/boosts)."""
+    url = url or ""
+    if not _API_HOST.match(url):
+        return url
+    url = _API_HOST.sub(site.rstrip("/") + "/", url)
+    return url[:-5] if url.endswith(".json") else url
+
+def _task(a, site=SITE):
     parent = a.get("parent") or {}
     bucket = a.get("bucket") or {}
     url = a.get("app_url") or ""
@@ -286,7 +305,7 @@ def _task(a):
         "column_id": int(column.group(1)) if card and column else None,
         "id": a.get("id"),
         "title": (a.get("content") or a.get("title") or "").strip() or "(sans titre)",
-        "url": a.get("app_url") or "",
+        "url": web_url(a.get("app_url"), site),
         "type": a.get("type") or "",
         "project": bucket.get("name") or "",
         "project_id": bucket.get("id"),
@@ -308,12 +327,12 @@ def _ts(iso):
     except ValueError:
         return 0.0
 
-def _notif(n):
+def _notif(n, site=SITE):
     creator = n.get("creator") or {}
     return {
         "id": n.get("id"),
         "title": (n.get("title") or "").strip() or "(sans titre)",
-        "url": n.get("app_url") or "",
+        "url": web_url(n.get("app_url"), site),
         "project": n.get("bucket_name") or "",
         "section": n.get("section") or "",
         "type": n.get("type") or "",
@@ -323,14 +342,14 @@ def _notif(n):
         "ts": _ts(n.get("updated_at") or n.get("created_at")),
     }
 
-def normalize_tasks(body):
+def normalize_tasks(body, site=SITE):
     body = body if isinstance(body, dict) else {}
-    return {"priorities": [_task(a) for a in body.get("priorities") or []],
-            "others": [_task(a) for a in body.get("non_priorities") or []]}
+    return {"priorities": [_task(a, site) for a in body.get("priorities") or []],
+            "others": [_task(a, site) for a in body.get("non_priorities") or []]}
 
-def normalize_unreads(body):
+def normalize_unreads(body, site=SITE):
     body = body if isinstance(body, dict) else {}
-    out = [_notif(n) for n in body.get("unreads") or []]
+    out = [_notif(n, site) for n in body.get("unreads") or []]
     out.sort(key=lambda n: n["ts"], reverse=True)
     return out
 
@@ -422,7 +441,7 @@ def rebuild():
             if status != 200:
                 why = (body or {}).get("message") if status == 0 else f"HTTP {status}"
                 raise RuntimeError(f"lecture de {path} impossible : {why}")
-            results[name] = (normalize_tasks if name == "tasks" else normalize_unreads)(body)
+            results[name] = (normalize_tasks if name == "tasks" else normalize_unreads)(body, _site())
         try:
             boards = read_boards(results["tasks"], s["access_token"], s["href"])
         except Exception as e:

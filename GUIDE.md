@@ -142,14 +142,15 @@ Ce qu'elle apporte :
   en arrière, ↗ pour ouvrir la page en cours dans le navigateur.
 - Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
 
-**Installer** : télécharge le `.dmg` de la dernière release `desktop-v…` du repo sur GitHub (`-arm64` pour
-un Mac Apple Silicon, `-x64` pour un Mac Intel), glisse homedash dans Applications. L'appli n'est pas
-signée par Apple : au premier lancement, macOS la bloque. *Réglages Système → Confidentialité et sécurité →
-Ouvrir quand même* (une seule fois), ou dans un terminal :
-`xattr -dr com.apple.quarantine /Applications/homedash.app`.
+**Installer**, au choix :
 
-**Sans passer par GitHub** : `sh desktop/build-local.sh --install` construit l'appli sur ton Mac (Docker
-suffit, pas besoin de Node) et la copie dans Applications.
+- **Le plus simple** : dans le dossier homedash, `sh desktop/build-local.sh --install`. L'appli est
+  construite sur ton Mac (Docker suffit, pas besoin de Node), pour le bon processeur, et copiée dans
+  Applications. Construite sur place, macOS ne la bloque pas.
+- **Le `.dmg`** de la dernière release `desktop-v…` du repo sur GitHub (`-arm64` pour un Mac Apple
+  Silicon, `-x64` pour un Mac Intel) : glisse homedash dans Applications. Téléchargée et non signée par
+  Apple, macOS la bloque au premier lancement : *Réglages Système → Confidentialité et sécurité → Ouvrir
+  quand même* (une seule fois), ou `xattr -dr com.apple.quarantine /Applications/homedash.app`.
 
 L'appli charge l'interface depuis le container : `git pull && docker compose up -d --build` la met à jour,
 sans la réinstaller. Un nouveau `.dmg` n'est publié que si la coquille elle-même change. Autre adresse
