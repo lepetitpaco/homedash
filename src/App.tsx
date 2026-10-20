@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmHost from './components/ConfirmHost'
-import ContextMenu from './components/ContextMenu'
+import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import BasecampBell from './components/BasecampBell'
 import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
-import Favicon from './components/Favicon'
+import SiteIcon from './components/SiteIcon'
+import NameColorHost, { askNameColor } from './components/NameColorHost'
+import Rail, { type RailMode } from './components/Rail'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
@@ -27,16 +29,31 @@ import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
 import { useEvents } from './lib/events'
 import { lateCount, useBasecamp } from './lib/basecamp'
-import { isLocal, srcOf, tabKey } from './lib/customTabs'
-import { desktop } from './lib/desktop'
+import {
+  capturesLink,
+  folderOf,
+  hostOf,
+  isLocal,
+  linkTarget,
+  moveTab,
+  newFolderId,
+  newSessionId,
+  newTabId,
+  sessionOf,
+  srcOf,
+  tabKey,
+} from './lib/customTabs'
+import { desktop, hasSessions, OPEN_IN_TAB, RELOAD_TAB, type GuestMenu, type OpenInTab } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
-import { presetSettingsSection } from './lib/settingsNav'
-import type { FlatLink, UiConfig } from './types'
+import { NEW_TAB_EVENT, presetNewTab, presetSettingsSection } from './lib/settingsNav'
+import type { CustomTab, FlatLink, UiConfig } from './types'
+
+const RAIL_KEY = 'homedash:rail'
 
 export default function App() {
   const { raw, cfg, error, saveState, setSaveState, persist, reload } = useConfigState()
@@ -46,18 +63,79 @@ export default function App() {
 
   const gh = useGithub()
   const customTabs = useMemo(() => raw?.tabs ?? [], [raw])
+  // Onglets éphémères (lien ouvert au clic droit) : dans la barre jusqu'à leur
+  // fermeture ou au rechargement ; jamais dans la config, sauf « Garder ».
+  const [temps, setTemps] = useState<CustomTab[]>([])
+  const allTabs = useMemo(() => [...customTabs, ...temps], [customTabs, temps])
+  // Webview → onglet : de quel onglet vient un lien ou un clic droit (appli de bureau).
+  const guestTab = useRef(new Map<number, string>())
+  // main.js appelle ces deux fonctions (executeJavaScript) : liens et clic droit dans les sites.
+  const routeRef = useRef<(url: string, fromId: number) => boolean>(() => false)
+  const menuRef = useRef<(m: GuestMenu) => boolean>(() => false)
+  useEffect(() => {
+    if (!desktop) return
+    const w = window as unknown as Record<string, unknown>
+    w.__homedashRoute = (url: string, fromId: number) => routeRef.current(url, fromId)
+    w.__homedashMenu = (m: GuestMenu) => menuRef.current(m)
+    return () => {
+      delete w.__homedashRoute
+      delete w.__homedashMenu
+    }
+  }, [])
+  const tabFolders = useMemo(() => raw?.tabFolders ?? [], [raw])
+  const tabSessions = useMemo(() => raw?.tabSessions ?? [], [raw])
   const { tab, selectTab, goBack } = useTabs(cfg?.title, customTabs)
+  // ⇧⌘R (appli de bureau) : le site ouvert, ou homedash sur un onglet natif.
+  const tabRef = useRef(tab)
+  tabRef.current = tab
+  useEffect(
+    () =>
+      desktop?.onReloadTab?.(() => {
+        const t = tabRef.current
+        if (t.startsWith('x:')) window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: t }))
+        else window.location.reload()
+      }),
+    [],
+  )
+  // Retour visible d'un ⌘R : la page revient en un éclair, on ne le verrait pas.
+  const [reloaded, setReloaded] = useState(false)
+  useEffect(() => {
+    const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
+    if (nav?.type !== 'reload') return
+    setReloaded(true)
+    const t = window.setTimeout(() => setReloaded(false), 1800)
+    return () => window.clearTimeout(t)
+  }, [])
+  // Dernier onglet natif : ⚡ de la barre de gauche y ramène.
+  const lastNative = useRef<TabId>('links')
+  if (!tab.startsWith('x:') && tab !== 'events') lastNative.current = tab
+  const [railMode, setRailMode] = useState<RailMode>(() => {
+    try {
+      const v = localStorage.getItem(RAIL_KEY)
+      return v === 'wide' || v === 'icons' || v === 'hidden' ? v : 'icons'
+    } catch {
+      return 'icons'
+    }
+  })
+  const changeRail = useCallback((m: RailMode) => {
+    setRailMode(m)
+    try {
+      localStorage.setItem(RAIL_KEY, m)
+    } catch {
+      /* stockage indisponible */
+    }
+  }, [])
+  // La barre n'existe que s'il y a des onglets perso à y mettre.
+  const railOn = customTabs.length > 0 && railMode !== 'hidden'
+  useEffect(() => {
+    const w = !railOn ? '0px' : railMode === 'wide' ? '200px' : '68px'
+    document.documentElement.style.setProperty('--rail-w', w)
+  }, [railOn, railMode])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
   // Non-lus lus dans le titre de chaque onglet perso (appli de bureau seulement).
   const [tabCounts, setTabCounts] = useState<Record<string, number>>({})
-  // Icône affichée par chaque site, telle que la webview la voit (appli de bureau).
-  const [tabIcons, setTabIcons] = useState<Record<string, string>>({})
-  const setIcon = useCallback(
-    (key: string, url: string) => setTabIcons((c) => (c[key] === url ? c : { ...c, [key]: url })),
-    [],
-  )
   const setCount = useCallback(
     (key: string, n: number) => setTabCounts((c) => (c[key] === n ? c : { ...c, [key]: n })),
     [],
@@ -86,7 +164,7 @@ export default function App() {
   const markEvents = events.markSeen
   useEffect(() => setUnread(events.unseen), [events.unseen])
   // Icône du Dock (appli de bureau) : non-lus des onglets perso + ceux de la cloche.
-  const tabUnread = customTabs.reduce((sum, t) => sum + (t.embed ? (tabCounts[tabKey(t)] ?? 0) : 0), 0)
+  const tabUnread = allTabs.reduce((sum, t) => sum + (t.embed ? (tabCounts[tabKey(t)] ?? 0) : 0), 0)
   useEffect(() => desktop?.setBadge(tabUnread + events.unseen), [tabUnread, events.unseen])
   useEffect(() => {
     if (tab === 'events') markEvents()
@@ -187,6 +265,222 @@ export default function App() {
   // GitHub et Local : le même code, en ligne et sur le disque. Côte à côte dans
   // un seul bloc (« duo »), chacun garde son clic.
   const code = { id: 'code', title: 'Ton code : en ligne (GitHub) et sur ton disque (Local)' }
+  // Emoji choisi, sinon l'icône du site, recadrée pour que toutes aient la même échelle.
+  const iconOf: Record<string, React.ReactNode> = Object.fromEntries(
+    allTabs.map((t) => [
+      t.id,
+      t.icon ? (
+        t.icon
+      ) : isLocal(t.url) ? (
+        '📄'
+      ) : (
+        <SiteIcon url={t.url} name={t.label} enabled={ui.favicons} />
+      ),
+    ]),
+  )
+  /** Onglets, dossiers et comptes de la barre de gauche : une écriture de config. */
+  const saveTabs = (next: typeof customTabs, folders = tabFolders, sessions = tabSessions) =>
+    raw && persist({ ...raw, tabs: next, tabFolders: folders, tabSessions: sessions })
+  /** Nouveau dossier (nom + couleur demandés) contenant ces onglets, dans cet ordre. */
+  const newFolder = async (ids: string[]) => {
+    const r = await askNameColor({ title: 'Nouveau dossier', name: `Dossier ${tabFolders.length + 1}` })
+    if (!r) return
+    const id = newFolderId(tabFolders.map((f) => f.id))
+    const next = ids.reduce((acc, tid) => moveTab(acc, tid, null, id), customTabs)
+    saveTabs(next, [...tabFolders, { id, name: r.name, color: r.color }])
+  }
+  /** Nouveau compte de connexion, donné à cet onglet. */
+  const newSession = async (tid: string) => {
+    const r = await askNameColor({
+      title: 'Nouveau compte',
+      name: '',
+      hint: 'Ses onglets partagent leur propre connexion, à part des autres : un compte « pro » et un « perso » pour le même site.',
+    })
+    if (!r) return
+    const id = newSessionId(tabSessions.map((x) => x.id))
+    saveTabs(
+      customTabs.map((t) => (t.id === tid ? { ...t, session: id } : t)),
+      tabFolders,
+      [...tabSessions, { id, name: r.name, color: r.color }],
+    )
+  }
+  const tabMenu = (e: React.MouseEvent, t: (typeof customTabs)[number]) => {
+    const here = folderOf(t, tabFolders)
+    const mine = sessionOf(t, tabSessions)
+    const setSession = (session?: string) =>
+      saveTabs(customTabs.map((x) => (x.id === t.id ? { ...x, session } : x)))
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: t.label,
+      items: [
+        {
+          label: 'Ouvrir dans le navigateur ↗',
+          onSelect: () =>
+            desktop
+              ? desktop.openExternal(new URL(srcOf(t.url), window.location.href).href)
+              : window.open(srcOf(t.url), '_blank', 'noopener'),
+        },
+        { label: 'Recharger', hint: desktop ? '⇧⌘R' : undefined, onSelect: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })) },
+        { sep: true },
+        ...tabFolders
+          .filter((f) => f.id !== here)
+          .map((f) => ({ label: `Mettre dans ${f.icon ?? '📁'} ${f.name}`, onSelect: () => saveTabs(moveTab(customTabs, t.id, null, f.id)) })),
+        ...(here ? [{ label: 'Sortir du dossier', onSelect: () => saveTabs(moveTab(customTabs, t.id, null)) }] : []),
+        { label: 'Nouveau dossier avec cet onglet…', onSelect: () => void newFolder([t.id]) },
+        // Comptes : seulement là où ils ont un effet (appli de bureau récente).
+        ...(hasSessions && t.embed && !isLocal(t.url)
+          ? [
+              { sep: true as const },
+              { label: `${mine ? '' : '✓ '}Compte commun`, onSelect: () => setSession(undefined) },
+              ...tabSessions.map((x) => ({
+                label: `${mine?.id === x.id ? '✓ ' : ''}Compte ${x.name}`,
+                onSelect: () => setSession(x.id),
+              })),
+              { label: 'Nouveau compte…', hint: 'connexion à part', onSelect: () => void newSession(t.id) },
+            ]
+          : []),
+        { sep: true },
+        { label: 'Modifier…', hint: 'nom, adresse', onSelect: openTabSettings },
+      ],
+    })
+  }
+  const folderMenu = (e: React.MouseEvent, f: (typeof tabFolders)[number]) =>
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: `${f.icon ?? '📁'} ${f.name}`,
+      items: [
+        {
+          label: 'Nom et couleur…',
+          onSelect: async () => {
+            const r = await askNameColor({ title: 'Dossier', name: f.name, color: f.color, okLabel: 'Enregistrer' })
+            if (r) saveTabs(customTabs, tabFolders.map((x) => (x.id === f.id ? { ...x, name: r.name, color: r.color } : x)))
+          },
+        },
+        {
+          label: 'Supprimer le dossier',
+          hint: 'ses onglets restent',
+          onSelect: () =>
+            saveTabs(
+              customTabs.map((t) => (t.folder === f.id ? { ...t, folder: undefined } : t)),
+              tabFolders.filter((x) => x.id !== f.id),
+            ),
+        },
+      ],
+    })
+  // ── liens et clic droit dans les sites (appli de bureau) ─────────────────
+  const fromGuest = (id: number) => allTabs.find((t) => t.id === guestTab.current.get(id))
+  /** Ouvre `url` dans l'onglet perso `t` (et l'affiche). */
+  const openInTab = (t: CustomTab, url: string) => {
+    search.setQuery('')
+    selectTab(tabKey(t))
+    window.dispatchEvent(new CustomEvent<OpenInTab>(OPEN_IN_TAB, { detail: { key: tabKey(t), url } }))
+  }
+  /** Onglet éphémère sur `url`, avec ce compte (absent = connexion commune). */
+  const openTemp = (url: string, session?: string) => {
+    const id = `tmp-${newTabId(allTabs.map((t) => t.id)).slice(2)}`
+    const label = hostOf(url).replace(/^www\./, '') || 'Onglet'
+    setTemps((ts) => [...ts, { id, label, url, embed: true, session }])
+    search.setQuery('')
+    selectTab(`x:${id}`)
+  }
+  const closeTemp = (t: CustomTab) => {
+    setTemps((ts) => ts.filter((x) => x.id !== t.id))
+    if (tab === tabKey(t)) selectTab(lastNative.current)
+  }
+  const tempMenu = (e: React.MouseEvent, t: CustomTab) =>
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: `${t.label} · éphémère`,
+      items: [
+        {
+          label: 'Garder dans mes onglets',
+          hint: 'ajouté à la barre',
+          onSelect: () => {
+            const id = newTabId(allTabs.map((x) => x.id))
+            saveTabs([...customTabs, { ...t, id }])
+            setTemps((ts) => ts.filter((x) => x.id !== t.id))
+            selectTab(`x:${id}`)
+          },
+        },
+        { label: 'Ouvrir dans le navigateur ↗', onSelect: () => desktop?.openExternal(t.url) },
+        { sep: true },
+        { label: 'Fermer', onSelect: () => closeTemp(t) },
+      ],
+    })
+  /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
+  const route = (url: string, fromId: number): boolean => {
+    const target = linkTarget(url, customTabs, fromGuest(fromId))
+    if (!target) return false
+    openInTab(target, url)
+    return true
+  }
+  /** Clic droit dans un site (main.js) : le menu de homedash, selon ce qui est sous la souris. */
+  const guestMenu = (m: GuestMenu): boolean => {
+    const act = desktop?.guestAction
+    if (!act) return false
+    const el = [...document.querySelectorAll('webview')].find((w) => {
+      try {
+        return (w as unknown as { getWebContentsId: () => number }).getWebContentsId() === m.id
+      } catch {
+        return false
+      }
+    })
+    const r = el?.getBoundingClientRect()
+    const items: MenuItem[] = []
+    const sep = () => items.length && items.push({ sep: true })
+    if (m.link) {
+      for (const t of customTabs.filter((x) => capturesLink(x, m.link))) {
+        const s = sessionOf(t, tabSessions)
+        items.push({ label: `Ouvrir dans ${t.label}${s ? ` (${s.name})` : ''}`, onSelect: () => openInTab(t, m.link) })
+      }
+      items.push({ label: 'Ouvrir dans un onglet éphémère', onSelect: () => openTemp(m.link) })
+      if (hasSessions)
+        for (const s of tabSessions)
+          items.push({ label: `Onglet éphémère · compte ${s.name}`, onSelect: () => openTemp(m.link, s.id) })
+      items.push({ label: 'Ouvrir dans le navigateur ↗', onSelect: () => desktop?.openExternal(m.link) })
+      items.push({ label: 'Copier le lien', onSelect: () => act(m.id, 'copyText', { text: m.link }) })
+    }
+    if (m.image) {
+      sep()
+      items.push({ label: "Copier l'image", onSelect: () => act(m.id, 'copyImage', { x: m.x, y: m.y }) })
+      items.push({ label: "Ouvrir l'image dans le navigateur ↗", onSelect: () => desktop?.openExternal(m.image) })
+    }
+    if (m.editable) {
+      sep()
+      items.push({ label: 'Couper', hint: '⌘X', disabled: !m.text, onSelect: () => act(m.id, 'cut') })
+      items.push({ label: 'Copier', hint: '⌘C', disabled: !m.text, onSelect: () => act(m.id, 'copy') })
+      items.push({ label: 'Coller', hint: '⌘V', onSelect: () => act(m.id, 'paste') })
+      items.push({ label: 'Tout sélectionner', hint: '⌘A', onSelect: () => act(m.id, 'selectAll') })
+    } else if (m.text) {
+      sep()
+      items.push({ label: 'Copier', hint: '⌘C', onSelect: () => act(m.id, 'copy') })
+      const q = m.text.trim().slice(0, 200)
+      items.push({
+        label: `Rechercher « ${q.length > 30 ? q.slice(0, 30) + '…' : q} »`,
+        hint: 'onglet éphémère',
+        onSelect: () => openTemp(`https://www.google.com/search?q=${encodeURIComponent(q)}`),
+      })
+    }
+    if (!items.length) {
+      items.push({ label: 'Précédent', disabled: !m.canBack, onSelect: () => act(m.id, 'back') })
+      items.push({ label: 'Suivant', disabled: !m.canForward, onSelect: () => act(m.id, 'forward') })
+      items.push({ label: 'Recharger', hint: '⇧⌘R', onSelect: () => act(m.id, 'reload') })
+    }
+    const from = fromGuest(m.id)
+    menus.openMenu({
+      x: (r?.left ?? 0) + m.x,
+      y: (r?.top ?? 0) + m.y,
+      title: m.link ? hostOf(m.link) : from?.label,
+      items,
+    })
+    return true
+  }
+  routeRef.current = route
+  menuRef.current = guestMenu
+
   const tabs: Tab[] = [
     { id: 'links', icon: '⚡', label: 'Raccourcis' },
     // L'onglet existe dès qu'un compte est branché, même si le compte affiché ne l'est pas.
@@ -216,39 +510,25 @@ export default function App() {
           },
         ]
       : []),
-    // Onglets perso : un site ou un fichier du disque, affiché ici ou ouvert à part.
-    ...customTabs.map(
+    // Onglets perso : dans la barre de gauche, ou ici quand elle est cachée.
+    ...(railOn ? [] : allTabs).map(
       (t): Tab => ({
         id: tabKey(t),
-        // Emoji choisi, sinon l'icône du site : celle qu'il affiche (appli de
-        // bureau), ou celle du service de favicons (comme les liens).
-        icon: t.icon ? (
-          t.icon
-        ) : isLocal(t.url) ? (
-          '📄'
-        ) : tabIcons[tabKey(t)] ? (
-          <img className="favicon" src={tabIcons[tabKey(t)]} alt="" />
-        ) : (
-          <Favicon
-            url={srcOf(t.url)}
-            name={t.label}
-            color={ui.defaultColor}
-            enabled={ui.favicons}
-            provider={ui.faviconProvider}
-          />
-        ),
+        icon: iconOf[t.id],
         label: t.label,
         title: t.url,
         ...(t.embed ? {} : { href: srcOf(t.url) }),
         badge: t.embed ? tabCounts[tabKey(t)] : 0,
         badgeTitle: `${tabCounts[tabKey(t)] ?? 0} non lu(s) d'après la page`,
         badgeAlert: true,
+        session: t.embed ? sessionOf(t, tabSessions) : undefined,
       }),
     ),
-    { id: 'settings', icon: '⚙', label: 'Réglages' },
+    // Avec la barre de gauche, Réglages est en bas de celle-ci (comme Discord).
+    ...(railOn ? [] : [{ id: 'settings' as TabId, icon: '⚙', label: 'Réglages' }]),
   ]
   // Onglet perso supprimé (ou mémorisé d'une autre config) : retour aux raccourcis.
-  const openCustom = customTabs.find((t) => tabKey(t) === tab && t.embed)
+  const openCustom = allTabs.find((t) => tabKey(t) === tab && t.embed)
   const shown: TabId = tab.startsWith('x:') && !openCustom ? 'links' : tab
   // La recherche court-circuite les onglets : ses résultats valent partout.
   const view: TabId | 'search' = searching ? 'search' : shown
@@ -259,7 +539,7 @@ export default function App() {
   }
 
   return (
-    <div className="app" style={layoutVars(ui)}>
+    <div className={`app${railOn && shown.startsWith('x:') ? ' is-site' : ''}`} style={layoutVars(ui)}>
       <TopBar
         title={cfg.title}
         subtitle={cfg.subtitle}
@@ -300,19 +580,73 @@ export default function App() {
         }
       />
 
-      <Tabs tabs={tabs} active={shown} onSelect={selectTab} onAdd={openTabSettings} />
+      {railOn ? (
+        <Rail
+          tabs={customTabs}
+          temps={temps}
+          onTempMenu={tempMenu}
+          onTempClose={closeTemp}
+          folders={tabFolders}
+          sessions={tabSessions}
+          active={shown.startsWith('x:') || shown === 'settings' ? shown : null}
+          mode={railMode}
+          icons={iconOf}
+          counts={tabCounts}
+          onHome={() => {
+            search.setQuery('')
+            selectTab(lastNative.current)
+          }}
+          onSettings={() => {
+            search.setQuery('')
+            selectTab('settings')
+          }}
+          onSelect={(key) => {
+            search.setQuery('')
+            selectTab(key)
+          }}
+          onMode={changeRail}
+          onAdd={() => {
+            search.setQuery('')
+            presetNewTab()
+            // Réglages déjà ouvert : il bascule lui-même, sans perdre un brouillon.
+            if (tab === 'settings') window.dispatchEvent(new Event(NEW_TAB_EVENT))
+            else selectTab('settings')
+          }}
+          onTabs={(next) => saveTabs(next)}
+          onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
+          onTabMenu={tabMenu}
+          onFolderMenu={folderMenu}
+        />
+      ) : customTabs.length ? (
+        <button
+          className={`rail-reopen${tabUnread ? ' has-unread' : ''}`}
+          onClick={() => changeRail('icons')}
+          title={tabUnread ? `Afficher la barre de gauche · ${tabUnread} non lu(s)` : 'Afficher la barre de gauche'}
+        >
+          »{tabUnread ? <span className="rail-reopen-badge">{tabUnread > 99 ? '99+' : tabUnread}</span> : null}
+        </button>
+      ) : null}
 
-      {customTabs
+      {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
+          serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}
+      {railOn && (shown.startsWith('x:') || shown === 'settings') ? null : (
+        <Tabs tabs={tabs} active={shown} onSelect={selectTab} onAdd={railOn ? undefined : openTabSettings} />
+      )}
+
+      {allTabs
         // Dans l'appli, tous dès le départ : leurs pastilles arrivent sans les ouvrir.
         .filter((t) => t.embed && (desktop || visited.includes(tabKey(t))))
         .map((t) => (
           <CustomTabView
-            key={`${t.id}:${t.url}`}
-            tab={t}
+            // une webview ne change pas de session : autre compte = nouvelle webview
+            key={`${t.id}:${t.url}:${sessionOf(t, tabSessions)?.id ?? ''}`}
+            // compte supprimé = connexion commune
+            tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
+            session={sessionOf(t, tabSessions)}
             hidden={view !== tabKey(t)}
             onSettings={openTabSettings}
+            onGuest={(id) => guestTab.current.set(id, t.id)}
             onCount={(n) => setCount(tabKey(t), n)}
-            onFavicon={(url) => setIcon(tabKey(t), url)}
           />
         ))}
 
@@ -437,6 +771,8 @@ export default function App() {
 
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
+      <NameColorHost />
+      {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
       {menus.draft ? (
         <EditDialog
           draft={menus.draft}

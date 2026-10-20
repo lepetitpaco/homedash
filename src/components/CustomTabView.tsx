@@ -1,6 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
-import { isLocal, refusesEmbed, srcOf } from '../lib/customTabs'
-import { countInTitle, desktop, type WebviewEl } from '../lib/desktop'
+import { isLocal, refusesEmbed, srcOf, tabKey } from '../lib/customTabs'
+import {
+  countInTitle,
+  desktop,
+  OPEN_IN_TAB,
+  partitionOf,
+  RELOAD_TAB,
+  type OpenInTab,
+  type WebviewEl,
+} from '../lib/desktop'
 import type { CustomTab } from '../types'
 
 /**
@@ -20,18 +28,23 @@ export default function CustomTabView({
   hidden,
   onSettings,
   onCount,
-  onFavicon,
+  session,
+  onGuest,
 }: {
   tab: CustomTab
+  /** Id de la webview (appli de bureau) : App sait ainsi de quel onglet vient un lien ou un clic droit. */
+  onGuest?: (id: number) => void
+  /** Compte de connexion de l'onglet, rappelé dans l'en-tête. */
+  session?: { name: string; color: string }
   hidden: boolean
   onSettings: () => void
   onCount?: (n: number) => void
-  /** Icône que le site affiche en ce moment (appli de bureau seulement). */
-  onFavicon?: (url: string) => void
 }) {
   // Changer `key` recrée l'iframe : c'est son ↻ (un site tiers ne se laisse pas recharger d'ici).
   const [gen, setGen] = useState(0)
   const [failed, setFailed] = useState<string | null>(null)
+  // Trait de chargement : la page qui revient se voit, même quand elle est rapide.
+  const [loading, setLoading] = useState(true)
   const view = useRef<WebviewEl | null>(null)
   const local = isLocal(tab.url)
   // Une webview ne résout pas une adresse relative : `api/file?…` devient absolue.
@@ -40,8 +53,8 @@ export default function CustomTabView({
 
   const countRef = useRef(onCount)
   countRef.current = onCount
-  const faviconRef = useRef(onFavicon)
-  faviconRef.current = onFavicon
+  const guestRef = useRef(onGuest)
+  guestRef.current = onGuest
 
   useEffect(() => {
     const el = view.current
@@ -57,26 +70,55 @@ export default function CustomTabView({
       if (isMainFrame && errorCode !== -3) setFailed(errorDescription || `erreur ${errorCode}`)
     }
     const onLoad = () => setFailed(null)
-    const onIcon = (e: Event) => {
-      const url = (e as Event & { favicons: string[] }).favicons?.[0]
-      if (url && /^https?:\/\//.test(url)) faviconRef.current?.(url)
+    const onReady = () => {
+      try {
+        guestRef.current?.(el.getWebContentsId())
+      } catch {
+        /* pas encore attachée */
+      }
     }
+    const onStart = () => setLoading(true)
+    const onStop = () => setLoading(false)
+    el.addEventListener('dom-ready', onReady)
+    el.addEventListener('did-start-loading', onStart)
+    el.addEventListener('did-stop-loading', onStop)
     el.addEventListener('page-title-updated', onTitle)
-    el.addEventListener('page-favicon-updated', onIcon)
     el.addEventListener('did-fail-load', onFail)
     el.addEventListener('did-finish-load', onLoad)
     return () => {
+      el.removeEventListener('dom-ready', onReady)
+      el.removeEventListener('did-start-loading', onStart)
+      el.removeEventListener('did-stop-loading', onStop)
       el.removeEventListener('page-title-updated', onTitle)
-      el.removeEventListener('page-favicon-updated', onIcon)
       el.removeEventListener('did-fail-load', onFail)
       el.removeEventListener('did-finish-load', onLoad)
     }
   }, [])
 
   const reload = () => {
+    setLoading(true)
     if (desktop) view.current?.reload()
     else setGen((g) => g + 1)
   }
+
+  // ⇧⌘R dans l'appli : App dit quel onglet recharger.
+  const reloadRef = useRef(reload)
+  reloadRef.current = reload
+  const key = tabKey(tab)
+  useEffect(() => {
+    const on = (e: Event) => (e as CustomEvent<string>).detail === key && reloadRef.current()
+    window.addEventListener(RELOAD_TAB, on)
+    // Un lien d'un autre onglet, à ouvrir ici (App a choisi cet onglet).
+    const open = (e: Event) => {
+      const d = (e as CustomEvent<OpenInTab>).detail
+      if (d.key === key && view.current) void view.current.loadURL(d.url)
+    }
+    window.addEventListener(OPEN_IN_TAB, open)
+    return () => {
+      window.removeEventListener(RELOAD_TAB, on)
+      window.removeEventListener(OPEN_IN_TAB, open)
+    }
+  }, [key])
   // Dans l'appli : l'adresse où l'on est arrivé, pas celle de départ.
   const openOutside = () => desktop?.openExternal(view.current?.getURL() || src)
 
@@ -88,6 +130,11 @@ export default function CustomTabView({
         <span className="xtab-title">
           <span aria-hidden="true">{tab.icon || (local ? '📄' : '🌐')}</span> {tab.label}
         </span>
+        {session ? (
+          <span className="xtab-session" style={{ ['--session' as string]: session.color }}>
+            compte {session.name}
+          </span>
+        ) : null}
         <code className="xtab-url" title={tab.url}>
           {tab.url}
         </code>
@@ -129,16 +176,18 @@ export default function CustomTabView({
           ✗ {failed} — <button className="bell-link" onClick={reload}>réessayer</button>
         </p>
       ) : null}
+      <div className="xtab-body">
+      {loading ? <div className="xtab-loading" aria-hidden="true" /> : null}
       {desktop ? (
-        // Session partagée par toutes les webviews (main.js) : se connecter à
-        // Google une fois vaut pour Gmail et Chat.
+        // Session du compte de l'onglet (main.js n'accepte que les siennes) :
+        // les onglets d'un même compte partagent leur connexion.
         <webview
           ref={(el) => {
             view.current = el as WebviewEl | null
           }}
           className="xtab-frame"
           src={src}
-          partition="persist:homedash-tabs"
+          partition={partitionOf(tab.session)}
           // attribut à valeur texte : un booléen React ne serait pas écrit dans le DOM
           {...{ allowpopups: 'true' as unknown as boolean }}
         />
@@ -159,8 +208,10 @@ export default function CustomTabView({
               })}
           referrerPolicy="no-referrer"
           allow="clipboard-read; clipboard-write; fullscreen"
+          onLoad={() => setLoading(false)}
         />
       )}
+      </div>
     </section>
   )
 }

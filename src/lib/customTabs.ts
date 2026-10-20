@@ -1,5 +1,5 @@
 /** Onglets perso : un site, ou un fichier / dossier du disque servi par `/api/file`. */
-import type { CustomTab } from '../types'
+import type { CustomTab, TabFolder, TabSession } from '../types'
 
 /** Chemin du disque (`~/…`, `/Users/…`, `file://…`) plutôt qu'adresse web. */
 export function isLocal(url: string): boolean {
@@ -44,4 +44,86 @@ export function newTabId(taken: string[]): string {
   do id = `x-${Math.random().toString(36).slice(2, 8)}`
   while (taken.includes(id))
   return id
+}
+
+/**
+ * Déplace l'onglet `id` juste avant `before` (null = à la fin) et le range
+ * dans `folder` (absent = hors dossier). L'ordre des onglets d'un dossier est
+ * celui du tableau : glisser-déposer et Réglages écrivent la même chose.
+ */
+export function moveTab(tabs: CustomTab[], id: string, before: string | null, folder?: string): CustomTab[] {
+  const tab = tabs.find((t) => t.id === id)
+  if (!tab || id === before) return tabs
+  const { folder: _old, ...rest } = tab
+  const moved: CustomTab = folder ? { ...rest, folder } : rest
+  const others = tabs.filter((t) => t.id !== id)
+  const at = before ? others.findIndex((t) => t.id === before) : -1
+  if (at < 0) others.push(moved)
+  else others.splice(at, 0, moved)
+  return others
+}
+
+/** Dossier d'un onglet, s'il existe encore (un dossier supprimé ne garde personne). */
+export function folderOf(t: CustomTab, folders: TabFolder[]): string | undefined {
+  return t.folder && folders.some((f) => f.id === t.folder) ? t.folder : undefined
+}
+
+export function newFolderId(taken: string[]): string {
+  let id = ''
+  do id = `f-${Math.random().toString(36).slice(2, 8)}`
+  while (taken.includes(id))
+  return id
+}
+
+/** Couleurs des comptes et des dossiers : celles des conteneurs Firefox. */
+export const COLORS = ['#37adff', '#00c79a', '#51cd00', '#ffcb00', '#ff9f00', '#ff613d', '#ff4bda', '#af51f5']
+
+/** Compte d'un onglet, s'il existe encore (supprimé = connexion commune). */
+export function sessionOf(t: CustomTab, sessions: TabSession[]): TabSession | undefined {
+  return t.session ? sessions.find((s) => s.id === t.session) : undefined
+}
+
+export function newSessionId(taken: string[]): string {
+  let id = ''
+  do id = `s-${Math.random().toString(36).slice(2, 8)}`
+  while (taken.includes(id))
+  return id
+}
+
+/** Domaines qui vont de pair : un lien twitter.com s'ouvre dans l'onglet X. */
+const ALIASES: Record<string, string[]> = {
+  'x.com': ['twitter.com'],
+  'youtube.com': ['youtu.be', 'm.youtube.com'],
+  'instagram.com': ['instagr.am'],
+}
+
+const bare = (h: string) => h.toLowerCase().replace(/^www\./, '').replace(/\.$/, '')
+
+/** Hôtes dont cet onglet capte les liens : le sien, ses alias, ses « autres domaines ». */
+export function domainsOf(t: CustomTab): string[] {
+  const own = bare(hostOf(t.url))
+  if (!own) return []
+  const extra = (t.domains ?? []).map((d) => bare(d.trim().replace(/^[a-z]+:\/\//i, '').split('/')[0])).filter(Boolean)
+  return [...new Set([own, ...(ALIASES[own] ?? []), ...extra])]
+}
+
+/** `url` va-t-il vers un domaine de cet onglet ? (sous-domaines compris : mobile.x.com → x.com) */
+export function capturesLink(t: CustomTab, url: string): boolean {
+  if (!t.embed || isLocal(t.url) || t.capture === false) return false
+  let h = ''
+  try {
+    h = bare(new URL(url).hostname)
+  } catch {
+    return false
+  }
+  return domainsOf(t).some((d) => h === d || h.endsWith('.' + d))
+}
+
+/**
+ * Onglet où ouvrir un lien : un onglet qui capte ce domaine, de préférence du
+ * même compte que l'onglet d'où vient le lien (deux Claude, perso et commun).
+ */
+export function linkTarget(url: string, tabs: CustomTab[], from?: CustomTab): CustomTab | undefined {
+  const all = tabs.filter((t) => capturesLink(t, url))
+  return all.find((t) => (t.session ?? '') === (from?.session ?? '')) ?? all[0]
 }

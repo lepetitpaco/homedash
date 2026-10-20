@@ -338,6 +338,7 @@ export function useContextMenus(
   return {
     menu,
     closeMenu: () => setMenu(null),
+    openMenu: setMenu,
     draft,
     closeDraft: () => setDraft(null),
     linkMenu,

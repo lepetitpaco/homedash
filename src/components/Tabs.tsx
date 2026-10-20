@@ -11,6 +11,8 @@ export type Tab = {
   badgeTitle?: string
   /** Pastille rouge (non-lus) plutôt que verte (ménage à faire). */
   badgeAlert?: boolean
+  /** Compte de connexion d'un onglet perso : trait et lettre à sa couleur. */
+  session?: { name: string; color: string }
   /** Onglets voisins du même groupe = un « duo » : un seul bloc, deux moitiés cliquables. */
   group?: { id: string; title: string }
   /** Onglet perso « ouvrir à part » : un lien vers `href`, pas une vue de la page. */
@@ -23,6 +25,11 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
     <>
       <span aria-hidden="true">{t.icon}</span>
       {t.label}
+      {t.session ? (
+        <span className="tab-session" title={`compte ${t.session.name}`}>
+          {t.session.name.trim().charAt(0).toUpperCase()}
+        </span>
+      ) : null}
       {t.href ? (
         <span className="tab-out" aria-hidden="true">
           ↗
@@ -38,7 +45,14 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
   // Ouvert à part : un vrai lien (clic milieu, ⌘-clic, glisser fonctionnent).
   if (t.href) {
     return (
-      <a className="tab" href={t.href} target="_blank" rel="noreferrer" title={t.title ?? t.href}>
+      <a
+        className={`tab${t.session ? ' has-session' : ''}`}
+        style={t.session ? { ['--session' as string]: t.session.color } : undefined}
+        href={t.href}
+        target="_blank"
+        rel="noreferrer"
+        title={t.title ?? t.href}
+      >
         {inner}
       </a>
     )
@@ -47,9 +61,10 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
     <button
       role="tab"
       aria-selected={active}
-      className={`tab${active ? ' is-active' : ''}`}
+      className={`tab${active ? ' is-active' : ''}${t.session ? ' has-session' : ''}`}
+      style={t.session ? { ['--session' as string]: t.session.color } : undefined}
       onClick={() => onSelect(t.id)}
-      title={t.title}
+      title={t.session ? `${t.title ?? t.label} · compte ${t.session.name}` : t.title}
     >
       {inner}
     </button>

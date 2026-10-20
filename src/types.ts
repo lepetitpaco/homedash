@@ -134,6 +134,39 @@ export type CustomTab = {
   url: string
   /** Affiché dans la page (iframe). Absent / faux = ouvert dans un onglet du navigateur. */
   embed?: boolean
+  /**
+   * Appli de bureau : compte de connexion (`tabSessions[].id`). Les onglets
+   * d'un même compte partagent leurs cookies ; absent / inconnu = commun.
+   */
+  session?: string
+  /** Dossier de la barre de gauche (`tabFolders[].id`) ; absent / inconnu = hors dossier. */
+  folder?: string
+  /**
+   * Appli de bureau : un lien vers ce site, cliqué dans un autre onglet perso,
+   * s'ouvre ici plutôt que dans le navigateur. Absent = oui.
+   */
+  capture?: boolean
+  /** Autres domaines dont les liens s'ouvrent ici (`twitter.com` pour X). */
+  domains?: string[]
+}
+
+/** Dossier de la barre de gauche : regroupe des onglets perso, se replie. */
+export type TabFolder = {
+  id: string
+  name: string
+  icon?: string
+  /** Couleur du dossier dans la barre (#rrggbb). */
+  color?: string
+}
+
+/**
+ * Compte de connexion, comme un conteneur Firefox : ses onglets partagent des
+ * cookies à part. La session suit l'`id` : renommer ne déconnecte pas.
+ */
+export type TabSession = {
+  id: string
+  name: string
+  color: string
 }
 
 /** Ordre des blocs. Jetons réservés : "infos" | "repos" | "notes" | "groups". */
@@ -161,6 +194,10 @@ export type Config = {
   pinnedOrder?: string[]
   /** Onglets ajoutés par l'utilisateur, entre Basecamp et Réglages. Absent = aucun. */
   tabs?: CustomTab[]
+  /** Dossiers de la barre de gauche, dans l'ordre. Absent = aucun. */
+  tabFolders?: TabFolder[]
+  /** Comptes de connexion des onglets perso (appli de bureau). Absent = aucun. */
+  tabSessions?: TabSession[]
   /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
   basecamp?: {
     /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */

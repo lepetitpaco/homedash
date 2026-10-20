@@ -16,7 +16,7 @@ import {
   type NotifState,
 } from '../lib/notifications'
 import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
-import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
+import { NEW_TAB_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import { hostOf } from '../lib/customTabs'
 import { repoTabs, type Config, type CustomTab, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -210,6 +210,13 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
     }
     return SECTIONS[0].id
   })
+  // ＋ de la barre de gauche, Réglages déjà ouvert : Onglets perso (SetTabs crée l'onglet).
+  useEffect(() => {
+    const go = () => setActive('set-tabs')
+    window.addEventListener(NEW_TAB_EVENT, go)
+    return () => window.removeEventListener(NEW_TAB_EVENT, go)
+  }, [])
+
   const jump = (id: string) => {
     setActive(id)
     window.scrollTo({ top: 0 })
@@ -415,6 +422,18 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
       ...config,
       ...(config.github_accounts ? { github_accounts: config.github_accounts.map(clean) } : {}),
       ...(config.tabs ? { tabs: config.tabs.filter((t) => t.url.trim()).map(tab) } : {}),
+      ...(config.tabSessions
+        ? { tabSessions: config.tabSessions.map((x) => ({ ...x, name: x.name.trim() || 'Compte' })) }
+        : {}),
+      ...(config.tabFolders
+        ? {
+            tabFolders: config.tabFolders.map((f) => ({
+              ...f,
+              name: f.name.trim() || 'Dossier',
+              icon: f.icon?.trim() || undefined,
+            })),
+          }
+        : {}),
     }
   }
 
@@ -594,7 +613,11 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
         <Card id="set-tabs" icon="🗂" title="Onglets perso">
           <SetTabs
             tabs={draft.tabs ?? []}
-            onChange={(tabs) => setDraft({ ...draft, tabs })}
+            folders={draft.tabFolders ?? []}
+            sessions={draft.tabSessions ?? []}
+            onChange={(tabs, tabFolders = draft.tabFolders, tabSessions = draft.tabSessions) =>
+              setDraft({ ...draft, tabs, tabFolders, tabSessions })
+            }
           />
         </Card>
         ) : null}
