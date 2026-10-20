@@ -326,3 +326,37 @@
   color: var(--text-faint);
   font-weight: 400;
 }
+
+/* Réglages → Basecamp : « https:// [domaine] /oauth », le format est fixe. */
+.set-affix {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+.set-affix-part {
+  display: flex;
+  align-items: center;
+  padding: 0 0.45rem;
+  border: 1px solid var(--border);
+  background: var(--panel-2);
+  color: var(--text-faint);
+  font-family: ui-monospace, monospace;
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+.set-affix-part:first-child {
+  border-right: 0;
+  border-radius: 0.4rem 0 0 0.4rem;
+}
+.set-affix-part:last-child {
+  border-left: 0;
+  border-radius: 0 0.4rem 0.4rem 0;
+}
+.set-field .set-affix input {
+  flex: 1;
+  min-width: 0;
+  border-radius: 0;
+}
+.set-field > .set-affix {
+  margin-top: auto;
+}

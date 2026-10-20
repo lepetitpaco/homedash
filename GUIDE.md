@@ -73,10 +73,16 @@ Relu toutes les 60 s, page fermée comprise. Une nouvelle notif ou tâche arrive
 
 1. Sur [launchpad.37signals.com/integrations](https://launchpad.37signals.com/integrations) → *Register
    another application* : nom `homedash`, site `https://github.com/davidgennaoui/homedash`, produit
-   **Basecamp 4**, Redirect URI `https://example.com/oauth` (Launchpad refuse `localhost` et `127.0.0.1`).
-2. Dans Réglages → Basecamp : colle le Client ID et le Client Secret, **Enregistrer l'appli**.
-3. **Se connecter à Basecamp** → autorise. Tu arrives sur une page example.com vide : copie son adresse
-   complète (avec `?code=…`), colle-la dans Réglages → Basecamp, **Valider**.
+   **Basecamp 4**, Redirect URI `https://<ton site>/oauth` (Launchpad refuse `localhost` et `127.0.0.1`).
+2. Dans Réglages → Basecamp : colle le Client ID et le Client Secret, et dans **Mon site de callback** le
+   même domaine (vide = `example.com`, domaine réservé aux exemples). L'adresse exacte à mettre dans
+   Launchpad s'affiche dessous. **Enregistrer l'appli**.
+3. **Se connecter à Basecamp** → autorise. Tu arrives sur une page de ce site (vide ou introuvable, peu
+   importe) : copie son adresse complète (avec `?code=…`), colle-la dans Réglages → Basecamp, **Valider**.
+
+Un site à toi est préférable : le code n'arrive que chez toi (vérifie que `/oauth` ne redirige pas
+ailleurs en perdant le `?code=…`). Le site ne voit jamais le jeton : le code seul ne sert à rien sans ton
+Client Secret, et ne sert qu'une fois.
 
 Le jeton se renouvelle ensuite tout seul.
 

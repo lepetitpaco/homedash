@@ -7,8 +7,11 @@ import {
   bcSetApp,
   bcStatus,
   ABOUT_URL,
-  DEFAULT_REDIRECT,
-  ownCallback,
+  CALLBACK_PATH,
+  DEFAULT_CALLBACK_SITE,
+  callbackSite,
+  redirectFor,
+  siteOf,
   type BcStatus,
 } from '../lib/basecamp'
 import { confirmDialog } from './ConfirmHost'
@@ -26,7 +29,7 @@ export default function SetBasecamp() {
   const [st, setSt] = useState<BcStatus | null>(null)
   const [clientId, setClientId] = useState('')
   const [secret, setSecret] = useState('')
-  const [redirect, setRedirect] = useState(DEFAULT_REDIRECT)
+  const [site, setSite] = useState('')
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,7 +38,9 @@ export default function SetBasecamp() {
   const apply = (s: BcStatus) => {
     setSt(s)
     setClientId(s.client_id)
-    if (s.redirect_uri) setRedirect(s.redirect_uri)
+    // le défaut s'affiche en indication, pas en valeur saisie
+    const host = siteOf(s.redirect_uri)
+    setSite(host === DEFAULT_CALLBACK_SITE ? '' : host)
   }
 
   useEffect(() => {
@@ -54,22 +59,15 @@ export default function SetBasecamp() {
 
   const saveApp = () =>
     run(
-      bcSetApp(clientId.trim(), secret.trim(), redirect.trim()).then((s) => {
+      bcSetApp(clientId.trim(), secret.trim(), redirectFor(cleanSite ?? DEFAULT_CALLBACK_SITE)).then((s) => {
         setSecret('')
         setEditing(false)
         return s
       }),
     )
 
-  // Nouvel onglet : on garde celui-ci pour y coller l'adresse de retour. Si
-  // l'adresse de retour est cette page, Basecamp revient ici tout seul.
-  const login = () =>
-    run(
-      bcAuthorize().then(({ url }) => {
-        if (direct) window.location.href = url
-        else window.open(url, '_blank', 'noopener')
-      }),
-    )
+  // Nouvel onglet : on garde celui-ci pour y coller l'adresse de retour.
+  const login = () => run(bcAuthorize().then(({ url }) => void window.open(url, '_blank', 'noopener')))
 
   const sendCode = () => run(bcCode(code.trim()).then((s) => (setCode(''), s)))
 
@@ -97,7 +95,9 @@ export default function SetBasecamp() {
 
   if (!st) return <p className="set-hint">{error ? `✗ ${error}` : 'lecture de la connexion…'}</p>
 
-  const direct = (st.redirect_uri || redirect).trim() === ownCallback()
+  const cleanSite = callbackSite(site)
+  const redirect = redirectFor(cleanSite ?? DEFAULT_CALLBACK_SITE)
+  const saved = st.redirect_uri || redirectFor(DEFAULT_CALLBACK_SITE)
   const showApp = !st.configured || editing
 
   return (
@@ -131,28 +131,25 @@ export default function SetBasecamp() {
               {busy ? '…' : 'Se connecter à Basecamp'}
             </button>
             <span className="set-hint">
-              {direct
-                ? "Ouvre Basecamp pour autoriser l'accès, puis revient ici."
-                : "Ouvre Basecamp dans un nouvel onglet. Autorise, puis copie l'adresse complète de la page où tu arrives et colle-la ci-dessous."}
+              Ouvre Basecamp dans un nouvel onglet. Autorise, puis copie l'adresse complète de la page où tu
+              arrives (<code>{siteOf(saved)}</code>) et colle-la ci-dessous.
             </span>
           </div>
-          {!direct ? (
-            <div className="set-add">
-              <input
-                value={code}
-                placeholder="https://example.com/oauth?code=… (adresse complète de la page d'arrivée)"
-                onChange={(e) => setCode(e.target.value)}
-                onKeyDown={(e) => e.key === 'Enter' && sendCode()}
-                autoComplete="off"
-                data-1p-ignore
-                data-bwignore
-                data-lpignore="true"
-              />
-              <button onClick={sendCode} disabled={busy || !code.trim()}>
-                Valider
-              </button>
-            </div>
-          ) : null}
+          <div className="set-add">
+            <input
+              value={code}
+              placeholder={`${saved}?code=… (adresse complète de la page d'arrivée)`}
+              onChange={(e) => setCode(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && sendCode()}
+              autoComplete="off"
+              data-1p-ignore
+              data-bwignore
+              data-lpignore="true"
+            />
+            <button onClick={sendCode} disabled={busy || !code.trim()}>
+              Valider
+            </button>
+          </div>
         </>
       ) : null}
 
@@ -191,13 +188,36 @@ export default function SetBasecamp() {
             </label>
             <label className="set-field">
               <span>
-                Adresse de retour <em>identique à celle de l'appli</em>
+                Mon site de callback <em>un domaine à toi, ou vide = {DEFAULT_CALLBACK_SITE}</em>
               </span>
-              <input value={redirect} onChange={(e) => setRedirect(e.target.value)} autoComplete="off" data-1p-ignore />
+              <span className="set-affix">
+                <span className="set-affix-part">https://</span>
+                <input
+                  value={site}
+                  placeholder={DEFAULT_CALLBACK_SITE}
+                  onChange={(e) => setSite(e.target.value)}
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+                <span className="set-affix-part">{CALLBACK_PATH}</span>
+              </span>
             </label>
           </div>
+          {cleanSite ? (
+            <p className="set-hint">
+              <em>Redirect URI</em> à mettre dans Launchpad, à l'identique : <code>{redirect}</code>
+            </p>
+          ) : (
+            <p className="set-hint set-bad">
+              Domaine invalide : juste le nom, comme <code>monsite.fr</code> (pas de <code>localhost</code>, d'IP
+              ni de port — Launchpad les refuse).
+            </p>
+          )}
           <div className="set-add">
-            <button onClick={saveApp} disabled={busy || !clientId.trim() || (!secret.trim() && !st.has_secret)}>
+            <button
+              onClick={saveApp}
+              disabled={busy || !cleanSite || !clientId.trim() || (!secret.trim() && !st.has_secret)}
+            >
               Enregistrer l'appli
             </button>
             {editing ? <button onClick={() => setEditing(false)}>annuler</button> : null}
@@ -222,21 +242,24 @@ export default function SetBasecamp() {
                 <em>Products</em> : coche seulement <strong>Basecamp 4</strong> (ou « Basecamp » : le Basecamp actuel).
               </li>
               <li>
-                <em>Redirect URI</em> : <code>{DEFAULT_REDIRECT}</code> — Launchpad refuse{' '}
-                <code>localhost</code> et <code>127.0.0.1</code>. Ce domaine est réservé aux exemples,
-                il n'appartient à personne.
+                <em>Redirect URI</em> : <code>https://&lt;ton site&gt;{CALLBACK_PATH}</code>, exactement celle
+                affichée sous « Mon site de callback » (par défaut <code>{redirectFor(DEFAULT_CALLBACK_SITE)}</code>).
+                Launchpad refuse <code>localhost</code> et <code>127.0.0.1</code>. Si tu as un site, mets-le : le
+                code n'arrivera que chez toi (vérifie que <code>/oauth</code> ne redirige pas ailleurs). Sinon
+                example.com, domaine réservé aux exemples, géré par l'IANA.
               </li>
-              <li>Copie le Client ID et le Client Secret ci-dessus, garde l'adresse de retour telle quelle,
-                puis <strong>Enregistrer l'appli</strong>.</li>
+              <li>Copie le Client ID et le Client Secret ci-dessus, le même site de callback, puis{' '}
+                <strong>Enregistrer l'appli</strong>.</li>
               <li>
-                <strong>Se connecter à Basecamp</strong> → autorise l'accès. Tu arrives sur une page
-                example.com vide : copie <strong>son adresse complète</strong> (avec <code>?code=…</code>) et
-                colle-la dans le champ qui apparaît ici, puis <strong>Valider</strong>.
+                <strong>Se connecter à Basecamp</strong> → autorise l'accès. Tu arrives sur une page de ce site
+                (vide ou introuvable, peu importe) : copie <strong>son adresse complète</strong> (avec{' '}
+                <code>?code=…</code>) et colle-la dans le champ qui apparaît ici, puis <strong>Valider</strong>.
               </li>
             </ol>
             <p className="set-hint">
-              À faire une fois : le jeton se renouvelle ensuite tout seul. Le code de l'adresse expire vite et
-              ne sert à rien sans ton Client Secret, qui reste sur cette machine.
+              À faire une fois : le jeton se renouvelle ensuite tout seul. Le site de callback ne voit passer
+              que le code, jamais le jeton : le code expire vite, ne sert qu'une fois, et rien sans ton Client
+              Secret, qui reste sur cette machine.
             </p>
           </details>
         </>

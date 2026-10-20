@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.9.1 — 2026-10-20
+
+- Réglages → Basecamp : **Mon site de callback**. Tu saisis juste un domaine à toi (vide = example.com),
+  l'adresse exacte à mettre dans Launchpad s'affiche dessous (`https://<domaine>/oauth`). Changer ce
+  site ne te déconnecte plus de Basecamp.
+
 ## 1.9.0 — 2026-10-20
 
 - Nouvel onglet **🏕 Basecamp**, en lecture seule : tes tâches assignées, avec un menu à gauche comme

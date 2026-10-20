@@ -149,16 +149,45 @@ export const bcCode = (code: string) => call<BcStatus>('api/basecamp/code', json
 export const bcDisconnect = () => call<BcStatus>('api/basecamp/token', { method: 'DELETE' })
 
 /**
- * Adresse de retour proposée. Launchpad refuse `localhost` et `127.0.0.1` : on
- * déclare une adresse publique qui n'appartient à personne, et on recolle ici
- * l'adresse où Basecamp a renvoyé le navigateur (elle porte le code).
+ * Adresse de retour (« site de callback »). Launchpad refuse `localhost` et
+ * `127.0.0.1` : on déclare une adresse publique, Basecamp y renvoie le
+ * navigateur avec `?code=…`, et on recolle cette adresse ici. Le domaine est au
+ * choix (le sien, idéalement : le code n'arrive alors que chez soi) ; le format
+ * est fixe : `https://<domaine>/oauth`. Par défaut example.com, domaine réservé
+ * aux exemples (géré par l'IANA).
  */
-export const DEFAULT_REDIRECT = 'https://example.com/oauth'
+export const DEFAULT_CALLBACK_SITE = 'example.com'
+export const CALLBACK_PATH = '/oauth'
 export const ABOUT_URL = 'https://github.com/davidgennaoui/homedash'
 
-/** Route de cette page qui reçoit le code, si Launchpad venait à l'accepter. */
-export function ownCallback(): string {
-  return new URL('api/basecamp/callback', window.location.href).toString()
+export function redirectFor(site: string): string {
+  return `https://${site}${CALLBACK_PATH}`
+}
+
+/**
+ * Domaine saisi → domaine propre, ou `null` s'il n'est pas utilisable. Accepte
+ * une adresse collée entière (`https://monsite.fr/truc` → `monsite.fr`). Vide =
+ * le défaut.
+ */
+export function callbackSite(input: string): string | null {
+  const host = input
+    .trim()
+    .toLowerCase()
+    .replace(/^[a-z]+:\/\//, '')
+    .split(/[/?#]/)[0]
+    .replace(/\.$/, '')
+  if (!host) return DEFAULT_CALLBACK_SITE
+  if (host === 'localhost' || host.endsWith('.localhost') || /^[\d.]+$/.test(host) || host.includes(':')) return null
+  return /^([a-z0-9]([a-z0-9-]*[a-z0-9])?\.)+[a-z]{2,}$/.test(host) ? host : null
+}
+
+/** Domaine d'une adresse de retour enregistrée, pour pré-remplir le champ. */
+export function siteOf(redirect: string): string {
+  try {
+    return new URL(redirect).hostname
+  } catch {
+    return ''
+  }
 }
 
 /** Clé d'un projet : son id, sinon son nom. Sert aussi pour `basecamp.hidden`. */

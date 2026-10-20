@@ -181,6 +181,10 @@ class BasecampTest(unittest.TestCase):
         s = store.read_secret(basecamp.SECRET_KEY)
         self.assertEqual(s["client_secret"], "CSECRET")
         self.assertTrue(s.get("access_token"), "même appli : la connexion reste")
+        basecamp.set_app("cid", "", "https://monsite.fr/oauth")
+        s = store.read_secret(basecamp.SECRET_KEY)
+        self.assertEqual(s["redirect_uri"], "https://monsite.fr/oauth")
+        self.assertTrue(s.get("access_token"), "changer de site de callback ne déconnecte pas")
         basecamp.set_app("autre", "", "http://localhost:7777/api/basecamp/callback")
         self.assertFalse(store.read_secret(basecamp.SECRET_KEY).get("access_token"))
 

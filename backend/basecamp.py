@@ -148,8 +148,9 @@ def set_app(client_id, client_secret, redirect_uri):
         raise ValueError("client id et client secret requis")
     if not redirect_uri.startswith(("http://", "https://")):
         raise ValueError("adresse de retour invalide (http://… ou https://…)")
-    same = (s.get("client_id"), s.get("client_secret"), s.get("redirect_uri")) == \
-        (client_id, secret, redirect_uri)
+    # L'adresse de retour ne sert qu'à la prochaine connexion : la changer ne
+    # déconnecte pas. Changer d'appli, si.
+    same = (s.get("client_id"), s.get("client_secret")) == (client_id, secret)
     new = {"client_id": client_id, "client_secret": secret, "redirect_uri": redirect_uri}
     if same:
         new = {**s, **new}           # même appli : la connexion reste valable
