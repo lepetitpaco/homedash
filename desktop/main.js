@@ -12,13 +12,16 @@
  * soumis à aucun refus. La page détecte l'appli (`window.homedashDesktop`,
  * posé par preload.js) et choisit seule webview ou iframe.
  */
-const { app, BrowserWindow, Menu, dialog, nativeImage, session, shell, ipcMain } = require('electron')
+const { app, BrowserWindow, Menu, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 
-// Toutes les webviews partagent cette session : une connexion Google vaut pour
-// Gmail et pour Chat, et survit au redémarrage de l'appli.
+// Session commune des webviews : une connexion Google vaut pour Gmail et pour
+// Chat, et survit au redémarrage de l'appli. Un onglet peut en demander une à
+// part (« Compte » dans Réglages : perso, pro…) : `persist:homedash-tabs-<nom>`.
+// Les onglets d'un même compte partagent leur connexion.
 const PARTITION = 'persist:homedash-tabs'
+const OWN_PARTITION = /^persist:homedash-tabs-[a-z0-9-]{1,40}$/
 
 function settingsFile() {
   return path.join(app.getPath('userData'), 'desktop.json')
@@ -80,6 +83,28 @@ function chromeUA(ua) {
 
 let win = null
 let quitting = false
+// Webviews des onglets perso : seules cibles des actions demandées par la page.
+const guests = new Set()
+
+/**
+ * Demande à la page homedash quoi faire d'un lien venu d'un site : l'ouvrir
+ * dans un onglet perso de ce site (renvoie true), sinon le navigateur par
+ * défaut. La page décide (elle connaît les onglets) ; une page ancienne sans
+ * `__homedashRoute` → navigateur, comme avant.
+ */
+async function route(url, fromId) {
+  if (!win) return
+  let handled = false
+  try {
+    handled = await win.webContents.executeJavaScript(
+      `window.__homedashRoute ? window.__homedashRoute(${JSON.stringify(url)}, ${Number(fromId)}) : false`,
+      true,
+    )
+  } catch {
+    handled = false
+  }
+  if (!handled) void shell.openExternal(url)
+}
 
 function fallbackPage(reason) {
   const html = `<!doctype html><meta charset=utf-8><title>homedash</title>
@@ -155,7 +180,9 @@ function createWindow() {
     prefs.nodeIntegrationInSubFrames = false
     prefs.contextIsolation = true
     prefs.sandbox = true
-    params.partition = PARTITION
+    // La page choisit la session d'un onglet, mais seulement parmi les nôtres.
+    params.partition = OWN_PARTITION.test(params.partition || '') ? params.partition : PARTITION
+    setupTabsSession(params.partition)
     if (!isWeb(params.src || '')) e.preventDefault()
   })
   wc.on('did-attach-webview', (_e, guest) => {
@@ -164,7 +191,16 @@ function createWindow() {
       // avec Google », Meet…) : dans l'appli, pour garder la session, et la page
       // qui l'a ouverte attend sa réponse.
       if (disposition === 'new-window' && /^https:\/\/accounts\.google\.com\//.test(url)) {
-        return { action: 'allow', overrideBrowserWindowOptions: { width: 520, height: 680, autoHideMenuBar: true } }
+        // même session que l'onglet : la connexion doit atterrir dans SON compte
+        return {
+          action: 'allow',
+          overrideBrowserWindowOptions: {
+            width: 520,
+            height: 680,
+            autoHideMenuBar: true,
+            webPreferences: { session: guest.session, sandbox: true, contextIsolation: true },
+          },
+        }
       }
       // Lien « nouvel onglet » vers le même site (workspace.google.com →
       // accounts.google.com : « Se connecter ») : dans l'onglet lui-même, sinon
@@ -173,17 +209,43 @@ function createWindow() {
         void guest.loadURL(url)
         return { action: 'deny' }
       }
-      // Un autre site : navigateur par défaut.
-      if (isWeb(url)) void shell.openExternal(url)
+      // Un autre site : un onglet perso de ce site s'il y en a un (la page
+      // décide), sinon le navigateur par défaut.
+      if (isWeb(url)) void route(url, guest.id)
       return { action: 'deny' }
+    })
+    guests.add(guest.id)
+    guest.once('destroyed', () => guests.delete(guest.id))
+    // Clic droit dans un site : le menu de homedash, dessiné par la page (lien,
+    // texte, champ, image). Les actions reviennent par `homedash:guest`.
+    guest.on('context-menu', (_ev, p) => {
+      const info = {
+        id: guest.id,
+        x: p.x,
+        y: p.y,
+        link: isWeb(p.linkURL || '') ? p.linkURL : '',
+        image: p.mediaType === 'image' && isWeb(p.srcURL || '') ? p.srcURL : '',
+        text: (p.selectionText || '').slice(0, 2000),
+        editable: !!p.isEditable,
+        canBack: guest.navigationHistory.canGoBack(),
+        canForward: guest.navigationHistory.canGoForward(),
+      }
+      void win?.webContents
+        .executeJavaScript(`window.__homedashMenu ? window.__homedashMenu(${JSON.stringify(info)}) : false`, true)
+        .catch(() => undefined)
     })
   })
 
   void win.loadURL(HOME)
 }
 
-function setupTabsSession() {
-  const s = session.fromPartition(PARTITION)
+const ready = new Set()
+
+/** UA et permissions d'une session d'onglets, une fois par session. */
+function setupTabsSession(partition) {
+  if (ready.has(partition)) return
+  ready.add(partition)
+  const s = session.fromPartition(partition)
   s.setUserAgent(chromeUA(s.getUserAgent()))
   // Notifications de Gmail / Chat, presse-papiers, caméra et micro (Meet) : à
   // ces sites choisis par l'utilisateur. macOS demande en plus pour caméra et micro.
@@ -208,8 +270,20 @@ function setupMenu() {
     {
       label: 'Présentation',
       submenu: [
-        { role: 'reload', label: 'Recharger homedash' },
-        { role: 'forceReload' },
+        // ⌘R : toute la page homedash, onglets perso compris (après un
+        // redéploiement). PAS le rôle `reload` d'Electron : il recharge ce qui a
+        // le focus, donc le site d'un onglet perso dès qu'on a cliqué dedans.
+        {
+          label: 'Recharger homedash',
+          accelerator: 'CmdOrCtrl+R',
+          click: () => win?.webContents.reloadIgnoringCache(),
+        },
+        // ⇧⌘R : seulement le site ouvert ; la page sait lequel (preload.js).
+        {
+          label: "Recharger l'onglet ouvert",
+          accelerator: 'Shift+CmdOrCtrl+R',
+          click: () => win?.webContents.send('homedash:reload-tab'),
+        },
         { role: 'toggleDevTools' },
         { type: 'separator' },
         { role: 'resetZoom' },
@@ -235,6 +309,25 @@ ipcMain.on('homedash:badge', (e, n) => {
   const count = Math.max(0, Math.floor(Number(n) || 0))
   if (process.platform === 'darwin') app.dock.setBadge(count ? String(count > 99 ? '99+' : count) : '')
   else app.setBadgeCount(count)
+})
+
+// Actions du menu de clic droit d'un site, sur la webview visée.
+const GUEST_ACTIONS = new Set(['copy', 'cut', 'paste', 'selectAll', 'back', 'forward', 'reload', 'copyImage'])
+ipcMain.on('homedash:guest', (e, msg) => {
+  if (!fromHome(e) || !msg || typeof msg !== 'object') return
+  const { id, action, text, x, y } = msg
+  if (action === 'copyText') {
+    clipboard.writeText(String(text || '').slice(0, 10000))
+    return
+  }
+  if (!guests.has(id) || !GUEST_ACTIONS.has(action)) return
+  const g = webContents.fromId(id)
+  if (!g || g.isDestroyed()) return
+  if (action === 'back') g.navigationHistory.goBack()
+  else if (action === 'forward') g.navigationHistory.goForward()
+  else if (action === 'reload') g.reload()
+  else if (action === 'copyImage') g.copyImageAt(Number(x) || 0, Number(y) || 0)
+  else g[action]()
 })
 
 ipcMain.on('homedash:open', (e, url) => {
@@ -266,7 +359,7 @@ if (!app.requestSingleInstanceLock()) {
       const icon = nativeImage.createFromPath(path.join(__dirname, 'build', 'icon.png'))
       if (!icon.isEmpty()) app.dock.setIcon(icon)
     }
-    setupTabsSession()
+    setupTabsSession(PARTITION)
     setupMenu()
     createWindow()
   })
