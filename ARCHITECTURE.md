@@ -10,13 +10,14 @@ backend/                  Python stdlib, aucune dépendance
   github.py               données GitHub d'un compte (cache ETag)
   basecamp.py             Basecamp en lecture seule : OAuth, mes tâches, mes notifications
   localfile.py            onglets perso : un fichier du dossier personnel servi en lecture seule
+  favicons.py             icônes des onglets perso relayées (la page les recadre), en cache
   events.py               journal des événements (la cloche)
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
   backup.py               instantanés, export, restauration
   updates.py              version installée (CHANGELOG.md), mise à jour disponible sur GitHub
 src/
-  App.tsx                 assemblage : barre du haut, onglets, vue courante
+  App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…)
   lib/                    appels API et polling (ghboard, local, events, admin…)
@@ -44,6 +45,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/basecamp`, `/api/basecamp/refresh` | GET, POST | Tâches et notifs non lues, relecture |
 | `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
+| `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est un onglet perso) |
 | `/api/file?path=` | GET | Fichier / dossier d'un onglet perso (dossier personnel, sans caché ni `data/`) |
 | `/api/local`, `/api/local/refresh` | GET, POST | Dépôts du disque, relecture |
 | `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (limité au dossier personnel ; `&files=1` liste aussi les fichiers) |

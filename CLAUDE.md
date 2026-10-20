@@ -95,8 +95,20 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   Docker) et `release.sh` (les deux .dmg + la release).
 - La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
   dans l'appli, iframe sinon.
-- `will-attach-webview` impose session partagée, sans preload ni Node ; le pont IPC n'écoute que la page
-  homedash. UA sans « Electron » : sinon Google refuse sa page de connexion.
+- `will-attach-webview` : sans preload ni Node ; session `persist:homedash-tabs` ou
+  `persist:homedash-tabs-<compte>` (`partitionOf()`), toute autre est remplacée ; le pont IPC n'écoute
+  que la page homedash. Nouvelle capacité de la coquille = un mot dans `features` (preload.js) : la page
+  doit savoir qu'une appli ancienne ne l'a pas. UA sans « Electron » : sinon Google refuse sa page de connexion.
+- Comptes : `tab.session` = id de `tabSessions` ; partition `persist:homedash-tabs-<id>` (renommer ne
+  déconnecte pas). Compte supprimé = `sessionOf()` vide = connexion commune.
+- Icônes des onglets perso : `SiteIcon` (recadrage canvas) via `/api/favicon?host=` ; le serveur ne
+  contacte que le service de favicons, ou le site lui-même s'il est un onglet de la config. Jamais une
+  adresse venue de la page.
+- Pas de contrôle du système dans ces écrans (`<select>`, sélecteur de couleur) : `Pick`, `ColorSwatches`,
+  `askNameColor()`.
+- Liens et clic droit des sites : main.js demande à la page (`window.__homedashRoute`,
+  `window.__homedashMenu`, via `executeJavaScript`) ; absents (page ancienne) = navigateur / rien. Les
+  actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
 - Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
   son titre (les pastilles).
 

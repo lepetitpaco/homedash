@@ -4,6 +4,36 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.14.0 — 2026-10-20
+
+- **Barre de gauche**, façon Discord : ⚡ pour homedash et ses onglets, puis une icône par onglet perso
+  avec sa pastille de non-lus, et **⚙ Réglages** en bas. Un site ouvert depuis la barre a toute la page
+  (la barre d'onglets de homedash revient avec ⚡). Barre réduite aux icônes, avec les noms, ou cachée :
+  les onglets perso reviennent alors en haut.
+- **Dossiers** comme Discord : glisse une icône sur une autre pour créer un dossier (nom et couleur), sur
+  un dossier pour l'y ranger ; replié, il montre ses icônes en miniature et le total des non-lus. Clic
+  droit pour le reste.
+- Appli de bureau : **des comptes de connexion**, comme les conteneurs de Firefox. Un compte (nom +
+  couleur) a sa propre connexion, partagée par ses onglets : deux onglets Claude (ou Gmail, YouTube…)
+  connectés à deux comptes différents, côte à côte. Clic droit sur une icône → *Nouveau compte…*, ou
+  Réglages → Onglets perso. Le compte se voit partout : sa lettre et un liseré de sa couleur sur l'icône,
+  un trait sous l'onglet quand il est en haut, une étiquette dans son en-tête.
+- Appli de bureau : **les liens restent dans homedash**. Un lien X reçu dans Google Chat s'ouvre dans
+  ton onglet X (idem pour tout site qui a son onglet ; `twitter.com`, `youtu.be` compris, et d'autres
+  domaines au choix dans Réglages). **Clic droit dans les sites** : ouvrir un lien dans un onglet, dans
+  un **onglet éphémère** avec le compte de ton choix, ou dans le navigateur ; copier, coller, copier
+  une image, précédent / suivant.
+- Appli de bureau : **`⌘R`** recharge tout homedash (« ↻ homedash rechargé » le confirme), **`⇧⌘R`**
+  seulement le site ouvert, avec un trait de chargement.
+- Les icônes des onglets perso ont toutes la même taille (recadrées automatiquement), et un site privé
+  inconnu du service de favicons affiche quand même la sienne.
+- Réglages → Onglets perso refait : un onglet par ligne (dossier et compte en étiquettes), un clic pour
+  le modifier dans un éditeur clair ; dossiers et comptes en étiquettes à côté. Le ＋ de la barre de
+  gauche ouvre directement un nouvel onglet à remplir, affiché par défaut dans homedash.
+- Comptes, liens, clic droit, `⌘R` et `⇧⌘R` demandent l'appli de bureau 1.1.0
+  ([la télécharger](https://github.com/davidgennaoui/homedash/releases/latest), ou
+  `sh desktop/build-local.sh --install`).
+
 ## 1.13.2 — 2026-10-20
 
 - Onglets perso : sans emoji choisi, l'onglet prend **l'icône du site**. Dans l'appli de bureau, c'est

@@ -91,9 +91,11 @@ Le jeton se renouvelle ensuite tout seul.
 
 ### ＋ Onglets perso
 
-Le **＋** au bout de la barre d'onglets (ou Réglages → Onglets perso) ajoute un onglet vers **un site**
-(`https://…`) ou **un fichier / dossier de ton disque** (`~/Documents/procédure.pdf`, ou 📁 pour le
-choisir). Icône (un emoji ; vide = l'icône du site), nom, adresse, et ce que fait un clic :
+Le **＋** en bas de la barre de gauche (ou Réglages → Onglets perso → **＋ Ajouter un onglet**) ajoute
+un onglet vers **un site** (`https://…`) ou **un fichier / dossier de ton disque**
+(`~/Documents/procédure.pdf`, ou **📁 Parcourir**). Dans Réglages, un onglet par ligne : un clic l'ouvre
+pour le modifier. Adresse, nom (proposé d'après l'adresse), icône (un emoji ; vide = celle du site),
+dossier, compte, et ce que fait un clic (par défaut, dans homedash) :
 
 - **dans homedash** : le site ou le fichier s'affiche sous la barre d'onglets. Revenir sur l'onglet ne
   le recharge pas (↻ pour ça). Dans un navigateur, ça marche pour les fichiers (PDF, images, texte, HTML,
@@ -102,8 +104,31 @@ choisir). Icône (un emoji ; vide = l'icône du site), nom, adresse, et ce que f
   tous s'affichent, avec leurs non-lus en pastille.
 - **ouvrir à part ↗** : l'onglet est un raccourci, il ouvre le site dans un onglet du navigateur.
 
+**Barre de gauche** (dès qu'il y a un onglet perso), comme les serveurs Discord : **⚡** ramène à
+homedash et ses onglets du haut, puis une icône par onglet perso, avec sa pastille rouge de non-lus. Un
+trait à gauche de l'icône montre celui qui est ouvert. Un site (ou Réglages) ouvert depuis la barre a
+toute la page : la barre d'onglets de homedash revient avec ⚡.
+
+- **Dossiers**, comme Discord : glisse une icône **sur** une autre pour les réunir dans un nouveau
+  dossier (nom et couleur demandés), **sur** un dossier pour l'y ranger, **sur le haut** d'une icône pour
+  la placer avant, **tout en bas** pour la sortir de son dossier. Clic = replier / déplier ; replié, il
+  montre ses quatre premières icônes et le total des non-lus. Clic droit : nom et couleur, supprimer
+  (ses onglets restent). Clic droit sur une icône : dossier, compte, recharger, ouvrir dans le navigateur.
+- En bas : **⚙ Réglages** (il quitte alors la barre du haut), **＋** ajouter, **» / «** noms affichés ou icônes seules, **✕** cacher la barre (les onglets
+  perso reviennent dans la barre du haut ; la languette **»** à gauche de l'écran la rouvre). Ces choix
+  et les dossiers repliés sont propres à chaque navigateur ou appli.
+
+**Comptes** (appli de bureau), comme les conteneurs de Firefox : un compte a un nom et une couleur, et
+ses onglets partagent leur propre connexion. YouTube, Gmail et Claude sur « pro » sont connectés au
+compte pro, les mêmes sur « perso » au compte perso, côte à côte. Sans compte, un onglet utilise la
+connexion commune. Créer un compte : clic droit sur une icône → *Nouveau compte…*, ou Réglages → Onglets
+perso. Un liseré de sa couleur entoure l'icône de ses onglets. Renommer ne déconnecte pas ; supprimer
+renvoie ses onglets sur la connexion commune. Dans un navigateur, sans effet : il n'a qu'une connexion
+par site.
+
 Les fichiers sont lus, jamais modifiés, et limités à ton dossier personnel (ni fichiers cachés, ni le
-`data/` de homedash). ↑ ↓ dans Réglages pour l'ordre ; puis **Enregistrer**.
+`data/` de homedash). L'ordre se règle en glissant les icônes de la barre de gauche ; dans Réglages,
+**Enregistrer** (`⌘S`).
 
 Une page web ne peut ni afficher un site qui le refuse, ni lire ce qu'il affiche (ses non-lus) : c'est
 ce que l'appli de bureau débloque.
@@ -140,6 +165,19 @@ Ce qu'elle apporte :
   sur l'**icône du Dock**.
 - Les liens s'ouvrent dans ton **navigateur par défaut** (Firefox…). Dans un onglet perso : ← pour revenir
   en arrière, ↗ pour ouvrir la page en cours dans le navigateur.
+- **`⌘R`** recharge homedash (après une mise à jour du container), onglets perso compris : « ↻ homedash
+  rechargé » le confirme. **`⇧⌘R`** recharge seulement le site ouvert ; un trait bleu file en haut de
+  l'onglet pendant le chargement.
+- **Liens entre onglets** : un lien X cliqué dans Google Chat (ou ailleurs) s'ouvre dans ton onglet X,
+  s'il y en a un, au lieu du navigateur ; avec deux onglets du même site, celui du même compte que
+  l'onglet d'où vient le lien. Par onglet (Réglages → Onglets perso) : couper ce comportement, ou capter
+  d'autres domaines (`twitter.com` pour X est déjà prévu, comme `youtu.be` pour YouTube).
+- **Clic droit dans un site** : sur un lien, l'ouvrir dans un onglet de ce site, dans un **onglet
+  éphémère** (avec le compte de ton choix), dans le navigateur, ou copier le lien ; sur du texte,
+  copier ou le rechercher ; dans un champ, couper / copier / coller ; sur une image, la copier ; sinon,
+  précédent / suivant / recharger.
+- **Onglets éphémères** : en bas de la barre de gauche, contour pointillé. ✕ au survol pour fermer,
+  clic droit → *Garder dans mes onglets*. Ils disparaissent au redémarrage de l'appli.
 - Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
 
 **Installer**, au choix :
