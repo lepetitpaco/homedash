@@ -19,6 +19,7 @@ import backup
 import accounts
 import basecamp
 import events
+import favicons
 import localfile
 import localgit
 import store
@@ -315,6 +316,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._basecamp_callback()
         if path == "/api/file":
             return self._file(self._query("path"))
+        if path == "/api/favicon":
+            return self._favicon(self._query("host"))
         if path.startswith("/api/github"):
             mod = self._acc()
             if not mod:
@@ -563,6 +566,22 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
+
+    # ── icône d'un onglet perso, relayée pour que la page puisse la recadrer ──
+    def _favicon(self, host):
+        try:
+            cfg = store.read(store.CONFIG, {}) or {}
+        except ValueError:
+            cfg = {}
+        own = {(urllib.parse.urlsplit(t.get("url") or "").hostname or "").lower()
+               for t in cfg.get("tabs") or [] if isinstance(t, dict)}
+        try:
+            body, ctype = favicons.get(host, (cfg.get("ui") or {}).get("faviconProvider"), own)
+        except ValueError as e:
+            return self._err(422, str(e))
+        if not body:
+            return self._err(404, "icône introuvable")
+        self._send(200, body, ctype, cache="public, max-age=86400")
 
     # ── fichier local d'un onglet perso (lecture seule) ──────────────────────
     def _file(self, shown):

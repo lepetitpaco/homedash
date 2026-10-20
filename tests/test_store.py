@@ -167,6 +167,25 @@ class TabsConfigTest(unittest.TestCase):
         self.assertIsNotNone(store.validate_config({**base, "tabs": {}}))
         self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "url": " "}]}))
         self.assertIsNotNone(store.validate_config({**base, "tabs": [ok, ok]}))
+        self.assertIsNone(store.validate_config({**base, "tabs": [{**ok, "session": "pro"}]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "session": 1}]}))
+        self.assertIsNone(store.validate_config({**base, "tabs": [{**ok, "domains": ["twitter.com"]}]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "domains": "twitter.com"}]}))
+
+    def test_tab_folders_are_optional_and_checked(self):
+        base = {"groups": []}
+        f = {"id": "f-1", "name": "Pro"}
+        self.assertIsNone(store.validate_config({**base, "tabFolders": [f]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabFolders": [f, f]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabFolders": [{"id": "f-2", "name": ""}]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabFolders": "Pro"}))
+
+    def test_tab_sessions_are_optional_and_checked(self):
+        base = {"groups": []}
+        s = {"id": "s-1", "name": "Pro", "color": "#37adff"}
+        self.assertIsNone(store.validate_config({**base, "tabSessions": [s]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabSessions": [s, s]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabSessions": [{"id": "s-2", "name": " "}]}))
 
 
 if __name__ == "__main__":

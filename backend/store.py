@@ -167,9 +167,30 @@ def validate_config(cfg):
             for field in ("id", "label", "url"):
                 if not isinstance(tab.get(field), str) or not tab[field].strip():
                     return f"tabs[{i}].{field} manquant"
+            if tab.get("session") is not None and not isinstance(tab["session"], str):
+                return f"tabs[{i}].session doit être un texte"
+            doms = tab.get("domains")
+            if doms is not None and not (isinstance(doms, list) and all(isinstance(d, str) for d in doms)):
+                return f"tabs[{i}].domains doit être une liste de textes"
             if tab["id"] in seen:
                 return f"tabs[{i}].id en double : {tab['id']}"
             seen.add(tab["id"])
+    for key in ("tabFolders", "tabSessions"):
+        items = cfg.get(key)
+        if items is None:
+            continue
+        if not isinstance(items, list):
+            return f'"{key}" doit être un tableau'
+        seen = set()
+        for i, f in enumerate(items):
+            if not isinstance(f, dict):
+                return f"{key}[{i}] doit être un objet"
+            for field in ("id", "name"):
+                if not isinstance(f.get(field), str) or not f[field].strip():
+                    return f"{key}[{i}].{field} manquant"
+            if f["id"] in seen:
+                return f"{key}[{i}].id en double : {f['id']}"
+            seen.add(f["id"])
     order = cfg.get("pinnedOrder")
     if order is not None and not (isinstance(order, list) and all(isinstance(x, str) for x in order)):
         return '"pinnedOrder" doit être une liste de textes'
