@@ -1,7 +1,8 @@
 {
+  "id": "./",
   "name": "homedash",
   "short_name": "homedash",
-  "description": "Raccourcis et tableau de bord GitHub",
+  "description": "Raccourcis, GitHub, dépôts locaux et Basecamp",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
@@ -23,6 +24,20 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "GitHub",
+      "url": "./?tab=github"
+    },
+    {
+      "name": "Local",
+      "url": "./?tab=local"
+    },
+    {
+      "name": "Basecamp",
+      "url": "./?tab=basecamp"
     }
   ]
 }

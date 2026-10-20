@@ -148,9 +148,17 @@ class Handler(BaseHTTPRequestHandler):
         if self.command != "HEAD":
             self.wfile.write(body)
 
-    def _json(self, payload, status=200):
-        self._send(status, json.dumps(payload, ensure_ascii=False).encode("utf-8"),
-                   "application/json; charset=utf-8")
+    def _json(self, payload, status=200, headers=None):
+        body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+        self.send_response(status)
+        self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        for k, v in (headers or {}).items():
+            self.send_header(k, v)
+        self.end_headers()
+        if self.command != "HEAD":
+            self.wfile.write(body)
 
     def _download(self, body, filename):
         self.send_response(200)
@@ -287,7 +295,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(updates.payload())
         if path == "/api/config":
             try:
-                return self._json(store.read(store.CONFIG, {}))
+                with _config_lock:
+                    cfg, ver = store.read(store.CONFIG, {}), store.version(store.CONFIG)
+                return self._json(cfg, headers={"X-Config-Version": ver})
             except ValueError as e:
                 return self._err(500, str(e))
         if path == "/api/notes":
@@ -372,11 +382,23 @@ class Handler(BaseHTTPRequestHandler):
                 problem = store.validate_config(cfg)
                 if problem:
                     return self._err(422, problem)
+                # `X-Config-Version` = version sur laquelle la page a travaillé.
+                # Si le fichier a changé depuis (autre onglet, écriture du
+                # serveur), on refuse : écraser ferait perdre l'autre en silence.
+                # Sans en-tête (ancienne page, script), on écrit comme avant.
+                base = self.headers.get("X-Config-Version")
                 with _config_lock:
+                    if base is not None and base != store.version(store.CONFIG):
+                        return self._json({"error": "config modifiée ailleurs depuis le chargement de la page",
+                                           "conflict": True}, 409)
                     store.backup_config()
                     store.write(store.CONFIG, cfg)
                 reload_all()              # github/local ont peut-être changé
-                return self._json({"ok": True, "savedAt": time.time()})
+                # relu après reload_all : une migration a pu réécrire le fichier
+                with _config_lock:
+                    ver = store.version(store.CONFIG)
+                return self._json({"ok": True, "savedAt": time.time(), "version": ver},
+                                  headers={"X-Config-Version": ver})
 
             if path == "/api/github/token":
                 body  = self._body() or {}

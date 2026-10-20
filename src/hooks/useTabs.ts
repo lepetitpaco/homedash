@@ -3,22 +3,26 @@ import type { TabId } from '../components/Tabs'
 import { initTitleCounter } from '../lib/notifications'
 
 const TAB_KEY = 'homedash:tab'
+const TABS = ['links', 'github', 'basecamp', 'local', 'settings'] as const
 
 /** Onglet ouvert, mémorisé d'une visite à l'autre, et titre de l'onglet du navigateur. */
 export function useTabs(title: string | undefined) {
   const [tab, setTab] = useState<TabId>('links')
 
   useEffect(() => {
+    // `?tab=github` : raccourcis de l'appli installée (manifest). Vaut pour
+    // cette ouverture, puis l'adresse redevient propre.
+    const asked = new URLSearchParams(window.location.search).get('tab')
+    if (asked && (TABS as readonly string[]).includes(asked)) {
+      setTab(asked as TabId)
+      const url = new URL(window.location.href)
+      url.searchParams.delete('tab')
+      window.history.replaceState(null, '', url)
+      return
+    }
     try {
       const savedTab = localStorage.getItem(TAB_KEY)
-      if (
-        savedTab === 'links' ||
-        savedTab === 'github' ||
-        savedTab === 'basecamp' ||
-        savedTab === 'local' ||
-        savedTab === 'settings'
-      )
-        setTab(savedTab)
+      if (savedTab && (TABS as readonly string[]).includes(savedTab)) setTab(savedTab as TabId)
     } catch {
       /* stockage indisponible */
     }

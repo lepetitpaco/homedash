@@ -104,6 +104,19 @@ plus récente est publiée, il passe en bleu (`⬆ 1.8.0`) et la cloche le signa
 commande à copier (`git pull && docker compose up -d --build`). Tes données sont sauvegardées
 automatiquement avant la mise à jour (Réglages → Sauvegardes, instantané « avant-x-y-z »).
 
+## Installer comme une appli
+
+homedash est une PWA : dans Chrome ou Edge, icône ⊕ « Installer » à droite de la barre d'adresse (ou menu
+⋮ → *Caster, enregistrer et partager* → *Installer la page en tant qu'application*). Dans Safari (macOS) :
+*Fichier → Ajouter au Dock*. Clic droit sur l'icône installée : raccourcis GitHub, Local et Basecamp.
+
+Les liens s'ouvrent dans le navigateur qui a installé l'appli. Pour qu'ils s'ouvrent dans ton navigateur
+par défaut, installe-la depuis Safari (*Ajouter au Dock*) : une appli Safari envoie les liens externes
+au navigateur par défaut du Mac.
+
+Accès réseau en `http://` (autre machine que localhost) : pas d'installation possible, le navigateur ne
+l'autorise qu'en localhost ou HTTPS.
+
 ## ⚙ Réglages
 
 Le menu de gauche affiche une partie à la fois. Les modifications s'enregistrent avec **Enregistrer** (`⌘S`), toutes parties confondues. La barre du bas signale ce qui n'est pas

@@ -5,6 +5,7 @@ d'écrire dans un temporaire puis de renommer, donc jamais de fichier tronqué s
 process meurt en pleine écriture — ce qu'un bind-mount de fichier interdit.
 """
 
+import hashlib
 import json
 import os
 import threading
@@ -80,6 +81,15 @@ def write_secret(key, value):
         else:
             data[key] = value
         write(SECRETS, data, mode=0o600)
+
+def version(name):
+    """Empreinte du fichier tel qu'il est sur le disque, ou "" s'il n'existe pas.
+    Sert à refuser une écriture faite sur une version périmée (deux onglets, ou
+    la page et une écriture du serveur) au lieu d'écraser l'autre en silence."""
+    try:
+        return hashlib.sha1(path_of(name).read_bytes()).hexdigest()[:16]
+    except FileNotFoundError:
+        return ""
 
 def backup_config():
     try:

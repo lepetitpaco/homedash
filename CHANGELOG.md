@@ -4,6 +4,15 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.11.0 — 2026-10-20
+
+- homedash s'installe comme une **appli** (PWA) : icône dans le Dock ou la barre des tâches, fenêtre à
+  part, raccourcis GitHub, Local et Basecamp au clic droit sur l'icône. Elle s'ouvre même serveur arrêté
+  (les données reviennent dès qu'il redémarre).
+- Deux onglets ouverts ne s'écrasent plus : si la config a changé ailleurs depuis le chargement de la
+  page, l'enregistrement est refusé et la page propose de recharger, au lieu d'effacer l'autre
+  modification sans prévenir.
+
 ## 1.10.0 — 2026-10-20
 
 - Tuiles **📌 Épinglés** : glisse une tuile (poignée ⠿ au survol) pour changer leur ordre ; un trait montre
