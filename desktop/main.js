@@ -159,8 +159,14 @@ function createWindow() {
   })
   win.once('ready-to-show', () => win.show())
 
+  // Taille / position enregistrées une fois le geste fini : `resize` et `move`
+  // arrivent par dizaines par seconde pendant qu'on glisse la fenêtre.
+  let saveTimer = null
   const remember = () => {
-    if (!win.isMinimized() && !win.isFullScreen()) writeSettings({ bounds: win.getBounds() })
+    clearTimeout(saveTimer)
+    saveTimer = setTimeout(() => {
+      if (win && !win.isDestroyed() && !win.isMinimized() && !win.isFullScreen()) writeSettings({ bounds: win.getBounds() })
+    }, 600)
   }
   win.on('resize', remember)
   win.on('move', remember)
@@ -239,6 +245,10 @@ function createWindow() {
     })
     guests.add(guest.id)
     guest.once('destroyed', () => guests.delete(guest.id))
+    // Un site se met à émettre du son, ou s'arrête : 🔊 sur son onglet.
+    guest.on('audio-state-changed', (e) => {
+      win?.webContents.send('homedash:audio', { id: guest.id, audible: !!e.audible })
+    })
     // Clic droit dans un site : le menu de homedash, dessiné par la page (lien,
     // texte, champ, image). Les actions reviennent par `homedash:guest`.
     guest.on('context-menu', (_ev, p) => {
@@ -370,6 +380,82 @@ ipcMain.on('homedash:open', (e, url) => {
   if (fromHome(e) && isWeb(String(url))) void shell.openExternal(String(url))
 })
 
+// ── Journal de performance ─────────────────────────────────────────────────
+// Toutes les 5 min : mémoire et CPU de l'appli, de la page homedash et de
+// chaque onglet perso, envoyés au serveur qui les écrit dans data/perf/
+// (perflog.py). Des noms d'onglets et de domaines, jamais d'adresse complète.
+const PERF_EVERY = 5 * 60 * 1000
+
+function postPerf(record) {
+  fetch(`${HOME}/api/perf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ source: 'app', ...record }),
+  }).catch(() => undefined) // serveur arrêté : la mesure est perdue, rien de grave
+}
+
+async function perfSample(kind = 'sample', extra = {}) {
+  if (!win || win.isDestroyed()) return
+  const metrics = app.getAppMetrics()
+  const byPid = new Map(metrics.map((m) => [m.pid, m]))
+  const mb = (m) => (m ? Math.round(m.memory.workingSetSize / 1024) : null) // Ko → Mo
+  const cpu = (m) => (m ? Math.round(m.cpu.percentCPUUsage * 10) / 10 : null)
+  // Nom et compte de chaque onglet : la page les connaît (webview → onglet).
+  let names = {}
+  try {
+    names = await win.webContents.executeJavaScript('window.__homedashTabs ? window.__homedashTabs() : {}', true)
+  } catch {
+    names = {}
+  }
+  const pids = new Map()
+  const tabs = []
+  for (const id of guests) {
+    const g = webContents.fromId(id)
+    if (!g || g.isDestroyed()) continue
+    const pid = g.getOSProcessId()
+    pids.set(pid, (pids.get(pid) || 0) + 1)
+    let host = ''
+    try {
+      host = new URL(g.getURL()).hostname
+    } catch {
+      host = ''
+    }
+    const n = names[id] || {}
+    tabs.push({ tab: n.label || host, account: n.account || null, host, pid, mb: mb(byPid.get(pid)), cpu: cpu(byPid.get(pid)) })
+  }
+  // Deux onglets du même site et du même compte peuvent partager un processus.
+  for (const t of tabs) if (pids.get(t.pid) > 1) t.shared = true
+  const byType = (type) => metrics.filter((m) => m.type === type).reduce((s, m) => s + mb(m), 0)
+  postPerf({
+    kind,
+    ...extra,
+    total_mb: metrics.reduce((s, m) => s + mb(m), 0),
+    cpu: Math.round(metrics.reduce((s, m) => s + m.cpu.percentCPUUsage, 0) * 10) / 10,
+    procs: metrics.length,
+    page_mb: mb(byPid.get(win.webContents.getOSProcessId())),
+    main_mb: byType('Browser'),
+    gpu_mb: byType('GPU'),
+    visible: win.isVisible(),
+    tabs,
+  })
+}
+
+// Pics : toutes les 30 s, un relevé léger (sans écriture). CPU au-dessus de
+// 80 % ou mémoire en hausse de plus de 400 Mo depuis le relevé précédent : une
+// ligne « spike » avec le détail par onglet. Une au plus toutes les 5 min.
+let lastTotal = 0
+let lastSpike = 0
+function watchSpikes() {
+  const metrics = app.getAppMetrics()
+  const total = metrics.reduce((s, m) => s + m.memory.workingSetSize / 1024, 0)
+  const cpu = metrics.reduce((s, m) => s + m.cpu.percentCPUUsage, 0)
+  const grew = lastTotal ? total - lastTotal : 0
+  lastTotal = total
+  if ((cpu < 80 && grew < 400) || Date.now() - lastSpike < 5 * 60 * 1000) return
+  lastSpike = Date.now()
+  void perfSample('spike', { reason: cpu >= 80 ? 'cpu' : 'memoire', grew_mb: Math.round(grew) })
+}
+
 // ── Cycle de vie ────────────────────────────────────────────────────────────
 if (!app.requestSingleInstanceLock()) {
   app.quit()
@@ -382,6 +468,7 @@ if (!app.requestSingleInstanceLock()) {
   })
   app.on('before-quit', () => {
     quitting = true
+    postPerf({ kind: 'event', event: 'quit' })
   })
   app.on('activate', () => {
     if (win) win.show()
@@ -398,5 +485,11 @@ if (!app.requestSingleInstanceLock()) {
     setupTabsSession(PARTITION)
     setupMenu()
     createWindow()
+    postPerf({ kind: 'event', event: 'start', version: app.getVersion(), electron: process.versions.electron })
+    win.on('hide', () => postPerf({ kind: 'event', event: 'hide' }))
+    win.on('show', () => postPerf({ kind: 'event', event: 'show' }))
+    setTimeout(() => perfSample(), 60 * 1000) // une première mesure, le temps que tout charge
+    setInterval(() => perfSample(), PERF_EVERY)
+    setInterval(watchSpikes, 30 * 1000)
   })
 }

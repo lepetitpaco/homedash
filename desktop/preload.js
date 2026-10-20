@@ -10,7 +10,7 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
   version: process.versions.electron,
   platform: process.platform,
   /** Ce que cette version de l'appli sait faire (absent = appli 1.0.0). */
-  features: ['sessions', 'reload-tab', 'links'],
+  features: ['sessions', 'reload-tab', 'links', 'audio'],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
   /** Ouvre une adresse http(s) dans le navigateur par défaut. */
@@ -20,6 +20,12 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
    * webview `id`, ou `copyText` pour mettre un texte (un lien) au presse-papiers.
    */
   guestAction: (id, action, extra) => ipcRenderer.send('homedash:guest', { id, action, ...(extra || {}) }),
+  /** Un site émet du son ou s'arrête ({ id, audible }). Renvoie de quoi se désabonner. */
+  onAudio: (cb) => {
+    const handler = (_e, state) => cb(state)
+    ipcRenderer.on('homedash:audio', handler)
+    return () => ipcRenderer.removeListener('homedash:audio', handler)
+  },
   /** Clic (`click`) ou Échap (`escape`) dans un site. Renvoie de quoi se désabonner. */
   onGuestDown: (cb) => {
     const handler = (_e, kind) => cb(kind)
