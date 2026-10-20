@@ -36,6 +36,8 @@ VERSION     = "version.json"
 # n'importe quel terminal ; sans lui, elle suppose qu'on y est déjà.
 _DIR        = os.environ.get("HOMEDASH_DIR", "").strip()
 COMMAND     = (f"cd {shlex.quote(_DIR)} && " if _DIR else "") + "git pull && docker compose up -d --build"
+# Appli de bureau : la construire sur ce Mac plutôt que la télécharger.
+DESKTOP_COMMAND = (f"cd {shlex.quote(_DIR)} && " if _DIR else "") + "sh desktop/build-local.sh --install"
 
 _state = {"latest": None, "incoming": [], "checked_at": None, "error": None}
 _lock  = threading.Lock()
@@ -135,6 +137,10 @@ def payload():
         "update": bool(state["incoming"]),
         "command": COMMAND,
         "repo": REPO,
+        # Appli de bureau : dernière release (seules les versions de l'appli en
+        # ont une), ou la construire soi-même.
+        "desktop_url": f"https://github.com/{REPO}/releases/latest",
+        "desktop_command": DESKTOP_COMMAND,
         "checked_at": state["checked_at"],
         "error": state["error"],
     }

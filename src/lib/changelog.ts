@@ -12,6 +12,9 @@ export type Changelog = {
   update: boolean
   command: string
   repo: string
+  /** Dernière appli de bureau (release GitHub), et la commande pour la construire soi-même. */
+  desktop_url?: string
+  desktop_command?: string
   checked_at: number | null
   error: string | null
 }

@@ -159,7 +159,8 @@ Uniquement des chiffres et des noms d'onglets ou de domaines : aucune adresse co
 Le numéro de version (`v1.7.0`) ouvre une fenêtre avec le changelog : ce qui a changé à chaque version. Quand une version
 plus récente est publiée, il passe en bleu (`⬆ 1.8.0`) et la cloche le signale ; la fenêtre donne la
 commande à copier (`git pull && docker compose up -d --build`). Tes données sont sauvegardées
-automatiquement avant la mise à jour (Réglages → Sauvegardes, instantané « avant-x-y-z »).
+automatiquement avant la mise à jour (Réglages → Sauvegardes, instantané « avant-x-y-z »). Juste dessous, l'**appli
+de bureau** : le lien vers sa dernière version, ou la commande pour la construire sur ton Mac.
 
 ## L'appli de bureau (Mac)
 

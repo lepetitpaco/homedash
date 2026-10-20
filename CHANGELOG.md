@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.16.2 — 2026-10-20
+
+- Fenêtre de version (le numéro en haut à droite) : sous la commande de mise à jour, l'**appli de
+  bureau** : le lien vers sa dernière version, ou la commande pour la construire sur ton Mac.
+- Notes de version : l'italique et les liens s'affichent (ils apparaissaient avec leurs `*` et `[…](…)`).
+
 ## 1.16.1 — 2026-10-20
 
 - Onglets en haut : avec beaucoup d'onglets, les noms restent sur une ligne (ils passaient sur deux ou

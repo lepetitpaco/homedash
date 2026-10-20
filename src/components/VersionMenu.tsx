@@ -18,7 +18,7 @@ export default function VersionMenu({
   onCheck: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState(false)
+  const [copied, setCopied] = useState<false | 'update' | 'desktop'>(false)
 
   // Échap ferme la modale (le clic sur le fond aussi, plus bas).
   useEffect(() => {
@@ -30,10 +30,11 @@ export default function VersionMenu({
 
   if (!data) return null
 
-  const copy = () => {
+  // `which` : la commande copiée (mise à jour, ou construction de l'appli).
+  const copy = (text = data.command, which: 'update' | 'desktop' = 'update') => {
     try {
-      void navigator.clipboard?.writeText(data.command).then(() => {
-        setCopied(true)
+      void navigator.clipboard?.writeText(text).then(() => {
+        setCopied(which)
         window.setTimeout(() => setCopied(false), 1400)
       })
     } catch {
@@ -75,11 +76,33 @@ export default function VersionMenu({
                     ? 'Colle cette commande dans un terminal :'
                     : 'Tu es à jour. Quand une version sortira, colle cette commande dans un terminal :'}
                 </p>
-                <button className="cl-cmd" onClick={copy} title="Copier la commande">
+                <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
                   <code>{data.command}</code>
-                  <span>{copied ? '✓ copié' : 'copier'}</span>
+                  <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
                 </button>
                 <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
+                {data.desktop_url ? (
+                  <div className="cl-desktop">
+                    <strong>💻 Appli de bureau (Mac)</strong>
+                    <p>
+                      <a href={data.desktop_url} target="_blank" rel="noreferrer">
+                        ⬇ Télécharger la dernière version
+                      </a>{' '}
+                      (<code>-arm64</code> : Mac M1/M2/M3…, <code>-x64</code> : Intel), ou la construire sur ce Mac, sans
+                      GitHub ni blocage au premier lancement :
+                    </p>
+                    {data.desktop_command ? (
+                      <button
+                        className="cl-cmd"
+                        onClick={() => copy(data.desktop_command, 'desktop')}
+                        title="Copier la commande"
+                      >
+                        <code>{data.desktop_command}</code>
+                        <span>{copied === 'desktop' ? '✓ copié' : 'copier'}</span>
+                      </button>
+                    ) : null}
+                  </div>
+                ) : null}
                 {data.incoming.map((e) => (
                   <Entry key={e.version} entry={e} fresh />
                 ))}
@@ -124,15 +147,22 @@ function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boo
   )
 }
 
-/** `**gras**` et `` `code` `` du Markdown, seuls formatages utilisés dans CHANGELOG.md. */
+/**
+ * Le peu de Markdown utilisé dans CHANGELOG.md : `**gras**`, `*italique*`,
+ * `` `code` `` et `[lien](https://…)` (ouvert à part, http(s) seulement).
+ */
 function renderBold(text: string) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`)/g).map((part, i) =>
-    part.startsWith('**') && part.endsWith('**') ? (
-      <strong key={i}>{part.slice(2, -2)}</strong>
-    ) : part.startsWith('`') && part.endsWith('`') && part.length > 1 ? (
-      <code key={i}>{part.slice(1, -1)}</code>
-    ) : (
-      part
-    ),
-  )
+  return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^)\s]+\)|\*[^*\s][^*]*\*)/g).map((part, i) => {
+    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>
+    if (part.startsWith('`') && part.endsWith('`') && part.length > 1) return <code key={i}>{part.slice(1, -1)}</code>
+    const link = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(part)
+    if (link)
+      return (
+        <a key={i} href={link[2]} target="_blank" rel="noreferrer">
+          {link[1]}
+        </a>
+      )
+    if (part.length > 2 && part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>
+    return part
+  })
 }

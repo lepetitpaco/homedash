@@ -131,3 +131,20 @@
   border-color: var(--border-soft);
   background: var(--panel-2);
 }
+
+/* Appli de bureau : lien vers la dernière release, ou la commande pour la construire. */
+.cl-desktop {
+  margin-top: 0.9rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border-soft);
+}
+.cl-desktop p {
+  margin: 0.35rem 0 0.5rem;
+}
+.cl-desktop a {
+  color: #60a5fa;
+  font-weight: 600;
+}
+.cl-entry a {
+  color: #60a5fa;
+}
