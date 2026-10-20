@@ -4,6 +4,15 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.15.0 — 2026-10-20
+
+- Appli de bureau : **onglet éphémère vierge** avec **⧉** en bas de la barre de gauche (compte au choix),
+  et une **barre d'adresse** dans l'en-tête des onglets éphémères : une adresse ou une recherche.
+- L'onglet ouvert se voit mieux : anneau lumineux à la couleur de son compte, les autres icônes en
+  retrait, icône et nom du site en grand dans l'en-tête.
+- **⚡ depuis Réglages** ramène bien aux onglets de homedash (il restait sur Réglages).
+- Appli de bureau : un clic dans un site ou Échap ferme le menu du clic droit (et les autres panneaux).
+
 ## 1.14.1 — 2026-10-20
 
 - Appli de bureau : le clic droit dans un site ouvre son menu sous la souris (il apparaissait décalé),

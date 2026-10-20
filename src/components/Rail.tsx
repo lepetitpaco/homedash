@@ -36,6 +36,8 @@ type Props = {
   temps: CustomTab[]
   onTempMenu: (e: React.MouseEvent, tab: CustomTab) => void
   onTempClose: (tab: CustomTab) => void
+  /** ⧉ : nouvel onglet éphémère vierge. */
+  onNewTemp: (e: React.MouseEvent) => void
   folders: TabFolder[]
   sessions: TabSession[]
   /** Onglet perso ouvert (`x:…`), `settings`, ou null quand on est dans homedash. */
@@ -73,6 +75,7 @@ export default function Rail({
   temps,
   onTempMenu,
   onTempClose,
+  onNewTemp,
   folders,
   sessions,
   active,
@@ -325,6 +328,9 @@ export default function Rail({
         </button>
         <button className="rail-tool" onClick={onAdd} title="Ajouter un onglet">
           ＋{wide ? <span className="rail-label">ajouter</span> : null}
+        </button>
+        <button className="rail-tool" onClick={onNewTemp} title="Nouvel onglet éphémère (disparaît à la fermeture)">
+          ⧉{wide ? <span className="rail-label">éphémère</span> : null}
         </button>
         <button
           className="rail-tool"

@@ -30,8 +30,17 @@ export default function CustomTabView({
   onCount,
   session,
   onGuest,
+  icon,
+  onNavigate,
 }: {
   tab: CustomTab
+  /** Icône de l'onglet (celle de la barre), rappelée dans l'en-tête. */
+  icon?: React.ReactNode
+  /**
+   * Onglet éphémère : une barre d'adresse dans l'en-tête, et l'adresse
+   * atteinte remontée (son nom suit le site visité).
+   */
+  onNavigate?: (url: string) => void
   /** Id de la webview (appli de bureau) : App sait ainsi de quel onglet vient un lien ou un clic droit. */
   onGuest?: (id: number) => void
   /** Compte de connexion de l'onglet, rappelé dans l'en-tête. */
@@ -49,12 +58,20 @@ export default function CustomTabView({
   const local = isLocal(tab.url)
   // Une webview ne résout pas une adresse relative : `api/file?…` devient absolue.
   const src = new URL(srcOf(tab.url), window.location.href).href
+  // Adresse de départ seulement : celle d'un éphémère suit sa navigation, et la
+  // repasser à la webview la rechargerait. Autre adresse voulue = autre `key`.
+  const [startSrc] = useState(src)
   const blocked = !desktop && !local && refusesEmbed(tab.url)
 
   const countRef = useRef(onCount)
   countRef.current = onCount
   const guestRef = useRef(onGuest)
   guestRef.current = onGuest
+  const navRef = useRef(onNavigate)
+  navRef.current = onNavigate
+  // Barre d'adresse (onglets éphémères) : l'adresse affichée, et ce qu'on tape.
+  const [address, setAddress] = useState(tab.url)
+  const [typing, setTyping] = useState<string | null>(null)
 
   useEffect(() => {
     const el = view.current
@@ -77,9 +94,17 @@ export default function CustomTabView({
         /* pas encore attachée */
       }
     }
+    const onNav = (e: Event) => {
+      const url = (e as Event & { url: string }).url
+      if (!/^https?:/.test(url)) return
+      setAddress(url)
+      navRef.current?.(url)
+    }
     const onStart = () => setLoading(true)
     const onStop = () => setLoading(false)
     el.addEventListener('dom-ready', onReady)
+    el.addEventListener('did-navigate', onNav)
+    el.addEventListener('did-navigate-in-page', onNav)
     el.addEventListener('did-start-loading', onStart)
     el.addEventListener('did-stop-loading', onStop)
     el.addEventListener('page-title-updated', onTitle)
@@ -87,6 +112,8 @@ export default function CustomTabView({
     el.addEventListener('did-finish-load', onLoad)
     return () => {
       el.removeEventListener('dom-ready', onReady)
+      el.removeEventListener('did-navigate', onNav)
+      el.removeEventListener('did-navigate-in-page', onNav)
       el.removeEventListener('did-start-loading', onStart)
       el.removeEventListener('did-stop-loading', onStop)
       el.removeEventListener('page-title-updated', onTitle)
@@ -128,16 +155,49 @@ export default function CustomTabView({
     <section className={`xtab${desktop && hidden ? ' is-parked' : ''}`} hidden={!desktop && hidden} aria-hidden={hidden}>
       <div className="xtab-bar">
         <span className="xtab-title">
-          <span aria-hidden="true">{tab.icon || (local ? '📄' : '🌐')}</span> {tab.label}
+          <span className="xtab-icon" aria-hidden="true">
+            {icon ?? (tab.icon || (local ? '📄' : '🌐'))}
+          </span>
+          {tab.label}
         </span>
         {session ? (
           <span className="xtab-session" style={{ ['--session' as string]: session.color }}>
             compte {session.name}
           </span>
         ) : null}
-        <code className="xtab-url" title={tab.url}>
-          {tab.url}
-        </code>
+        {onNavigate && desktop ? (
+          <input
+            className="xtab-address"
+            value={typing ?? address}
+            placeholder="Adresse ou recherche"
+            onFocus={(e) => e.target.select()}
+            onChange={(e) => setTyping(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') {
+                setTyping(null)
+                e.currentTarget.blur()
+              }
+              if (e.key !== 'Enter' || !typing?.trim()) return
+              const q = typing.trim()
+              // une adresse (avec ou sans https://), sinon une recherche Google
+              const url = /^[a-z]+:\/\//i.test(q)
+                ? q
+                : /^[^\s]+\.[^\s]{2,}$/.test(q)
+                  ? `https://${q}`
+                  : `https://www.google.com/search?q=${encodeURIComponent(q)}`
+              setTyping(null)
+              e.currentTarget.blur()
+              void view.current?.loadURL(url)
+            }}
+            autoComplete="off"
+            spellCheck={false}
+            data-1p-ignore
+          />
+        ) : (
+          <code className="xtab-url" title={tab.url}>
+            {tab.url}
+          </code>
+        )}
         <span className="set-spacer" />
         {desktop ? null : blocked ? (
           <span className="xtab-warn">
@@ -186,7 +246,7 @@ export default function CustomTabView({
             view.current = el as WebviewEl | null
           }}
           className="xtab-frame"
-          src={src}
+          src={startSrc}
           partition={partitionOf(tab.session)}
           // attribut à valeur texte : un booléen React ne serait pas écrit dans le DOM
           {...{ allowpopups: 'true' as unknown as boolean }}

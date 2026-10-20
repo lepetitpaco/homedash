@@ -54,7 +54,9 @@ body {
   height: 18px;
 }
 .rail-item.is-active .rail-pill {
-  height: 36px;
+  height: 40px;
+  width: 5px;
+  background: #fff;
 }
 .rail-btn {
   position: relative;
@@ -91,9 +93,25 @@ body {
   border-radius: 6px;
 }
 .rail-btn:hover .rail-icon,
+/* Onglet ouvert : anneau lumineux (couleur de son compte s'il en a un), fond
+   éclairé ; les autres un peu en retrait. */
+.rail-list .rail-item:not(.is-active) .rail-icon {
+  opacity: 0.72;
+}
+.rail-list .rail-item:not(.is-active) .rail-btn:hover .rail-icon {
+  opacity: 1;
+}
 .rail-item.is-active .rail-icon {
+  opacity: 1;
   border-radius: 14px;
-  background: color-mix(in srgb, #60a5fa 22%, var(--panel-2));
+  background: color-mix(in srgb, var(--session, #60a5fa) 26%, var(--panel-2));
+  box-shadow:
+    0 0 0 3px var(--session, #60a5fa),
+    0 0 14px color-mix(in srgb, var(--session, #60a5fa) 55%, transparent);
+}
+.rail.is-wide .rail-item.is-active .rail-btn {
+  color: var(--text);
+  font-weight: 600;
 }
 .rail-btn:hover,
 .rail-item.is-active .rail-btn {
@@ -132,7 +150,7 @@ body {
 }
 /* Compte de connexion : liseré de sa couleur, comme les conteneurs Firefox. */
 .rail-icon.has-session {
-  box-shadow: 0 0 0 2px var(--session);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--session) 65%, transparent);
 }
 /* …et sa lettre dans le coin haut-gauche, lisible même en icônes seules. */
 .rail-session {

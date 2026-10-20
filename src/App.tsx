@@ -106,9 +106,24 @@ export default function App() {
     const t = window.setTimeout(() => setReloaded(false), 1800)
     return () => window.clearTimeout(t)
   }, [])
+  // Clic ou Échap dans un site (appli de bureau) : la page ne les voit pas, on
+  // les rejoue pour que menus et panneaux ouverts se ferment comme ailleurs.
+  useEffect(
+    () =>
+      desktop?.onGuestDown?.((kind) => {
+        if (kind === 'escape') {
+          document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+          return
+        }
+        document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true }))
+        document.body.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }))
+      }),
+    [],
+  )
   // Dernier onglet natif : ⚡ de la barre de gauche y ramène.
   const lastNative = useRef<TabId>('links')
-  if (!tab.startsWith('x:') && tab !== 'events') lastNative.current = tab
+  // (Réglages n'en est pas un : il a son ⚙ dans la barre, et ⚡ doit en faire sortir.)
+  if (!tab.startsWith('x:') && tab !== 'events' && tab !== 'settings') lastNative.current = tab
   const [railMode, setRailMode] = useState<RailMode>(() => {
     try {
       const v = localStorage.getItem(RAIL_KEY)
@@ -385,6 +400,20 @@ export default function App() {
     search.setQuery('')
     selectTab(`x:${id}`)
   }
+  /** ⧉ de la barre : un onglet éphémère vierge (Google), avec le compte choisi s'il y en a. */
+  const newTemp = (e: React.MouseEvent) => {
+    const start = 'https://www.google.com/'
+    if (!hasSessions || !tabSessions.length) return openTemp(start)
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'Onglet éphémère',
+      items: [
+        { label: 'Connexion commune', onSelect: () => openTemp(start) },
+        ...tabSessions.map((s) => ({ label: `Compte ${s.name}`, onSelect: () => openTemp(start, s.id) })),
+      ],
+    })
+  }
   const closeTemp = (t: CustomTab) => {
     setTemps((ts) => ts.filter((x) => x.id !== t.id))
     if (tab === tabKey(t)) selectTab(lastNative.current)
@@ -579,6 +608,7 @@ export default function App() {
           temps={temps}
           onTempMenu={tempMenu}
           onTempClose={closeTemp}
+          onNewTemp={newTemp}
           folders={tabFolders}
           sessions={tabSessions}
           active={shown.startsWith('x:') || shown === 'settings' ? shown : null}
@@ -632,13 +662,23 @@ export default function App() {
         .map((t) => (
           <CustomTabView
             // une webview ne change pas de session : autre compte = nouvelle webview
-            key={`${t.id}:${t.url}:${sessionOf(t, tabSessions)?.id ?? ''}`}
+            // (éphémère : son adresse suit la navigation, sans recréer la webview)
+            key={`${t.id}:${t.id.startsWith('tmp-') ? '' : t.url}:${sessionOf(t, tabSessions)?.id ?? ''}`}
             // compte supprimé = connexion commune
             tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
             session={sessionOf(t, tabSessions)}
             hidden={view !== tabKey(t)}
             onSettings={openTabSettings}
             onGuest={(id) => guestTab.current.set(id, t.id)}
+            icon={iconOf[t.id]}
+            onNavigate={
+              t.id.startsWith('tmp-')
+                ? (url) =>
+                    setTemps((ts) =>
+                      ts.map((x) => (x.id === t.id ? { ...x, url, label: hostOf(url).replace(/^www\./, '') || x.label } : x)),
+                    )
+                : undefined
+            }
             onCount={(n) => setCount(tabKey(t), n)}
           />
         ))}

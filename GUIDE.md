@@ -176,8 +176,11 @@ Ce qu'elle apporte :
   éphémère** (avec le compte de ton choix), dans le navigateur, ou copier le lien ; sur du texte,
   copier ou le rechercher ; dans un champ, couper / copier / coller ; sur une image, la copier ; sinon,
   précédent / suivant / recharger.
-- **Onglets éphémères** : en bas de la barre de gauche, contour pointillé. ✕ au survol pour fermer,
-  clic droit → *Garder dans mes onglets*. Ils disparaissent au redémarrage de l'appli.
+- **Onglets éphémères** : en bas de la barre de gauche, contour pointillé. Ouverts depuis un lien (clic
+  droit), ou vierges avec **⧉** en bas de la barre (le compte est demandé s'il y en a) : leur en-tête a
+  une **barre d'adresse** (une adresse ou une recherche, puis Entrée). ✕ au survol de l'icône pour
+  fermer, clic droit → *Garder dans mes onglets*. Ils disparaissent au redémarrage de l'appli.
+- Un menu (clic droit, cloche…) se ferme par un clic n'importe où, site compris, ou Échap.
 - Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
 
 **Installer**, au choix :
