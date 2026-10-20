@@ -421,14 +421,6 @@ export default function App() {
   const guestMenu = (m: GuestMenu): boolean => {
     const act = desktop?.guestAction
     if (!act) return false
-    const el = [...document.querySelectorAll('webview')].find((w) => {
-      try {
-        return (w as unknown as { getWebContentsId: () => number }).getWebContentsId() === m.id
-      } catch {
-        return false
-      }
-    })
-    const r = el?.getBoundingClientRect()
     const items: MenuItem[] = []
     const sep = () => items.length && items.push({ sep: true })
     if (m.link) {
@@ -470,9 +462,10 @@ export default function App() {
       items.push({ label: 'Recharger', hint: '⇧⌘R', onSelect: () => act(m.id, 'reload') })
     }
     const from = fromGuest(m.id)
+    // x / y d'Electron : déjà dans la fenêtre (pas dans la webview).
     menus.openMenu({
-      x: (r?.left ?? 0) + m.x,
-      y: (r?.top ?? 0) + m.y,
+      x: m.x,
+      y: m.y,
       title: m.link ? hostOf(m.link) : from?.label,
       items,
     })

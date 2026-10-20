@@ -95,7 +95,8 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   Docker) et `release.sh` (les deux .dmg + la release).
 - La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
   dans l'appli, iframe sinon.
-- `will-attach-webview` : sans preload ni Node ; session `persist:homedash-tabs` ou
+- `will-attach-webview` : sans Node, seul preload `guest-preload.js` (monde isolé, boutons précédent /
+  suivant de la souris, rien d'exposé au site) ; session `persist:homedash-tabs` ou
   `persist:homedash-tabs-<compte>` (`partitionOf()`), toute autre est remplacée ; le pont IPC n'écoute
   que la page homedash. Nouvelle capacité de la coquille = un mot dans `features` (preload.js) : la page
   doit savoir qu'une appli ancienne ne l'a pas. UA sans « Electron » : sinon Google refuse sa page de connexion.

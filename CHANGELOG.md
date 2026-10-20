@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.14.1 — 2026-10-20
+
+- Appli de bureau : le clic droit dans un site ouvre son menu sous la souris (il apparaissait décalé),
+  un lien reçu dans Google Chat ou Gmail s'ouvre dans l'onglet de son site (X, YouTube…) au lieu de
+  l'onglet Chat, et les boutons précédent / suivant de la souris marchent dans les sites. Il faut
+  l'appli de bureau 1.1.0.
+
 ## 1.14.0 — 2026-10-20
 
 - **Barre de gauche**, façon Discord : ⚡ pour homedash et ses onglets, puis une icône par onglet perso
