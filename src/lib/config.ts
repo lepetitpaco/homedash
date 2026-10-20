@@ -30,8 +30,9 @@ export const DEFAULT_UI: UiConfig = {
   showClock: true,
   showTiles: true,
   showFooter: true,
-  searchPlaceholder: 'Rechercher…   /  ou  ⌘K',
+  searchPlaceholder: 'Rechercher, ou taper une adresse…   /  ou  ⌘K',
   tabSleepMinutes: 5,
+  openLinks: 'app',
   perfLog: false,
 }
 
@@ -259,6 +260,7 @@ export function normalizeConfig(raw: Config): Normalized {
     ...(raw.ui ?? {}),
   }
   if (ui.theme !== 'light' && ui.theme !== 'dark') ui.theme = DEFAULT_UI.theme
+  if (ui.openLinks !== 'browser') ui.openLinks = DEFAULT_UI.openLinks
   // Tailles de mise en page : 0, vide ou absurde = défaut ; sinon bornées. Une
   // colonne de titres ou un lien à 0 px cassait toute la grille.
   {

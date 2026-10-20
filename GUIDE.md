@@ -95,8 +95,11 @@ Le jeton se renouvelle ensuite tout seul.
 ajoutés d'un clic. Le **＋** en bas de la barre de gauche (ou **＋ Ajouter un onglet**) ajoute
 un onglet vers **un site** (`https://…`) ou **un fichier / dossier de ton disque**
 (`~/Documents/procédure.pdf`, ou **📁 Parcourir**). Dans Réglages, un onglet par ligne : un clic l'ouvre
-pour le modifier. Adresse, nom (proposé d'après l'adresse), icône (un emoji ; vide = celle du site),
-dossier, compte, et ce que fait un clic (par défaut, dans homedash) :
+pour le modifier. Adresse, nom (proposé d'après l'adresse), icône (un emoji, ou le lien d'une image
+`https://…/logo.png`, remise à l'échelle des autres ; vide = celle du site), dossier, compte, et ce que
+fait un clic (par défaut, dans homedash). Les réglages de chaque onglet s'affichent aussi en pastilles
+sur sa ligne (▣ homedash / ↗ navigateur, 💤 veille, ⚡ chargement au démarrage, 🔗 liens) : un clic
+sur une pastille la bascule, sans ouvrir l'onglet.
 
 - **dans homedash** : le site ou le fichier s'affiche sous la barre d'onglets. Revenir sur l'onglet ne
   le recharge pas (↻ pour ça). Dans un navigateur, ça marche pour les fichiers (PDF, images, texte, HTML,
@@ -190,6 +193,10 @@ Ce qu'elle apporte :
   éphémère** (avec le compte de ton choix), dans le navigateur, ou copier le lien ; sur du texte,
   copier ou le rechercher ; dans un champ, couper / copier / coller ; sur une image, la copier ; sinon,
   précédent / suivant / recharger.
+- **Précédent / suivant** : boutons latéraux de la souris (MX Master compris, via le geste de
+  balayage de Logi Options+), ⌘[ / ⌘], ou ⌘← / ⌘→ hors d'un champ de saisie. Dans un site, recule
+  dans ses pages ; arrivé à la première, ou ailleurs dans homedash, revient à l'onglet d'avant. Dans un
+  navigateur, les boutons de la souris font de même (le clavier garde ceux du navigateur).
 - **Onglets éphémères** : en bas de la barre de gauche, contour pointillé. Ouverts depuis un lien (clic
   droit), ou vierges avec **⧉** en bas de la barre (le compte est demandé s'il y en a) : leur en-tête a
   une **barre d'adresse** (une adresse ou une recherche, puis Entrée). ✕ au survol de l'icône pour
@@ -204,8 +211,8 @@ Ce qu'elle apporte :
 - **Son** : 🔊 sur l'onglet (ou dans le coin de son icône) qui joue du son ; un clic dessus le coupe
   (🔇), ou clic droit → *Couper le son*.
 - **Mise en veille** (au choix, par onglet, éphémère compris : clic droit → *Mettre en veille si
-  inutilisé*, ou Réglages → Onglets perso) : laissé de côté plus de 5 min (délai réglable dans la même
-  page), l'onglet est déchargé — mémoire libérée, icône grisée avec 💤 — et rechargé au clic. Pas par
+  inutilisé*, ou sa pastille 💤 dans Réglages → Onglets perso) : laissé de côté plus de
+  5 min (délai réglable dans la même page : 5 min, 15 min, 30 min, 1 h ou au choix), l'onglet est déchargé — mémoire libérée, icône grisée avec 💤 — et rechargé au clic. Pas par
   défaut : en veille, il ne reçoit ni notifications ni non-lus.
 - Un menu (clic droit, cloche…) se ferme par un clic n'importe où, site compris, ou Échap.
 - Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
@@ -259,11 +266,30 @@ Le menu de gauche range les parties par thème :
 Un seul jeton voit ton compte **et** tes organisations : un second compte ne sert que pour un autre
 compte GitHub.
 
+
+## Recherche
+
+La recherche (`/` ou `⌘K`) sert aussi de barre d'adresse :
+
+- **une adresse** (`exemple.com`, `localhost:3000`, `https://…`) : Entrée l'ouvre ;
+- **un raccourci** en premier mot : `g` Google, `gh` GitHub, `yt` YouTube, `w` Wikipédia, `maps`,
+  `tr` (traduction), `mdn` — `gh homedash` cherche sur GitHub ;
+- sinon, en dernière ligne, **Rechercher sur Google** ;
+- **tes onglets** (« gmail » → y aller), et **des actions** : Réglages, GitHub, Activité, thème clair /
+  sombre, nouvel onglet éphémère… ;
+- **les pages déjà vues** dans tes onglets (appli de bureau), par titre ou adresse, comme l'historique
+  d'un navigateur. Gardé dans ce navigateur seulement ; action *Effacer l'historique des pages*.
+
+Dans l'appli de bureau, ces adresses, comme tous les liens de homedash (raccourcis, GitHub, Basecamp…),
+s'ouvrent **dans homedash** : l'onglet du site s'il y en a un, sinon un onglet éphémère. ⌘-clic pour le
+navigateur ; tout envoyer au navigateur : Réglages → Onglets perso, *Liens de homedash*. **Clic droit**
+sur n'importe quel lien (raccourcis, GitHub, Basecamp…) : *Ouvrir* dans l'onglet du site, dans un onglet
+éphémère (une pastille par compte) ou dans le navigateur, ou copier le lien.
 ## Raccourcis clavier
 
 | Touche | Action |
 | --- | --- |
-| `/` ou `⌘K` | Rechercher : liens, repos, PRs, branches, dépôts locaux, infos, notes. La carte de la sélection s'affiche à droite |
+| `/` ou `⌘K` | Rechercher : liens, onglets, actions, repos, PRs, branches, dépôts locaux, infos, notes, pages visitées. La carte de la sélection s'affiche à droite. Aussi une barre d'adresse (voir *Recherche*) |
 | `↑` `↓` `↵` | Parcourir, ouvrir / copier |
 | `Échap` | Effacer, fermer |
 | `⌘S` | Enregistrer les réglages |

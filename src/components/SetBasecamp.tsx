@@ -227,7 +227,7 @@ export default function SetBasecamp() {
             <ol>
               <li>
                 Ouvre{' '}
-                <a href={LAUNCHPAD} target="_blank" rel="noreferrer">
+                <a href={LAUNCHPAD} target="_blank" rel="noreferrer" data-outside>
                   launchpad.37signals.com/integrations
                 </a>
                 , connecté avec ton compte Basecamp habituel → <em>Register another application</em>.

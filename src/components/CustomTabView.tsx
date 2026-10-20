@@ -32,6 +32,7 @@ export default function CustomTabView({
   onGuest,
   icon,
   onNavigate,
+  onVisit,
   onLoaded,
   muted = false,
 }: {
@@ -47,6 +48,8 @@ export default function CustomTabView({
    * atteinte remontée (son nom suit le site visité).
    */
   onNavigate?: (url: string) => void
+  /** Page vue ou son titre (`title` absent = nouvelle page) : historique de la recherche. */
+  onVisit?: (url: string, title?: string) => void
   /** Id de la webview (appli de bureau) : App sait ainsi de quel onglet vient un lien ou un clic droit. */
   onGuest?: (id: number) => void
   /** Compte de connexion de l'onglet, rappelé dans l'en-tête. */
@@ -75,6 +78,8 @@ export default function CustomTabView({
   guestRef.current = onGuest
   const navRef = useRef(onNavigate)
   navRef.current = onNavigate
+  const visitRef = useRef(onVisit)
+  visitRef.current = onVisit
   const loadedRef = useRef(onLoaded)
   loadedRef.current = onLoaded
   const loadStart = useRef(0)
@@ -94,7 +99,15 @@ export default function CustomTabView({
   useEffect(() => {
     const el = view.current
     if (!desktop || !el) return
-    const onTitle = (e: Event) => countRef.current?.(countInTitle((e as Event & { title: string }).title))
+    const onTitle = (e: Event) => {
+      const title = (e as Event & { title: string }).title
+      countRef.current?.(countInTitle(title))
+      try {
+        visitRef.current?.(el.getURL(), title)
+      } catch {
+        /* pas encore attachée */
+      }
+    }
     const onFail = (e: Event) => {
       const { errorCode, errorDescription, isMainFrame } = e as Event & {
         errorCode: number
@@ -118,6 +131,7 @@ export default function CustomTabView({
       if (!/^https?:/.test(url)) return
       setAddress(url)
       navRef.current?.(url)
+      visitRef.current?.(url)
     }
     const onStart = () => {
       setLoading(true)
@@ -249,7 +263,7 @@ export default function CustomTabView({
             ↗ ouvrir à part
           </button>
         ) : (
-          <a className="xtab-btn" href={src} target="_blank" rel="noreferrer" title="Ouvrir dans un onglet du navigateur">
+          <a className="xtab-btn" href={src} target="_blank" rel="noreferrer" data-outside title="Ouvrir dans un onglet du navigateur">
             ↗ ouvrir à part
           </a>
         )}

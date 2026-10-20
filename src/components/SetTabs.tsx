@@ -16,7 +16,7 @@ import { desktop, hasSessions } from '../lib/desktop'
 import { NEW_TAB_EVENT, NEW_TAB_KEY } from '../lib/settingsNav'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 import { confirmDialog } from './ConfirmHost'
-import SiteIcon from './SiteIcon'
+import SiteIcon, { isImageIcon } from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
 import { CATALOG, type CatalogSite } from '../lib/catalog'
@@ -30,7 +30,13 @@ type Props = {
   /** Délai de mise en veille (Réglages → `ui.tabSleepMinutes`). */
   sleepMinutes: number
   onSleepMinutes: (n: number) => void
+  /** Liens de homedash dans l'appli (Réglages → `ui.openLinks`). */
+  openLinks: 'app' | 'browser'
+  onOpenLinks: (v: 'app' | 'browser') => void
 }
+
+/** Délais proposés en un clic à côté du champ de mise en veille. */
+const SLEEP_PRESETS = [5, 15, 30, 60]
 
 /** Nom proposé d'après l'adresse : `mail.google.com` → `mail.google.com`, `~/doc/a.pdf` → `a`. */
 const nameFrom = (url: string) =>
@@ -42,7 +48,16 @@ const nameFrom = (url: string) =>
  * les dossiers et comptes en étiquettes. L'ordre se règle en glissant les
  * icônes dans la barre de gauche. Écrit dans config.json avec « Enregistrer ».
  */
-export default function SetTabs({ tabs, folders, sessions, onChange, sleepMinutes, onSleepMinutes }: Props) {
+export default function SetTabs({
+  tabs,
+  folders,
+  sessions,
+  onChange,
+  sleepMinutes,
+  onSleepMinutes,
+  openLinks,
+  onOpenLinks,
+}: Props) {
   const [open, setOpen] = useState<string | null>(null)
   // Explorateur de fichiers de l'éditeur ouvert.
   const [view, setView] = useState<Browse | null>(null)
@@ -162,8 +177,18 @@ export default function SetTabs({ tabs, folders, sessions, onChange, sleepMinute
     setBrowsing(false)
   }
 
+  const isWeb = (t: CustomTab) => !!t.url && !isLocal(t.url)
+  /** Pastille d'un réglage sur la ligne : allumée ou non, un clic bascule. */
+  const opt = (on: boolean, label: string, title: string, toggle: () => void) => (
+    <button type="button" className={`xs-opt${on ? ' is-on' : ''}`} aria-pressed={on} title={title} onClick={toggle}>
+      {label}
+    </button>
+  )
+
   const iconOf = (t: CustomTab) =>
-    t.icon ? (
+    isImageIcon(t.icon) ? (
+      <SiteIcon url={t.url} name={t.label} image={t.icon} />
+    ) : t.icon ? (
       <span className="xs-emoji">{t.icon}</span>
     ) : isLocal(t.url) ? (
       <span className="xs-emoji">📄</span>
@@ -239,15 +264,17 @@ export default function SetTabs({ tabs, folders, sessions, onChange, sleepMinute
         </label>
         <label className="xs-field xs-narrow">
           <span>Icône</span>
+          <span className="xs-inline">
+          <span className="xs-icon">{iconOf(t)}</span>
           <input
             value={t.icon ?? ''}
-            placeholder="auto"
-            maxLength={4}
-            title="Un emoji, ou vide pour l'icône du site"
+            placeholder="emoji, lien .png ou vide"
+            title="Un emoji, le lien d'une image (https://…/logo.png), ou vide pour l'icône du site"
             onChange={(e) => patch(t.id, { icon: e.target.value })}
             autoComplete="off"
             data-1p-ignore
           />
+          </span>
         </label>
 
         <div className="xs-field xs-wide">
@@ -508,10 +535,54 @@ export default function SetTabs({ tabs, folders, sessions, onChange, sleepMinute
                       ● {s.name}
                     </span>
                   ) : null}
-                  {!t.embed ? <span className="xs-tag xs-tag-plain">↗ navigateur</span> : null}
-                  <span className="xs-chevron" aria-hidden="true">
-                    {isOpen ? '▴' : '▾'}
-                  </span>
+                </button>
+                {/* Hors du bouton de la ligne (pas de bouton dans un bouton) : chaque réglage
+                    se lit et se bascule d'un clic, sans ouvrir l'éditeur. */}
+                <span className="xs-opts">
+                  {opt(
+                    !!t.embed,
+                    t.embed ? '▣ homedash' : '↗ navigateur',
+                    t.embed ? 'Affiché dans homedash : clic pour l’ouvrir dans le navigateur' : 'Ouvert dans le navigateur : clic pour l’afficher dans homedash',
+                    () => patch(t.id, { embed: !t.embed }),
+                  )}
+                  {t.embed
+                    ? opt(
+                        !!t.sleep,
+                        `💤 ${t.sleep ? `${sleepMinutes} min` : 'jamais'}`,
+                        t.sleep ? 'En veille après ' + sleepMinutes + ' min sans y aller : clic pour ne plus la mettre' : 'Jamais en veille : clic pour la mettre après ' + sleepMinutes + ' min sans y aller',
+                        () => patch(t.id, { sleep: t.sleep ? undefined : true }),
+                      )
+                    : null}
+                  {isWeb(t) && t.embed && desktop
+                    ? opt(
+                        preloads(t),
+                        preloads(t) ? '⚡ au démarrage' : '⚡ au 1er clic',
+                        preloads(t) ? 'Chargé au démarrage de l’appli : clic pour attendre le premier clic' : 'Chargé au premier clic : clic pour le charger au démarrage',
+                        () => patch(t.id, { preload: !preloads(t) }),
+                      )
+                    : null}
+                  {isWeb(t) && t.embed
+                    ? opt(
+                        t.capture !== false,
+                        t.capture !== false ? '🔗 liens ici' : '🔗 liens dehors',
+                        t.capture !== false
+                          ? `Les liens vers ${domainsOf(t).join(', ')} s’ouvrent ici : clic pour les envoyer au navigateur`
+                          : 'Les liens vers ce site s’ouvrent dans le navigateur : clic pour les ouvrir ici',
+                        () => patch(t.id, { capture: t.capture !== false ? false : undefined }),
+                      )
+                    : null}
+                </span>
+                <button
+                  type="button"
+                  className="xs-chevron"
+                  onClick={() => {
+                    setOpen(isOpen ? null : t.id)
+                    setBrowsing(false)
+                  }}
+                  aria-label={isOpen ? 'Fermer' : 'Modifier'}
+                  tabIndex={-1}
+                >
+                  {isOpen ? '▴' : '▾'}
                 </button>
                 {isOpen ? editor(t) : null}
               </li>
@@ -559,7 +630,52 @@ export default function SetTabs({ tabs, folders, sessions, onChange, sleepMinute
           onChange={(e) => onSleepMinutes(Math.min(1440, Math.max(1, Number.parseInt(e.target.value, 10) || 5)))}
         />
         <span>min sans y aller.</span>
+        <span className="xs-seg">
+          {SLEEP_PRESETS.map((n) => (
+            <button
+              key={n}
+              type="button"
+              className={sleepMinutes === n ? 'is-on' : ''}
+              onClick={() => onSleepMinutes(n)}
+            >
+              {n < 60 ? `${n} min` : `${n / 60} h`}
+            </button>
+          ))}
+        </span>
+        <em className="xs-note">
+          {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — 💤 sur chaque ligne pour basculer.
+        </em>
       </label>
+
+      {desktop ? (
+        <div className="xs-sleep">
+          <span>🔗 Liens de homedash (raccourcis, GitHub, recherche…)</span>
+          <span className="xs-seg" role="radiogroup">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={openLinks === 'app'}
+              className={openLinks === 'app' ? 'is-on' : ''}
+              onClick={() => onOpenLinks('app')}
+            >
+              Dans homedash
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={openLinks === 'browser'}
+              className={openLinks === 'browser' ? 'is-on' : ''}
+              onClick={() => onOpenLinks('browser')}
+            >
+              Dans le navigateur
+            </button>
+          </span>
+          <em className="xs-note">
+            Dans homedash : l'onglet du site s'il y en a un, sinon un onglet éphémère. ⌘-clic : toujours le
+            navigateur.
+          </em>
+        </div>
+      ) : null}
 
       <div className="xs-groups">
         <section className="xs-group">

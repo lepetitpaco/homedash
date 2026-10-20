@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
-import type { Hit } from '../components/SearchResults'
+import type { Command, Hit } from '../components/SearchResults'
 import type { Normalized } from '../lib/config'
 import type { GithubData } from '../lib/ghboard'
 import type { LocalData } from '../lib/local'
 import type { Note } from '../lib/notes'
 import { rank } from '../lib/search'
-import type { FlatLink } from '../types'
+import { asUrl, ENGINES, visits } from '../lib/visits'
+import type { CustomTab, FlatLink } from '../types'
 
 type Options = {
   cfg: Normalized | null
@@ -21,6 +22,13 @@ type Options = {
   copy: (key: string, value: string) => Promise<void>
   openNote: (id: string) => void
   openLocal: () => void
+  /** Ouvre une adresse : dans homedash ou le navigateur (Réglages → `ui.openLinks`). */
+  open: (url: string) => void
+  /** Onglets perso (éphémères compris), avec leur icône : on peut y aller d'ici. */
+  tabs: { tab: CustomTab; icon: () => React.ReactNode }[]
+  onTab: (t: CustomTab) => void
+  /** Actions de homedash (aller sur un onglet, réglages, thème…). */
+  commands: Command[]
 }
 
 /** Recherche unifiée (liens, repos, PRs, branches, dépôts locaux, infos, notes) et ses raccourcis clavier. */
@@ -36,6 +44,10 @@ export function useSearch({
   copy,
   openNote,
   openLocal,
+  open,
+  tabs,
+  onTab,
+  commands,
 }: Options) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
@@ -141,8 +153,70 @@ export function useSearch({
       note,
     }))
 
-    return [...linkHits, ...repoHits, ...localHits, ...prHits, ...branchHits, ...infoHits, ...noteHits]
-  }, [query, links, repoItems, local, gh, infoItems, notes])
+    // Comme une barre d'adresse : une adresse s'ouvre, un raccourci (`gh …`)
+    // cherche sur son site, et le reste peut toujours partir sur Google.
+    const url = asUrl(q)
+    const goHits: Hit[] = url ? [{ kind: 'go', key: `go:${url}`, url }] : []
+    const [first, ...rest] = q.split(/\s+/)
+    const engine = rest.length ? ENGINES.find((e) => e.key === first.toLowerCase()) : undefined
+    const web = (e: (typeof ENGINES)[number], text: string): Hit => ({
+      kind: 'web',
+      key: `web:${e.key}:${text}`,
+      url: e.url + encodeURIComponent(text),
+      q: text,
+      engine: e.name,
+      icon: e.icon,
+    })
+    const bangHits: Hit[] = engine ? [web(engine, rest.join(' '))] : []
+    const googleHits: Hit[] = engine || url ? [] : [web(ENGINES[0], q)]
+
+    const tabHits: Hit[] = rank(
+      tabs,
+      ({ tab }) => [
+        [tab.label, 1],
+        [tab.url, 0.4],
+      ],
+      q,
+      6,
+    ).map(({ tab, icon }) => ({ kind: 'tab', key: `tab:${tab.id}`, tab, icon }))
+
+    const cmdHits: Hit[] = rank(
+      commands,
+      (c) => [
+        [c.label, 1],
+        [c.keywords, 0.6],
+      ],
+      q,
+      5,
+    ).map((cmd) => ({ kind: 'cmd', key: `cmd:${cmd.id}`, cmd }))
+
+    // Historique : les pages déjà vues dans les onglets (titre, adresse).
+    const pageHits: Hit[] = rank(
+      visits(),
+      (v) => [
+        [v.title, 1],
+        [v.url.replace(/^https?:\/\/(www\.)?/, ''), 0.6],
+      ],
+      q,
+      8,
+    ).map((visit) => ({ kind: 'page', key: `page:${visit.url}`, visit }))
+
+    return [
+      ...goHits,
+      ...bangHits,
+      ...tabHits,
+      ...linkHits,
+      ...cmdHits,
+      ...repoHits,
+      ...localHits,
+      ...prHits,
+      ...branchHits,
+      ...infoHits,
+      ...noteHits,
+      ...pageHits,
+      ...googleHits,
+    ]
+  }, [query, links, repoItems, local, gh, infoItems, notes, tabs, commands])
 
   useEffect(() => setActiveIndex(0), [query])
 
@@ -166,11 +240,26 @@ export function useSearch({
         void copy(hit.key, hit.item.value)
         return
       }
+      if (hit.kind === 'go' || hit.kind === 'web' || hit.kind === 'page') {
+        setQuery('')
+        open(hit.kind === 'page' ? hit.visit.url : hit.url)
+        return
+      }
+      if (hit.kind === 'tab') {
+        setQuery('')
+        onTab(hit.tab)
+        return
+      }
+      if (hit.kind === 'cmd') {
+        setQuery('')
+        hit.cmd.run()
+        return
+      }
       // une note se consulte : on l'ouvre dans l'éditeur et on quitte la recherche
       openNote(hit.note.id)
       setQuery('')
     },
-    [copy, track, openNote, openLocal],
+    [copy, track, openNote, openLocal, open, onTab],
   )
 
   // --- clavier -------------------------------------------------------------
@@ -204,13 +293,13 @@ export function useSearch({
         if (!hit) return
         e.preventDefault()
         if (hit.kind === 'link') {
-          window.open(hit.link.url, '_blank', 'noopener')
+          open(hit.link.url)
           track(hit.link.id)
         } else if (hit.kind === 'repo') {
-          window.open(`https://github.com/${hit.owner}/${hit.repo.name}`, '_blank', 'noopener')
+          open(`https://github.com/${hit.owner}/${hit.repo.name}`)
           track(hit.key)
         } else if (hit.kind === 'pr' || hit.kind === 'branch') {
-          window.open(hit.kind === 'pr' ? hit.pr.url : hit.branch.url, '_blank', 'noopener')
+          open(hit.kind === 'pr' ? hit.pr.url : hit.branch.url)
         } else {
           activate(hit)
         }
@@ -218,7 +307,7 @@ export function useSearch({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [hits, activeIndex, activate, track, paused, searchRef])
+  }, [hits, activeIndex, activate, track, paused, searchRef, open])
 
   return { query, setQuery, hits, activeIndex, setActiveIndex, activate }
 }

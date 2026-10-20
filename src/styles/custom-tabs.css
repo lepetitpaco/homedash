@@ -194,7 +194,7 @@
   text-align: left;
   cursor: pointer;
 }
-.xs-row:hover {
+.xs-item:not(.is-open):hover {
   background: var(--panel-2);
 }
 .xs-icon {
@@ -241,9 +241,54 @@
   background: none;
   color: var(--text-faint);
 }
+.xs-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.xs-item > .xs-row {
+  flex: 1 1 0;
+  min-width: 0;
+}
+.xs-item > .xs-editor {
+  flex: 1 0 100%;
+}
 .xs-chevron {
+  align-self: stretch;
+  padding: 0 0.8rem 0 0.4rem;
+  background: none;
+  border: 0;
   color: var(--text-faint);
   font-size: 0.7rem;
+  cursor: pointer;
+}
+/* Réglages de l'onglet sur sa ligne : lus d'un coup d'œil, basculés d'un clic. */
+.xs-opts {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+.xs-opt {
+  flex: 0 0 auto;
+  padding: 0.1rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.xs-opt:hover {
+  border-color: #60a5fa;
+  color: var(--text);
+}
+.xs-opt.is-on {
+  border-color: color-mix(in srgb, #3b82f6 55%, transparent);
+  background: color-mix(in srgb, #3b82f6 16%, transparent);
+  color: var(--text);
 }
 .xs-empty {
   margin: 0;
@@ -258,7 +303,7 @@
 /* Éditeur d'un onglet : champs nommés sur deux colonnes. */
 .xs-editor {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 7rem;
+  grid-template-columns: minmax(0, 1fr) 16rem;
   gap: 0.8rem 1rem;
   padding: 0.4rem 0.9rem 0.9rem 3.3rem;
 }
@@ -291,7 +336,8 @@
   border-color: #60a5fa;
 }
 .xs-narrow input {
-  text-align: center;
+  flex: 1;
+  min-width: 0;
 }
 .xs-inline {
   display: flex;
@@ -702,6 +748,7 @@
 }
 .xs-sleep {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.5rem;
   font-size: 0.8rem;

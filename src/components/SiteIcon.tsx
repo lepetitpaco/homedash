@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { hostOf } from '../lib/customTabs'
 
-/** Icônes déjà recadrées, par hôte : une seule fois par page. */
+/** Icônes déjà recadrées, par hôte ou adresse d'image : une seule fois par page. */
 const done = new Map<string, string | null>()
 const pending = new Map<string, Promise<string | null>>()
 
@@ -15,13 +15,15 @@ const PAD = 4
  * images de 16 à 64 px dont le dessin occupe plus ou moins de place ; sans ça,
  * côte à côte, elles paraissent décalées.
  */
-function trimmed(host: string): Promise<string | null> {
-  const known = done.get(host)
+function trimmed(key: string, url: string, external = false): Promise<string | null> {
+  const known = done.get(key)
   if (known !== undefined) return Promise.resolve(known)
-  const running = pending.get(host)
+  const running = pending.get(key)
   if (running) return running
   const p = new Promise<string | null>((resolve) => {
     const img = new Image()
+    // Image d'un autre site : lisible par le canvas seulement s'il l'autorise (CORS).
+    if (external) img.crossOrigin = 'anonymous'
     img.onload = () => {
       try {
         const w = img.naturalWidth || SIZE
@@ -58,32 +60,56 @@ function trimmed(host: string): Promise<string | null> {
       }
     }
     img.onerror = () => resolve(null)
-    img.src = `api/favicon?host=${encodeURIComponent(host)}`
+    img.src = url
   }).then((r) => {
-    done.set(host, r)
-    pending.delete(host)
+    done.set(key, r)
+    pending.delete(key)
     return r
   })
-  pending.set(host, p)
+  pending.set(key, p)
   return p
 }
 
-/** Icône d'un onglet perso ; monogramme si le site n'en a pas. */
-export default function SiteIcon({ url, name, enabled = true }: { url: string; name: string; enabled?: boolean }) {
+/** Icône choisie par lien (`https://…/logo.png`) plutôt qu'un emoji. */
+export const isImageIcon = (icon?: string) => !!icon && /^https?:\/\/\S+$/i.test(icon.trim())
+
+/**
+ * Icône d'un onglet perso ; monogramme si le site n'en a pas. `image` : lien
+ * vers une image choisie, chargée par le navigateur (jamais par le serveur) ;
+ * recadrée si son site l'autorise, sinon affichée telle quelle, contenue dans le carré.
+ */
+export default function SiteIcon({
+  url,
+  name,
+  enabled = true,
+  image,
+}: {
+  url: string
+  name: string
+  enabled?: boolean
+  image?: string
+}) {
+  const own = image?.trim() ?? ''
   // Favicons coupées dans Réglages → Affichage : le monogramme, sans appel réseau.
-  const host = enabled ? hostOf(url) : ''
-  const [src, setSrc] = useState<string | null | undefined>(() => (host ? done.get(host) : null))
+  const host = own ? '' : enabled ? hostOf(url) : ''
+  const key = own || host
+  const [src, setSrc] = useState<string | null | undefined>(() => (key ? done.get(key) : null))
+  // Image choisie que le canvas ne peut pas lire (CORS) ou introuvable.
+  const [raw, setRaw] = useState(false)
 
   useEffect(() => {
-    if (!host) return setSrc(null)
+    setRaw(false)
+    if (!key) return setSrc(null)
     let alive = true
-    void trimmed(host).then((r) => alive && setSrc(r))
+    void trimmed(key, own || `api/favicon?host=${encodeURIComponent(host)}`, !!own).then((r) => alive && setSrc(r))
     return () => {
       alive = false
     }
-  }, [host])
+  }, [key, own, host])
 
   if (src) return <img className="favicon site-icon" src={src} alt="" />
+  if (own && src === null && !raw)
+    return <img className="favicon site-icon" src={own} alt="" referrerPolicy="no-referrer" onError={() => setRaw(true)} />
   // En chargement : la place est gardée, rien ne saute à l'arrivée.
   if (src === undefined) return <span className="favicon site-icon" />
   return (

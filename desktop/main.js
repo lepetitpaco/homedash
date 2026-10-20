@@ -168,6 +168,12 @@ function createWindow() {
       if (win && !win.isDestroyed() && !win.isMinimized() && !win.isFullScreen()) writeSettings({ bounds: win.getBounds() })
     }, 600)
   }
+  // Précédent / suivant venus du système : balayage (macOS ; c'est ce qu'envoient
+  // Logi Options+ et les souris à gestes) et touches multimédia (Windows).
+  win.on('swipe', (_e, d) => (d === 'left' ? pageNav('back') : d === 'right' ? pageNav('forward') : undefined))
+  win.on('app-command', (_e, cmd) =>
+    cmd === 'browser-backward' ? pageNav('back') : cmd === 'browser-forward' ? pageNav('forward') : undefined,
+  )
   win.on('resize', remember)
   win.on('move', remember)
 
@@ -344,12 +350,26 @@ ipcMain.on('homedash:badge', (e, n) => {
   else app.setBadgeCount(count)
 })
 
-// Boutons précédent / suivant de la souris dans un site (guest-preload.js).
+/**
+ * Précédent / suivant pour la page : le site ouvert s'il a de l'historique,
+ * sinon l'onglet d'avant (`window.__homedashNav`, absent d'une page ancienne).
+ */
+function pageNav(dir, tabsOnly = false) {
+  if (dir !== 'back' && dir !== 'forward') return
+  void win?.webContents
+    .executeJavaScript(`window.__homedashNav ? window.__homedashNav(${JSON.stringify(dir)}, ${tabsOnly}) : false`, true)
+    .catch(() => undefined)
+}
+
+// Précédent / suivant dans un site (guest-preload.js : souris, ⌘[ ⌘]) : son
+// historique d'abord, puis celui des onglets.
 ipcMain.on('homedash:guest-nav', (e, dir) => {
   const g = e.sender
   if (!guests.has(g.id)) return
-  if (dir === 'back' && g.navigationHistory.canGoBack()) g.navigationHistory.goBack()
-  if (dir === 'forward' && g.navigationHistory.canGoForward()) g.navigationHistory.goForward()
+  const h = g.navigationHistory
+  if (dir === 'back' && h.canGoBack()) h.goBack()
+  else if (dir === 'forward' && h.canGoForward()) h.goForward()
+  else pageNav(dir, true)
 })
 
 // Clic ou Échap dans un site : la page ferme ses menus ouverts (elle ne les voit pas).

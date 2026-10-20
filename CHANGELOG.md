@@ -4,6 +4,27 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.17.0 — 2026-10-20
+
+- **Icône d'onglet par lien** : dans Réglages → Onglets perso, le champ *Icône* accepte le lien d'une
+  image (`https://…/logo.png`), remise à l'échelle des autres icônes, en plus d'un emoji. Aperçu à côté
+  du champ.
+- Chaque onglet montre ses réglages en **pastilles sur sa ligne** : ▣ homedash / ↗ navigateur,
+  💤 veille (*5 min* ou *jamais*), ⚡ chargement au démarrage, 🔗 liens captés. Un clic bascule, sans
+  ouvrir l'onglet.
+- **Liens dans homedash** (appli de bureau) : les liens des raccourcis, de GitHub, de Basecamp et de
+  la recherche s'ouvrent dans l'onglet du site, sinon dans un onglet éphémère. ⌘-clic : le navigateur.
+  Réglable dans Réglages → Onglets perso (*Liens de homedash*). **Clic droit** sur un lien (raccourcis,
+  GitHub, Basecamp, recherche…) : choisir où l'ouvrir — dans l'onglet du site, dans un éphémère (avec
+  le compte de ton choix) ou dans le navigateur.
+- **La recherche devient une barre d'adresse** : tape une adresse pour l'ouvrir, `gh …`, `yt …`, `w …`,
+  `maps …` pour chercher sur ces sites, sinon *Rechercher sur Google* en bas. Elle trouve aussi tes
+  onglets, des actions (Réglages, thème, nouvel éphémère…) et les pages déjà vues dans tes onglets.
+- Délai de mise en veille en un clic : 5 min, 15 min, 30 min, 1 h.
+- **Précédent / suivant** : les boutons latéraux de la souris (MX Master comprise), ⌘[ / ⌘] et
+  ⌘← / ⌘→ reculent dans les pages du site ouvert, puis d'onglet en onglet. Pour les sites et la MX
+  Master, il faut la nouvelle appli de bureau.
+
 ## 1.16.2 — 2026-10-20
 
 - Fenêtre de version (le numéro en haut à droite) : sous la commande de mise à jour, l'**appli de

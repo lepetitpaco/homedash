@@ -1,7 +1,8 @@
 import { noteTitle, notePreview, type Note } from '../lib/notes'
 import type { Branch, GithubData, Pr } from '../lib/ghboard'
 import type { LocalData, LocalRepo } from '../lib/local'
-import type { FlatLink, Health, InfoGroup, InfoItem, RepoItem, ReposConfig } from '../types'
+import type { CustomTab, FlatLink, Health, InfoGroup, InfoItem, RepoItem, ReposConfig } from '../types'
+import type { Visit } from '../lib/visits'
 import Favicon from './Favicon'
 import SearchPreview from './SearchPreview'
 
@@ -13,6 +14,51 @@ export type Hit =
   | { kind: 'local'; key: string; local: LocalRepo }
   | { kind: 'info'; key: string; group: InfoGroup; item: InfoItem }
   | { kind: 'note'; key: string; note: Note }
+  /** Adresse tapée : l'ouvrir. */
+  | { kind: 'go'; key: string; url: string }
+  /** Recherche sur le web (Google, ou le site d'un raccourci : `gh …`, `yt …`). */
+  | { kind: 'web'; key: string; url: string; q: string; engine: string; icon: string }
+  /** Onglet perso (éphémères compris) : y aller. */
+  | { kind: 'tab'; key: string; tab: CustomTab; icon: () => React.ReactNode }
+  /** Page déjà vue dans un onglet (historique). */
+  | { kind: 'page'; key: string; visit: Visit }
+  /** Action de homedash : aller sur un onglet, réglages, thème… */
+  | { kind: 'cmd'; key: string; cmd: Command }
+
+export type Command = {
+  id: string
+  icon: React.ReactNode
+  label: string
+  /** Mots cherchés en plus du nom. */
+  keywords?: string
+  hint?: string
+  run: () => void
+}
+
+/** Ligne et carte des résultats « navigateur » : même forme pour tous. */
+export function plainHit(hit: Hit): {
+  icon: React.ReactNode
+  name: string
+  sub: string
+  chip: string
+  color: string
+  action: string
+} | null {
+  switch (hit.kind) {
+    case 'go':
+      return { icon: '↗', name: `Ouvrir ${hit.url.replace(/^https?:\/\//, '')}`, sub: hit.url, chip: 'adresse', color: '#60a5fa', action: 'Ouvrir' }
+    case 'web':
+      return { icon: hit.icon, name: `Rechercher « ${hit.q} »`, sub: `sur ${hit.engine}`, chip: hit.engine, color: '#60a5fa', action: 'Rechercher' }
+    case 'tab':
+      return { icon: hit.icon(), name: hit.tab.label, sub: hit.tab.url, chip: hit.tab.id.startsWith('tmp-') ? 'éphémère' : 'onglet', color: '#a78bfa', action: 'Aller à l’onglet' }
+    case 'page':
+      return { icon: '🕘', name: hit.visit.title || hit.visit.url, sub: hit.visit.url, chip: hit.visit.tab || 'historique', color: '#94a3b8', action: 'Ouvrir' }
+    case 'cmd':
+      return { icon: hit.cmd.icon, name: hit.cmd.label, sub: hit.cmd.hint ?? '', chip: 'action', color: '#f59e0b', action: 'Lancer' }
+    default:
+      return null
+  }
+}
 
 type Props = {
   hits: Hit[]
@@ -76,6 +122,24 @@ export default function SearchResults({
           const common = {
             className: `result${active ? ' is-active' : ''}`,
             onMouseEnter: () => onHover(i),
+          }
+
+          const plain = plainHit(hit)
+          if (plain) {
+            return (
+              <button key={hit.key} {...common} onClick={() => onActivate(hit)}>
+                <span className="favicon monogram" style={{ background: `${plain.color}22`, color: plain.color }}>
+                  {plain.icon}
+                </span>
+                <span className="result-main">
+                  <span className="result-name">{plain.name}</span>
+                  {plain.sub ? <span className="result-sub">{plain.sub}</span> : null}
+                </span>
+                <span className="chip" style={{ borderColor: `${plain.color}55`, color: plain.color }}>
+                  {plain.chip}
+                </span>
+              </button>
+            )
           }
 
           if (hit.kind === 'link') {
@@ -212,6 +276,7 @@ export default function SearchResults({
             )
           }
 
+          if (hit.kind !== 'note') return null
           return (
             <button key={hit.key} {...common} onClick={() => onActivate(hit)}>
               <span className="favicon monogram" style={{ background: `${noteColor}22`, color: noteColor }}>

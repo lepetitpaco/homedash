@@ -37,8 +37,12 @@ export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
   const backTab = useRef<TabId>('links')
   const tabNow = useRef(tab)
   tabNow.current = tab
-  const selectTab = useCallback((id: TabId) => {
+  // Onglets visités, pour précédent / suivant (boutons de la souris, ⌘[ ⌘]).
+  const past = useRef<TabId[]>([])
+  const future = useRef<TabId[]>([])
+  const show = useCallback((id: TabId) => {
     if (tabNow.current !== 'events') backTab.current = tabNow.current
+    tabNow.current = id
     setTab(id)
     // L'historique ne se rouvre pas au rechargement : il n'a pas d'onglet.
     if (id === 'events') return
@@ -48,6 +52,29 @@ export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
       /* stockage indisponible */
     }
   }, [])
+  const selectTab = useCallback(
+    (id: TabId) => {
+      if (id !== tabNow.current) {
+        past.current = [...past.current.slice(-49), tabNow.current]
+        future.current = []
+      }
+      show(id)
+    },
+    [show],
+  )
+  /** Onglet précédent / suivant ; `false` s'il n'y en a pas. */
+  const stepTab = useCallback(
+    (dir: 'back' | 'forward') => {
+      const [from, to] = dir === 'back' ? [past, future] : [future, past]
+      const id = from.current.at(-1)
+      if (id === undefined) return false
+      from.current = from.current.slice(0, -1)
+      to.current = [...to.current, tabNow.current]
+      show(id)
+      return true
+    },
+    [show],
+  )
 
   const goBack = useCallback(() => selectTab(backTab.current), [selectTab])
 
@@ -68,5 +95,5 @@ export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
     initTitleCounter(`${label} · ${title}`)
   }, [title, tab, custom])
 
-  return { tab, selectTab, goBack }
+  return { tab, selectTab, goBack, stepTab }
 }

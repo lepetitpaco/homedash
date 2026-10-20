@@ -116,7 +116,7 @@ export default function SetConnect({ account, auth, onChange }: Props) {
             <summary>Créer un jeton</summary>
             <ol>
               <li>
-                <a href={FINE_URL} target="_blank" rel="noreferrer">
+                <a href={FINE_URL} target="_blank" rel="noreferrer" data-outside>
                   Jeton fine-grained
                 </a>{' '}
                 (recommandé) — <em>Resource owner</em> : ton org ou ton compte ·{' '}
@@ -128,7 +128,7 @@ export default function SetConnect({ account, auth, onChange }: Props) {
               </li>
               <li>
                 Plus rapide mais plus large :{' '}
-                <a href={CLASSIC_URL} target="_blank" rel="noreferrer">
+                <a href={CLASSIC_URL} target="_blank" rel="noreferrer" data-outside>
                   jeton classic pré-rempli
                 </a>{' '}
                 (scopes <code>repo</code>, <code>read:org</code> — donne aussi l'écriture).

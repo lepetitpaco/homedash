@@ -5,7 +5,7 @@ import type { LocalData, LocalRepo } from '../lib/local'
 import { noteTitle } from '../lib/notes'
 import type { Health, ReposConfig } from '../types'
 import Favicon from './Favicon'
-import type { Hit } from './SearchResults'
+import { plainHit, type Hit } from './SearchResults'
 
 type Props = {
   hit: Hit
@@ -59,8 +59,10 @@ export default function SearchPreview(props: Props) {
         </div>
       ) : hit.kind === 'info' ? (
         <InfoPreview {...props} hit={hit} />
-      ) : (
+      ) : hit.kind === 'note' ? (
         <NotePreview {...props} hit={hit} />
+      ) : (
+        <PlainPreview {...props} hit={hit} />
       )}
     </aside>
   )
@@ -270,6 +272,36 @@ function NotePreview({
       <div className="sp-actions">
         <button className="btn btn-primary" onClick={() => onActivate(hit)}>
           Ouvrir la note
+        </button>
+      </div>
+    </div>
+  )
+}
+
+/** Adresse, recherche web, onglet, page de l'historique, action : une carte simple. */
+function PlainPreview({ hit, onActivate }: Props) {
+  const p = plainHit(hit)
+  if (!p) return null
+  const when = hit.kind === 'page' ? new Date(hit.visit.ts) : null
+  return (
+    <div className="sp-card" style={{ ['--accent' as string]: p.color }}>
+      <div className="sp-head">
+        <span className="sp-icon sp-emoji">{p.icon}</span>
+        <div className="sp-title">
+          <strong>{p.name}</strong>
+          <span className="sp-chip">{p.chip}</span>
+        </div>
+      </div>
+      {p.sub ? <code className="sp-url">{p.sub}</code> : null}
+      {hit.kind === 'page' && when ? (
+        <div className="sp-facts">
+          <span>vue {hit.visit.n} fois</span>
+          <span>dernière fois le {when.toLocaleDateString('fr-FR')} à {when.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</span>
+        </div>
+      ) : null}
+      <div className="sp-actions">
+        <button className="btn btn-primary" onClick={() => onActivate(hit)}>
+          {p.action} ⏎
         </button>
       </div>
     </div>

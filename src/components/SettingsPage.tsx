@@ -621,6 +621,8 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             }
             sleepMinutes={(draft.ui?.tabSleepMinutes as number | undefined) ?? DEFAULT_UI.tabSleepMinutes}
             onSleepMinutes={(n) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), tabSleepMinutes: n } })}
+            openLinks={draft.ui?.openLinks === 'browser' ? 'browser' : 'app'}
+            onOpenLinks={(openLinks) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), openLinks } })}
           />
         </Card>
         ) : null}

@@ -37,6 +37,8 @@ export function useContextMenus(
   raw: Config | null,
   persist: (next: Config) => void,
   copy: (key: string, value: string) => Promise<void>,
+  /** Section « Ouvrir » d'un lien (appli de bureau : onglet, éphémère, navigateur) ; vide sinon. */
+  openItems: (url: string) => MenuItem[] = () => [],
 ) {
   const [menu, setMenu] = useState<MenuState | null>(null)
   const [draft, setDraft] = useState<Draft | null>(null)
@@ -91,9 +93,15 @@ export function useContextMenus(
           },
         },
       ]
-      setMenu({ x: e.clientX, y: e.clientY, title: link.name, items })
+      const open = openItems(link.url)
+      setMenu({
+        x: e.clientX,
+        y: e.clientY,
+        title: link.name,
+        items: open.length ? [{ heading: 'Ouvrir' }, ...open, { sep: true }, { heading: 'Lien' }, ...items] : items,
+      })
     },
-    [raw, persist, copy],
+    [raw, persist, copy, openItems],
   )
 
   const groupMenu = useCallback(

@@ -4,7 +4,7 @@ import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
-import SiteIcon from './components/SiteIcon'
+import SiteIcon, { isImageIcon } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
 import Rail, { type RailMode } from './components/Rail'
 import EventBell from './components/EventBell'
@@ -44,7 +44,7 @@ import {
   tabKey,
 } from './lib/customTabs'
 import { perfEvent, setPerfLog } from './lib/perf'
-import { desktop, hasSessions, OPEN_IN_TAB, RELOAD_TAB, type GuestMenu, type OpenInTab } from './lib/desktop'
+import { desktop, hasSessions, navKey, OPEN_IN_TAB, RELOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -53,6 +53,8 @@ import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
 import { NEW_TAB_EVENT, presetNewTab, presetSettingsSection } from './lib/settingsNav'
 import type { CustomTab, FlatLink, UiConfig } from './types'
+import type { Command } from './components/SearchResults'
+import { clearVisits, recordVisit } from './lib/visits'
 
 const RAIL_KEY = 'homedash:rail'
 
@@ -141,11 +143,73 @@ export default function App() {
   const tabSessions = useMemo(() => raw?.tabSessions ?? [], [raw])
   const sessionsRef = useRef(tabSessions)
   sessionsRef.current = tabSessions
-  const { tab, selectTab, goBack } = useTabs(cfg?.title, customTabs)
+  const { tab, selectTab, goBack, stepTab } = useTabs(cfg?.title, customTabs)
   // ⇧⌘R (appli de bureau) : le site ouvert, ou homedash sur un onglet natif.
   useEffect(() => setGhFront(tab === 'github' || tab === 'links'), [tab])
   const tabRef = useRef(tab)
   tabRef.current = tab
+  // Précédent / suivant (boutons de la souris, ⌘[ ⌘], balayage) : dans le site
+  // ouvert s'il a de l'historique, sinon d'onglet en onglet. `tabsOnly` : main.js
+  // a déjà essayé dans le site.
+  const navRef = useRef<(dir: 'back' | 'forward', tabsOnly?: boolean) => boolean>(() => false)
+  navRef.current = (dir, tabsOnly) => {
+    if (!tabsOnly && desktop && tabRef.current.startsWith('x:')) {
+      try {
+        const v = document.querySelector('.xtab:not(.is-parked) webview') as WebviewEl | null
+        if (v && (dir === 'back' ? v.canGoBack() : v.canGoForward())) {
+          if (dir === 'back') v.goBack()
+          else v.goForward()
+          return true
+        }
+      } catch {
+        /* webview pas encore attachée */
+      }
+    }
+    return stepTab(dir)
+  }
+  // Liens de homedash dans l'appli (Réglages → `ui.openLinks`) : l'onglet perso du
+  // site, sinon un éphémère. Renvoie `false` → le navigateur. Défini plus bas.
+  const inAppRef = useRef<(url: string) => boolean>(() => false)
+  const openLink = useCallback((url: string) => {
+    if (!inAppRef.current(url)) window.open(url, '_blank', 'noopener')
+  }, [])
+  useEffect(() => {
+    if (!desktop) return
+    // Après React (phase de bulle) : un lien dont le clic a déjà été pris en charge est laissé.
+    // `data-outside` : lien fait pour le navigateur (onglet « ouvrir à part », connexion…).
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!a || a.target !== '_blank' || a.hasAttribute('data-outside') || !/^https?:/i.test(a.href)) return
+      if (inAppRef.current(a.href)) e.preventDefault()
+    }
+    window.addEventListener('click', onClick)
+    return () => window.removeEventListener('click', onClick)
+  }, [])
+  useEffect(() => {
+    const w = window as unknown as Record<string, unknown>
+    w.__homedashNav = (dir: 'back' | 'forward', tabsOnly?: boolean) => navRef.current(dir, tabsOnly)
+    const onUp = (e: MouseEvent) => {
+      if (e.button !== 3 && e.button !== 4) return
+      e.preventDefault()
+      navRef.current(e.button === 3 ? 'back' : 'forward')
+    }
+    // Raccourcis clavier : dans l'appli seulement (le navigateur a les siens).
+    const onKey = (e: KeyboardEvent) => {
+      if (!desktop) return
+      const dir = navKey(e)
+      if (!dir) return
+      e.preventDefault()
+      navRef.current(dir)
+    }
+    window.addEventListener('mouseup', onUp, true)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      delete w.__homedashNav
+      window.removeEventListener('mouseup', onUp, true)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [])
   useEffect(
     () =>
       desktop?.onReloadTab?.(() => {
@@ -322,7 +386,72 @@ export default function App() {
     cfg?.ui.maxTiles ?? 0,
     raw?.pinnedOrder,
   )
-  const menus = useContextMenus(raw, persist, copy)
+  // Clic droit sur un lien : comment l'ouvrir (défini plus bas, avec les onglets).
+  const openItemsRef = useRef<(url: string) => MenuItem[]>(() => [])
+  const openItems = useCallback((url: string) => openItemsRef.current(url), [])
+  const menus = useContextMenus(raw, persist, copy, openItems)
+  const linkMenuRef = useRef<(x: number, y: number, url: string) => void>(() => undefined)
+  useEffect(() => {
+    if (!desktop) return
+    // Clic droit sur tout autre lien de la page (GitHub, Basecamp…) : le même
+    // choix. Après React : un lien qui a son propre menu (raccourcis) est laissé.
+    const onMenu = (e: MouseEvent) => {
+      if (e.defaultPrevented) return
+      const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
+      if (!a || a.hasAttribute('data-outside') || !/^https?:/i.test(a.href)) return
+      e.preventDefault()
+      linkMenuRef.current(e.clientX, e.clientY, a.href)
+    }
+    window.addEventListener('contextmenu', onMenu)
+    return () => window.removeEventListener('contextmenu', onMenu)
+  }, [])
+  // Recherche façon barre d'adresse : les onglets (icônes calculées plus bas) et
+  // les actions de homedash. `openTempRef` : défini plus bas, avec les éphémères.
+  const iconRef = useRef<Record<string, React.ReactNode>>({})
+  const openTempRef = useRef<(url: string) => void>(() => undefined)
+  const searchTabs = useMemo(
+    () => allTabs.map((t) => ({ tab: t, icon: () => iconRef.current[t.id] ?? '🌐' })),
+    [allTabs],
+  )
+  const commands = useMemo<Command[]>(
+    () => [
+      { id: 'links', icon: '⚡', label: 'Raccourcis', keywords: 'accueil liens dashboard', run: () => selectTab('links') },
+      { id: 'github', icon: '🐙', label: 'GitHub', keywords: 'prs branches', run: () => selectTab('github') },
+      { id: 'local', icon: '💻', label: 'Local', keywords: 'dépôts disque branches', run: () => selectTab('local') },
+      ...(bc.data?.configured
+        ? [{ id: 'basecamp', icon: '🏕', label: 'Basecamp', keywords: 'tâches', run: () => selectTab('basecamp') }]
+        : []),
+      { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
+      { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config', run: () => selectTab('settings') },
+      ...(desktop
+        ? [
+            {
+              id: 'temp',
+              icon: '⧉',
+              label: 'Nouvel onglet éphémère',
+              keywords: 'nouvel onglet',
+              run: () => openTempRef.current('https://www.google.com/'),
+            },
+          ]
+        : []),
+      {
+        id: 'theme',
+        icon: effectiveTheme === 'dark' ? '☀️' : '🌙',
+        label: effectiveTheme === 'dark' ? 'Thème clair' : 'Thème sombre',
+        keywords: 'apparence couleurs mode',
+        run: switchTheme,
+      },
+      {
+        id: 'visits',
+        icon: '🧹',
+        label: 'Effacer l’historique des pages',
+        keywords: 'historique vider oublier',
+        hint: 'pages vues dans les onglets, mémorisées dans ce navigateur',
+        run: clearVisits,
+      },
+    ],
+    [selectTab, switchTheme, effectiveTheme, bc.data?.configured],
+  )
   const search = useSearch({
     cfg,
     links,
@@ -335,6 +464,13 @@ export default function App() {
     copy,
     openNote: setOpenNoteId,
     openLocal,
+    open: openLink,
+    tabs: searchTabs,
+    onTab: (t) => {
+      search.setQuery('')
+      selectTab(tabKey(t))
+    },
+    commands,
   })
 
   // --- rendu ---------------------------------------------------------------
@@ -391,11 +527,13 @@ export default function App() {
   // GitHub et Local : le même code, en ligne et sur le disque. Côte à côte dans
   // un seul bloc (« duo »), chacun garde son clic.
   const code = { id: 'code', title: 'Ton code : en ligne (GitHub) et sur ton disque (Local)' }
-  // Emoji choisi, sinon l'icône du site, recadrée pour que toutes aient la même échelle.
+  // Image ou emoji choisi, sinon l'icône du site, recadrée pour que toutes aient la même échelle.
   const iconOf: Record<string, React.ReactNode> = Object.fromEntries(
     allTabs.map((t) => [
       t.id,
-      t.icon ? (
+      isImageIcon(t.icon) ? (
+        <SiteIcon url={t.url} name={t.label} image={t.icon} />
+      ) : t.icon ? (
         t.icon
       ) : isLocal(t.url) ? (
         '📄'
@@ -404,6 +542,7 @@ export default function App() {
       ),
     ]),
   )
+  iconRef.current = iconOf
   /** Onglets, dossiers et comptes de la barre de gauche : une écriture de config. */
   const saveTabs = (next: typeof customTabs, folders = tabFolders, sessions = tabSessions) =>
     raw && persist({ ...raw, tabs: next, tabFolders: folders, tabSessions: sessions })
@@ -548,6 +687,16 @@ export default function App() {
     search.setQuery('')
     selectTab(`x:${id}`)
   }
+  inAppRef.current = (url) => {
+    if (!desktop || ui.openLinks === 'browser') return false
+    // homedash lui-même (une autre page servie par le container) : le navigateur.
+    if (new URL(url, window.location.href).host === window.location.host) return false
+    const target = linkTarget(url, regularTabs)
+    if (target) openInTab(target, url)
+    else openTemp(url)
+    return true
+  }
+  openTempRef.current = (url) => openTemp(url)
   /** ⧉ de la barre : un onglet éphémère vierge (Google), avec le compte choisi s'il y en a. */
   const newTemp = (e: React.MouseEvent) => {
     const start = 'https://www.google.com/'
@@ -638,6 +787,48 @@ export default function App() {
     openInTab(target, url)
     return true
   }
+  /** Comment ouvrir `url` : les onglets de ce site (avec leur compte), un éphémère (par compte), le navigateur. */
+  const openChoices = (url: string): MenuItem[] => {
+    const items: MenuItem[] = regularTabs
+      .filter((x) => capturesLink(x, url))
+      .map((t) => {
+        const s = sessionOf(t, tabSessions)
+        return {
+          icon: iconOf[t.id],
+          label: `Dans ${t.label}`,
+          ...(s ? { dot: s.color, hint: s.name } : {}),
+          onSelect: () => openInTab(t, url),
+        }
+      })
+    // Onglet éphémère : une pastille par compte, sur une ligne.
+    items.push(
+      hasSessions && tabSessions.length
+        ? {
+            icon: '◌',
+            label: 'Onglet éphémère',
+            chips: [
+              { label: 'commun', onSelect: () => openTemp(url) },
+              ...tabSessions.map((s) => ({ label: s.name, color: s.color, onSelect: () => openTemp(url, s.id) })),
+            ],
+          }
+        : { icon: '◌', label: 'Onglet éphémère', onSelect: () => openTemp(url) },
+    )
+    items.push({ icon: '↗', label: 'Dans le navigateur', onSelect: () => desktop?.openExternal(url) })
+    return items
+  }
+  openItemsRef.current = (url) => (desktop ? openChoices(url) : [])
+  linkMenuRef.current = (x, y, url) =>
+    menus.openMenu({
+      x,
+      y,
+      title: shortLink(url),
+      items: [
+        { heading: 'Ouvrir' },
+        ...openChoices(url),
+        { sep: true },
+        { icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${url}`, url) },
+      ],
+    })
   /** Clic droit dans un site (main.js) : le menu de homedash, selon ce qui est sous la souris. */
   const guestMenu = (m: GuestMenu): boolean => {
     const act = desktop?.guestAction
@@ -649,30 +840,7 @@ export default function App() {
     }
     if (m.link) {
       section('Ouvrir')
-      // Les onglets de ce site, avec le compte de chacun.
-      for (const t of regularTabs.filter((x) => capturesLink(x, m.link))) {
-        const s = sessionOf(t, tabSessions)
-        items.push({
-          icon: iconOf[t.id],
-          label: `Dans ${t.label}`,
-          ...(s ? { dot: s.color, hint: s.name } : {}),
-          onSelect: () => openInTab(t, m.link),
-        })
-      }
-      // Onglet éphémère : une pastille par compte, sur une ligne.
-      items.push(
-        hasSessions && tabSessions.length
-          ? {
-              icon: '◌',
-              label: 'Onglet éphémère',
-              chips: [
-                { label: 'commun', onSelect: () => openTemp(m.link) },
-                ...tabSessions.map((s) => ({ label: s.name, color: s.color, onSelect: () => openTemp(m.link, s.id) })),
-              ],
-            }
-          : { icon: '◌', label: 'Onglet éphémère', onSelect: () => openTemp(m.link) },
-      )
-      items.push({ icon: '↗', label: 'Dans le navigateur', onSelect: () => desktop?.openExternal(m.link) })
+      items.push(...openChoices(m.link))
       items.push({ sep: true })
       items.push({ icon: '⧉', label: 'Copier le lien', onSelect: () => act(m.id, 'copyText', { text: m.link }) })
     }
@@ -927,6 +1095,7 @@ export default function App() {
                   }
                 : undefined
             }
+            onVisit={(url, title) => recordVisit(url, t.label, title)}
             onCount={(n) => setCount(tabKey(t), n)}
             onLoaded={(ms) => perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })}
             muted={!!muted[tabKey(t)]}

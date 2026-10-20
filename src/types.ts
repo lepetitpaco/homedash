@@ -121,6 +121,12 @@ export type UiConfig = {
   searchPlaceholder: string
   /** Minutes sans y aller avant qu'un onglet perso en veille soit déchargé. */
   tabSleepMinutes: number
+  /**
+   * Liens de homedash (raccourcis, GitHub, recherche…) dans l'appli de bureau :
+   * `app` = l'onglet perso du site, sinon un onglet éphémère ; `browser` = le
+   * navigateur. Sans effet dans un navigateur.
+   */
+  openLinks: 'app' | 'browser'
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
 }

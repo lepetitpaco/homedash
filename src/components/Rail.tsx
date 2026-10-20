@@ -231,7 +231,7 @@ export default function Rail({
             {inner}
           </button>
         ) : (
-          <a className="rail-btn" href={srcOf(t.url)} target="_blank" rel="noreferrer" title={title}>
+          <a className="rail-btn" href={srcOf(t.url)} target="_blank" rel="noreferrer" data-outside title={title}>
             {inner}
           </a>
         )}

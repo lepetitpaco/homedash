@@ -79,11 +79,29 @@ export function countInTitle(title: string): number {
   return m ? Number(m[1]) : 0
 }
 
+/**
+ * Précédent / suivant au clavier, comme un navigateur : ⌘[ ⌘], et ⌘← ⌘→ hors
+ * d'un champ de saisie (où ils déplacent le curseur). Même règle dans
+ * desktop/guest-preload.js, pour les sites.
+ */
+export function navKey(e: KeyboardEvent): 'back' | 'forward' | null {
+  if (!(e.metaKey || e.ctrlKey) || e.shiftKey || e.altKey) return null
+  if (e.key === '[') return 'back'
+  if (e.key === ']') return 'forward'
+  const el = e.target as HTMLElement | null
+  if (el?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]')) return null
+  if (e.key === 'ArrowLeft') return 'back'
+  if (e.key === 'ArrowRight') return 'forward'
+  return null
+}
+
 /** `<webview>` d'Electron : ce dont la page se sert. */
 export type WebviewEl = HTMLElement & {
   reload: () => void
   goBack: () => void
   canGoBack: () => boolean
+  goForward: () => void
+  canGoForward: () => boolean
   getURL: () => string
   getTitle: () => string
   loadURL: (url: string) => Promise<void>

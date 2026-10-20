@@ -90,6 +90,7 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
         href={t.href}
         target="_blank"
         rel="noreferrer"
+        data-outside
         title={t.title ?? t.href}
       >
         {inner}
