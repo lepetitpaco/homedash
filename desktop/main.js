@@ -342,6 +342,11 @@ ipcMain.on('homedash:guest-nav', (e, dir) => {
   if (dir === 'forward' && g.navigationHistory.canGoForward()) g.navigationHistory.goForward()
 })
 
+// Clic ou Échap dans un site : la page ferme ses menus ouverts (elle ne les voit pas).
+ipcMain.on('homedash:guest-down', (e, key) => {
+  if (guests.has(e.sender.id)) win?.webContents.send('homedash:guest-down', key === 'escape' ? 'escape' : 'click')
+})
+
 // Actions du menu de clic droit d'un site, sur la webview visée.
 const GUEST_ACTIONS = new Set(['copy', 'cut', 'paste', 'selectAll', 'back', 'forward', 'reload', 'copyImage'])
 ipcMain.on('homedash:guest', (e, msg) => {

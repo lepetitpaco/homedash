@@ -20,6 +20,12 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
    * webview `id`, ou `copyText` pour mettre un texte (un lien) au presse-papiers.
    */
   guestAction: (id, action, extra) => ipcRenderer.send('homedash:guest', { id, action, ...(extra || {}) }),
+  /** Clic (`click`) ou Échap (`escape`) dans un site. Renvoie de quoi se désabonner. */
+  onGuestDown: (cb) => {
+    const handler = (_e, kind) => cb(kind)
+    ipcRenderer.on('homedash:guest-down', handler)
+    return () => ipcRenderer.removeListener('homedash:guest-down', handler)
+  },
   /** ⇧⌘R (menu de l'appli) : recharger l'onglet ouvert. Renvoie de quoi se désabonner. */
   onReloadTab: (cb) => {
     const handler = () => cb()
