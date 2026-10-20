@@ -67,8 +67,8 @@ La pastille de l'onglet compte les tâches en retard des projets affichés. **Ch
 affichés** : les pastilles en haut de l'onglet, ou « masquer le projet ». Enregistré dans la config, donc
 pareil dans tous tes navigateurs ; un nouveau projet s'affiche de lui-même.
 
-**🏕 en haut à droite**, à côté de la cloche : tes notifications Basecamp non lues, la pastille en donne
-le nombre. Ouvrir le panneau ne les marque pas lues : c'est en les ouvrant dans Basecamp qu'elles partent.
+**Notifications Basecamp** : dans la cloche 🔔 (filtre *Basecamp*). Ouvrir la cloche ne les marque pas
+lues : c'est en les ouvrant dans Basecamp qu'elles partent.
 
 Relu toutes les 60 s, page fermée comprise. Une nouvelle notif ou tâche arrive aussi dans la cloche 🔔.
 
@@ -91,7 +91,8 @@ Le jeton se renouvelle ensuite tout seul.
 
 ### ＋ Onglets perso
 
-Le **＋** en bas de la barre de gauche (ou Réglages → Onglets perso → **＋ Ajouter un onglet**) ajoute
+**☰ Catalogue** (Réglages → Onglets perso) : mails, messageries, réseaux sociaux, IA et outils courants,
+ajoutés d'un clic. Le **＋** en bas de la barre de gauche (ou **＋ Ajouter un onglet**) ajoute
 un onglet vers **un site** (`https://…`) ou **un fichier / dossier de ton disque**
 (`~/Documents/procédure.pdf`, ou **📁 Parcourir**). Dans Réglages, un onglet par ligne : un clic l'ouvre
 pour le modifier. Adresse, nom (proposé d'après l'adresse), icône (un emoji ; vide = celle du site),
@@ -115,7 +116,8 @@ toute la page : la barre d'onglets de homedash revient avec ⚡.
   montre ses quatre premières icônes et le total des non-lus. Clic droit : nom et couleur, supprimer
   (ses onglets restent). Clic droit sur une icône : dossier, compte, recharger, ouvrir dans le navigateur.
 - En bas : **⚙ Réglages** (il quitte alors la barre du haut), **＋** ajouter, **» / «** noms affichés ou icônes seules, **✕** cacher la barre (les onglets
-  perso reviennent dans la barre du haut ; la languette **»** à gauche de l'écran la rouvre). Ces choix
+  perso reviennent dans la barre du haut, avec le même clic droit, le glisser-déposer, le ✕ des
+  éphémères et ⧉ ; la languette **»** à gauche de l'écran la rouvre). Ces choix
   et les dossiers repliés sont propres à chaque navigateur ou appli.
 
 **Comptes** (appli de bureau), comme les conteneurs de Firefox : un compte a un nom et une couleur, et
@@ -133,13 +135,24 @@ Les fichiers sont lus, jamais modifiés, et limités à ton dossier personnel (n
 Une page web ne peut ni afficher un site qui le refuse, ni lire ce qu'il affiche (ses non-lus) : c'est
 ce que l'appli de bureau débloque.
 
-### 🔔 Activité (la cloche, en haut à droite)
+### 🔔 Notifications (la cloche, en haut à droite)
 
-CI cassée ou réparée, PR mergée, branche locale à nettoyer… La pastille rouge compte les non-lus, aussi
-visibles dans l'onglet du navigateur. Clic = les derniers événements ; **vider** efface le journal
-(après confirmation) ; **Tout voir** = l'historique.
+CI cassée ou réparée, PR mergée, branche locale à nettoyer… et, si Basecamp est connecté, tes
+notifications Basecamp non lues, dans la même cloche (filtre *Tout / Activité / Basecamp*). La pastille
+rouge additionne les deux. Ouvrir la cloche efface les nouveautés de l'activité ; une notif Basecamp
+reste comptée tant qu'elle n'est pas lue dans Basecamp. **vider** efface le journal (après
+confirmation) ; **Tout voir** = l'historique.
 
 Notifications bureau : **désactivées par défaut**, à activer en bas du panneau de la cloche.
+
+### Journal de performance (facultatif)
+
+Réglages → Affichage & notifications → *Journal de performance* (désactivé par défaut). Activé, homedash
+note jour par jour dans `data/perf/` ce qu'il consomme : mémoire et CPU du serveur, de l'appli de bureau
+et **de chaque onglet**, opérations lentes, pics (avec l'action qui les a précédés), temps de chargement
+des onglets, routes les plus sondées. Gardé 30 jours ; la place prise s'affiche dans Réglages, avec un
+avertissement au-delà de 50 Mo, et un bouton pour vider. Résumé : `python3 scripts/perf-report.py`.
+Uniquement des chiffres et des noms d'onglets ou de domaines : aucune adresse complète, aucun contenu.
 
 ### Version et nouveautés (en haut à droite)
 
@@ -180,6 +193,19 @@ Ce qu'elle apporte :
   droit), ou vierges avec **⧉** en bas de la barre (le compte est demandé s'il y en a) : leur en-tête a
   une **barre d'adresse** (une adresse ou une recherche, puis Entrée). ✕ au survol de l'icône pour
   fermer, clic droit → *Garder dans mes onglets*. Ils disparaissent au redémarrage de l'appli.
+- **Éphémères gardés** : clic droit → *Garder ouvert* ; il survit au redémarrage, rangé avec les
+  éphémères, et rouvre sur la page où tu l'as gardé (*Garder cette page* pour la changer). *Ne plus
+  garder* le rend éphémère, *Ajouter à mes onglets* en fait un onglet perso. Listés dans Réglages →
+  Onglets perso.
+- **Mémoire** : au démarrage, seuls les sites à non-lus (mails, messageries, réseaux sociaux) sont
+  chargés ; les autres le sont au premier clic. Réglable par onglet (Réglages → Onglets perso, « Au
+  démarrage de l'appli »).
+- **Son** : 🔊 sur l'onglet (ou dans le coin de son icône) qui joue du son ; un clic dessus le coupe
+  (🔇), ou clic droit → *Couper le son*.
+- **Mise en veille** (au choix, par onglet, éphémère compris : clic droit → *Mettre en veille si
+  inutilisé*, ou Réglages → Onglets perso) : laissé de côté plus de 5 min (délai réglable dans la même
+  page), l'onglet est déchargé — mémoire libérée, icône grisée avec 💤 — et rechargé au clic. Pas par
+  défaut : en veille, il ne reçoit ni notifications ni non-lus.
 - Un menu (clic droit, cloche…) se ferme par un clic n'importe où, site compris, ou Échap.
 - Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
 

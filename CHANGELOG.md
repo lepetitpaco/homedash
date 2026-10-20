@@ -4,6 +4,37 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.16.0 — 2026-10-20
+
+- **Mise en veille des onglets** (au choix, par onglet : clic droit ou Réglages) : un onglet laissé de
+  côté plus de 5 min (réglable) est déchargé pour libérer la mémoire, grisé avec 💤, et rechargé au
+  clic. Pas par défaut : un onglet en veille ne reçoit plus notifications ni non-lus.
+- **Éphémères gardés** : clic droit sur un onglet éphémère → *Garder ouvert*, il survit au redémarrage
+  (rangé avec les éphémères, il rouvre sur la page où tu l'as gardé ; *Garder cette page* la met à
+  jour). *Ajouter à mes onglets* en fait un onglet perso.
+- **Catalogue** dans Réglages → Onglets perso : mails, messageries, réseaux sociaux, IA, outils, en un
+  clic.
+- **Une seule cloche** 🔔 : l'activité de homedash et les notifications Basecamp ensemble, avec un
+  filtre *Tout / Activité / Basecamp* ; la pastille compte les deux.
+- Appli de bureau : **🔊 sur l'onglet qui joue du son** (clic dessus pour couper), et *Couper le son* au
+  clic droit, comme dans un navigateur.
+- **Journal de performance** (désactivé par défaut, Réglages → Affichage) : mémoire et CPU du
+  serveur, de l'appli et de chaque onglet, actions lentes et pics, un fichier par jour dans
+  `data/perf/` ; la place prise s'affiche, avec un avertissement au-delà de 50 Mo.
+  `python3 scripts/perf-report.py` en fait le résumé.
+- **Plus léger** :
+  - Dans l'appli, seuls les sites à non-lus (mails, messageries, réseaux sociaux) sont chargés au
+    démarrage, les autres au premier clic (réglable par onglet). Chaque site chargé pèse 100 à 400 Mo.
+  - Fenêtre cachée, la page ne sonde plus GitHub, Local ni les liens surveillés ; le serveur relit
+    GitHub toutes les 3 min pour la cloche.
+  - L'onglet Local ne relit plus tout le disque après chaque passage sur GitHub.
+  - La page ne se redessine plus quand un sondage ne rapporte rien de neuf.
+- Clic droit dans un site, mieux rangé : le lien en titre, une section *Ouvrir* (l'onglet de ce site
+  avec son compte, l'onglet éphémère avec une pastille par compte, le navigateur), puis *Copier le lien* ;
+  idem pour le texte, les champs et les images.
+- Barre de gauche cachée : les onglets du haut font tout ce que font les icônes — clic droit, glisser
+  pour réordonner, ✕ pour fermer un onglet éphémère, ⧉ pour en ouvrir un.
+
 ## 1.15.0 — 2026-10-20
 
 - Appli de bureau : **onglet éphémère vierge** avec **⧉** en bas de la barre de gauche (compte au choix),

@@ -11,6 +11,7 @@ backend/                  Python stdlib, aucune dépendance
   basecamp.py             Basecamp en lecture seule : OAuth, mes tâches, mes notifications
   localfile.py            onglets perso : un fichier du dossier personnel servi en lecture seule
   favicons.py             icônes des onglets perso relayées (la page les recadre), en cache
+  perflog.py              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
   events.py               journal des événements (la cloche)
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
@@ -25,6 +26,7 @@ src/
 desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
                           webviews des onglets perso, badge du Dock. Build : CI sur tag desktop-v*,
                           ou build-local.sh (Docker + codesign)
+scripts/perf-report.py    résumé du journal de performance, jour par jour et par onglet
 tests/                    unittest stdlib
 CHANGELOG.md              une entrée par version ; la première = version installée
 data/                     (non versionné) config.json, secrets.json, notes, journal, backups/, version.json
@@ -45,6 +47,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/basecamp`, `/api/basecamp/refresh` | GET, POST | Tâches et notifs non lues, relecture |
 | `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
+| `/api/perf` | GET, POST, DELETE | Journal de performance : état et place prise, mesure de l'appli / action de la page, vider |
 | `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est un onglet perso) |
 | `/api/file?path=` | GET | Fichier / dossier d'un onglet perso (dossier personnel, sans caché ni `data/`) |
 | `/api/local`, `/api/local/refresh` | GET, POST | Dépôts du disque, relecture |
