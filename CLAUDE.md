@@ -26,13 +26,15 @@ Node n'est pas requis sur l'hôte, tout passe par Docker :
 docker compose up -d --build                                              # lancer / redéployer
 docker run --rm -v "$PWD":/app -w /app node:22-alpine npx tsc --noEmit    # typecheck
 python3 -m unittest discover -s tests -t .                                # tests (~10 s)
+sh desktop/build-local.sh [--install]                                     # appli de bureau (Mac)
 ```
 
 Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git sur l'hôte.
 
 ## Règles absolues
 
-1. **Zéro dépendance au runtime** : stdlib Python côté serveur, React seul côté front.
+1. **Zéro dépendance au runtime** : stdlib Python côté serveur, React seul côté front. `desktop/` (Electron)
+   est une coquille facultative à part : rien du serveur ni du front n'en dépend, la page marche sans.
 2. **L'onglet Local n'écrit et n'exécute rien.** `gitread.py` ouvre en `"rb"`, sans sous-processus ni
    commande git (même `git status` écrit). Les commandes affichées sont du texte à copier.
 3. **« 🗑 à supprimer » exige `safety.level` dans `SAFE_LEVELS`** (contenu présent ailleurs). Jamais de
@@ -84,6 +86,17 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - Amorçage : une section jamais vue ne produit rien (sinon le premier fetch déverse tout l'état).
 - Front : `baseline` (en mémoire, rien notifié au chargement) ≠ `seen` (localStorage, la pastille).
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
+
+**Appli de bureau (`desktop/`)**
+- Elle charge la page du container, elle n'embarque ni front ni backend : une fonction de la page se
+  livre par le container, pas par un nouveau `.dmg`. On ne reconstruit (tag `desktop-vX.Y.Z`, CI macOS,
+  repo privé = minutes ×10) que si `main.js` / `preload.js` changent.
+- La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
+  dans l'appli, iframe sinon.
+- `will-attach-webview` impose session partagée, sans preload ni Node ; le pont IPC n'écoute que la page
+  homedash. UA sans « Electron » : sinon Google refuse sa page de connexion.
+- Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
+  son titre (les pastilles).
 
 **Front**
 - `reload_all()` est le seul chemin après une écriture de config côté serveur.

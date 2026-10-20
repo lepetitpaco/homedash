@@ -1,0 +1,33 @@
+{
+  "name": "homedash-desktop",
+  "productName": "homedash",
+  "version": "1.0.0",
+  "description": "homedash dans sa propre fenêtre, avec des webviews pour les onglets perso",
+  "private": true,
+  "main": "main.js",
+  "author": "davidgennaoui",
+  "scripts": {
+    "icon": "node -e \"require('fs').mkdirSync('build',{recursive:true});require('fs').copyFileSync('../public/icon-512.png','build/icon.png')\"",
+    "start": "npm run icon && electron .",
+    "dist": "npm run icon && electron-builder --mac dmg zip --arm64 --x64 --publish never"
+  },
+  "devDependencies": {
+    "electron": "44.9.1",
+    "electron-builder": "26.15.3"
+  },
+  "build": {
+    "appId": "com.github.davidgennaoui.homedash",
+    "productName": "homedash",
+    "files": ["main.js", "preload.js", "package.json"],
+    "directories": { "buildResources": "build", "output": "dist" },
+    "mac": {
+      "category": "public.app-category.developer-tools",
+      "icon": "build/icon.png",
+      "identity": "-",
+      "extendInfo": {
+        "NSCameraUsageDescription": "Appels vidéo (Google Meet…) dans un onglet perso.",
+        "NSMicrophoneUsageDescription": "Appels (Google Meet…) dans un onglet perso."
+      }
+    }
+  }
+}

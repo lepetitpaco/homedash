@@ -4,6 +4,14 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.13.0 — 2026-10-20
+
+- **Appli de bureau** pour Mac (facultative) : homedash dans sa propre fenêtre, dans le Dock. Les onglets
+  perso y affichent **tous les sites**, Gmail et Google Chat compris : tu t'y connectes une fois. Le nombre
+  de non-lus de chaque site devient une **pastille** sur son onglet et sur l'icône du Dock. Le container
+  reste nécessaire : l'appli l'affiche. Installation dans le GUIDE (`.dmg` dans les releases
+  `desktop-v…`, ou `sh desktop/build-local.sh --install`).
+
 ## 1.12.0 — 2026-10-20
 
 - **Onglets perso** : le **＋** au bout de la barre d'onglets ajoute un onglet vers un site ou un fichier /

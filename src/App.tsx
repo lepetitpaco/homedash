@@ -27,6 +27,7 @@ import { useUsage } from './hooks/useUsage'
 import { useEvents } from './lib/events'
 import { lateCount, useBasecamp } from './lib/basecamp'
 import { isLocal, srcOf, tabKey } from './lib/customTabs'
+import { desktop } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -48,6 +49,12 @@ export default function App() {
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
+  // Non-lus lus dans le titre de chaque onglet perso (appli de bureau seulement).
+  const [tabCounts, setTabCounts] = useState<Record<string, number>>({})
+  const setCount = useCallback(
+    (key: string, n: number) => setTabCounts((c) => (c[key] === n ? c : { ...c, [key]: n })),
+    [],
+  )
   useEffect(() => {
     if (tab.startsWith('x:')) setVisited((v) => (v.includes(tab) ? v : [...v, tab]))
   }, [tab])
@@ -71,6 +78,9 @@ export default function App() {
   // compteur que la cloche, effacé quand on ouvre son panneau ou l'historique.
   const markEvents = events.markSeen
   useEffect(() => setUnread(events.unseen), [events.unseen])
+  // Icône du Dock (appli de bureau) : non-lus des onglets perso + ceux de la cloche.
+  const tabUnread = customTabs.reduce((sum, t) => sum + (t.embed ? (tabCounts[tabKey(t)] ?? 0) : 0), 0)
+  useEffect(() => desktop?.setBadge(tabUnread + events.unseen), [tabUnread, events.unseen])
   useEffect(() => {
     if (tab === 'events') markEvents()
   }, [tab, markEvents, events.unseen])
@@ -207,6 +217,9 @@ export default function App() {
         label: t.label,
         title: t.url,
         ...(t.embed ? {} : { href: srcOf(t.url) }),
+        badge: t.embed ? tabCounts[tabKey(t)] : 0,
+        badgeTitle: `${tabCounts[tabKey(t)] ?? 0} non lu(s) d'après la page`,
+        badgeAlert: true,
       }),
     ),
     { id: 'settings', icon: '⚙', label: 'Réglages' },
@@ -267,13 +280,15 @@ export default function App() {
       <Tabs tabs={tabs} active={shown} onSelect={selectTab} onAdd={openTabSettings} />
 
       {customTabs
-        .filter((t) => t.embed && visited.includes(tabKey(t)))
+        // Dans l'appli, tous dès le départ : leurs pastilles arrivent sans les ouvrir.
+        .filter((t) => t.embed && (desktop || visited.includes(tabKey(t))))
         .map((t) => (
           <CustomTabView
             key={`${t.id}:${t.url}`}
             tab={t}
             hidden={view !== tabKey(t)}
             onSettings={openTabSettings}
+            onCount={(n) => setCount(tabKey(t), n)}
           />
         ))}
 

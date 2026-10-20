@@ -8,6 +8,11 @@
   font-size: 0.7rem;
   opacity: 0.6;
 }
+.tab-badge.is-alert {
+  background: color-mix(in srgb, #ef4444 20%, transparent);
+  border-color: color-mix(in srgb, #ef4444 50%, transparent);
+  color: var(--sig-bad);
+}
 .tab-add {
   color: var(--text-faint);
   padding-inline: 0.6rem;
@@ -20,6 +25,15 @@
 }
 .xtab[hidden] {
   display: none;
+}
+/* Appli de bureau : onglet masqué mais vivant (voir CustomTabView). */
+.xtab.is-parked {
+  position: fixed;
+  left: -200vw;
+  top: 0;
+  width: 1200px;
+  visibility: hidden;
+  pointer-events: none;
 }
 .xtab-bar {
   display: flex;

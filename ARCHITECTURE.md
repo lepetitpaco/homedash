@@ -21,6 +21,9 @@ src/
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…)
   lib/                    appels API et polling (ghboard, local, events, admin…)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
+desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
+                          webviews des onglets perso, badge du Dock. Build : CI sur tag desktop-v*,
+                          ou build-local.sh (Docker + codesign)
 tests/                    unittest stdlib
 CHANGELOG.md              une entrée par version ; la première = version installée
 data/                     (non versionné) config.json, secrets.json, notes, journal, backups/, version.json
@@ -54,6 +57,10 @@ elle-même et envoyer du JSON.
 ## Choix structurants
 
 - **Zéro dépendance au runtime.** Image légère, rien à mettre à jour, peu de surface d'attaque.
+- **L'appli de bureau n'est qu'une coquille.** Une page web ne peut afficher un autre site que dans une
+  iframe, que Gmail, Chat… refusent, ni lire ce qu'il affiche. Electron fournit des webviews, qui
+  échappent aux deux. Elle charge la page du container (rien d'embarqué) : le serveur et le front restent
+  sans dépendance, et la page marche aussi dans un navigateur.
 - **Le serveur tient le journal.** Il tourne en continu, voit tout même page fermée, et c'est le seul
   endroit qui décide ce qui est un événement : la cloche et les notifications ne font qu'afficher.
 - **L'onglet Local relit les `.git` à la main** (`gitread.py`). Aucune commande git n'est sans écriture

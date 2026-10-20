@@ -22,6 +22,10 @@ Ouvre **http://localhost:7777**, puis **⚙ Réglages** :
 
 C'est tout. Aucun fichier à éditer.
 
+**Appli de bureau (Mac, facultatif)** : homedash dans sa fenêtre, avec Gmail, Google Chat… affichés dans
+ses onglets et leurs non-lus en pastille. Le container reste nécessaire, l'appli l'affiche. `.dmg` dans
+les releases `desktop-v…`, ou `sh desktop/build-local.sh --install`. Détails : [GUIDE.md](GUIDE.md).
+
 **Jeton GitHub** : *GitHub → Settings → Developer settings → Fine-grained tokens*, en lecture seule :
 *Contents*, *Pull requests*, *Checks*, *Metadata* (+ *Members* sur l'organisation pour l'équipe).
 

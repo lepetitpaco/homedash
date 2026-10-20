@@ -96,17 +96,17 @@ Le **＋** au bout de la barre d'onglets (ou Réglages → Onglets perso) ajoute
 choisir). Icône (un emoji), nom, adresse, et ce que fait un clic :
 
 - **dans homedash** : le site ou le fichier s'affiche sous la barre d'onglets. Revenir sur l'onglet ne
-  le recharge pas (↻ pour ça). Marche pour les fichiers (PDF, images, texte, HTML, dossiers) et les
-  sites qui l'acceptent. **Gmail, Google Chat, GitHub et la plupart des grands sites le refusent** : page
-  blanche, ↗ *ouvrir à part* reste possible.
+  le recharge pas (↻ pour ça). Dans un navigateur, ça marche pour les fichiers (PDF, images, texte, HTML,
+  dossiers) et les sites qui l'acceptent : **Gmail, Google Chat, GitHub et la plupart des grands sites le
+  refusent** (page blanche, ↗ *ouvrir à part* reste possible). Dans l'**appli de bureau** (plus bas),
+  tous s'affichent, avec leurs non-lus en pastille.
 - **ouvrir à part ↗** : l'onglet est un raccourci, il ouvre le site dans un onglet du navigateur.
 
 Les fichiers sont lus, jamais modifiés, et limités à ton dossier personnel (ni fichiers cachés, ni le
 `data/` de homedash). ↑ ↓ dans Réglages pour l'ordre ; puis **Enregistrer**.
 
-Une page ne peut ni afficher un site qui le refuse, ni lire ce qu'affiche un autre site (ses non-lus,
-par exemple). Pour tout intégrer avec les pastilles de chaque site (Gmail, Chat, Slack…), une appli
-« tout-en-un » comme Ferdium fait ça très bien, à côté de homedash.
+Une page web ne peut ni afficher un site qui le refuse, ni lire ce qu'il affiche (ses non-lus) : c'est
+ce que l'appli de bureau débloque.
 
 ### 🔔 Activité (la cloche, en haut à droite)
 
@@ -123,9 +123,41 @@ plus récente est publiée, il passe en bleu (`⬆ 1.8.0`) et la cloche le signa
 commande à copier (`git pull && docker compose up -d --build`). Tes données sont sauvegardées
 automatiquement avant la mise à jour (Réglages → Sauvegardes, instantané « avant-x-y-z »).
 
-## Installer comme une appli
+## L'appli de bureau (Mac)
 
-homedash est une PWA : dans Chrome ou Edge, icône ⊕ « Installer » à droite de la barre d'adresse (ou menu
+Une fenêtre homedash à part, dans le Dock, comme Discord ou Slack. Elle **affiche** le homedash de ton
+container : Docker reste nécessaire et tourne comme avant (`docker compose up -d`, il redémarre seul avec
+Docker Desktop). L'appli ne remplace que l'onglet du navigateur ; container arrêté, elle le dit et
+réessaie toute seule.
+
+Ce qu'elle apporte :
+
+- **Tous les onglets perso s'affichent**, Gmail, Google Chat et GitHub compris (dans un navigateur, ces
+  sites refusent d'être affichés dans une page). Tu t'y connectes une fois, dans l'onglet : la connexion
+  est gardée, et vaut pour tous les onglets Google.
+- **Pastilles** : le nombre que le site met dans son titre (« Boîte de réception (3) », « Chat (2) »)
+  devient une pastille rouge sur l'onglet, même fermé. Leur total, plus les non-lus de la cloche, s'affiche
+  sur l'**icône du Dock**.
+- Les liens s'ouvrent dans ton **navigateur par défaut** (Firefox…). Dans un onglet perso : ← pour revenir
+  en arrière, ↗ pour ouvrir la page en cours dans le navigateur.
+- Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
+
+**Installer** : télécharge le `.dmg` de la dernière release `desktop-v…` du repo sur GitHub (`-arm64` pour
+un Mac Apple Silicon, `-x64` pour un Mac Intel), glisse homedash dans Applications. L'appli n'est pas
+signée par Apple : au premier lancement, macOS la bloque. *Réglages Système → Confidentialité et sécurité →
+Ouvrir quand même* (une seule fois), ou dans un terminal :
+`xattr -dr com.apple.quarantine /Applications/homedash.app`.
+
+**Sans passer par GitHub** : `sh desktop/build-local.sh --install` construit l'appli sur ton Mac (Docker
+suffit, pas besoin de Node) et la copie dans Applications.
+
+L'appli charge l'interface depuis le container : `git pull && docker compose up -d --build` la met à jour,
+sans la réinstaller. Un nouveau `.dmg` n'est publié que si la coquille elle-même change. Autre adresse
+que `localhost:7777` (seconde instance) : menu *Présentation → Adresse de homedash…*.
+
+### Sans l'appli : installer la page (PWA)
+
+homedash est aussi une PWA : dans Chrome ou Edge, icône ⊕ « Installer » à droite de la barre d'adresse (ou menu
 ⋮ → *Caster, enregistrer et partager* → *Installer la page en tant qu'application*). Dans Safari (macOS) :
 *Fichier → Ajouter au Dock*. Clic droit sur l'icône installée : raccourcis GitHub, Local et Basecamp.
 

@@ -8,6 +8,8 @@ export type Tab = {
   /** Compteur d'actions en attente, affiché en pastille. 0 ou absent = rien. */
   badge?: number
   badgeTitle?: string
+  /** Pastille rouge (non-lus) plutôt que verte (ménage à faire). */
+  badgeAlert?: boolean
   /** Onglets voisins du même groupe = un « duo » : un seul bloc, deux moitiés cliquables. */
   group?: { id: string; title: string }
   /** Onglet perso « ouvrir à part » : un lien vers `href`, pas une vue de la page. */
@@ -26,7 +28,7 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
         </span>
       ) : null}
       {t.badge ? (
-        <span className="tab-badge" title={t.badgeTitle}>
+        <span className={`tab-badge${t.badgeAlert ? ' is-alert' : ''}`} title={t.badgeTitle}>
           {t.badge > 99 ? '99+' : t.badge}
         </span>
       ) : null}

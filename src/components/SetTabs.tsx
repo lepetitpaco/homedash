@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { browse, type Browse } from '../lib/admin'
 import { isLocal, newTabId, refusesEmbed } from '../lib/customTabs'
+import { desktop } from '../lib/desktop'
 import type { CustomTab } from '../types'
 
 /**
@@ -60,7 +61,8 @@ export default function SetTabs({ tabs, onChange }: { tabs: CustomTab[]; onChang
       {tabs.length ? (
         <div className="xset-list">
           {tabs.map((t, i) => {
-            const warnEmbed = t.embed && !isLocal(t.url) && refusesEmbed(t.url)
+            // Dans l'appli de bureau, une webview : aucun site ne la refuse.
+            const warnEmbed = !desktop && t.embed && !isLocal(t.url) && refusesEmbed(t.url)
             return (
               <div key={t.id} className="xset-row">
                 <input
@@ -118,7 +120,7 @@ export default function SetTabs({ tabs, onChange }: { tabs: CustomTab[]; onChang
                 </span>
                 {warnEmbed ? (
                   <p className="set-hint set-bad xset-note">
-                    Ce site refuse d'être affiché dans une autre page : l'onglet restera blanc. Choisis « ouvrir à part ».
+                    Ce site refuse d'être affiché dans une page : l'onglet restera blanc dans un navigateur (il s'affiche dans l'appli de bureau). Sinon, « ouvrir à part ».
                   </p>
                 ) : null}
                 {picking === t.id ? (
@@ -167,12 +169,24 @@ export default function SetTabs({ tabs, onChange }: { tabs: CustomTab[]; onChang
       <div className="set-add">
         <button onClick={add}>+ ajouter un onglet</button>
       </div>
-      <p className="set-hint">
-        <strong>Dans homedash</strong> : le site ou le fichier s'affiche sous la barre d'onglets. Marche pour les
-        fichiers du disque (PDF, images, texte, HTML) et pour les sites qui l'acceptent ; Gmail, Google Chat, GitHub et
-        la plupart des grands sites le refusent (page blanche). <strong>Ouvrir à part ↗</strong> : l'onglet est un
-        raccourci qui ouvre un onglet du navigateur. Fichiers limités à ton dossier personnel, fichiers cachés exclus.
-      </p>
+      {desktop ? (
+        <p className="set-hint">
+          <strong>Dans homedash</strong> : le site ou le fichier s'affiche sous la barre d'onglets. Tu es dans l'appli
+          de bureau : tous les sites s'affichent (Gmail, Google Chat…), tu t'y connectes une fois, et le nombre de
+          non-lus que le site met dans son titre devient une pastille sur l'onglet et sur l'icône du Dock.{' '}
+          <strong>Ouvrir à part ↗</strong> : l'onglet ouvre le site dans ton navigateur par défaut. Fichiers limités à
+          ton dossier personnel, fichiers cachés exclus.
+        </p>
+      ) : (
+        <p className="set-hint">
+          <strong>Dans homedash</strong> : le site ou le fichier s'affiche sous la barre d'onglets. Dans un navigateur,
+          ça marche pour les fichiers du disque (PDF, images, texte, HTML) et les sites qui l'acceptent ; Gmail, Google
+          Chat, GitHub et la plupart des grands sites le refusent (page blanche). Dans l'<strong>appli de bureau
+          homedash</strong>, tous s'affichent, avec leurs non-lus en pastille. <strong>Ouvrir à part ↗</strong> :
+          l'onglet est un raccourci qui ouvre un onglet du navigateur. Fichiers limités à ton dossier personnel,
+          fichiers cachés exclus.
+        </p>
+      )}
     </>
   )
 }
