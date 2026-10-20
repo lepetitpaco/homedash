@@ -1,11 +1,21 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+
+export type MenuChip = { label: string; color?: string; onSelect: () => void }
 
 export type MenuItem =
   | { sep: true }
+  /** Intertitre d'une section (« Ouvrir », « Texte »…). */
+  | { sep?: false; heading: string }
+  /** Une action déclinée en pastilles sur une ligne (onglet éphémère : un compte par pastille). */
+  | { sep?: false; label: string; icon?: ReactNode; chips: MenuChip[] }
   | {
       sep?: false
       label: string
       hint?: string
+      /** Icône devant le libellé. */
+      icon?: ReactNode
+      /** Pastille de couleur après le libellé (compte de l'onglet cible), avec `hint` pour texte. */
+      dot?: string
       danger?: boolean
       disabled?: boolean
       onSelect: () => void
@@ -75,10 +85,35 @@ export default function ContextMenu({ state, onClose }: Props) {
       {state.title ? <div className="ctx-title">{state.title}</div> : null}
       {state.items.map((item, i) =>
         item.sep ? (
-          <div className="ctx-sep" key={`sep${i}`} />
+          <div className="ctx-sep" key={i} />
+        ) : 'heading' in item ? (
+          <div className="ctx-heading" key={i}>
+            {item.heading}
+          </div>
+        ) : 'chips' in item ? (
+          <div className="ctx-item ctx-chips" key={i}>
+            {item.icon !== undefined ? <span className="ctx-icon">{item.icon}</span> : null}
+            <span>{item.label}</span>
+            <span className="ctx-chip-row">
+              {item.chips.map((c) => (
+                <button
+                  key={c.label}
+                  className="ctx-chip"
+                  style={c.color ? { ['--c' as string]: c.color } : undefined}
+                  onClick={() => {
+                    onClose()
+                    c.onSelect()
+                  }}
+                >
+                  {c.color ? <i className="ctx-dot" /> : null}
+                  {c.label}
+                </button>
+              ))}
+            </span>
+          </div>
         ) : (
           <button
-            key={item.label}
+            key={i}
             className={`ctx-item${item.danger ? ' is-danger' : ''}`}
             role="menuitem"
             disabled={item.disabled}
@@ -87,8 +122,16 @@ export default function ContextMenu({ state, onClose }: Props) {
               item.onSelect()
             }}
           >
+            {item.icon !== undefined ? <span className="ctx-icon">{item.icon}</span> : null}
             <span>{item.label}</span>
-            {item.hint ? <em>{item.hint}</em> : null}
+            {item.dot ? (
+              <em className="ctx-tag" style={{ ['--c' as string]: item.dot }}>
+                <i className="ctx-dot" />
+                {item.hint}
+              </em>
+            ) : item.hint ? (
+              <em>{item.hint}</em>
+            ) : null}
           </button>
         ),
       )}

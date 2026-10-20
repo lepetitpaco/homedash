@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmHost from './components/ConfirmHost'
 import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
-import BasecampBell from './components/BasecampBell'
 import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon from './components/SiteIcon'
@@ -35,6 +34,7 @@ import {
   hostOf,
   isLocal,
   linkTarget,
+  preloads,
   moveTab,
   newFolderId,
   newSessionId,
@@ -43,6 +43,7 @@ import {
   srcOf,
   tabKey,
 } from './lib/customTabs'
+import { perfEvent, setPerfLog } from './lib/perf'
 import { desktop, hasSessions, OPEN_IN_TAB, RELOAD_TAB, type GuestMenu, type OpenInTab } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
@@ -55,18 +56,62 @@ import type { CustomTab, FlatLink, UiConfig } from './types'
 
 const RAIL_KEY = 'homedash:rail'
 
+/** Éphémère, simple ou gardé : rangé en bas, son adresse suit la navigation. */
+const isTemp = (t: CustomTab) => !!t.kept || t.id.startsWith('tmp-')
+
+/** `https://x.com/elonmusk/status/1…` → `x.com/elonmusk/status/1…` (titre du clic droit). */
+function shortLink(url: string): string {
+  try {
+    const u = new URL(url)
+    const path = (u.pathname + u.search).replace(/\/$/, '')
+    const full = u.hostname.replace(/^www\./, '') + path
+    return full.length > 46 ? full.slice(0, 45) + '…' : full
+  } catch {
+    return url
+  }
+}
+
 export default function App() {
   const { raw, cfg, error, saveState, setSaveState, persist, reload } = useConfigState()
   const [notes, setNotes] = useState<Note[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
 
-  const gh = useGithub()
+  // Cadence GitHub : vive sur GitHub et Raccourcis (carte Repos), lente ailleurs.
+  const [ghFront, setGhFront] = useState(true)
+  const gh = useGithub(ghFront)
   const customTabs = useMemo(() => raw?.tabs ?? [], [raw])
   // Onglets éphémères (lien ouvert au clic droit) : dans la barre jusqu'à leur
   // fermeture ou au rechargement ; jamais dans la config, sauf « Garder ».
   const [temps, setTemps] = useState<CustomTab[]>([])
-  const allTabs = useMemo(() => [...customTabs, ...temps], [customTabs, temps])
+  // Onglets perso « officiels », et éphémères gardés (dans la config, rangés avec les éphémères).
+  const regularTabs = useMemo(() => customTabs.filter((t) => !t.kept), [customTabs])
+  const keptTabs = useMemo(() => customTabs.filter((t) => t.kept), [customTabs])
+  const allTemps = useMemo(() => [...keptTabs, ...temps], [keptTabs, temps])
+  const allTabs = useMemo(() => [...regularTabs, ...allTemps], [regularTabs, allTemps])
+  // Adresse où est chaque onglet éphémère (gardé ou non), suivie pendant la navigation.
+  const tempUrl = useRef(new Map<string, string>())
+
+  // ── son ─────────────────────────────────────────────────────────────────
+  // Onglets qui émettent du son (main.js le signale), et ceux qu'on a coupés.
+  const [audible, setAudible] = useState<Record<string, boolean>>({})
+  const [muted, setMuted] = useState<Record<string, boolean>>({})
+  useEffect(
+    () =>
+      desktop?.onAudio?.(({ id, audible: on }) => {
+        const tid = guestTab.current.get(id)
+        if (!tid) return
+        const key = `x:${tid}`
+        setAudible((a) => (!!a[key] === on ? a : { ...a, [key]: on }))
+      }),
+    [],
+  )
+
+  // ── mise en veille ──────────────────────────────────────────────────────
+  // Onglets déchargés (webview démontée, mémoire rendue) ; rechargés au clic.
+  const [asleep, setAsleep] = useState<string[]>([])
+  const lastSeen = useRef(new Map<string, number>())
+  const startedAt = useRef(Date.now())
   // Webview → onglet : de quel onglet vient un lien ou un clic droit (appli de bureau).
   const guestTab = useRef(new Map<number, string>())
   // main.js appelle ces deux fonctions (executeJavaScript) : liens et clic droit dans les sites.
@@ -77,15 +122,28 @@ export default function App() {
     const w = window as unknown as Record<string, unknown>
     w.__homedashRoute = (url: string, fromId: number) => routeRef.current(url, fromId)
     w.__homedashMenu = (m: GuestMenu) => menuRef.current(m)
+    // Journal de performance (main.js) : nom et compte de l'onglet de chaque webview.
+    w.__homedashTabs = () => {
+      const out: Record<number, { label: string; account: string | null }> = {}
+      for (const [id, tid] of guestTab.current) {
+        const t = allTabsRef.current.find((x) => x.id === tid)
+        if (t) out[id] = { label: t.label, account: sessionsRef.current.find((s) => s.id === t.session)?.name ?? null }
+      }
+      return out
+    }
     return () => {
       delete w.__homedashRoute
       delete w.__homedashMenu
+      delete w.__homedashTabs
     }
   }, [])
   const tabFolders = useMemo(() => raw?.tabFolders ?? [], [raw])
   const tabSessions = useMemo(() => raw?.tabSessions ?? [], [raw])
+  const sessionsRef = useRef(tabSessions)
+  sessionsRef.current = tabSessions
   const { tab, selectTab, goBack } = useTabs(cfg?.title, customTabs)
   // ⇧⌘R (appli de bureau) : le site ouvert, ou homedash sur un onglet natif.
+  useEffect(() => setGhFront(tab === 'github' || tab === 'links'), [tab])
   const tabRef = useRef(tab)
   tabRef.current = tab
   useEffect(
@@ -103,8 +161,13 @@ export default function App() {
     const nav = performance.getEntriesByType('navigation')[0] as PerformanceNavigationTiming | undefined
     if (nav?.type !== 'reload') return
     setReloaded(true)
+    // après le chargement de la config, qui dit si le journal est actif
+    const p = window.setTimeout(() => perfEvent('reload'), 3000)
     const t = window.setTimeout(() => setReloaded(false), 1800)
-    return () => window.clearTimeout(t)
+    return () => {
+      window.clearTimeout(t)
+      window.clearTimeout(p)
+    }
   }, [])
   // Clic ou Échap dans un site (appli de bureau) : la page ne les voit pas, on
   // les rejoue pour que menus et panneaux ouverts se ferment comme ailleurs.
@@ -178,6 +241,54 @@ export default function App() {
   // compteur que la cloche, effacé quand on ouvre son panneau ou l'historique.
   const markEvents = events.markSeen
   useEffect(() => setUnread(events.unseen), [events.unseen])
+  useEffect(() => setPerfLog(cfg?.ui.perfLog === true), [cfg?.ui.perfLog])
+  // Mise en veille : l'onglet quitté et l'onglet ouvert sont « vus maintenant » ;
+  // ouvrir un onglet en veille le réveille (sa webview est remontée, il recharge).
+  const prevTab = useRef(tab)
+  useEffect(() => {
+    const now = Date.now()
+    lastSeen.current.set(prevTab.current, now)
+    lastSeen.current.set(tab, now)
+    prevTab.current = tab
+    const t = allTabsRef.current.find((x) => tabKey(x) === tab)
+    if (t) perfEvent('open', { tab: t.label, host: hostOf(t.url), temp: isTemp(t) })
+    setAsleep((a) => {
+      if (!a.includes(tab)) return a
+      if (t) perfEvent('wake', { tab: t.label, host: hostOf(t.url) })
+      return a.filter((k) => k !== tab)
+    })
+  }, [tab])
+  // Toutes les 30 s : les onglets « en veille si inutilisé » restés de côté
+  // plus de `tabSleepMinutes` sont déchargés. Leurs non-lus ne sont plus suivis.
+  const allTabsRef = useRef(allTabs)
+  allTabsRef.current = allTabs
+  const sleepMinutes = cfg?.ui.tabSleepMinutes ?? 5
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      const now = Date.now()
+      const due = allTabsRef.current
+        .filter((t) => t.sleep && t.embed && tabKey(t) !== tabRef.current)
+        .map((t) => tabKey(t))
+        .filter((k) => now - (lastSeen.current.get(k) ?? startedAt.current) > sleepMinutes * 60_000)
+      if (!due.length) return
+      setAsleep((a) => {
+        const add = due.filter((k) => !a.includes(k))
+        if (add.length)
+          perfEvent('sleep', {
+            tabs: allTabsRef.current.filter((t) => add.includes(tabKey(t))).map((t) => t.label),
+          })
+        return add.length ? [...a, ...add] : a
+      })
+      setTabCounts((c) => {
+        if (!due.some((k) => k in c)) return c
+        const next = { ...c }
+        for (const k of due) delete next[k]
+        return next
+      })
+    }, 30_000)
+    return () => window.clearInterval(id)
+  }, [sleepMinutes])
+
   // Icône du Dock (appli de bureau) : non-lus des onglets perso + ceux de la cloche.
   const tabUnread = allTabs.reduce((sum, t) => sum + (t.embed ? (tabCounts[tabKey(t)] ?? 0) : 0), 0)
   useEffect(() => desktop?.setBadge(tabUnread + events.unseen), [tabUnread, events.unseen])
@@ -356,6 +467,8 @@ export default function App() {
             ]
           : []),
         { sep: true },
+        ...(t.embed ? [muteItem(t)] : []),
+        sleepItem(t),
         { label: 'Modifier…', hint: 'nom, adresse', onSelect: openTabSettings },
       ],
     })
@@ -397,6 +510,7 @@ export default function App() {
     const id = `tmp-${newTabId(allTabs.map((t) => t.id)).slice(2)}`
     const label = hostOf(url).replace(/^www\./, '') || 'Onglet'
     setTemps((ts) => [...ts, { id, label, url, embed: true, session }])
+    perfEvent('temp-open', { host: hostOf(url) })
     search.setQuery('')
     selectTab(`x:${id}`)
   }
@@ -415,33 +529,83 @@ export default function App() {
     })
   }
   const closeTemp = (t: CustomTab) => {
-    setTemps((ts) => ts.filter((x) => x.id !== t.id))
+    perfEvent('temp-close', { host: hostOf(t.url), kept: !!t.kept })
+    if (t.kept) saveTabs(customTabs.filter((x) => x.id !== t.id))
+    else setTemps((ts) => ts.filter((x) => x.id !== t.id))
     if (tab === tabKey(t)) selectTab(lastNative.current)
   }
+  /** Éphémère → un autre statut, sur la page où il est : gardé, ou onglet perso. */
+  const promoteTemp = (t: CustomTab, kept: boolean) => {
+    const url = tempUrl.current.get(t.id) ?? t.url
+    const label = t.kept ? t.label : hostOf(url).replace(/^www\./, '') || t.label
+    if (t.kept) {
+      // déjà dans la config : on change juste son statut (et sa page)
+      saveTabs(customTabs.map((x) => (x.id === t.id ? { ...x, url, kept: kept || undefined } : x)))
+      return
+    }
+    const id = newTabId(allTabs.map((x) => x.id))
+    saveTabs([...customTabs, { ...t, id, url, label, ...(kept ? { kept: true } : {}) }])
+    setTemps((ts) => ts.filter((x) => x.id !== t.id))
+    if (tab === tabKey(t)) selectTab(`x:${id}`)
+  }
+  /** Gardé → éphémère simple (il disparaîtra au redémarrage). */
+  const unkeep = (t: CustomTab) => {
+    const id = `tmp-${newTabId(allTabs.map((x) => x.id)).slice(2)}`
+    setTemps((ts) => [...ts, { ...t, id, kept: undefined, url: tempUrl.current.get(t.id) ?? t.url }])
+    saveTabs(customTabs.filter((x) => x.id !== t.id))
+    if (tab === tabKey(t)) selectTab(`x:${id}`)
+  }
+  const toggleSleep = (t: CustomTab) => {
+    const sleep = t.sleep ? undefined : true
+    if (t.id.startsWith('tmp-')) setTemps((ts) => ts.map((x) => (x.id === t.id ? { ...x, sleep } : x)))
+    else saveTabs(customTabs.map((x) => (x.id === t.id ? { ...x, sleep } : x)))
+  }
+  const toggleMute = (t: CustomTab) => {
+    const key = tabKey(t)
+    setMuted((m) => ({ ...m, [key]: !m[key] }))
+  }
+  const muteItem = (t: CustomTab): MenuItem => ({
+    icon: muted[tabKey(t)] ? '🔊' : '🔇',
+    label: muted[tabKey(t)] ? 'Rétablir le son' : 'Couper le son',
+    onSelect: () => toggleMute(t),
+  })
+  const sleepItem = (t: CustomTab): MenuItem => ({
+    icon: '💤',
+    label: `${t.sleep ? '✓ ' : ''}Mettre en veille si inutilisé`,
+    hint: `${ui.tabSleepMinutes} min`,
+    onSelect: () => toggleSleep(t),
+  })
   const tempMenu = (e: React.MouseEvent, t: CustomTab) =>
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
-      title: `${t.label} · éphémère`,
-      items: [
-        {
-          label: 'Garder dans mes onglets',
-          hint: 'ajouté à la barre',
-          onSelect: () => {
-            const id = newTabId(allTabs.map((x) => x.id))
-            saveTabs([...customTabs, { ...t, id }])
-            setTemps((ts) => ts.filter((x) => x.id !== t.id))
-            selectTab(`x:${id}`)
-          },
-        },
-        { label: 'Ouvrir dans le navigateur ↗', onSelect: () => desktop?.openExternal(t.url) },
-        { sep: true },
-        { label: 'Fermer', onSelect: () => closeTemp(t) },
-      ],
+      title: `${t.label} · ${t.kept ? 'éphémère gardé' : 'éphémère'}`,
+      items: t.kept
+        ? [
+            { icon: '📌', label: 'Garder cette page', hint: 'rouvrira ici', onSelect: () => promoteTemp(t, true) },
+            { icon: '◌', label: 'Ne plus garder', hint: 'disparaît au redémarrage', onSelect: () => unkeep(t) },
+            { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
+            { sep: true },
+            muteItem(t),
+            sleepItem(t),
+            { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => desktop?.openExternal(tempUrl.current.get(t.id) ?? t.url) },
+            { sep: true },
+            { icon: '✕', label: 'Fermer', danger: true, onSelect: () => closeTemp(t) },
+          ]
+        : [
+            { icon: '📌', label: 'Garder ouvert', hint: 'survit au redémarrage', onSelect: () => promoteTemp(t, true) },
+            { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
+            { sep: true },
+            muteItem(t),
+            sleepItem(t),
+            { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => desktop?.openExternal(tempUrl.current.get(t.id) ?? t.url) },
+            { sep: true },
+            { icon: '✕', label: 'Fermer', onSelect: () => closeTemp(t) },
+          ],
     })
   /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
   const route = (url: string, fromId: number): boolean => {
-    const target = linkTarget(url, customTabs, fromGuest(fromId))
+    const target = linkTarget(url, regularTabs, fromGuest(fromId))
     if (!target) return false
     openInTab(target, url)
     return true
@@ -451,51 +615,72 @@ export default function App() {
     const act = desktop?.guestAction
     if (!act) return false
     const items: MenuItem[] = []
-    const sep = () => items.length && items.push({ sep: true })
+    const section = (heading: string) => {
+      if (items.length) items.push({ sep: true })
+      items.push({ heading })
+    }
     if (m.link) {
-      for (const t of customTabs.filter((x) => capturesLink(x, m.link))) {
+      section('Ouvrir')
+      // Les onglets de ce site, avec le compte de chacun.
+      for (const t of regularTabs.filter((x) => capturesLink(x, m.link))) {
         const s = sessionOf(t, tabSessions)
-        items.push({ label: `Ouvrir dans ${t.label}${s ? ` (${s.name})` : ''}`, onSelect: () => openInTab(t, m.link) })
+        items.push({
+          icon: iconOf[t.id],
+          label: `Dans ${t.label}`,
+          ...(s ? { dot: s.color, hint: s.name } : {}),
+          onSelect: () => openInTab(t, m.link),
+        })
       }
-      items.push({ label: 'Ouvrir dans un onglet éphémère', onSelect: () => openTemp(m.link) })
-      if (hasSessions)
-        for (const s of tabSessions)
-          items.push({ label: `Onglet éphémère · compte ${s.name}`, onSelect: () => openTemp(m.link, s.id) })
-      items.push({ label: 'Ouvrir dans le navigateur ↗', onSelect: () => desktop?.openExternal(m.link) })
-      items.push({ label: 'Copier le lien', onSelect: () => act(m.id, 'copyText', { text: m.link }) })
+      // Onglet éphémère : une pastille par compte, sur une ligne.
+      items.push(
+        hasSessions && tabSessions.length
+          ? {
+              icon: '◌',
+              label: 'Onglet éphémère',
+              chips: [
+                { label: 'commun', onSelect: () => openTemp(m.link) },
+                ...tabSessions.map((s) => ({ label: s.name, color: s.color, onSelect: () => openTemp(m.link, s.id) })),
+              ],
+            }
+          : { icon: '◌', label: 'Onglet éphémère', onSelect: () => openTemp(m.link) },
+      )
+      items.push({ icon: '↗', label: 'Dans le navigateur', onSelect: () => desktop?.openExternal(m.link) })
+      items.push({ sep: true })
+      items.push({ icon: '⧉', label: 'Copier le lien', onSelect: () => act(m.id, 'copyText', { text: m.link }) })
     }
     if (m.image) {
-      sep()
-      items.push({ label: "Copier l'image", onSelect: () => act(m.id, 'copyImage', { x: m.x, y: m.y }) })
-      items.push({ label: "Ouvrir l'image dans le navigateur ↗", onSelect: () => desktop?.openExternal(m.image) })
+      section('Image')
+      items.push({ icon: '⧉', label: "Copier l'image", onSelect: () => act(m.id, 'copyImage', { x: m.x, y: m.y }) })
+      items.push({ icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => desktop?.openExternal(m.image) })
     }
     if (m.editable) {
-      sep()
-      items.push({ label: 'Couper', hint: '⌘X', disabled: !m.text, onSelect: () => act(m.id, 'cut') })
-      items.push({ label: 'Copier', hint: '⌘C', disabled: !m.text, onSelect: () => act(m.id, 'copy') })
-      items.push({ label: 'Coller', hint: '⌘V', onSelect: () => act(m.id, 'paste') })
-      items.push({ label: 'Tout sélectionner', hint: '⌘A', onSelect: () => act(m.id, 'selectAll') })
+      section('Édition')
+      items.push({ icon: '✂', label: 'Couper', hint: '⌘X', disabled: !m.text, onSelect: () => act(m.id, 'cut') })
+      items.push({ icon: '⧉', label: 'Copier', hint: '⌘C', disabled: !m.text, onSelect: () => act(m.id, 'copy') })
+      items.push({ icon: '📋', label: 'Coller', hint: '⌘V', onSelect: () => act(m.id, 'paste') })
+      items.push({ icon: '▭', label: 'Tout sélectionner', hint: '⌘A', onSelect: () => act(m.id, 'selectAll') })
     } else if (m.text) {
-      sep()
-      items.push({ label: 'Copier', hint: '⌘C', onSelect: () => act(m.id, 'copy') })
       const q = m.text.trim().slice(0, 200)
+      section('Texte')
+      items.push({ icon: '⧉', label: 'Copier', hint: '⌘C', onSelect: () => act(m.id, 'copy') })
       items.push({
-        label: `Rechercher « ${q.length > 30 ? q.slice(0, 30) + '…' : q} »`,
-        hint: 'onglet éphémère',
+        icon: '⌕',
+        label: `Rechercher « ${q.length > 24 ? q.slice(0, 24) + '…' : q} »`,
         onSelect: () => openTemp(`https://www.google.com/search?q=${encodeURIComponent(q)}`),
       })
     }
     if (!items.length) {
-      items.push({ label: 'Précédent', disabled: !m.canBack, onSelect: () => act(m.id, 'back') })
-      items.push({ label: 'Suivant', disabled: !m.canForward, onSelect: () => act(m.id, 'forward') })
-      items.push({ label: 'Recharger', hint: '⇧⌘R', onSelect: () => act(m.id, 'reload') })
+      items.push({ icon: '←', label: 'Précédent', disabled: !m.canBack, onSelect: () => act(m.id, 'back') })
+      items.push({ icon: '→', label: 'Suivant', disabled: !m.canForward, onSelect: () => act(m.id, 'forward') })
+      items.push({ icon: '↻', label: 'Recharger', hint: '⇧⌘R', onSelect: () => act(m.id, 'reload') })
     }
     const from = fromGuest(m.id)
     // x / y d'Electron : déjà dans la fenêtre (pas dans la webview).
     menus.openMenu({
       x: m.x,
       y: m.y,
-      title: m.link ? hostOf(m.link) : from?.label,
+      // Le lien visé (site + début du chemin), sinon l'onglet.
+      title: m.link ? shortLink(m.link) : from?.label,
       items,
     })
     return true
@@ -544,6 +729,15 @@ export default function App() {
         badgeTitle: `${tabCounts[tabKey(t)] ?? 0} non lu(s) d'après la page`,
         badgeAlert: true,
         session: t.embed ? sessionOf(t, tabSessions) : undefined,
+        // Comme son icône dans la barre de gauche : clic droit, ✕ des éphémères, glisser.
+        ...(isTemp(t)
+          ? { onContext: (e: React.MouseEvent) => tempMenu(e, t), onClose: () => closeTemp(t) }
+          : { onContext: (e: React.MouseEvent) => tabMenu(e, t), movable: true }),
+        asleep: asleep.includes(tabKey(t)),
+        // 🔊 qui joue / 🔇 coupé, cliquable comme dans un navigateur
+        ...(audible[tabKey(t)] || muted[tabKey(t)]
+          ? { audio: muted[tabKey(t)] ? ('muted' as const) : ('on' as const), onToggleMute: () => toggleMute(t) }
+          : {}),
       }),
     ),
     // Avec la barre de gauche, Réglages est en bas de celle-ci (comme Discord).
@@ -584,7 +778,6 @@ export default function App() {
           // quitter ce qu'on fait. « Tout voir » ouvre l'historique complet.
           // Basecamp a la sienne : ses non-lus sont ceux de Basecamp, pas du journal.
           <>
-            {bc.data?.enabled ? <BasecampBell data={bc.data} onOpenTab={() => selectTab('basecamp')} /> : null}
             <EventBell
               events={events.events}
               unseen={events.unseen}
@@ -597,6 +790,8 @@ export default function App() {
               }}
               onClear={events.clear}
               onOpenLocal={openLocal}
+              basecamp={bc.data}
+              onOpenBasecamp={() => selectTab('basecamp')}
             />
           </>
         }
@@ -604,8 +799,12 @@ export default function App() {
 
       {railOn ? (
         <Rail
-          tabs={customTabs}
-          temps={temps}
+          tabs={regularTabs}
+          temps={allTemps}
+          asleep={asleep}
+          audible={audible}
+          muted={muted}
+          onToggleMute={toggleMute}
           onTempMenu={tempMenu}
           onTempClose={closeTemp}
           onNewTemp={newTemp}
@@ -635,7 +834,7 @@ export default function App() {
             if (tab === 'settings') window.dispatchEvent(new Event(NEW_TAB_EVENT))
             else selectTab('settings')
           }}
-          onTabs={(next) => saveTabs(next)}
+          onTabs={(next) => saveTabs([...next, ...keptTabs])}
           onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
           onTabMenu={tabMenu}
           onFolderMenu={folderMenu}
@@ -653,17 +852,33 @@ export default function App() {
       {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
           serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}
       {railOn && (shown.startsWith('x:') || shown === 'settings') ? null : (
-        <Tabs tabs={tabs} active={shown} onSelect={selectTab} onAdd={railOn ? undefined : openTabSettings} />
+        <Tabs
+          tabs={tabs}
+          active={shown}
+          onSelect={selectTab}
+          onAdd={railOn ? undefined : openTabSettings}
+          onNewTemp={railOn || !desktop ? undefined : newTemp}
+          onMove={(id, before) => {
+            const d = customTabs.find((t) => tabKey(t) === id)
+            const b = customTabs.find((t) => tabKey(t) === before)
+            if (d && b) saveTabs(moveTab(customTabs, d.id, b.id, d.folder))
+          }}
+        />
       )}
 
       {allTabs
         // Dans l'appli, tous dès le départ : leurs pastilles arrivent sans les ouvrir.
-        .filter((t) => t.embed && (desktop || visited.includes(tabKey(t))))
+        // En veille : démontés (mémoire rendue), remontés au clic.
+        // Montés : ceux déjà ouverts, et dans l'appli ceux dont on suit les non-lus
+        // (`preloads`) ; chaque site chargé coûte 100 à 400 Mo de mémoire.
+        .filter(
+          (t) => t.embed && (visited.includes(tabKey(t)) || (desktop && preloads(t))) && !asleep.includes(tabKey(t)),
+        )
         .map((t) => (
           <CustomTabView
             // une webview ne change pas de session : autre compte = nouvelle webview
             // (éphémère : son adresse suit la navigation, sans recréer la webview)
-            key={`${t.id}:${t.id.startsWith('tmp-') ? '' : t.url}:${sessionOf(t, tabSessions)?.id ?? ''}`}
+            key={`${t.id}:${isTemp(t) ? '' : t.url}:${sessionOf(t, tabSessions)?.id ?? ''}`}
             // compte supprimé = connexion commune
             tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
             session={sessionOf(t, tabSessions)}
@@ -672,14 +887,21 @@ export default function App() {
             onGuest={(id) => guestTab.current.set(id, t.id)}
             icon={iconOf[t.id]}
             onNavigate={
-              t.id.startsWith('tmp-')
-                ? (url) =>
-                    setTemps((ts) =>
-                      ts.map((x) => (x.id === t.id ? { ...x, url, label: hostOf(url).replace(/^www\./, '') || x.label } : x)),
-                    )
+              isTemp(t)
+                ? (url) => {
+                    tempUrl.current.set(t.id, url)
+                    // éphémère simple : son nom suit le site ; gardé : rien n'est écrit
+                    // (une écriture de config relance la lecture de GitHub)
+                    if (!t.kept)
+                      setTemps((ts) =>
+                        ts.map((x) => (x.id === t.id ? { ...x, url, label: hostOf(url).replace(/^www\./, '') || x.label } : x)),
+                      )
+                  }
                 : undefined
             }
             onCount={(n) => setCount(tabKey(t), n)}
+            onLoaded={(ms) => perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })}
+            muted={!!muted[tabKey(t)]}
           />
         ))}
 

@@ -90,3 +90,37 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* Cloche unique : filtre Tout / Activité / Basecamp, et intertitres de section. */
+.bell-filters {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: 0.5rem;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.bell-filter {
+  padding: 0.15rem 0.6rem;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+.bell-filter.is-on {
+  background: var(--panel-2);
+  color: var(--text);
+}
+.bell-section {
+  display: flex;
+  align-items: center;
+  padding: 0.5rem 0.75rem 0.25rem;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}

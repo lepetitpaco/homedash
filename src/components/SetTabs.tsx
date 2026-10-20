@@ -8,6 +8,7 @@ import {
   newFolderId,
   newSessionId,
   newTabId,
+  preloads,
   refusesEmbed,
   sessionOf,
 } from '../lib/customTabs'
@@ -18,6 +19,7 @@ import { confirmDialog } from './ConfirmHost'
 import SiteIcon from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
+import { CATALOG, type CatalogSite } from '../lib/catalog'
 
 type Props = {
   tabs: CustomTab[]
@@ -25,6 +27,9 @@ type Props = {
   sessions: TabSession[]
   /** Onglets, et dossiers / comptes quand ils changent aussi. */
   onChange: (tabs: CustomTab[], folders?: TabFolder[], sessions?: TabSession[]) => void
+  /** Délai de mise en veille (Réglages → `ui.tabSleepMinutes`). */
+  sleepMinutes: number
+  onSleepMinutes: (n: number) => void
 }
 
 /** Nom proposé d'après l'adresse : `mail.google.com` → `mail.google.com`, `~/doc/a.pdf` → `a`. */
@@ -37,7 +42,7 @@ const nameFrom = (url: string) =>
  * les dossiers et comptes en étiquettes. L'ordre se règle en glissant les
  * icônes dans la barre de gauche. Écrit dans config.json avec « Enregistrer ».
  */
-export default function SetTabs({ tabs, folders, sessions, onChange }: Props) {
+export default function SetTabs({ tabs, folders, sessions, onChange, sleepMinutes, onSleepMinutes }: Props) {
   const [open, setOpen] = useState<string | null>(null)
   // Explorateur de fichiers de l'éditeur ouvert.
   const [view, setView] = useState<Browse | null>(null)
@@ -71,6 +76,15 @@ export default function SetTabs({ tabs, folders, sessions, onChange }: Props) {
     window.addEventListener(NEW_TAB_EVENT, take)
     return () => window.removeEventListener(NEW_TAB_EVENT, take)
   }, [])
+
+  /** Un site du catalogue : ajouté, affiché dans homedash, son éditeur ouvert. */
+  const addSite = (site: CatalogSite) => {
+    const id = newTabId(tabs.map((t) => t.id))
+    onChange([...tabs, { id, label: site.label, url: site.url, embed: true }])
+    setOpen(id)
+    setBrowsing(false)
+  }
+  const [catalog, setCatalog] = useState(false)
 
   const remove = (t: CustomTab) => {
     onChange(tabs.filter((x) => x.id !== t.id))
@@ -266,6 +280,66 @@ export default function SetTabs({ tabs, folders, sessions, onChange }: Props) {
           ) : null}
         </div>
 
+        {t.embed ? (
+          <div className="xs-field xs-wide">
+            <span>Mise en veille</span>
+            <span className="xs-seg" role="radiogroup">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!t.sleep}
+                className={t.sleep ? '' : 'is-on'}
+                onClick={() => patch(t.id, { sleep: undefined })}
+              >
+                Jamais
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!!t.sleep}
+                className={t.sleep ? 'is-on' : ''}
+                onClick={() => patch(t.id, { sleep: true })}
+              >
+                Après {sleepMinutes} min sans y aller
+              </button>
+            </span>
+            <em className="xs-note">
+              En veille, l'onglet est déchargé (mémoire libérée) et rechargé quand tu cliques dessus ; il ne reçoit
+              plus de notifications ni de non-lus entre-temps.
+            </em>
+          </div>
+        ) : null}
+
+        {web && t.embed && desktop ? (
+          <div className="xs-field xs-wide">
+            <span>Au démarrage de l'appli</span>
+            <span className="xs-seg" role="radiogroup">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={preloads(t)}
+                className={preloads(t) ? 'is-on' : ''}
+                onClick={() => patch(t.id, { preload: true })}
+              >
+                Charger tout de suite
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!preloads(t)}
+                className={preloads(t) ? '' : 'is-on'}
+                onClick={() => patch(t.id, { preload: false })}
+              >
+                Au premier clic
+              </button>
+            </span>
+            <em className="xs-note">
+              Chargé tout de suite, ses non-lus arrivent sans l'ouvrir ; au premier clic, il ne prend pas de
+              mémoire avant. Par défaut : tout de suite pour les mails, messageries et réseaux sociaux.
+            </em>
+          </div>
+        ) : null}
+
         {web && t.embed ? (
           <div className="xs-field xs-wide">
             <span>Liens vers ce site, cliqués dans un autre onglet</span>
@@ -360,18 +434,53 @@ export default function SetTabs({ tabs, folders, sessions, onChange }: Props) {
     )
   }
 
+  // Les éphémères gardés vivent dans la config mais sont listés à part.
+  const mine = tabs.filter((t) => !t.kept)
+  const kept = tabs.filter((t) => t.kept)
+
   return (
     <div className="xs">
       <div className="xs-head">
-        <p className="set-hint">Des sites ou des fichiers de ton disque, en icônes dans la barre de gauche.</p>
+        <p className="set-hint">Des sites ou des fichiers de ton disque, à côté des onglets de homedash.</p>
+        <button type="button" className={`xs-btn${catalog ? ' is-on' : ''}`} onClick={() => setCatalog(!catalog)}>
+          ☰ Catalogue
+        </button>
         <button type="button" className="xs-primary" onClick={add}>
           ＋ Ajouter un onglet
         </button>
       </div>
 
-      {tabs.length ? (
+      {catalog ? (
+        <div className="xs-catalog">
+          {CATALOG.map((g) => (
+            <div key={g.title} className="xs-catalog-group">
+              <h4>{g.title}</h4>
+              <div className="xs-chips">
+                {g.sites.map((site) => {
+                  const has = tabs.some((t) => hostOf(t.url) === hostOf(site.url))
+                  return (
+                    <button
+                      key={site.url}
+                      type="button"
+                      className={`xs-site${has ? ' is-on' : ''}`}
+                      onClick={() => addSite(site)}
+                      title={has ? `${site.label} est déjà là : un clic en ajoute un autre (un autre compte, par exemple)` : site.url}
+                    >
+                      <SiteIcon url={site.url} name={site.label} />
+                      {site.label}
+                      {has ? <em>✓</em> : null}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {mine.length ? (
         <ul className="xs-list">
-          {tabs.map((t) => {
+          {mine.map((t) => {
             const f = folders.find((x) => x.id === folderOf(t, folders))
             const s = sessionOf(t, sessions)
             const isOpen = open === t.id
@@ -412,6 +521,45 @@ export default function SetTabs({ tabs, folders, sessions, onChange }: Props) {
       ) : (
         <p className="xs-empty">Aucun onglet pour l'instant : « ＋ Ajouter un onglet », puis colle une adresse.</p>
       )}
+
+      {kept.length ? (
+        <section className="xs-group">
+          <header>
+            <h3 className="set-sub">Éphémères gardés</h3>
+          </header>
+          <p className="set-hint">
+            Ouverts depuis un lien ou ⧉, puis « Garder ouvert » : ils survivent au redémarrage, rangés avec les
+            éphémères, sans capter les liens des autres onglets.
+          </p>
+          <ul className="xs-kept">
+            {kept.map((t) => (
+              <li key={t.id}>
+                <span className="xs-icon">{iconOf(t)}</span>
+                <span className="xs-name">{t.label}</span>
+                <span className="xs-url">{t.url}</span>
+                <button type="button" className="xs-btn" onClick={() => patch(t.id, { kept: undefined })}>
+                  ＋ Ajouter à mes onglets
+                </button>
+                <button type="button" className="set-del" onClick={() => remove(t)} title="Fermer et oublier">
+                  ✕
+                </button>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
+
+      <label className="xs-sleep">
+        <span>💤 Mise en veille des onglets qui l'autorisent, après</span>
+        <input
+          type="number"
+          min={1}
+          max={1440}
+          value={sleepMinutes}
+          onChange={(e) => onSleepMinutes(Math.min(1440, Math.max(1, Number.parseInt(e.target.value, 10) || 5)))}
+        />
+        <span>min sans y aller.</span>
+      </label>
 
       <div className="xs-groups">
         <section className="xs-group">

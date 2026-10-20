@@ -1,4 +1,5 @@
 /** Données GitHub servies par le backend Python (`GET /api/github`). */
+import { sameOr, usePageVisible } from './visible'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 export type CiState = 'pass' | 'fail' | 'pending' | 'unknown'
@@ -94,7 +95,12 @@ const PAUSE_KEY = 'homedash:gh-paused'
 /** Compte affiché : une préférence d'affichage, par navigateur. */
 const ACCOUNT_KEY = 'homedash:gh-account'
 
-export function useGithub(): {
+/**
+ * `foreground` : on regarde des données GitHub (onglet GitHub, ou Raccourcis et
+ * sa carte Repos) → cadence `auto_refresh` ; sinon une fois par minute (le
+ * serveur relit de toute façon GitHub pour le journal et la cloche).
+ */
+export function useGithub(foreground = true): {
   data: GithubData | null
   error: string | null
   refresh: (section?: string) => void
@@ -119,6 +125,8 @@ export function useGithub(): {
       return ''
     }
   })
+  const visible = usePageVisible()
+  const lastText = useRef('')
   const q = account ? `account=${encodeURIComponent(account)}` : ''
   const [paused, setPaused] = useState(() => {
     try {
@@ -132,7 +140,7 @@ export function useGithub(): {
     try {
       const next = await get<GithubData>(`api/github${q ? `?${q}` : ''}`)
       setError(null)
-      setData(next)
+      setData((prev) => sameOr(prev, next, lastText))
       if (!next.building) setPending(null)
       return next
     } catch (e) {
@@ -142,13 +150,17 @@ export function useGithub(): {
   }, [q])
 
   useEffect(() => {
+    // Page cachée : on ne sonde plus (le serveur relit GitHub de lui-même, plus
+    // lentement, pour le journal) ; au retour, un tick tout de suite.
+    if (!visible) return
     let alive = true
     const tick = async () => {
       const next = await load()
       if (!alive) return
       if (paused) return // en pause : plus de tick programmé, le serveur reste au repos
       // pendant un fetch serveur, on repasse vite pour afficher le résultat
-      const every = next?.building ? 3000 : Math.max(5, next?.auto_refresh ?? 15) * 1000
+      const auto = Math.max(5, next?.auto_refresh ?? 15)
+      const every = next?.building ? 3000 : (foreground ? auto : Math.max(auto, 60)) * 1000
       timer.current = window.setTimeout(tick, every)
     }
     void tick()
@@ -156,7 +168,7 @@ export function useGithub(): {
       alive = false
       if (timer.current) window.clearTimeout(timer.current)
     }
-  }, [load, paused])
+  }, [load, paused, visible, foreground])
 
   const togglePause = useCallback(() => {
     setPaused((p) => {

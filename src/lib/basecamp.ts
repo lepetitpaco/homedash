@@ -3,6 +3,7 @@
  * la page n'affiche que des liens, rien n'est jamais modifié dans Basecamp.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { sameOr, usePageVisible } from './visible'
 
 export type BcStep = { title: string; url: string; due_on: string | null; completed: boolean }
 
@@ -85,6 +86,8 @@ export function useBasecamp(foreground: boolean) {
   const [error, setError] = useState<string | null>(null)
   const [pulse, setPulse] = useState(0)
   const timer = useRef<number | null>(null)
+  const visible = usePageVisible()
+  const lastText = useRef('')
 
   const load = useCallback(async () => {
     try {
@@ -92,7 +95,7 @@ export function useBasecamp(foreground: boolean) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const next = (await res.json()) as BcData
       setError(null)
-      setData(next)
+      setData((prev) => sameOr(prev, next, lastText))
       return next
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -105,7 +108,9 @@ export function useBasecamp(foreground: boolean) {
     const tick = async () => {
       const next = await load()
       if (!alive) return
-      const every = next?.building || (next?.enabled && !next.loaded) ? 2000 : (foreground ? 15 : 60) * 1000
+      // page cachée : toutes les 5 min (la pastille du Dock passe par le journal)
+      const every =
+        next?.building || (next?.enabled && !next.loaded) ? 2000 : (!visible ? 300 : foreground ? 15 : 60) * 1000
       timer.current = window.setTimeout(tick, every)
     }
     void tick()
@@ -114,7 +119,7 @@ export function useBasecamp(foreground: boolean) {
       if (timer.current) window.clearTimeout(timer.current)
     }
     // `pulse` relance la boucle après un ↻ (règle commune à tous les sondages).
-  }, [load, foreground, pulse])
+  }, [load, foreground, pulse, visible])
 
   const refresh = useCallback(() => {
     setData((d) => (d ? { ...d, building: true } : d))

@@ -119,6 +119,10 @@ export type UiConfig = {
   showTiles: boolean
   showFooter: boolean
   searchPlaceholder: string
+  /** Minutes sans y aller avant qu'un onglet perso en veille soit déchargé. */
+  tabSleepMinutes: number
+  /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
+  perfLog: boolean
 }
 
 /**
@@ -148,6 +152,23 @@ export type CustomTab = {
   capture?: boolean
   /** Autres domaines dont les liens s'ouvrent ici (`twitter.com` pour X). */
   domains?: string[]
+  /**
+   * Mise en veille : déchargé (mémoire libérée) après `ui.tabSleepMinutes` sans
+   * y être allé, rechargé au clic. Absent = jamais (on garde notifs et non-lus).
+   */
+  sleep?: boolean
+  /**
+   * Appli de bureau : chargé dès le démarrage (ses non-lus sont suivis sans
+   * l'ouvrir) plutôt qu'au premier clic. Absent = selon le site (mails,
+   * messageries et réseaux sociaux oui, le reste non), pour ménager la mémoire.
+   */
+  preload?: boolean
+  /**
+   * Onglet éphémère gardé : survit au rechargement et à la fermeture de l'appli,
+   * rangé avec les éphémères (en bas de la barre) plutôt qu'avec les onglets
+   * perso, et ne capte pas les liens des autres onglets.
+   */
+  kept?: boolean
 }
 
 /** Dossier de la barre de gauche : regroupe des onglets perso, se replie. */

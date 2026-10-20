@@ -26,6 +26,7 @@ import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
 import SetRepos, { type Use } from './SetRepos'
+import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
 import SetTeam from './SetTeam'
 
@@ -618,6 +619,8 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             onChange={(tabs, tabFolders = draft.tabFolders, tabSessions = draft.tabSessions) =>
               setDraft({ ...draft, tabs, tabFolders, tabSessions })
             }
+            sleepMinutes={(draft.ui?.tabSleepMinutes as number | undefined) ?? DEFAULT_UI.tabSleepMinutes}
+            onSleepMinutes={(n) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), tabSleepMinutes: n } })}
           />
         </Card>
         ) : null}
@@ -723,6 +726,12 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             (les bannières s'effacent en 5 s), et surtout <strong>mode Concentration désactivé</strong>
             — il les avale sans rien dire.
           </p>
+
+          <h3 className="set-sub">Journal de performance</h3>
+          <SetPerf
+            enabled={draft.ui?.perfLog === true}
+            onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
+          />
 
           <h3 className="set-sub">Interface</h3>
           <div className="set-toggles">

@@ -1,4 +1,5 @@
 /** Dépôts git locaux servis par le backend Python (`GET /api/local`). */
+import { sameOr, usePageVisible } from './visible'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 /** Ordre = urgence. `protected` et `ok` ne demandent rien. */
@@ -162,6 +163,8 @@ export function useLocal(foreground: boolean, onCleanup?: (d: LocalData, prev: L
   const timer = useRef<number | null>(null)
   const previous = useRef<LocalData | null>(null)
   /** Garde-fou : un `building` qui ne retomberait pas ne doit pas figer le bouton. */
+  const visible = usePageVisible()
+  const lastText = useRef('')
   const since = useRef(0)
 
   const load = useCallback(async () => {
@@ -174,7 +177,7 @@ export function useLocal(foreground: boolean, onCleanup?: (d: LocalData, prev: L
       // `previous`, ouvrir la page suffirait à faire sonner tout ce qui traîne.
       if (previous.current && onCleanup) onCleanup(next, previous.current)
       previous.current = next
-      setData(next)
+      setData((prev) => sameOr(prev, next, lastText))
       if (!next.building) {
         setPending(false)
         since.current = 0
@@ -192,9 +195,9 @@ export function useLocal(foreground: boolean, onCleanup?: (d: LocalData, prev: L
   }, [onCleanup])
 
   useEffect(() => {
-    // On sonde même onglet fermé : c'est justement là que le rappel de ménage
-    // sert. Le serveur ne relit le disque que toutes les `refresh` secondes ou
-    // dès que GitHub a bougé, donc sonder plus souvent ne coûte qu'un JSON.
+    // On sonde même onglet fermé (la pastille de l'onglet Local), mais pas page
+    // cachée : personne ne la voit, et le rappel de ménage passe par le journal.
+    if (!visible) return
     let alive = true
     const tick = async () => {
       const next = await load()
@@ -215,7 +218,7 @@ export function useLocal(foreground: boolean, onCleanup?: (d: LocalData, prev: L
     // `pulse` relance la boucle : sans lui, un clic sur ↻ n'était suivi d'aucun
     // sondage avant le tick déjà programmé, soit jusqu'à deux minutes de bouton
     // qui tourne alors que le scan est fini depuis longtemps.
-  }, [load, foreground, pulse])
+  }, [load, foreground, pulse, visible])
 
   const refresh = useCallback(() => {
     setPending(true)

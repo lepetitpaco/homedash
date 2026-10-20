@@ -68,9 +68,13 @@ export default function Masonry({
   )
   useEffect(() => () => observer?.disconnect(), [observer])
 
+  // React 19 : la fonction renvoyée est appelée au retrait de la carte, qui
+  // n'est plus observée (sinon gardée en mémoire jusqu'au démontage du tout).
   const track = useCallback(
     (el: HTMLDivElement | null) => {
-      if (el && observer) observer.observe(el)
+      if (!el || !observer) return
+      observer.observe(el)
+      return () => observer.unobserve(el)
     },
     [observer],
   )

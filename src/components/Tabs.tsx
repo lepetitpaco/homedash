@@ -1,3 +1,5 @@
+import { useState } from 'react'
+
 /** `x:<id>` = onglet perso (`config.tabs`). */
 export type TabId = 'links' | 'github' | 'basecamp' | 'events' | 'local' | 'settings' | `x:${string}`
 
@@ -18,6 +20,17 @@ export type Tab = {
   /** Onglet perso « ouvrir à part » : un lien vers `href`, pas une vue de la page. */
   href?: string
   title?: string
+  /** Onglet perso : clic droit (même menu que son icône dans la barre de gauche). */
+  onContext?: (e: React.MouseEvent) => void
+  /** Onglet éphémère : contour pointillé et ✕ pour le fermer. */
+  onClose?: () => void
+  /** Se réordonne par glisser-déposer (onglets perso enregistrés). */
+  movable?: boolean
+  /** En veille (déchargé) : grisé, 💤 ; un clic le recharge. */
+  asleep?: boolean
+  /** Son : 🔊 joue, 🔇 coupé ; un clic sur l'icône bascule. */
+  audio?: 'on' | 'muted'
+  onToggleMute?: () => void
 }
 
 function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect: (id: TabId) => void }) {
@@ -25,6 +38,24 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
     <>
       <span aria-hidden="true">{t.icon}</span>
       {t.label}
+      {t.audio ? (
+        <span
+          className={`tab-audio${t.audio === 'muted' ? ' is-muted' : ''}`}
+          role="button"
+          title={t.audio === 'muted' ? 'Son coupé : clic pour le rétablir' : 'Joue du son : clic pour le couper'}
+          onClick={(e) => {
+            e.stopPropagation()
+            t.onToggleMute?.()
+          }}
+        >
+          {t.audio === 'muted' ? '🔇' : '🔊'}
+        </span>
+      ) : null}
+      {t.asleep ? (
+        <span className="tab-zz" title="En veille : un clic le recharge">
+          💤
+        </span>
+      ) : null}
       {t.session ? (
         <span className="tab-session" title={`compte ${t.session.name}`}>
           {t.session.name.trim().charAt(0).toUpperCase()}
@@ -47,6 +78,14 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
     return (
       <a
         className={`tab${t.session ? ' has-session' : ''}`}
+        onContextMenu={
+          t.onContext
+            ? (e) => {
+                e.preventDefault()
+                t.onContext!(e)
+              }
+            : undefined
+        }
         style={t.session ? { ['--session' as string]: t.session.color } : undefined}
         href={t.href}
         target="_blank"
@@ -61,9 +100,17 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
     <button
       role="tab"
       aria-selected={active}
-      className={`tab${active ? ' is-active' : ''}${t.session ? ' has-session' : ''}`}
+      className={`tab${active ? ' is-active' : ''}${t.session ? ' has-session' : ''}${t.onClose ? ' is-temp' : ''}${t.asleep ? ' is-asleep' : ''}`}
       style={t.session ? { ['--session' as string]: t.session.color } : undefined}
       onClick={() => onSelect(t.id)}
+      onContextMenu={
+        t.onContext
+          ? (e) => {
+              e.preventDefault()
+              t.onContext!(e)
+            }
+          : undefined
+      }
       title={t.session ? `${t.title ?? t.label} · compte ${t.session.name}` : t.title}
     >
       {inner}
@@ -76,13 +123,60 @@ export default function Tabs({
   active,
   onSelect,
   onAdd,
+  onNewTemp,
+  onMove,
 }: {
   tabs: Tab[]
   active: TabId
   onSelect: (id: TabId) => void
   /** ＋ en bout de barre : ajouter un onglet perso. */
   onAdd?: () => void
+  /** ⧉ en bout de barre : nouvel onglet éphémère (comme dans la barre de gauche). */
+  onNewTemp?: (e: React.MouseEvent) => void
+  /** Onglet `id` glissé avant `before` (onglets `movable`). */
+  onMove?: (id: TabId, before: TabId) => void
 }) {
+  const [drag, setDrag] = useState<TabId | null>(null)
+  const [over, setOver] = useState<TabId | null>(null)
+  /** Un onglet seul : glissable s'il le faut, avec son ✕ s'il est éphémère. */
+  const single = (t: Tab) => {
+    const button = <TabButton t={t} active={t.id === active} onSelect={onSelect} />
+    if (!t.movable && !t.onClose) return <span key={t.id} className="tab-wrap">{button}</span>
+    return (
+      <span
+        key={t.id}
+        className={`tab-wrap${over === t.id ? ' is-over' : ''}${drag === t.id ? ' is-dragging' : ''}`}
+        draggable={!!t.movable}
+        onDragStart={(e) => {
+          e.dataTransfer.effectAllowed = 'move'
+          e.dataTransfer.setData('text/plain', t.label)
+          setDrag(t.id)
+        }}
+        onDragEnd={() => {
+          setDrag(null)
+          setOver(null)
+        }}
+        onDragOver={(e) => {
+          if (!drag || drag === t.id || !t.movable) return
+          e.preventDefault()
+          setOver(t.id)
+        }}
+        onDrop={(e) => {
+          e.preventDefault()
+          if (drag && drag !== t.id) onMove?.(drag, t.id)
+          setDrag(null)
+          setOver(null)
+        }}
+      >
+        {button}
+        {t.onClose ? (
+          <button className="tab-close" onClick={t.onClose} title="Fermer l'onglet éphémère">
+            ✕
+          </button>
+        ) : null}
+      </span>
+    )
+  }
   // Onglets voisins d'un même groupe rassemblés dans un seul bloc.
   const runs: Tab[][] = []
   for (const t of tabs) {
@@ -111,12 +205,17 @@ export default function Tabs({
             ))}
           </div>
         ) : (
-          <TabButton key={run[0].id} t={run[0]} active={run[0].id === active} onSelect={onSelect} />
+          single(run[0])
         ),
       )}
       {onAdd ? (
         <button className="tab tab-add" onClick={onAdd} title="Ajouter un onglet : un site ou un fichier du disque">
           ＋
+        </button>
+      ) : null}
+      {onNewTemp ? (
+        <button className="tab tab-add" onClick={onNewTemp} title="Nouvel onglet éphémère (disparaît à la fermeture)">
+          ⧉
         </button>
       ) : null}
     </nav>

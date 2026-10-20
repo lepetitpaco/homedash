@@ -31,6 +31,8 @@ export const DEFAULT_UI: UiConfig = {
   showTiles: true,
   showFooter: true,
   searchPlaceholder: 'Rechercher…   /  ou  ⌘K',
+  tabSleepMinutes: 5,
+  perfLog: false,
 }
 
 /**
@@ -259,6 +261,11 @@ export function normalizeConfig(raw: Config): Normalized {
   if (ui.theme !== 'light' && ui.theme !== 'dark') ui.theme = DEFAULT_UI.theme
   // Tailles de mise en page : 0, vide ou absurde = défaut ; sinon bornées. Une
   // colonne de titres ou un lien à 0 px cassait toute la grille.
+  {
+    // Mise en veille des onglets : entre 1 min et 1 jour, sinon le défaut.
+    const v = Number(ui.tabSleepMinutes)
+    ui.tabSleepMinutes = Number.isFinite(v) && v >= 1 ? Math.min(1440, Math.round(v)) : DEFAULT_UI.tabSleepMinutes
+  }
   for (const [key, min, max] of SIZE_LIMITS) {
     const v = Number(ui[key])
     ui[key] = !Number.isFinite(v) || v <= 0 ? DEFAULT_UI[key] : Math.min(max, Math.max(min, v))

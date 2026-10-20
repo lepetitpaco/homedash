@@ -13,6 +13,8 @@ export type Desktop = {
   openExternal: (url: string) => void
   /** Action du clic droit d'un site sur sa webview `id` (≥ 1.1.0). */
   guestAction?: (id: number, action: GuestAction, extra?: { text?: string; x?: number; y?: number }) => void
+  /** Un site émet du son ou s'arrête (≥ 1.1.0) ; renvoie de quoi se désabonner. */
+  onAudio?: (cb: (state: { id: number; audible: boolean }) => void) => () => void
   /** Clic ou Échap dans un site (≥ 1.1.0) ; renvoie de quoi se désabonner. */
   onGuestDown?: (cb: (kind: 'click' | 'escape') => void) => () => void
   /** ⇧⌘R du menu de l'appli (≥ 1.1.0) ; renvoie de quoi se désabonner. */
@@ -85,5 +87,6 @@ export type WebviewEl = HTMLElement & {
   getURL: () => string
   getTitle: () => string
   loadURL: (url: string) => Promise<void>
+  setAudioMuted: (muted: boolean) => void
   getWebContentsId: () => number
 }

@@ -127,3 +127,20 @@ export function linkTarget(url: string, tabs: CustomTab[], from?: CustomTab): Cu
   const all = tabs.filter((t) => capturesLink(t, url))
   return all.find((t) => (t.session ?? '') === (from?.session ?? '')) ?? all[0]
 }
+
+/** Sites qui affichent des non-lus : chargés au démarrage de l'appli par défaut. */
+const NOTIFYING = [
+  'mail.google.com', 'chat.google.com', 'outlook.office.com', 'outlook.live.com', 'mail.proton.me',
+  'web.whatsapp.com', 'messenger.com', 'web.telegram.org', 'app.slack.com', 'discord.com',
+  'teams.microsoft.com', 'x.com', 'instagram.com', 'facebook.com', 'linkedin.com', 'bsky.app',
+]
+
+/**
+ * Chargé dès le démarrage de l'appli ? Chaque site chargé coûte 100 à 400 Mo :
+ * seuls ceux dont on veut les non-lus sans les ouvrir le sont d'office.
+ */
+export function preloads(t: CustomTab): boolean {
+  if (t.preload !== undefined) return t.preload
+  const h = hostOf(t.url).replace(/^www\./, '')
+  return NOTIFYING.some((d) => h === d || h.endsWith('.' + d))
+}

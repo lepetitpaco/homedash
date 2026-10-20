@@ -32,7 +32,13 @@ export default function CustomTabView({
   onGuest,
   icon,
   onNavigate,
+  onLoaded,
+  muted = false,
 }: {
+  /** Son coupé (clic droit, ou 🔊 de l'onglet) : réappliqué à chaque chargement. */
+  muted?: boolean
+  /** Durée d'un chargement complet (ouverture, réveil, ↻) : journal de performance. */
+  onLoaded?: (ms: number) => void
   tab: CustomTab
   /** Icône de l'onglet (celle de la barre), rappelée dans l'en-tête. */
   icon?: React.ReactNode
@@ -69,6 +75,18 @@ export default function CustomTabView({
   guestRef.current = onGuest
   const navRef = useRef(onNavigate)
   navRef.current = onNavigate
+  const loadedRef = useRef(onLoaded)
+  loadedRef.current = onLoaded
+  const loadStart = useRef(0)
+  const mutedRef = useRef(muted)
+  mutedRef.current = muted
+  useEffect(() => {
+    try {
+      view.current?.setAudioMuted(muted)
+    } catch {
+      /* webview pas encore attachée : dom-ready s'en charge */
+    }
+  }, [muted])
   // Barre d'adresse (onglets éphémères) : l'adresse affichée, et ce qu'on tape.
   const [address, setAddress] = useState(tab.url)
   const [typing, setTyping] = useState<string | null>(null)
@@ -89,6 +107,7 @@ export default function CustomTabView({
     const onLoad = () => setFailed(null)
     const onReady = () => {
       try {
+        if (mutedRef.current) el.setAudioMuted(true)
         guestRef.current?.(el.getWebContentsId())
       } catch {
         /* pas encore attachée */
@@ -100,8 +119,15 @@ export default function CustomTabView({
       setAddress(url)
       navRef.current?.(url)
     }
-    const onStart = () => setLoading(true)
-    const onStop = () => setLoading(false)
+    const onStart = () => {
+      setLoading(true)
+      if (!loadStart.current) loadStart.current = performance.now()
+    }
+    const onStop = () => {
+      setLoading(false)
+      if (loadStart.current) loadedRef.current?.(Math.round(performance.now() - loadStart.current))
+      loadStart.current = 0
+    }
     el.addEventListener('dom-ready', onReady)
     el.addEventListener('did-navigate', onNav)
     el.addEventListener('did-navigate-in-page', onNav)

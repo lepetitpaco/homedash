@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { FlatLink, Health } from '../types'
+import { usePageVisible } from './visible'
 
 /**
  * Ping en `no-cors` : la réponse est opaque, on ne peut pas lire le statut HTTP.
@@ -33,24 +34,35 @@ export function useHealth(links: FlatLink[], intervalSec: number, timeoutMs: num
     const current = targetsRef.current
     if (current.length === 0) return
     setHealth((prev) => {
+      if (current.every((l) => prev[l.id])) return prev
       const next = { ...prev }
       for (const l of current) if (!next[l.id]) next[l.id] = 'checking'
       return next
     })
-    await Promise.all(
-      current.map(async (l) => {
-        const ok = await ping(l.url, timeoutRef.current)
-        setHealth((prev) => ({ ...prev, [l.id]: ok ? 'up' : 'down' }))
-      }),
-    )
+    // Tous les liens d'abord, puis un seul rendu, et seulement si un voyant change.
+    const results = await Promise.all(current.map((l) => ping(l.url, timeoutRef.current)))
+    setHealth((prev) => {
+      let changed = false
+      const next = { ...prev }
+      current.forEach((l, i) => {
+        const h: Health = results[i] ? 'up' : 'down'
+        if (next[l.id] !== h) {
+          next[l.id] = h
+          changed = true
+        }
+      })
+      return changed ? next : prev
+    })
   }, [])
 
+  const visible = usePageVisible()
   useEffect(() => {
-    if (!signature || intervalSec <= 0) return
+    // page cachée : pas de ping (personne ne regarde les voyants)
+    if (!signature || intervalSec <= 0 || !visible) return
     void runAll()
     const id = setInterval(() => void runAll(), intervalSec * 1000)
     return () => clearInterval(id)
-  }, [signature, intervalSec, runAll])
+  }, [signature, intervalSec, runAll, visible])
 
   return { health, refresh: runAll }
 }

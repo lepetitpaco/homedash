@@ -586,3 +586,144 @@
   font-style: normal;
   font-size: 0.72rem;
 }
+
+/* Barre du haut (barre de gauche cachée) : les onglets perso font tout ce que
+   font leurs icônes — glisser, clic droit, ✕ des éphémères. */
+.tab-wrap {
+  position: relative;
+  display: inline-flex;
+}
+.tab-wrap.is-dragging {
+  opacity: 0.4;
+}
+.tab-wrap.is-over::before {
+  content: '';
+  position: absolute;
+  left: -2px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  border-radius: 1px;
+  background: #60a5fa;
+}
+.tab.is-temp {
+  border: 1px dashed color-mix(in srgb, var(--text-faint) 60%, transparent);
+  border-bottom-style: dashed;
+  border-radius: 0.4rem 0.4rem 0 0;
+  padding-right: 1.6rem;
+}
+.tab-close {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  margin-top: -9px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: none;
+  color: var(--text-faint);
+  font-size: 10px;
+  cursor: pointer;
+}
+.tab-close:hover {
+  background: #f23f43;
+  color: #fff;
+}
+
+.tab.is-asleep > span:first-child {
+  filter: grayscale(1);
+  opacity: 0.55;
+}
+.tab-zz {
+  font-size: 0.7rem;
+}
+
+/* Catalogue de sites (Réglages → Onglets perso). */
+.xs-catalog {
+  display: grid;
+  gap: 0.8rem;
+  padding: 0.9rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+.xs-catalog-group h4 {
+  margin: 0 0 0.4rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.xs-site {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.xs-site:hover {
+  border-color: #60a5fa;
+}
+.xs-site.is-on {
+  border-color: color-mix(in srgb, #3fb950 50%, var(--border));
+}
+.xs-site em {
+  color: var(--sig-ok);
+  font-style: normal;
+}
+.xs-site .favicon {
+  width: 15px;
+  height: 15px;
+}
+.xs-btn.is-on {
+  color: var(--text);
+  border-color: #60a5fa;
+}
+.xs-kept {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.4rem;
+}
+.xs-kept li {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 0.82rem;
+}
+.xs-sleep {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: var(--text-dim);
+}
+.xs-sleep input {
+  width: 4.5rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text);
+  font: inherit;
+  padding: 0.25rem 0.4rem;
+  text-align: center;
+}
+
+.tab-audio {
+  font-size: 0.75rem;
+  padding: 0 2px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.tab-audio:hover {
+  background: var(--panel-2);
+}

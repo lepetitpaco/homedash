@@ -375,7 +375,7 @@ function Urgent({ items, onOpen }: { items: Located[]; onOpen: (key: string) => 
  * Réglages, à deux niveaux (projets, puis leurs tableaux et to-dos) : la vue
  * d'ensemble en un coup d'œil, un clic pour afficher le contenu à droite.
  * Chaque ligne est un lien vers Basecamp ; rien n'est coché d'ici. Les
- * notifications non lues ont leur bouton dans la barre du haut (`BasecampBell`).
+ * notifications non lues sont dans la cloche de la barre du haut (`EventBell`, filtre Basecamp).
  */
 export default function BasecampView({
   data,

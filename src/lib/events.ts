@@ -92,7 +92,10 @@ export function useEvents(openLocal: () => void): {
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const data = (await res.json()) as Payload
       setError(null)
-      setEvents(data.events)
+      // même journal (même dernier seq, même taille) : rien à redessiner
+      setEvents((prev) =>
+        prev.length === data.events.length && prev[0]?.seq === data.events[0]?.seq ? prev : data.events,
+      )
       setLatest(data.seq)
 
       // Journal reparti en arrière (data/ remonté d'une sauvegarde, fichier

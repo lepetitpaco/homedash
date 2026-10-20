@@ -178,6 +178,72 @@ code {
   cursor: default;
 }
 
+/* Sections, icônes et pastilles (clic droit des sites). */
+.ctx-heading {
+  padding: 6px 9px 2px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.ctx-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 16px;
+  flex: 0 0 auto;
+  color: var(--text-dim);
+}
+.ctx-icon .favicon {
+  width: 15px;
+  height: 15px;
+}
+.ctx-dot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--c);
+}
+.ctx-item em.ctx-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c) 18%, transparent);
+  color: var(--text);
+  font-size: 10px;
+}
+.ctx-chips {
+  cursor: default;
+}
+.ctx-chips:hover {
+  background: none !important;
+}
+.ctx-chip-row {
+  display: inline-flex;
+  gap: 4px;
+  margin-left: auto;
+  padding-left: 12px;
+}
+.ctx-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid color-mix(in srgb, var(--c, var(--text-faint)) 50%, var(--border));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--c, transparent) 12%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 11px;
+  cursor: pointer;
+}
+.ctx-chip:hover {
+  background: color-mix(in srgb, var(--c, #60a5fa) 28%, transparent);
+}
+
 .ctx-item.is-danger {
   color: #f87171;
 }

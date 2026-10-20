@@ -34,6 +34,12 @@ type Props = {
   tabs: CustomTab[]
   /** Onglets éphémères (lien ouvert au clic droit) : en bas, ni glissables ni rangés. */
   temps: CustomTab[]
+  /** Onglets en veille (clés `x:…`) : grisés, 💤. */
+  asleep: string[]
+  /** Son par onglet (clés `x:…`) : 🔊 joue, 🔇 coupé ; un clic sur l'icône bascule. */
+  audible: Record<string, boolean>
+  muted: Record<string, boolean>
+  onToggleMute: (tab: CustomTab) => void
   onTempMenu: (e: React.MouseEvent, tab: CustomTab) => void
   onTempClose: (tab: CustomTab) => void
   /** ⧉ : nouvel onglet éphémère vierge. */
@@ -73,6 +79,10 @@ type Props = {
 export default function Rail({
   tabs,
   temps,
+  asleep,
+  audible,
+  muted,
+  onToggleMute,
   onTempMenu,
   onTempClose,
   onNewTemp,
@@ -149,6 +159,21 @@ export default function Rail({
             </span>
           ) : null}
           {badge(unread(t))}
+{audible[key] || muted[key] ? (
+            <span
+              className={`rail-audio${muted[key] ? ' is-muted' : ''}`}
+              role="button"
+              title={muted[key] ? 'Son coupé : clic pour le rétablir' : 'Joue du son : clic pour le couper'}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onToggleMute(t)
+              }}
+            >
+              {muted[key] ? '🔇' : '🔊'}
+            </span>
+          ) : null}
+          {asleep.includes(key) ? <span className="rail-zz" aria-hidden="true">💤</span> : null}
           {!t.embed ? <span className="rail-out" aria-hidden="true">↗</span> : null}
         </span>
         {wide ? (
@@ -167,7 +192,7 @@ export default function Rail({
     return (
       <div
         key={t.id}
-        className={`rail-item${active === key ? ' is-active' : ''}${zone ? ` is-${zone}` : ''}${drag === t.id ? ' is-dragging' : ''}`}
+        className={`rail-item${active === key ? ' is-active' : ''}${zone ? ` is-${zone}` : ''}${drag === t.id ? ' is-dragging' : ''}${asleep.includes(key) ? ' is-asleep' : ''}`}
         draggable
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move'
@@ -281,7 +306,7 @@ export default function Rail({
               return (
                 <div
                   key={t.id}
-                  className={`rail-item rail-temp${active === key ? ' is-active' : ''}`}
+                  className={`rail-item rail-temp${active === key ? ' is-active' : ''}${asleep.includes(key) ? ' is-asleep' : ''}`}
                   onContextMenu={(e) => {
                     e.preventDefault()
                     onTempMenu(e, t)
@@ -299,6 +324,21 @@ export default function Rail({
                     >
                       {icons[t.id]}
                       {badge(unread(t))}
+                      {asleep.includes(key) ? <span className="rail-zz" aria-hidden="true">💤</span> : null}
+                      {audible[key] || muted[key] ? (
+                        <span
+                          className={`rail-audio${muted[key] ? ' is-muted' : ''}`}
+                          role="button"
+                          title={muted[key] ? 'Son coupé : clic pour le rétablir' : 'Joue du son : clic pour le couper'}
+                          onClick={(e) => {
+                            e.preventDefault()
+                            e.stopPropagation()
+                            onToggleMute(t)
+                          }}
+                        >
+                          {muted[key] ? '🔇' : '🔊'}
+                        </span>
+                      ) : null}
                     </span>
                     {wide ? <span className="rail-label">{t.label}</span> : null}
                   </button>

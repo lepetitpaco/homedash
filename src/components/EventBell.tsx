@@ -1,11 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
+import type { BcData } from '../lib/basecamp'
 import type { HdEvent } from '../lib/events'
+import { agoShort } from '../lib/local'
 import { notifState, toggleNotifications, type NotifState } from '../lib/notifications'
 import { confirmDialog } from './ConfirmHost'
 import { EventRow } from './EventFeed'
 
 const SHOWN = 20
+
+/** Notifs Basecamp : une icône par rubrique. */
+const BC_ICON: Record<string, string> = {
+  inbox: '📥',
+  chats: '💬',
+  pings: '💬',
+  mentions: '@',
+  bubbles: '🫧',
+}
+
+type Filter = 'all' | 'activity' | 'basecamp'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'non supportées par ce navigateur',
@@ -17,6 +30,12 @@ const NOTIF_LABEL: Record<NotifState, string> = {
 }
 
 /**
+ * Une seule cloche pour tout : le journal de homedash (CI, PRs, Local…) et les
+ * notifications Basecamp non lues, avec un filtre en tête quand Basecamp est
+ * connecté. La pastille additionne les deux. Ouvrir efface les nouveautés du
+ * journal ; une notif Basecamp, elle, reste comptée tant qu'elle n'est pas lue
+ * dans Basecamp (lecture seule : on ne la marque jamais).
+ *
  * Cloche de la barre du haut : le journal n'est pas un endroit où l'on travaille,
  * c'est un fil qu'on consulte quand la pastille s'allume, puis on revient à ce
  * qu'on faisait. D'où un panneau qui s'ouvre par-dessus l'onglet courant au lieu
@@ -35,7 +54,13 @@ export default function EventBell({
   onShowAll,
   onClear,
   onOpenLocal,
+  basecamp,
+  onOpenBasecamp,
 }: {
+  /** Basecamp connecté : ses notifs non lues dans la même cloche. */
+  basecamp?: BcData | null
+  /** « Mes tâches → » : l'onglet Basecamp. */
+  onOpenBasecamp?: () => void
   events: HdEvent[]
   unseen: number
   seen: number
@@ -49,6 +74,10 @@ export default function EventBell({
   const [open, setOpen] = useState(false)
   const [mark, setMark] = useState(seen)
   const [notif, setNotif] = useState<NotifState>('default')
+  const [filter, setFilter] = useState<Filter>('all')
+  const bc = basecamp?.enabled ? basecamp : null
+  const bcUnread = bc?.unreads.length ?? 0
+  const total = unseen + bcUnread
   const wrap = useRef<HTMLDivElement>(null)
   const close = useCallback(() => setOpen(false), [])
 
@@ -80,19 +109,45 @@ export default function EventBell({
       <button
         className={`icon-btn bell-btn${open ? ' is-open' : ''}`}
         onClick={toggle}
-        title={unseen ? `${unseen} événement(s) depuis ta dernière visite` : 'Activité'}
-        aria-label="Activité"
+        title={
+          [unseen ? `${unseen} événement(s) depuis ta dernière visite` : '', bcUnread ? `${bcUnread} notif(s) Basecamp non lue(s)` : '']
+            .filter(Boolean)
+            .join(' · ') || 'Notifications'
+        }
+        aria-label="Notifications"
         aria-expanded={open}
       >
         🔔
-        {unseen ? <span className="bell-badge">{unseen > 99 ? '99+' : unseen}</span> : null}
+        {total ? <span className="bell-badge">{total > 99 ? '99+' : total}</span> : null}
       </button>
 
       {open ? (
-        <div className="bell-panel" role="dialog" aria-label="Activité">
+        <div className="bell-panel" role="dialog" aria-label="Notifications">
           <div className="bell-head">
-            <strong>Activité</strong>
-            <span className="bell-head-count">{events.length}</span>
+            <strong>Notifications</strong>
+            {bc ? (
+              <span className="bell-filters" role="radiogroup">
+                {(
+                  [
+                    ['all', 'Tout'],
+                    ['activity', `Activité${unseen ? ` · ${unseen}` : ''}`],
+                    ['basecamp', `🏕 Basecamp${bcUnread ? ` · ${bcUnread}` : ''}`],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    role="radio"
+                    aria-checked={filter === id}
+                    className={`bell-filter${filter === id ? ' is-on' : ''}`}
+                    onClick={() => setFilter(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </span>
+            ) : (
+              <span className="bell-head-count">{events.length}</span>
+            )}
             <span className="set-spacer" />
             {events.length > 0 ? (
               <button
@@ -116,14 +171,54 @@ export default function EventBell({
           </div>
 
           <div className="bell-list">
-            {error ? <p className="gh-empty">✗ journal illisible : {error}</p> : null}
-            {events.length === 0 && !error ? (
+            {bc && filter !== 'activity' ? (
+              <>
+                <div className="bell-section">
+                  🏕 Basecamp · {bcUnread ? `${bcUnread} non lue(s)` : 'rien de non lu'}
+                  <span className="set-spacer" />
+                  {onOpenBasecamp ? (
+                    <button className="bell-link" onClick={go(onOpenBasecamp)}>
+                      Mes tâches →
+                    </button>
+                  ) : null}
+                </div>
+                {bc.error ? <p className="gh-empty">⚠ {bc.error}</p> : null}
+                {bc.unreads.map((n) => (
+                  <a
+                    key={n.id}
+                    className="ev-row is-info"
+                    href={n.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    title={n.excerpt || n.title}
+                    onClick={() => setOpen(false)}
+                  >
+                    <time className="ev-time">{n.ts ? agoShort(n.ts).replace('il y a ', '') : ''}</time>
+                    <div className="ev-main">
+                      <div className="ev-title">
+                        <span aria-hidden="true">{BC_ICON[n.section] ?? '🔔'} </span>
+                        {n.title}
+                        {n.unread_count > 1 ? <span className="bc-notif-count"> · {n.unread_count}</span> : null}
+                      </div>
+                      <div className="ev-body">
+                        {[n.project, n.creator && n.excerpt ? `${n.creator} — ${n.excerpt}` : n.creator || n.excerpt]
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </div>
+                    </div>
+                  </a>
+                ))}
+                {filter === 'all' ? <div className="bell-section">Activité</div> : null}
+              </>
+            ) : null}
+            {filter !== 'basecamp' && error ? <p className="gh-empty">✗ journal illisible : {error}</p> : null}
+            {filter !== 'basecamp' && events.length === 0 && !error ? (
               <p className="gh-empty">
                 Rien pour l'instant : CI qui casse ou repasse au vert, PR mergée, Renovate publiée,
                 branche locale devenue inutile arriveront ici.
               </p>
             ) : null}
-            {shown.map((e) => (
+            {(filter === 'basecamp' ? [] : shown).map((e) => (
               <EventRow
                 key={e.seq}
                 event={e}
