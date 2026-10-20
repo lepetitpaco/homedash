@@ -9,6 +9,7 @@ backend/                  Python stdlib, aucune dépendance
   accounts.py             comptes GitHub : un module github.py chargé par compte, migration de config
   github.py               données GitHub d'un compte (cache ETag)
   basecamp.py             Basecamp en lecture seule : OAuth, mes tâches, mes notifications
+  localfile.py            onglets perso : un fichier du dossier personnel servi en lecture seule
   events.py               journal des événements (la cloche)
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
@@ -40,8 +41,9 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/basecamp`, `/api/basecamp/refresh` | GET, POST | Tâches et notifs non lues, relecture |
 | `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
+| `/api/file?path=` | GET | Fichier / dossier d'un onglet perso (dossier personnel, sans caché ni `data/`) |
 | `/api/local`, `/api/local/refresh` | GET, POST | Dépôts du disque, relecture |
-| `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (limité au dossier personnel) |
+| `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (limité au dossier personnel ; `&files=1` liste aussi les fichiers) |
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |
 | `/api/backups[/{nom}[/restore]]` | GET, POST, DELETE | Instantanés |
 | `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |

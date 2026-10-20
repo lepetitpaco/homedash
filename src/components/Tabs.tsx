@@ -1,4 +1,5 @@
-export type TabId = 'links' | 'github' | 'basecamp' | 'events' | 'local' | 'settings'
+/** `x:<id>` = onglet perso (`config.tabs`). */
+export type TabId = 'links' | 'github' | 'basecamp' | 'events' | 'local' | 'settings' | `x:${string}`
 
 export type Tab = {
   id: TabId
@@ -9,23 +10,45 @@ export type Tab = {
   badgeTitle?: string
   /** Onglets voisins du même groupe = un « duo » : un seul bloc, deux moitiés cliquables. */
   group?: { id: string; title: string }
+  /** Onglet perso « ouvrir à part » : un lien vers `href`, pas une vue de la page. */
+  href?: string
+  title?: string
 }
 
 function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect: (id: TabId) => void }) {
+  const inner = (
+    <>
+      <span aria-hidden="true">{t.icon}</span>
+      {t.label}
+      {t.href ? (
+        <span className="tab-out" aria-hidden="true">
+          ↗
+        </span>
+      ) : null}
+      {t.badge ? (
+        <span className="tab-badge" title={t.badgeTitle}>
+          {t.badge > 99 ? '99+' : t.badge}
+        </span>
+      ) : null}
+    </>
+  )
+  // Ouvert à part : un vrai lien (clic milieu, ⌘-clic, glisser fonctionnent).
+  if (t.href) {
+    return (
+      <a className="tab" href={t.href} target="_blank" rel="noreferrer" title={t.title ?? t.href}>
+        {inner}
+      </a>
+    )
+  }
   return (
     <button
       role="tab"
       aria-selected={active}
       className={`tab${active ? ' is-active' : ''}`}
       onClick={() => onSelect(t.id)}
+      title={t.title}
     >
-      <span aria-hidden="true">{t.icon}</span>
-      {t.label}
-      {t.badge ? (
-        <span className="tab-badge" title={t.badgeTitle}>
-          {t.badge}
-        </span>
-      ) : null}
+      {inner}
     </button>
   )
 }
@@ -34,10 +57,13 @@ export default function Tabs({
   tabs,
   active,
   onSelect,
+  onAdd,
 }: {
   tabs: Tab[]
   active: TabId
   onSelect: (id: TabId) => void
+  /** ＋ en bout de barre : ajouter un onglet perso. */
+  onAdd?: () => void
 }) {
   // Onglets voisins d'un même groupe rassemblés dans un seul bloc.
   const runs: Tab[][] = []
@@ -70,6 +96,11 @@ export default function Tabs({
           <TabButton key={run[0].id} t={run[0]} active={run[0].id === active} onSelect={onSelect} />
         ),
       )}
+      {onAdd ? (
+        <button className="tab tab-add" onClick={onAdd} title="Ajouter un onglet : un site ou un fichier du disque">
+          ＋
+        </button>
+      ) : null}
     </nav>
   )
 }

@@ -1,0 +1,117 @@
+/* ═══ Onglets perso ═════════════════════════════════════════════════════════
+   Un site ou un fichier du disque, dans un cadre qui remplit l'écran sous la
+   barre d'onglets ; ou un simple lien (↗) dans la barre.                     */
+.tab {
+  text-decoration: none;
+}
+.tab-out {
+  font-size: 0.7rem;
+  opacity: 0.6;
+}
+.tab-add {
+  color: var(--text-faint);
+  padding-inline: 0.6rem;
+}
+
+.xtab {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.xtab[hidden] {
+  display: none;
+}
+.xtab-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  font-size: 0.8rem;
+}
+.xtab-title {
+  font-weight: 600;
+  color: var(--text);
+}
+.xtab-url {
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  max-width: 40ch;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.xtab-hint {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+}
+.xtab-warn {
+  color: var(--sig-warn);
+  font-size: 0.74rem;
+}
+.xtab-btn {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.76rem;
+  padding: 0.2rem 0.55rem;
+  text-decoration: none;
+}
+.xtab-btn:hover {
+  color: var(--text);
+  border-color: #60a5fa;
+}
+.xtab-frame {
+  width: 100%;
+  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 120px);
+  min-height: 420px;
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  /* fond blanc : une page sans fond déclaré (PDF, texte) reste lisible en thème sombre */
+  background: #fff;
+}
+
+/* Réglages → Onglets perso */
+.xset-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.xset-row {
+  display: grid;
+  grid-template-columns: 3rem minmax(8rem, 12rem) minmax(12rem, 1fr) auto auto auto;
+  align-items: center;
+  gap: 0.4rem;
+}
+.xset-row input,
+.xset-row select,
+.xset-row > button {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 0.35rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.28rem 0.45rem;
+  min-width: 0;
+}
+.xset-row > button {
+  cursor: pointer;
+}
+.xset-row input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+.xset-icon {
+  text-align: center;
+}
+.xset-moves {
+  display: flex;
+  gap: 0.15rem;
+}
+.xset-note {
+  grid-column: 1 / -1;
+  margin: 0;
+}

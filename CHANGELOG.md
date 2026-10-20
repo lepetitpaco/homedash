@@ -4,6 +4,14 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.12.0 — 2026-10-20
+
+- **Onglets perso** : le **＋** au bout de la barre d'onglets ajoute un onglet vers un site ou un fichier /
+  dossier de ton disque (PDF, image, texte…). Au choix, il s'affiche **dans homedash** ou s'**ouvre à
+  part** dans le navigateur. Gmail, Google Chat et la plupart des grands sites refusent l'affichage
+  intégré : pour eux, « ouvrir à part ».
+- Réglages : le menu de gauche range les parties par thème (GitHub, Connexions, La page, Données).
+
 ## 1.11.0 — 2026-10-20
 
 - homedash s'installe comme une **appli** (PWA) : icône dans le Dock ou la barre des tâches, fenêtre à

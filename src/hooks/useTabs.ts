@@ -1,19 +1,23 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TabId } from '../components/Tabs'
+import type { CustomTab } from '../types'
 import { initTitleCounter } from '../lib/notifications'
 
 const TAB_KEY = 'homedash:tab'
 const TABS = ['links', 'github', 'basecamp', 'local', 'settings'] as const
 
+/** Onglet connu, ou onglet perso (`x:…`) : son existence se vérifie à l'affichage. */
+const known = (id: string) => (TABS as readonly string[]).includes(id) || id.startsWith('x:')
+
 /** Onglet ouvert, mémorisé d'une visite à l'autre, et titre de l'onglet du navigateur. */
-export function useTabs(title: string | undefined) {
+export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
   const [tab, setTab] = useState<TabId>('links')
 
   useEffect(() => {
     // `?tab=github` : raccourcis de l'appli installée (manifest). Vaut pour
     // cette ouverture, puis l'adresse redevient propre.
     const asked = new URLSearchParams(window.location.search).get('tab')
-    if (asked && (TABS as readonly string[]).includes(asked)) {
+    if (asked && known(asked)) {
       setTab(asked as TabId)
       const url = new URL(window.location.href)
       url.searchParams.delete('tab')
@@ -22,7 +26,7 @@ export function useTabs(title: string | undefined) {
     }
     try {
       const savedTab = localStorage.getItem(TAB_KEY)
-      if (savedTab && (TABS as readonly string[]).includes(savedTab)) setTab(savedTab as TabId)
+      if (savedTab && known(savedTab)) setTab(savedTab as TabId)
     } catch {
       /* stockage indisponible */
     }
@@ -51,16 +55,18 @@ export function useTabs(title: string | undefined) {
   // qu'un « homedash » indifférencié dans la barre d'onglets et l'historique.
   useEffect(() => {
     if (!title) return
-    const label = {
-      links: 'Raccourcis',
-      github: 'GitHub',
-      basecamp: 'Basecamp',
-      events: 'Activité',
-      local: 'Local',
-      settings: 'Réglages',
-    }[tab]
+    const label = tab.startsWith('x:')
+      ? (custom.find((t) => `x:${t.id}` === tab)?.label ?? 'Raccourcis')
+      : {
+          links: 'Raccourcis',
+          github: 'GitHub',
+          basecamp: 'Basecamp',
+          events: 'Activité',
+          local: 'Local',
+          settings: 'Réglages',
+        }[tab as Exclude<TabId, `x:${string}`>]
     initTitleCounter(`${label} · ${title}`)
-  }, [title, tab])
+  }, [title, tab, custom])
 
   return { tab, selectTab, goBack }
 }

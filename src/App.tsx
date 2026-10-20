@@ -4,6 +4,7 @@ import ContextMenu from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import BasecampBell from './components/BasecampBell'
 import BasecampView from './components/BasecampView'
+import CustomTabView from './components/CustomTabView'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
@@ -25,6 +26,7 @@ import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
 import { useEvents } from './lib/events'
 import { lateCount, useBasecamp } from './lib/basecamp'
+import { isLocal, srcOf, tabKey } from './lib/customTabs'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -41,7 +43,14 @@ export default function App() {
   const searchRef = useRef<HTMLInputElement>(null)
 
   const gh = useGithub()
-  const { tab, selectTab, goBack } = useTabs(cfg?.title)
+  const customTabs = useMemo(() => raw?.tabs ?? [], [raw])
+  const { tab, selectTab, goBack } = useTabs(cfg?.title, customTabs)
+  // Onglets perso affichés dans la page : montés à la première visite puis
+  // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
+  const [visited, setVisited] = useState<string[]>([])
+  useEffect(() => {
+    if (tab.startsWith('x:')) setVisited((v) => (v.includes(tab) ? v : [...v, tab]))
+  }, [tab])
   const openLocal = useCallback(() => selectTab('local'), [selectTab])
   // Sonde en continu, onglet ouvert ou non : c'est ce qui alimente la pastille de
   // l'onglet et le rappel dans la barre GitHub. Le rappel de ménage lui-même est
@@ -190,10 +199,28 @@ export default function App() {
           },
         ]
       : []),
+    // Onglets perso : un site ou un fichier du disque, affiché ici ou ouvert à part.
+    ...customTabs.map(
+      (t): Tab => ({
+        id: tabKey(t),
+        icon: t.icon || (isLocal(t.url) ? '📄' : '🌐'),
+        label: t.label,
+        title: t.url,
+        ...(t.embed ? {} : { href: srcOf(t.url) }),
+      }),
+    ),
     { id: 'settings', icon: '⚙', label: 'Réglages' },
   ]
+  // Onglet perso supprimé (ou mémorisé d'une autre config) : retour aux raccourcis.
+  const openCustom = customTabs.find((t) => tabKey(t) === tab && t.embed)
+  const shown: TabId = tab.startsWith('x:') && !openCustom ? 'links' : tab
   // La recherche court-circuite les onglets : ses résultats valent partout.
-  const view: TabId | 'search' = searching ? 'search' : tab
+  const view: TabId | 'search' = searching ? 'search' : shown
+  const openTabSettings = () => {
+    search.setQuery('')
+    presetSettingsSection('set-tabs')
+    selectTab('settings')
+  }
 
   return (
     <div className="app" style={layoutVars(ui)}>
@@ -237,7 +264,18 @@ export default function App() {
         }
       />
 
-      <Tabs tabs={tabs} active={tab} onSelect={selectTab} />
+      <Tabs tabs={tabs} active={shown} onSelect={selectTab} onAdd={openTabSettings} />
+
+      {customTabs
+        .filter((t) => t.embed && visited.includes(tabKey(t)))
+        .map((t) => (
+          <CustomTabView
+            key={`${t.id}:${t.url}`}
+            tab={t}
+            hidden={view !== tabKey(t)}
+            onSettings={openTabSettings}
+          />
+        ))}
 
       {view === 'search' ? (
         <SearchResults
@@ -299,7 +337,12 @@ export default function App() {
           }}
         />
       ) : view === 'settings' ? (
-        <SettingsPage config={raw} onSave={persist} onReload={reload} saving={saveState.kind === 'saving'} />
+        <SettingsPage
+          config={raw}
+          onSave={persist}
+          onReload={reload}
+          saving={saveState.kind === 'saving'}
+        />
       ) : view === 'github' ? (
         <GithubView
           ctx={ctx}
@@ -308,7 +351,7 @@ export default function App() {
             selectTab('settings')
           }}
         />
-      ) : (
+      ) : view.startsWith('x:') ? null : (
         <>
           <QuickTiles
             title={ui.pinnedTitle}

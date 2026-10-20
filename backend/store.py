@@ -156,6 +156,20 @@ def validate_config(cfg):
     ui = cfg.get("ui")
     if ui is not None and not isinstance(ui, dict):
         return '"ui" doit être un objet'
+    tabs = cfg.get("tabs")
+    if tabs is not None:
+        if not isinstance(tabs, list):
+            return '"tabs" doit être un tableau'
+        seen = set()
+        for i, tab in enumerate(tabs):
+            if not isinstance(tab, dict):
+                return f"tabs[{i}] doit être un objet"
+            for field in ("id", "label", "url"):
+                if not isinstance(tab.get(field), str) or not tab[field].strip():
+                    return f"tabs[{i}].{field} manquant"
+            if tab["id"] in seen:
+                return f"tabs[{i}].id en double : {tab['id']}"
+            seen.add(tab["id"])
     order = cfg.get("pinnedOrder")
     if order is not None and not (isinstance(order, list) and all(isinstance(x, str) for x in order)):
         return '"pinnedOrder" doit être une liste de textes'

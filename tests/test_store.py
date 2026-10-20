@@ -157,5 +157,17 @@ class UsageTest(unittest.TestCase):
         self.assertEqual(usage["lien"], {"count": 2, "last": 2000})
 
 
+
+class TabsConfigTest(unittest.TestCase):
+
+    def test_custom_tabs_are_optional_and_checked(self):
+        base = {"groups": []}
+        ok = {"id": "x1", "label": "Gmail", "url": "https://mail.google.com/"}
+        self.assertIsNone(store.validate_config({**base, "tabs": [ok]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": {}}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "url": " "}]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": [ok, ok]}))
+
+
 if __name__ == "__main__":
     unittest.main()

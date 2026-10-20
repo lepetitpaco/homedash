@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import {
   addAccount,
   getAuth,
@@ -17,7 +17,8 @@ import {
 } from '../lib/notifications'
 import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
 import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
-import { repoTabs, type Config, type RepoItem, type RepoTab } from '../types'
+import { hostOf } from '../lib/customTabs'
+import { repoTabs, type Config, type CustomTab, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
@@ -25,6 +26,7 @@ import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
 import SetRepos, { type Use } from './SetRepos'
+import SetTabs from './SetTabs'
 import SetTeam from './SetTeam'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
@@ -39,15 +41,19 @@ const NOTIF_LABEL: Record<NotifState, string> = {
 /** Parties qui règlent un compte GitHub : la barre de choix du compte s'affiche au-dessus. */
 const ACCOUNT_SECTIONS: string[] = ['set-account', 'set-repos', 'set-ghtab']
 
-/** Parties de la page, dans l'ordre : le menu de gauche affiche l'une ou l'autre. */
+/**
+ * Parties de la page, dans l'ordre, rangées par thème : le menu de gauche les
+ * groupe sous un intertitre et affiche l'une ou l'autre.
+ */
 const SECTIONS = [
-  { id: 'set-account', icon: '🔑', label: 'Compte & équipe' },
-  { id: 'set-repos', icon: '📦', label: 'Repos suivis' },
-  { id: 'set-ghtab', icon: '🐙', label: 'Onglet GitHub' },
-  { id: 'set-basecamp', icon: '🏕', label: 'Basecamp' },
-  { id: 'set-local', icon: '💻', label: 'Dépôts locaux' },
-  { id: 'set-backups', icon: '💾', label: 'Sauvegardes' },
-  { id: 'set-display', icon: '🎛', label: 'Affichage' },
+  { id: 'set-account', icon: '🔑', label: 'Compte & équipe', group: 'GitHub' },
+  { id: 'set-repos', icon: '📦', label: 'Repos suivis', group: 'GitHub' },
+  { id: 'set-ghtab', icon: '🐙', label: 'Onglet GitHub', group: 'GitHub' },
+  { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
+  { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
+  { id: 'set-tabs', icon: '🗂', label: 'Onglets perso', group: 'La page' },
+  { id: 'set-display', icon: '🎛', label: 'Affichage & notifications', group: 'La page' },
+  { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
 ] as const
 
 /** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
@@ -398,9 +404,17 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
       }
       return out
     }
+    // Onglet perso sans adresse : ligne ajoutée puis laissée vide, on l'oublie.
+    // Sans nom : celui du site, ou du fichier.
+    const tab = (t: CustomTab): CustomTab => {
+      const url = t.url.trim()
+      const label = t.label.trim() || hostOf(url).replace(/^www\./, '') || url.split('/').pop() || url
+      return { ...t, url, label, icon: t.icon?.trim() || undefined }
+    }
     return {
       ...config,
       ...(config.github_accounts ? { github_accounts: config.github_accounts.map(clean) } : {}),
+      ...(config.tabs ? { tabs: config.tabs.filter((t) => t.url.trim()).map(tab) } : {}),
     }
   }
 
@@ -414,15 +428,17 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   return (
     <div className="settings-layout">
       <nav className="set-nav" aria-label="Parties des réglages">
-        {SECTIONS.map((sec) => (
-          <button
-            key={sec.id}
-            className={`set-nav-item${active === sec.id ? ' is-active' : ''}`}
-            onClick={() => jump(sec.id)}
-          >
-            <span aria-hidden="true">{sec.icon}</span>
-            {sec.label}
-          </button>
+        {SECTIONS.map((sec, i) => (
+          <Fragment key={sec.id}>
+            {sec.group !== SECTIONS[i - 1]?.group ? <span className="set-nav-group">{sec.group}</span> : null}
+            <button
+              className={`set-nav-item${active === sec.id ? ' is-active' : ''}`}
+              onClick={() => jump(sec.id)}
+            >
+              <span aria-hidden="true">{sec.icon}</span>
+              {sec.label}
+            </button>
+          </Fragment>
         ))}
       </nav>
 
@@ -574,6 +590,14 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
           <SetBasecamp />
         </Card>
         ) : null}
+        {active === 'set-tabs' ? (
+        <Card id="set-tabs" icon="🗂" title="Onglets perso">
+          <SetTabs
+            tabs={draft.tabs ?? []}
+            onChange={(tabs) => setDraft({ ...draft, tabs })}
+          />
+        </Card>
+        ) : null}
         {active === 'set-local' ? (
         <Card id="set-local" icon="💻" title="Dépôts locaux">
           <SetLocal
@@ -592,7 +616,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
         ) : null}
 
         {active === 'set-display' ? (
-        <Card id="set-display" icon="🎛" title="Affichage">
+        <Card id="set-display" icon="🎛" title="Affichage & notifications">
           <h3 className="set-sub">Presets</h3>
           <p className="set-hint">Un clic remplit les réglages ci-dessous ; ajuste si besoin, puis Enregistrer.</p>
           <div className="set-presets">

@@ -33,6 +33,8 @@ export type Browse = {
   path: string
   parent: string | null
   dirs: BrowseDir[]
+  /** Seulement avec `browse(path, true)`. */
+  files?: { name: string; path: string }[]
   repos: { count: number; partial: boolean }
   error?: string
 }
@@ -110,7 +112,8 @@ export async function getMembers(org: string, account = ''): Promise<Member[]> {
 export const lookupUser = (login: string, account = '') =>
   call<Member>(`api/github/users/${encodeURIComponent(login)}${acc(account)}`)
 
-export const browse = (path: string) => call<Browse>(`api/local/browse?path=${encodeURIComponent(path)}`)
+export const browse = (path: string, files = false) =>
+  call<Browse>(`api/local/browse?path=${encodeURIComponent(path)}${files ? '&files=1' : ''}`)
 export const getRoots = () => call<{ roots: RootStatus[]; home: string }>('api/local/roots')
 
 export const listBackups = () => call<{ backups: BackupEntry[] }>('api/backups').then((r) => r.backups)

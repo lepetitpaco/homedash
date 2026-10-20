@@ -19,6 +19,7 @@ import backup
 import accounts
 import basecamp
 import events
+import localfile
 import localgit
 import store
 import updates
@@ -312,6 +313,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(basecamp.status())
         if path == "/api/basecamp/callback":
             return self._basecamp_callback()
+        if path == "/api/file":
+            return self._file(self._query("path"))
         if path.startswith("/api/github"):
             mod = self._acc()
             if not mod:
@@ -335,7 +338,8 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(found) if found else self._err(404, "utilisateur GitHub introuvable")
         if path == "/api/local/browse":
             q = urllib.parse.parse_qs(urllib.parse.urlparse(self.path).query)
-            return self._json(localgit.browse((q.get("path") or ["~"])[0]))
+            return self._json(localgit.browse((q.get("path") or ["~"])[0],
+                                              files=bool((q.get("files") or [""])[0])))
         if path == "/api/local/roots":
             return self._json({"roots": localgit.root_status(), "home": localgit.home_display()})
         if path == "/api/backups":
@@ -559,6 +563,36 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Content-Length", "0")
         self.send_header("Cache-Control", "no-store")
         self.end_headers()
+
+    # ── fichier local d'un onglet perso (lecture seule) ──────────────────────
+    def _file(self, shown):
+        try:
+            target = localfile.locate(shown)
+        except ValueError as e:
+            return self._err(404, str(e))
+        if os.path.isdir(target):
+            body = localfile.listing(target)
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Security-Policy", "sandbox")
+            self.send_header("Content-Length", str(len(body)))
+            self.send_header("Cache-Control", "no-store")
+            self.end_headers()
+            if self.command != "HEAD":
+                self.wfile.write(body)
+            return
+        size = os.path.getsize(target)
+        self.send_response(200)
+        for k, v in localfile.headers(target).items():
+            self.send_header(k, v)
+        self.send_header("Content-Length", str(size))
+        self.send_header("Cache-Control", "no-cache")
+        self.end_headers()
+        if self.command == "HEAD":
+            return
+        with open(target, "rb") as f:
+            while chunk := f.read(1 << 16):
+                self.wfile.write(chunk)
 
     def _page(self, message, ok):
         body = (

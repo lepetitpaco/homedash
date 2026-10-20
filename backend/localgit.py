@@ -128,9 +128,10 @@ def root_status():
         out.append({"as": shown, "ok": shown in live})
     return out
 
-def browse(path="~"):
+def browse(path="~", files=False):
     """Sous-dossiers de `path` (lecture seule) : de quoi choisir un dossier de
-    clones dans la page. Limité au dossier personnel — rien au-dessus."""
+    clones dans la page. Limité au dossier personnel — rien au-dessus.
+    `files` : ses fichiers aussi (choix d'un fichier pour un onglet perso)."""
     base = os.path.realpath(home_base())
     target = os.path.realpath(resolve(path or "~"))
     if target != base and not target.startswith(base + "/"):
@@ -138,7 +139,7 @@ def browse(path="~"):
     if not os.path.isdir(target):
         return {"error": f"{path} introuvable"}
     ignore = set(CFG.get("ignore") or [])
-    dirs = []
+    dirs, found = [], []
     try:
         entries = sorted(os.scandir(target), key=lambda e: e.name.lower())
     except OSError as e:
@@ -146,10 +147,12 @@ def browse(path="~"):
     for e in entries:
         if e.name.startswith(".") or e.name in ignore:
             continue
-        if target == base and e.name in BROWSE_SKIP:
+        if not files and target == base and e.name in BROWSE_SKIP:
             continue
         try:
             if not e.is_dir(follow_symlinks=False):
+                if files and e.is_file():
+                    found.append({"name": e.name, "path": display(e.path)})
                 continue
             git = os.path.exists(os.path.join(e.path, ".git"))
         except OSError:
@@ -157,6 +160,10 @@ def browse(path="~"):
         dirs.append({"name": e.name, "path": display(e.path), "git": git})
     shown = display(target)
     parent = None if target == base else display(os.path.dirname(target))
+    if files:
+        # pas de comptage de dépôts : on choisit un fichier, pas un dossier de clones
+        return {"path": shown, "parent": parent, "dirs": dirs, "files": found,
+                "repos": {"count": 0, "partial": False}}
     return {"path": shown, "parent": parent, "dirs": dirs,
             "repos": _count_repos(target, ignore, int(CFG.get("max_depth", 3)))}
 

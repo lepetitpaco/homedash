@@ -121,6 +121,21 @@ export type UiConfig = {
   searchPlaceholder: string
 }
 
+/**
+ * Onglet ajouté par l'utilisateur : un site ou un fichier / dossier du disque.
+ * `url` : `https://…`, ou un chemin (`~/…`, `/Users/…`, `file://…`) servi en
+ * lecture seule par `/api/file`.
+ */
+export type CustomTab = {
+  /** `x-…`, stable : sert de clé d'onglet (mémorisé dans le navigateur). */
+  id: string
+  icon?: string
+  label: string
+  url: string
+  /** Affiché dans la page (iframe). Absent / faux = ouvert dans un onglet du navigateur. */
+  embed?: boolean
+}
+
 /** Ordre des blocs. Jetons réservés : "infos" | "repos" | "notes" | "groups". */
 export type LayoutEntry = string
 
@@ -144,6 +159,8 @@ export type Config = {
   local?: Record<string, unknown>
   /** Ordre des tuiles épinglées (ids `groupe/nom`). Absent ou incomplet : ordre des catégories. */
   pinnedOrder?: string[]
+  /** Onglets ajoutés par l'utilisateur, entre Basecamp et Réglages. Absent = aucun. */
+  tabs?: CustomTab[]
   /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
   basecamp?: {
     /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */

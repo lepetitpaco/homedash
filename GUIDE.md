@@ -89,6 +89,25 @@ Client Secret, et ne sert qu'une fois.
 
 Le jeton se renouvelle ensuite tout seul.
 
+### ＋ Onglets perso
+
+Le **＋** au bout de la barre d'onglets (ou Réglages → Onglets perso) ajoute un onglet vers **un site**
+(`https://…`) ou **un fichier / dossier de ton disque** (`~/Documents/procédure.pdf`, ou 📁 pour le
+choisir). Icône (un emoji), nom, adresse, et ce que fait un clic :
+
+- **dans homedash** : le site ou le fichier s'affiche sous la barre d'onglets. Revenir sur l'onglet ne
+  le recharge pas (↻ pour ça). Marche pour les fichiers (PDF, images, texte, HTML, dossiers) et les
+  sites qui l'acceptent. **Gmail, Google Chat, GitHub et la plupart des grands sites le refusent** : page
+  blanche, ↗ *ouvrir à part* reste possible.
+- **ouvrir à part ↗** : l'onglet est un raccourci, il ouvre le site dans un onglet du navigateur.
+
+Les fichiers sont lus, jamais modifiés, et limités à ton dossier personnel (ni fichiers cachés, ni le
+`data/` de homedash). ↑ ↓ dans Réglages pour l'ordre ; puis **Enregistrer**.
+
+Une page ne peut ni afficher un site qui le refuse, ni lire ce qu'affiche un autre site (ses non-lus,
+par exemple). Pour tout intégrer avec les pastilles de chaque site (Gmail, Chat, Slack…), une appli
+« tout-en-un » comme Ferdium fait ça très bien, à côté de homedash.
+
 ### 🔔 Activité (la cloche, en haut à droite)
 
 CI cassée ou réparée, PR mergée, branche locale à nettoyer… La pastille rouge compte les non-lus, aussi
@@ -122,14 +141,18 @@ l'autorise qu'en localhost ou HTTPS.
 Le menu de gauche affiche une partie à la fois. Les modifications s'enregistrent avec **Enregistrer** (`⌘S`), toutes parties confondues. La barre du bas signale ce qui n'est pas
 enregistré.
 
-| Partie | Ce qu'on y fait |
-| --- | --- |
-| 🔑 Compte & équipe | Jeton GitHub, membres de l'équipe (★ = affiché par défaut), **＋ compte** pour un autre compte GitHub |
-| 📦 Repos suivis | Ajouter / retirer des repos. Pastilles par repo : **PRs**, **Branches**, **GitHub** (ligne dans la carte Repos de l'onglet GitHub), **Accueil** (carte dans Raccourcis) |
-| 🐙 Onglet GitHub | Fréquence de rafraîchissement, carte Renovate |
-| 💻 Dépôts locaux | Dossiers où chercher tes clones |
-| 💾 Sauvegardes | Instantané, export, restauration (l'état actuel est toujours sauvegardé avant) |
-| 🎛 Affichage | Presets (49", 34", MacBook Pro), thème, horloge, notifications, largeur de la page, colonnes GitHub / Local |
+Le menu de gauche range les parties par thème :
+
+| Groupe | Partie | Ce qu'on y fait |
+| --- | --- | --- |
+| GitHub | 🔑 Compte & équipe | Jeton GitHub, membres de l'équipe (★ = affiché par défaut), **＋ compte** pour un autre compte GitHub |
+| | 📦 Repos suivis | Ajouter / retirer des repos. Pastilles par repo : **PRs**, **Branches**, **GitHub** (ligne dans la carte Repos de l'onglet GitHub), **Accueil** (carte dans Raccourcis) |
+| | 🐙 Onglet GitHub | Fréquence de rafraîchissement, carte Renovate |
+| | 💻 Dépôts locaux | Dossiers où chercher tes clones |
+| Connexions | 🏕 Basecamp | Connexion Basecamp (lecture seule) |
+| La page | 🗂 Onglets perso | Onglets vers un site ou un fichier du disque, affichés dans homedash ou ouverts à part |
+| | 🎛 Affichage & notifications | Presets (49", 34", MacBook Pro), thème, horloge, notifications, largeur de la page, colonnes GitHub / Local |
+| Données | 💾 Sauvegardes | Instantané, export, restauration (l'état actuel est toujours sauvegardé avant) |
 
 Un seul jeton voit ton compte **et** tes organisations : un second compte ne sert que pour un autre
 compte GitHub.
