@@ -1,7 +1,16 @@
 # homedash
 
-Page d'accueil de navigateur auto-hébergée : raccourcis, notes, tableau de bord GitHub (branches, PRs, CI)
-et un onglet **Local** qui repère les branches mergées qui traînent dans tes clones.
+Page d'accueil auto-hébergée : raccourcis, notes, tableau de bord GitHub (branches, PRs, CI), un onglet
+**Local** qui repère les branches mergées qui traînent dans tes clones, Basecamp, et tes sites (Gmail,
+Chat, Claude…) en **onglets perso**, façon Discord, dans une appli de bureau pour Mac.
+
+![homedash : raccourcis, barre de gauche façon Discord, onglets perso](docs/screenshots/01-accueil.jpg)
+
+| Un site dans un onglet | Dossiers et comptes | Clic droit sur un lien |
+| --- | --- | --- |
+| ![](docs/screenshots/02-site-dans-un-onglet.jpg) | ![](docs/screenshots/04-barre-large-dossiers-comptes.jpg) | ![](docs/screenshots/03-clic-droit-sur-un-lien.jpg) |
+
+Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (instance de démo, données fictives).
 
 ## Installation facile (Mac)
 
