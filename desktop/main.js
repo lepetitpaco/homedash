@@ -60,6 +60,14 @@ const isHome = (url) => {
   }
 }
 const isWeb = (url) => /^https?:\/\//i.test(url)
+/** `mail.google.com` → `google.com` : deux sous-domaines d'un même site. */
+const siteOf = (url) => {
+  try {
+    return new URL(url).hostname.split('.').slice(-2).join('.')
+  } catch {
+    return ''
+  }
+}
 
 /**
  * User-Agent d'un Chrome ordinaire. Google refuse sa page de connexion aux
@@ -151,12 +159,21 @@ function createWindow() {
     if (!isWeb(params.src || '')) e.preventDefault()
   })
   wc.on('did-attach-webview', (_e, guest) => {
-    guest.setWindowOpenHandler(({ url }) => {
-      // Fenêtres de connexion Google (Meet, choix du compte…) : dans l'appli,
-      // pour garder la session. Le reste : navigateur par défaut.
-      if (/^https:\/\/accounts\.google\.com\//.test(url)) {
+    guest.setWindowOpenHandler(({ url, disposition }) => {
+      // Fenêtre surgissante de connexion Google (window.open, « Se connecter
+      // avec Google », Meet…) : dans l'appli, pour garder la session, et la page
+      // qui l'a ouverte attend sa réponse.
+      if (disposition === 'new-window' && /^https:\/\/accounts\.google\.com\//.test(url)) {
         return { action: 'allow', overrideBrowserWindowOptions: { width: 520, height: 680, autoHideMenuBar: true } }
       }
+      // Lien « nouvel onglet » vers le même site (workspace.google.com →
+      // accounts.google.com : « Se connecter ») : dans l'onglet lui-même, sinon
+      // la connexion se ferait dans le navigateur et pas dans homedash.
+      if (isWeb(url) && siteOf(url) === siteOf(guest.getURL())) {
+        void guest.loadURL(url)
+        return { action: 'deny' }
+      }
+      // Un autre site : navigateur par défaut.
       if (isWeb(url)) void shell.openExternal(url)
       return { action: 'deny' }
     })
