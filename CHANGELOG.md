@@ -9,6 +9,10 @@ plus récente sur GitHub déclenche la notification « mise à jour disponible �
 - homedash s'installe comme une **appli** (PWA) : icône dans le Dock ou la barre des tâches, fenêtre à
   part, raccourcis GitHub, Local et Basecamp au clic droit sur l'icône. Elle s'ouvre même serveur arrêté
   (les données reviennent dès qu'il redémarre).
+- **Installer** : dans **Safari**, va sur `localhost:7777` puis *Fichier → Ajouter au Dock*. Lance
+  homedash depuis le Dock : les liens s'ouvrent dans ton **navigateur par défaut** (Firefox, Chrome…).
+  Installée depuis Chrome (icône ⊕ « Installer » dans la barre d'adresse), l'appli ouvre ses liens dans
+  Chrome, quel que soit ton navigateur par défaut.
 - Deux onglets ouverts ne s'écrasent plus : si la config a changé ailleurs depuis le chargement de la
   page, l'enregistrement est refusé et la page propose de recharger, au lieu d'effacer l'autre
   modification sans prévenir.
