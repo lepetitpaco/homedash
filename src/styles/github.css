@@ -432,14 +432,38 @@ a.gh-badge:hover {
   border-bottom-color: #60a5fa;
 }
 
+/* Duo GitHub ⇄ Local : un seul bloc d'onglet (cadre commun), deux moitiés
+   cliquables, reliées par ⇄ — le même code, en ligne et sur le disque. */
+.tab-duo {
+  display: flex;
+  align-items: stretch;
+  margin-bottom: -1px;
+  border: 1px solid var(--border-soft);
+  border-bottom: 0;
+  border-radius: 0.5rem 0.5rem 0 0;
+  background: color-mix(in srgb, #60a5fa 4%, transparent);
+}
+.tab-duo.is-active {
+  border-color: color-mix(in srgb, #60a5fa 40%, var(--border));
+  background: color-mix(in srgb, #60a5fa 8%, transparent);
+}
+.tab-duo-part {
+  display: flex;
+  align-items: center;
+}
+.tab-duo-link {
+  padding: 0 0.1rem;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+
 /* ═══ Onglet GitHub : grille 2×2 ample ══════════════════════════════════════
    Page dédiée, donc on respire : deux colonnes larges, et la carte Repos prend
    toute la largeur puisqu'elle contient déjà sa propre grille de tuiles.      */
 .gh-page {
-  /* Autant de colonnes de 560 px que l'écran en contient : 1 sur portable,
-     2 sur un écran courant, 3 à 4 sur un grand écran. Une grille et non des
-     colonnes CSS : les cartes se remplissent en direct, et en colonnes CSS
-     elles sauteraient d'une colonne à l'autre à chaque rafraîchissement. */
+  /* Grille de repli. Les onglets GitHub et Local passent par
+     <Masonry> (colonnes indépendantes, placement stable malgré le
+     remplissage en direct) ; ce bloc ne sert qu'avant sa première mesure. */
   display: grid;
   /* Réglages → Affichage : nombre fixe de colonnes, ou auto (largeur mini). */
   grid-template-columns: var(--cards-cols, repeat(auto-fill, minmax(min(560px, 100%), 1fr)));
@@ -448,6 +472,17 @@ a.gh-badge:hover {
 }
 .gh-page > .repos-card {
   grid-column: 1 / -1;
+}
+
+/* <Masonry> : colonnes indépendantes, cartes en position absolue (calculée). */
+.masonry {
+  position: relative;
+}
+.gh-page.masonry {
+  display: block;
+}
+.masonry-item > .card {
+  margin: 0;
 }
 
 /* Densité ample : la page dédiée n'a plus besoin de compacter à l'extrême. */

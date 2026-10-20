@@ -37,16 +37,18 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
    commande git (même `git status` écrit). Les commandes affichées sont du texte à copier.
 3. **« 🗑 à supprimer » exige `safety.level` dans `SAFE_LEVELS`** (contenu présent ailleurs). Jamais de
    suppression sur la branche courante ni une protégée. `_commands()` filtre sur `delete`. Testé.
-4. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier au
+4. **Basecamp est en lecture seule.** `basecamp.py` ne fait que des GET vers l'API (`_api_get`) ; seul
+   l'échange de jeton POSTe, vers Launchpad. Jamais de tâche cochée, notif marquée lue, commentaire. Testé.
+5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier au
    navigateur, inclus dans les sauvegardes), ni dans une réponse d'API.
-5. **Toute requête passe par `Handler._refused()`** (Host local, pas d'écriture intersite, corps JSON).
+6. **Toute requête passe par `Handler._refused()`** (Host local, pas d'écriture intersite, corps JSON).
    Toute écriture du front envoie `Content-Type: application/json` dès qu'elle a un corps.
-6. **Un seul format de config.** `accounts.migrate()` convertit les anciens au chargement (y compris une
+7. **Un seul format de config.** `accounts.migrate()` convertit les anciens au chargement (y compris une
    sauvegarde restaurée). Aucun repli sur l'ancien format ailleurs.
-7. **Écritures atomiques** via `store.write()` ; lecture-modification-écriture de config sous
+8. **Écritures atomiques** via `store.write()` ; lecture-modification-écriture de config sous
    `server._config_lock` ; `store.validate_config()` avant toute écriture.
-8. **Pas de `window.confirm` / `alert`** : `confirmDialog()` (dit ce qui change et ce qui est conservé).
-9. **Une mise à jour ne casse jamais les données des autres.** `data/` n'est jamais versionné ni écrasé
+9. **Pas de `window.confirm` / `alert`** : `confirmDialog()` (dit ce qui change et ce qui est conservé).
+10. **Une mise à jour ne casse jamais les données des autres.** `data/` n'est jamais versionné ni écrasé
    par le code. Changer le format de `config.json` = une étape de plus dans `accounts.migrate()`
    (idempotente, testée), jamais un renommage ou une suppression de clé ailleurs. Une clé nouvelle a un
    défaut côté code : une config ancienne sans elle doit marcher telle quelle. Au démarrage d'une

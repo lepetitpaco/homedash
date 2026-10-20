@@ -4,6 +4,20 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.9.0 — 2026-10-20
+
+- Nouvel onglet **🏕 Basecamp**, en lecture seule : tes tâches assignées, avec un menu à gauche comme
+  dans Réglages (projets, puis leurs tableaux kanban et to-dos, retards comptés sur chaque ligne) et une
+  vue **🔥 À traiter** (en retard ou dû dans les 7 jours, tous projets). Chaque tâche est un lien qui
+  l'ouvre dans Basecamp ; rien n'est jamais modifié dans Basecamp. Des pastilles choisissent les projets
+  affichés. Pas-à-pas de connexion dans Réglages → Basecamp.
+- Bouton **🏕** dans la barre du haut : tes notifications Basecamp non lues, avec leur nombre en
+  pastille. Les nouvelles notifs et tâches arrivent aussi dans la cloche 🔔.
+- Onglets GitHub et Local : les cartes se rangent en colonnes indépendantes, une carte courte
+  ne laisse plus de trou à côté d'une longue.
+- Barre d'onglets : GitHub et Local forment un seul bloc (⇄), Basecamp vient juste après.
+- Cloche 🔔 : bouton **vider** directement dans le panneau, sans passer par « Tout voir ».
+
 ## 1.8.0 — 2026-10-13
 
 - Réglages → Repos suivis : la pastille « Carte » devient **GitHub** et **Accueil**. Chaque repo choisit

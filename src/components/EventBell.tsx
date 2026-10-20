@@ -1,6 +1,8 @@
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useDismiss } from '../hooks/useDismiss'
 import type { HdEvent } from '../lib/events'
 import { notifState, toggleNotifications, type NotifState } from '../lib/notifications'
+import { confirmDialog } from './ConfirmHost'
 import { EventRow } from './EventFeed'
 
 const SHOWN = 20
@@ -31,6 +33,7 @@ export default function EventBell({
   error,
   onOpen,
   onShowAll,
+  onClear,
   onOpenLocal,
 }: {
   events: HdEvent[]
@@ -40,12 +43,14 @@ export default function EventBell({
   /** Appelé à l'ouverture et à chaque nouvel événement panneau ouvert : marque comme lu. */
   onOpen: () => void
   onShowAll: () => void
+  onClear: () => void
   onOpenLocal: () => void
 }) {
   const [open, setOpen] = useState(false)
   const [mark, setMark] = useState(seen)
   const [notif, setNotif] = useState<NotifState>('default')
   const wrap = useRef<HTMLDivElement>(null)
+  const close = useCallback(() => setOpen(false), [])
 
   const toggle = () => {
     if (!open) {
@@ -60,20 +65,7 @@ export default function EventBell({
     if (open) onOpen()
   }, [open, unseen, onOpen])
 
-  // Fermeture au clic dehors et à Échap.
-  useEffect(() => {
-    if (!open) return
-    const onDown = (e: MouseEvent) => {
-      if (wrap.current && !wrap.current.contains(e.target as Node)) setOpen(false)
-    }
-    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && setOpen(false)
-    document.addEventListener('mousedown', onDown)
-    document.addEventListener('keydown', onKey)
-    return () => {
-      document.removeEventListener('mousedown', onDown)
-      document.removeEventListener('keydown', onKey)
-    }
-  }, [open])
+  useDismiss(open, wrap, close)
 
   const multiAccount = new Set(events.map((ev) => ev.account).filter(Boolean)).size > 1
   const shown = events.slice(0, SHOWN)
@@ -102,6 +94,22 @@ export default function EventBell({
             <strong>Activité</strong>
             <span className="bell-head-count">{events.length}</span>
             <span className="set-spacer" />
+            {events.length > 0 ? (
+              <button
+                className="bell-link"
+                title="Vider le journal — les événements ne sont pas reconstituables"
+                onClick={go(() => {
+                  void confirmDialog({
+                    title: `Vider le journal (${events.length} événements) ?`,
+                    body: "Les événements passés ne sont pas reconstituables. Les prochains s'y inscriront normalement.",
+                    confirmLabel: 'Vider',
+                    danger: true,
+                  }).then((ok) => ok && onClear())
+                })}
+              >
+                vider
+              </button>
+            ) : null}
             <button className="bell-link" onClick={go(onShowAll)}>
               Tout voir →
             </button>

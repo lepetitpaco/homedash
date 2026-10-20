@@ -1,0 +1,328 @@
+/* ═══ Onglet Basecamp ══════════════════════════════════════════════════════════
+   Tâches par projet (listes de to-dos, puis tableaux kanban en colonnes),
+   notifications à côté. Lecture seule : tout est lien vers Basecamp.          */
+/* Menu à gauche comme dans Réglages, à deux niveaux : les projets, puis leurs
+   tableaux et to-dos. Le contenu choisi s'affiche à droite. */
+.bc-layout {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .bc-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.bc-nav {
+  position: sticky;
+  top: calc(var(--topbar-h, 0px) + 16px);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 40px);
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.bc-nav-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  margin-top: 0.7rem;
+}
+/* Niveau 1 : le projet. */
+.bc-nav-project {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.3rem 0.6rem;
+  background: none;
+  border: 0;
+  font: inherit;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  text-align: left;
+  cursor: pointer;
+}
+.bc-nav-project:hover {
+  color: var(--text);
+}
+/* Niveau 2 : un tableau ou les to-dos du projet (même rendu que Réglages). */
+.bc-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  background: none;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 0.35rem 0.35rem 0;
+  color: var(--text-dim);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.8rem;
+  padding: 0.38rem 0.6rem 0.38rem 1.1rem;
+  text-align: left;
+  min-width: 0;
+}
+.bc-nav-item.is-top {
+  padding-left: 0.6rem;
+  font-weight: 600;
+}
+.bc-nav-item:hover {
+  color: var(--text);
+  background: var(--panel-2);
+}
+.bc-nav-item.is-active {
+  color: var(--text);
+  border-left-color: #60a5fa;
+  background: color-mix(in srgb, #60a5fa 10%, transparent);
+}
+.bc-nav-label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-nav-count {
+  font-size: 0.7rem;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+.bc-nav-late {
+  font-size: 0.68rem;
+  font-weight: 600;
+  padding: 0 0.35rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, #f85149 22%, transparent);
+  color: var(--sig-bad);
+}
+
+/* Contenu choisi. */
+.bc-view {
+  margin: 0;
+  border-top: 3px solid var(--accent);
+}
+.bc-view > .group-head {
+  background: color-mix(in srgb, var(--accent) 9%, var(--panel));
+  border-bottom: 1px solid var(--border);
+}
+.bc-view .group-title {
+  font-size: 0.95rem;
+}
+.bc-crumb {
+  color: var(--text-faint);
+  font-weight: 500;
+}
+.bc-project {
+  padding: 0.7rem 0.9rem 0.9rem;
+}
+.bc-open,
+.bc-hide {
+  border: 0;
+  background: none;
+  padding: 0 0.2rem;
+  font: inherit;
+  font-size: 0.8rem;
+  color: var(--text-faint);
+  text-decoration: none;
+  cursor: pointer;
+}
+.bc-open:hover,
+.bc-hide:hover {
+  color: var(--text);
+}
+.bc-hide {
+  margin-left: auto;
+  font-size: 0.72rem;
+}
+
+/* Pastilles : les projets affichés (comme les filtres du journal). */
+.bc-filter {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 12px;
+}
+.bc-filter-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  margin-right: 0.2rem;
+}
+.bc-chip-count {
+  opacity: 0.7;
+}
+.bc-chip-late {
+  margin-left: 0.3rem;
+  padding: 0 0.3rem;
+  border-radius: 0.5rem;
+  background: color-mix(in srgb, #f85149 22%, transparent);
+  color: var(--sig-bad);
+}
+
+/* Titre d'une liste de to-dos, ou d'un groupe de « À traiter ». */
+.bc-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  margin: 0 0 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+.bc-list + .bc-list {
+  margin-top: 0.7rem;
+  padding-top: 0.6rem;
+  border-top: 1px dashed var(--border);
+}
+.bc-sub a {
+  color: inherit;
+  text-decoration: none;
+}
+.bc-sub a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* « À traiter » : le titre, et dessous où vit la tâche (clic = y aller). */
+.bc-task-main {
+  min-width: 0;
+}
+.bc-where {
+  display: block;
+  max-width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  text-align: left;
+  cursor: pointer;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-where:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+/* To-do : une ligne, titre tronqué, extras et échéance à droite. */
+.bc-task {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.28rem 0.5rem;
+  border-radius: 0.35rem;
+}
+.bc-task:hover {
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
+}
+.bc-task.is-late,
+.bc-card.is-late {
+  box-shadow: inset 3px 0 0 #f85149;
+}
+.bc-task .gh-title,
+.bc-card .gh-title {
+  font-size: 0.86rem;
+}
+.bc-extra {
+  font-size: 0.7rem;
+  color: var(--text-faint);
+  white-space: nowrap;
+}
+.bc-prio {
+  font-size: 0.75rem;
+}
+.bc-view .gh-badge {
+  font-size: 0.7rem;
+  padding: 0.1rem 0.45rem;
+}
+
+/* Kanban : les colonnes où j'ai des cartes, dans l'ordre du tableau.
+   `--bc-cols` cases par ligne (le tableau le plus large du projet), d'au moins
+   200 px : même largeur de colonne d'un onglet à l'autre, et une carte trop
+   étroite fait passer les colonnes à la ligne plutôt que de les écraser. */
+.bc-columns {
+  display: grid;
+  grid-template-columns: repeat(
+    auto-fill,
+    minmax(max(200px, calc((100% - (var(--bc-cols, 3) - 1) * 0.5rem) / var(--bc-cols, 3))), 1fr)
+  );
+  gap: 0.5rem;
+}
+.bc-column {
+  background: var(--panel-2);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.45rem;
+  padding: 0.35rem;
+  min-width: 0;
+}
+.bc-column-head {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.05rem 0.2rem 0.3rem;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.bc-column-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.bc-column-count {
+  margin-left: auto;
+  font-weight: 400;
+  color: var(--text-faint);
+}
+.bc-dot {
+  flex: none;
+  width: 0.55rem;
+  height: 0.55rem;
+  border-radius: 50%;
+}
+.bc-card {
+  background: var(--panel);
+  border: 1px solid var(--border-soft);
+  border-radius: 0.35rem;
+  padding: 0.3rem 0.45rem;
+  margin-top: 0.3rem;
+  min-width: 0;
+}
+.bc-card:hover {
+  border-color: color-mix(in srgb, var(--accent) 50%, var(--border-soft));
+}
+.bc-card .gh-title {
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+.bc-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem;
+  margin-top: 0.15rem;
+}
+.bc-card-foot:empty {
+  display: none;
+}
+
+/* Bouton 🏕 de la barre du haut : reprend le panneau de la cloche. */
+.bc-notif-count {
+  color: var(--text-faint);
+  font-weight: 400;
+}

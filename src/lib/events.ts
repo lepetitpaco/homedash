@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { notifyEvents } from './notifications'
 
 export type EventLevel = 'ok' | 'bad' | 'warn' | 'info'
-export type EventSource = 'github' | 'local'
+export type EventSource = 'github' | 'local' | 'basecamp'
 
 export type HdEvent = {
   /** Entier strictement croissant, jamais réutilisé. L'ordre fait autorité. */

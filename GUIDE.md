@@ -15,6 +15,11 @@ Tes liens, tuiles (épinglés + plus cliqués), infos à copier, notes.
   Clic droit sur une ligne ou un titre de groupe pour modifier, ou **＋** dans l'en-tête du panneau.
   Pas encore de panneau ? Clic droit sur une catégorie → *Ajouter un panneau Infos*.
 
+### 🐙 GitHub ⇄ 💻 Local
+
+Les deux onglets forment un seul bloc : ton code en ligne (GitHub) et sur ton disque (Local). Un clic sur
+chaque moitié.
+
 ### 🐙 GitHub
 
 Apparaît dès qu'un compte est connecté. Se rafraîchit toutes les 15 s.
@@ -42,10 +47,44 @@ Tes clones git, branche par branche, avec un verdict :
 Des commandes prêtes à copier sont proposées (`git branch -d …`). **Rien n'est exécuté** : tu les
 lances toi-même. La page se met à jour seule après un `git fetch` ou un changement de branche.
 
+### 🏕 Basecamp
+
+Apparaît dès que l'appli Basecamp est renseignée (Réglages → Basecamp). **Lecture seule** : homedash ne
+coche rien, ne marque rien comme lu, ne poste rien. Chaque ligne est un lien qui ouvre Basecamp.
+
+Tes tâches assignées (rouge = en retard, ⭐ = Up Next), avec un **menu à gauche** comme dans Réglages :
+
+- **🔥 À traiter** : tout ce qui est en retard ou dû dans les 7 jours, tous projets confondus. Sous chaque
+  tâche, son projet et son tableau ; un clic y mène.
+- **Un projet**, et sous lui ses **tableaux kanban** (leurs colonnes dans l'ordre du tableau, seules celles
+  où tu as des cartes) et ses **To-dos** (par liste). Chaque ligne du menu donne son nombre de tâches et,
+  en rouge, ses retards : la vue d'ensemble se lit sans rien ouvrir.
+
+La pastille de l'onglet compte les tâches en retard des projets affichés. **Choisir les projets
+affichés** : les pastilles en haut de l'onglet, ou « masquer le projet ». Enregistré dans la config, donc
+pareil dans tous tes navigateurs ; un nouveau projet s'affiche de lui-même.
+
+**🏕 en haut à droite**, à côté de la cloche : tes notifications Basecamp non lues, la pastille en donne
+le nombre. Ouvrir le panneau ne les marque pas lues : c'est en les ouvrant dans Basecamp qu'elles partent.
+
+Relu toutes les 60 s, page fermée comprise. Une nouvelle notif ou tâche arrive aussi dans la cloche 🔔.
+
+**Connexion** (une fois par personne, pas besoin d'être admin). Le pas-à-pas est dans Réglages → Basecamp :
+
+1. Sur [launchpad.37signals.com/integrations](https://launchpad.37signals.com/integrations) → *Register
+   another application* : nom `homedash`, site `https://github.com/davidgennaoui/homedash`, produit
+   **Basecamp 4**, Redirect URI `https://example.com/oauth` (Launchpad refuse `localhost` et `127.0.0.1`).
+2. Dans Réglages → Basecamp : colle le Client ID et le Client Secret, **Enregistrer l'appli**.
+3. **Se connecter à Basecamp** → autorise. Tu arrives sur une page example.com vide : copie son adresse
+   complète (avec `?code=…`), colle-la dans Réglages → Basecamp, **Valider**.
+
+Le jeton se renouvelle ensuite tout seul.
+
 ### 🔔 Activité (la cloche, en haut à droite)
 
 CI cassée ou réparée, PR mergée, branche locale à nettoyer… La pastille rouge compte les non-lus, aussi
-visibles dans l'onglet du navigateur. Clic = les derniers événements ; **Tout voir** = l'historique.
+visibles dans l'onglet du navigateur. Clic = les derniers événements ; **vider** efface le journal
+(après confirmation) ; **Tout voir** = l'historique.
 
 Notifications bureau : **désactivées par défaut**, à activer en bas du panneau de la cloche.
 

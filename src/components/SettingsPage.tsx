@@ -20,6 +20,7 @@ import { SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import { repoTabs, type Config, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
+import SetBasecamp from './SetBasecamp'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
@@ -43,6 +44,7 @@ const SECTIONS = [
   { id: 'set-account', icon: '🔑', label: 'Compte & équipe' },
   { id: 'set-repos', icon: '📦', label: 'Repos suivis' },
   { id: 'set-ghtab', icon: '🐙', label: 'Onglet GitHub' },
+  { id: 'set-basecamp', icon: '🏕', label: 'Basecamp' },
   { id: 'set-local', icon: '💻', label: 'Dépôts locaux' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes' },
   { id: 'set-display', icon: '🎛', label: 'Affichage' },
@@ -567,6 +569,11 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
         </Card>
         ) : null}
 
+        {active === 'set-basecamp' ? (
+        <Card id="set-basecamp" icon="🏕" title="Basecamp">
+          <SetBasecamp />
+        </Card>
+        ) : null}
         {active === 'set-local' ? (
         <Card id="set-local" icon="💻" title="Dépôts locaux">
           <SetLocal

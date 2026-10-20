@@ -4,6 +4,7 @@
 Python stdlib uniquement, aucune dépendance.
 """
 
+import html
 import json
 import os
 import sys
@@ -16,6 +17,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 import backup
 import accounts
+import basecamp
 import events
 import localgit
 import store
@@ -253,6 +255,12 @@ class Handler(BaseHTTPRequestHandler):
             accounts.set_token(mod.ACCOUNT["id"], None)
             reload_all()
             return self._json({"source": mod.token_source(), **mod.whoami()})
+        if path == "/api/basecamp/token":
+            basecamp.disconnect()
+            return self._json(basecamp.status())
+        if path == "/api/basecamp/app":
+            basecamp.forget()
+            return self._json(basecamp.status())
         if path.startswith("/api/github/accounts/"):
             acc_id = urllib.parse.unquote(path[len("/api/github/accounts/"):])
             def drop(accs):
@@ -288,6 +296,12 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(store.read(store.USAGE, {}))
         if path == "/api/github/accounts":
             return self._json({"accounts": accounts.listing()})
+        if path == "/api/basecamp":
+            return self._json(basecamp.payload())
+        if path == "/api/basecamp/auth":
+            return self._json(basecamp.status())
+        if path == "/api/basecamp/callback":
+            return self._basecamp_callback()
         if path.startswith("/api/github"):
             mod = self._acc()
             if not mod:
@@ -341,6 +355,7 @@ class Handler(BaseHTTPRequestHandler):
                 limit=int(limit) if limit.isdigit() else events.MAX))
         if path == "/api/health":
             return self._json({"ok": True, "github": accounts.enabled(),
+                               "basecamp": basecamp.connected(),
                                "local": localgit.enabled(),
                                "accounts": len(accounts.all_mods())})
         return self._err(404, "route inconnue")
@@ -391,6 +406,37 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/backups":
                 return self._json({"name": backup.snapshot("manuelle")})
+
+            if path == "/api/basecamp/app":
+                body = self._body() or {}
+                try:
+                    basecamp.set_app(body.get("client_id"), body.get("client_secret"),
+                                     body.get("redirect_uri"))
+                except ValueError as e:
+                    return self._err(422, str(e))
+                return self._json(basecamp.status())
+
+            if path == "/api/basecamp/authorize":
+                try:
+                    return self._json({"url": basecamp.authorize_url()})
+                except ValueError as e:
+                    return self._err(422, str(e))
+
+            if path == "/api/basecamp/code":
+                # Repli quand l'adresse de retour n'est pas cette page : on colle
+                # le code (ou l'adresse entière) vu dans la barre du navigateur.
+                code, state = basecamp.parse_code((self._body() or {}).get("code"))
+                if state is not None and not basecamp.check_state(state):
+                    return self._err(422, "lien d'autorisation expiré : relance « Se connecter »")
+                try:
+                    basecamp.exchange(code)
+                except (ValueError, RuntimeError) as e:
+                    return self._err(422, str(e))
+                basecamp.kickoff()
+                return self._json(basecamp.status())
+
+            if path == "/api/basecamp/refresh":
+                return self._json({"ok": True, "started": basecamp.kickoff()})
 
             if path == "/api/backup/restore" or (path.startswith("/api/backups/")
                                                   and path.endswith("/restore")):
@@ -469,6 +515,38 @@ class Handler(BaseHTTPRequestHandler):
         except Exception as e:
             return self._err(500, str(e))
 
+    # ── retour d'autorisation Basecamp ───────────────────────────────────────
+    def _basecamp_callback(self):
+        """Launchpad renvoie ici le navigateur après « Autoriser ». Le `state`
+        prouve que la demande est partie de cette page."""
+        code  = self._query("code")
+        state = self._query("state")
+        error = self._query("error")
+        if error:
+            return self._page(f"Basecamp a refusé l'accès ({error}).", ok=False)
+        if not code or not basecamp.check_state(state):
+            return self._page("Lien d'autorisation expiré ou inconnu : relance « Se connecter » "
+                              "depuis Réglages → Basecamp.", ok=False)
+        try:
+            basecamp.exchange(code)
+        except (ValueError, RuntimeError) as e:
+            return self._page(str(e), ok=False)
+        basecamp.kickoff()
+        self.send_response(303)
+        self.send_header("Location", "/")
+        self.send_header("Content-Length", "0")
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+
+    def _page(self, message, ok):
+        body = (
+            "<!doctype html><meta charset=utf-8><title>homedash · Basecamp</title>"
+            "<body style='font:15px system-ui;background:#0b0d12;color:#e5e7eb;padding:3rem'>"
+            f"<p>{'✓' if ok else '✗'} {html.escape(message)}</p>"
+            "<p><a style='color:#60a5fa' href='/'>Revenir à homedash</a></p>"
+        ).encode()
+        self._send(200 if ok else 400, body, "text/html; charset=utf-8")
+
     # ── statique ──────────────────────────────────────────────────────────────
     def _static(self, path):
         pathname = urllib.parse.unquote(path)
@@ -511,6 +589,7 @@ def main():
 
     backup.start_auto()
     updates.start()
+    basecamp.start()
 
     connected = [m for m in accounts.all_mods() if m.token()]
     if not connected:

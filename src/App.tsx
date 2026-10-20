@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmHost from './components/ConfirmHost'
 import ContextMenu from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
+import BasecampBell from './components/BasecampBell'
+import BasecampView from './components/BasecampView'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
@@ -22,6 +24,7 @@ import { useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
 import { useEvents } from './lib/events'
+import { lateCount, useBasecamp } from './lib/basecamp'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -44,6 +47,7 @@ export default function App() {
   // l'onglet et le rappel dans la barre GitHub. Le rappel de ménage lui-même est
   // devenu un événement du journal, écrit par le serveur.
   const local = useLocal(tab === 'local')
+  const bc = useBasecamp(tab === 'basecamp')
   const changelog = useChangelog()
   const events = useEvents(openLocal)
   const { collapsed, toggleGroup, effectiveTheme, switchTheme } = usePrefs(cfg?.ui.theme)
@@ -151,11 +155,16 @@ export default function App() {
   }
   const searching = search.query.trim().length > 0
   const hasChecks = links.some((l) => l.check) && ui.healthcheckInterval > 0
+  const bcHidden = raw?.basecamp?.hidden ?? []
+  const bcLate = lateCount(bc.data, bcHidden)
+  // GitHub et Local : le même code, en ligne et sur le disque. Côte à côte dans
+  // un seul bloc (« duo »), chacun garde son clic.
+  const code = { id: 'code', title: 'Ton code : en ligne (GitHub) et sur ton disque (Local)' }
   const tabs: Tab[] = [
     { id: 'links', icon: '⚡', label: 'Raccourcis' },
     // L'onglet existe dès qu'un compte est branché, même si le compte affiché ne l'est pas.
     ...(gh.data?.enabled || gh.data?.accounts?.some((a) => a.enabled)
-      ? [{ id: 'github' as TabId, icon: '🐙', label: 'GitHub' }]
+      ? [{ id: 'github' as TabId, icon: '🐙', label: 'GitHub', group: code }]
       : []),
     // Toujours présent : le hook ne sonde que l'onglet ouvert, donc `local.data`
     // est nul tant qu'on n'a pas cliqué. La page explique elle-même son absence
@@ -166,7 +175,20 @@ export default function App() {
       label: 'Local',
       badge: local.todo,
       badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
+      group: code,
     },
+    // Dès que l'appli Basecamp est renseignée : connecté ou pas, l'onglet dit quoi faire.
+    ...(bc.data?.configured
+      ? [
+          {
+            id: 'basecamp' as TabId,
+            icon: '🏕',
+            label: 'Basecamp',
+            badge: bcLate,
+            badgeTitle: `${bcLate} tâche(s) Basecamp en retard`,
+          },
+        ]
+      : []),
     { id: 'settings', icon: '⚙', label: 'Réglages' },
   ]
   // La recherche court-circuite les onglets : ses résultats valent partout.
@@ -194,18 +216,23 @@ export default function App() {
         bell={
           // Le journal n'est plus un onglet : une cloche qu'on consulte sans
           // quitter ce qu'on fait. « Tout voir » ouvre l'historique complet.
-          <EventBell
-            events={events.events}
-            unseen={events.unseen}
-            seen={events.seen}
-            error={events.error}
-            onOpen={events.markSeen}
-            onShowAll={() => {
-              search.setQuery('')
-              selectTab('events')
-            }}
-            onOpenLocal={openLocal}
-          />
+          // Basecamp a la sienne : ses non-lus sont ceux de Basecamp, pas du journal.
+          <>
+            {bc.data?.enabled ? <BasecampBell data={bc.data} onOpenTab={() => selectTab('basecamp')} /> : null}
+            <EventBell
+              events={events.events}
+              unseen={events.unseen}
+              seen={events.seen}
+              error={events.error}
+              onOpen={events.markSeen}
+              onShowAll={() => {
+                search.setQuery('')
+                selectTab('events')
+              }}
+              onClear={events.clear}
+              onOpenLocal={openLocal}
+            />
+          </>
         }
       />
 
@@ -245,12 +272,26 @@ export default function App() {
           onOpenLocal={openLocal}
           onClose={goBack}
         />
+      ) : view === 'basecamp' ? (
+        <BasecampView
+          data={bc.data}
+          error={bc.error}
+          hidden={bcHidden}
+          onHidden={(hidden) => raw && persist({ ...raw, basecamp: { ...raw.basecamp, hidden } })}
+          onRefresh={bc.refresh}
+          onSettings={() => {
+            presetSettingsSection('set-basecamp')
+            selectTab('settings')
+          }}
+        />
       ) : view === 'local' ? (
         <LocalRepos
           data={local.data}
           error={local.error}
           busy={local.busy}
           onRefresh={local.refresh}
+          columns={ui.cardColumns}
+          cardWidth={ui.cardWidth}
           onSettings={() => {
             presetSettingsSection('set-local')
             selectTab('settings')

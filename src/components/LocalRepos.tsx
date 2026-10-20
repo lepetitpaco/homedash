@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { GhCard, GhEmpty } from './GhCard'
+import Masonry from './Masonry'
 import { agoShort, isCalm, type LocalBranch, type LocalCommand, type LocalData, type LocalRepo }
   from '../lib/local'
 
@@ -249,13 +250,16 @@ function RepoCardLocal({ repo, copied, onCopy, onRefresh, refreshing }: {
 /** Dossier affiché dans l'onglet Local, quand il y en a plusieurs. */
 const ROOT_KEY = 'homedash:local-root'
 
-export default function LocalRepos({ data, error, busy, onRefresh, onSettings }: {
+export default function LocalRepos({ data, error, busy, onRefresh, onSettings, columns, cardWidth }: {
   data: LocalData | null
   error: string | null
   busy: boolean
   onRefresh: () => void
   /** Ouvre Réglages : c'est là que se choisissent les dossiers lus. */
   onSettings: () => void
+  /** Réglages → Affichage, comme l'onglet GitHub. */
+  columns: number
+  cardWidth: number
 }) {
   const [copied, setCopied] = useState<string | null>(null)
   const [copyError, setCopyError] = useState(false)
@@ -470,17 +474,22 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings }:
         </div>
       ) : null}
 
-      <div className="gh-page">
-        {repos.map((r) => (
-          <RepoCardLocal key={r.path} repo={r} copied={copied} onCopy={onCopy}
-            onRefresh={onRefresh} refreshing={busy} />
-        ))}
-        {data && repos.length === 0 ? (
-          <GhEmpty>
-            {onlyTodo ? 'Rien à traiter — tout est propre.' : 'Aucun dépôt trouvé sous les racines configurées.'}
-          </GhEmpty>
-        ) : null}
-      </div>
+      <Masonry
+        className="gh-page"
+        columns={columns}
+        minWidth={cardWidth}
+        items={repos.map((r) => ({
+          key: r.path,
+          node: (
+            <RepoCardLocal repo={r} copied={copied} onCopy={onCopy} onRefresh={onRefresh} refreshing={busy} />
+          ),
+        }))}
+      />
+      {data && repos.length === 0 ? (
+        <GhEmpty>
+          {onlyTodo ? 'Rien à traiter — tout est propre.' : 'Aucun dépôt trouvé sous les racines configurées.'}
+        </GhEmpty>
+      ) : null}
     </>
   )
 }

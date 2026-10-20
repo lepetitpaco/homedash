@@ -8,6 +8,7 @@ backend/                  Python stdlib, aucune dépendance
   store.py                JSON dans data/ : écriture atomique, validation, secrets en 600
   accounts.py             comptes GitHub : un module github.py chargé par compte, migration de config
   github.py               données GitHub d'un compte (cache ETag)
+  basecamp.py             Basecamp en lecture seule : OAuth, mes tâches, mes notifications
   events.py               journal des événements (la cloche)
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
@@ -36,6 +37,9 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/github/accounts[/{id}]` | GET, POST, DELETE | Lister, ajouter, supprimer un compte |
 | `/api/github/token` | PUT, DELETE | Connecter (jeton vérifié) / déconnecter |
 | `/api/github/{auth,owners,repos/{owner},members/{org},users/{login}}` | GET | Pour Réglages |
+| `/api/basecamp`, `/api/basecamp/refresh` | GET, POST | Tâches et notifs non lues, relecture |
+| `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
+| `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
 | `/api/local`, `/api/local/refresh` | GET, POST | Dépôts du disque, relecture |
 | `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (limité au dossier personnel) |
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |

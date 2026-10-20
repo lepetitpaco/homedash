@@ -146,6 +146,13 @@ def validate_config(cfg):
     ui = cfg.get("ui")
     if ui is not None and not isinstance(ui, dict):
         return '"ui" doit être un objet'
+    bc = cfg.get("basecamp")
+    if bc is not None:
+        if not isinstance(bc, dict):
+            return '"basecamp" doit être un objet'
+        hidden = bc.get("hidden")
+        if hidden is not None and not (isinstance(hidden, list) and all(isinstance(x, str) for x in hidden)):
+            return '"basecamp.hidden" doit être une liste de textes'
     loc = cfg.get("local")
     if loc is not None:
         if not isinstance(loc, dict):

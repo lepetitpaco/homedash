@@ -14,6 +14,7 @@ export function useTabs(title: string | undefined) {
       if (
         savedTab === 'links' ||
         savedTab === 'github' ||
+        savedTab === 'basecamp' ||
         savedTab === 'local' ||
         savedTab === 'settings'
       )
@@ -49,6 +50,7 @@ export function useTabs(title: string | undefined) {
     const label = {
       links: 'Raccourcis',
       github: 'GitHub',
+      basecamp: 'Basecamp',
       events: 'Activité',
       local: 'Local',
       settings: 'Réglages',

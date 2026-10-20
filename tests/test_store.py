@@ -15,6 +15,16 @@ def mode_of(path):
     return stat.S_IMODE(os.stat(path).st_mode)
 
 
+class BasecampConfigTest(unittest.TestCase):
+
+    def test_hidden_projects_must_be_a_list_of_strings(self):
+        base = {"groups": []}
+        self.assertIsNone(store.validate_config(base))                      # clé absente : défaut
+        self.assertIsNone(store.validate_config({**base, "basecamp": {"hidden": ["12"]}}))
+        self.assertIsNotNone(store.validate_config({**base, "basecamp": {"hidden": [12]}}))
+        self.assertIsNotNone(store.validate_config({**base, "basecamp": []}))
+
+
 class WriteTest(unittest.TestCase):
 
     def tearDown(self):

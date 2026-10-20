@@ -142,6 +142,11 @@ export type Config = {
   github_accounts?: Record<string, unknown>[]
   /** Onglet Local — `roots`, `max_depth`, `ignore`… lus par le backend. */
   local?: Record<string, unknown>
+  /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
+  basecamp?: {
+    /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */
+    hidden?: string[]
+  }
 
   /** @deprecated — remplacé par ui.favicons, conservé pour compatibilité. */
   favicons?: boolean

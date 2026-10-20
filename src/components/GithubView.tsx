@@ -1,4 +1,5 @@
 import GhToolbar, { AccountSwitch } from './GhToolbar'
+import Masonry from './Masonry'
 import Section, { type SectionCtx } from './Section'
 
 /** Onglet GitHub : barre (compte, utilisateur, rafraîchissement) et cartes. */
@@ -32,11 +33,17 @@ export default function GithubView({ ctx, onSettings }: { ctx: SectionCtx; onSet
         />
       ) : null}
       {gh.busyScope ? <div className="gh-progress" /> : null}
-      <div className="gh-page">
-        {cfg.githubSections.map((s) => (
-          <Section key={s.key} section={s} ctx={ctx} />
-        ))}
-      </div>
+      <Masonry
+        className="gh-page"
+        columns={cfg.ui.cardColumns}
+        minWidth={cfg.ui.cardWidth}
+        items={cfg.githubSections.map((s) => ({
+          key: s.key,
+          // la carte Repos contient déjà sa propre grille de tuiles
+          wide: s.kind === 'repos',
+          node: <Section section={s} ctx={ctx} />,
+        }))}
+      />
     </>
   )
 }

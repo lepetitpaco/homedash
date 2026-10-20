@@ -2,11 +2,12 @@ import { useMemo, useRef, useState } from 'react'
 import { dayOf, hhmm, type HdEvent } from '../lib/events'
 import { confirmDialog } from './ConfirmHost'
 
-type Filter = 'all' | 'github' | 'local' | 'bad'
+type Filter = 'all' | 'github' | 'basecamp' | 'local' | 'bad'
 
 const FILTERS: { id: Filter; label: string; title: string }[] = [
   { id: 'all', label: 'tout', title: 'Tous les événements' },
   { id: 'github', label: 'GitHub', title: 'CI, PRs, Renovate' },
+  { id: 'basecamp', label: 'Basecamp', title: 'Nouvelles notifications et tâches Basecamp' },
   { id: 'local', label: 'Local', title: 'Branches devenues supprimables sur le disque' },
   { id: 'bad', label: 'problèmes', title: 'Uniquement ce qui a cassé' },
 ]
