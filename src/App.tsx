@@ -90,6 +90,7 @@ export default function App() {
     links,
     !!cfg?.ui.showTiles,
     cfg?.ui.maxTiles ?? 0,
+    raw?.pinnedOrder,
   )
   const menus = useContextMenus(raw, persist, copy)
   const search = useSearch({
@@ -313,6 +314,7 @@ export default function App() {
             title={ui.pinnedTitle}
             variant="pinned"
             links={pinnedTiles}
+            onReorder={(pinnedOrder) => raw && persist({ ...raw, pinnedOrder })}
             counts={counts}
             health={health}
             favicons={ui.favicons}

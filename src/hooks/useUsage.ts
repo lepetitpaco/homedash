@@ -7,7 +7,7 @@ import type { FlatLink } from '../types'
  * Compteurs d'ouverture des liens (data/usage.json) et les deux rangées de
  * tuiles qui en découlent.
  */
-export function useUsage(links: FlatLink[], showTiles: boolean, maxTiles: number) {
+export function useUsage(links: FlatLink[], showTiles: boolean, maxTiles: number, pinnedOrder?: string[]) {
   const [usage, setUsage] = useState<Usage>({})
 
   // compteurs côté serveur (data/usage.json), communs à tous les navigateurs
@@ -20,8 +20,20 @@ export function useUsage(links: FlatLink[], showTiles: boolean, maxTiles: number
     [usage],
   )
 
-  /** Rangée du haut : les liens explicitement épinglés, dans l'ordre du config. */
-  const pinnedTiles = useMemo(() => (showTiles ? links.filter((l) => l.pinned) : []), [links, showTiles])
+  /**
+   * Rangée du haut : les liens épinglés, dans l'ordre choisi par glisser-déposer
+   * (`pinnedOrder`). Un épinglé absent de cet ordre (nouveau, renommé) se met à
+   * la fin, dans l'ordre des catégories.
+   */
+  const pinnedTiles = useMemo(() => {
+    if (!showTiles) return []
+    const rank = new Map((pinnedOrder ?? []).map((id, i) => [id, i]))
+    return links
+      .filter((l) => l.pinned)
+      .map((l, i) => ({ l, r: rank.get(l.id) ?? rank.size + i }))
+      .sort((a, b) => a.r - b.r)
+      .map((x) => x.l)
+  }, [links, showTiles, pinnedOrder])
 
   /**
    * Rangée du bas : les liens les plus ouverts. Les épinglés en sont exclus,

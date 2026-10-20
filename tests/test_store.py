@@ -15,6 +15,14 @@ def mode_of(path):
     return stat.S_IMODE(os.stat(path).st_mode)
 
 
+class PinnedOrderTest(unittest.TestCase):
+
+    def test_pinned_order_is_optional_list_of_strings(self):
+        base = {"groups": []}
+        self.assertIsNone(store.validate_config({**base, "pinnedOrder": ["Liens/GitHub"]}))
+        self.assertIsNotNone(store.validate_config({**base, "pinnedOrder": "Liens/GitHub"}))
+
+
 class BasecampConfigTest(unittest.TestCase):
 
     def test_hidden_projects_must_be_a_list_of_strings(self):

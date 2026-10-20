@@ -142,6 +142,8 @@ export type Config = {
   github_accounts?: Record<string, unknown>[]
   /** Onglet Local — `roots`, `max_depth`, `ignore`… lus par le backend. */
   local?: Record<string, unknown>
+  /** Ordre des tuiles épinglées (ids `groupe/nom`). Absent ou incomplet : ordre des catégories. */
+  pinnedOrder?: string[]
   /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
   basecamp?: {
     /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */

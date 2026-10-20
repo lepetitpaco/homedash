@@ -10,6 +10,8 @@ Tes liens, tuiles (épinglés + plus cliqués), infos à copier, notes.
 
 - **Tout se modifie au clic droit** : sur un lien (modifier, épingler, surveiller, supprimer…) ou sur
   une catégorie (ajouter un lien, renommer, couleur…). Le **＋** de la barre du haut crée une catégorie.
+- **Ordre des 📌 Épinglés** : glisse une tuile par sa poignée ⠿ (visible au survol) ; un trait bleu
+  montre où elle va tomber. Un lien nouvellement épinglé se met à la fin.
 - **Lien surveillé** : un voyant vert/rouge dit si le site répond.
 - **Infos** (WiFi, IP, accès…) : un clic copie. Les valeurs *secrètes* se copient sans s'afficher.
   Clic droit sur une ligne ou un titre de groupe pour modifier, ou **＋** dans l'en-tête du panneau.
@@ -60,6 +62,7 @@ Tes tâches assignées (rouge = en retard, ⭐ = Up Next), avec un **menu à gau
   où tu as des cartes) et ses **To-dos** (par liste). Chaque ligne du menu donne son nombre de tâches et,
   en rouge, ses retards : la vue d'ensemble se lit sans rien ouvrir.
 
+Le menu s'élargit en glissant la poignée entre lui et le contenu (double-clic = largeur par défaut).
 La pastille de l'onglet compte les tâches en retard des projets affichés. **Choisir les projets
 affichés** : les pastilles en haut de l'onglet, ou « masquer le projet ». Enregistré dans la config, donc
 pareil dans tous tes navigateurs ; un nouveau projet s'affiche de lui-même.

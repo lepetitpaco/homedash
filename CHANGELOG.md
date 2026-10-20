@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.10.0 — 2026-10-20
+
+- Tuiles **📌 Épinglés** : glisse une tuile (poignée ⠿ au survol) pour changer leur ordre ; un trait montre
+  où elle va tomber. Enregistré dans la config.
+- Onglet Basecamp : le menu de gauche s'élargit en glissant sa poignée (double-clic = largeur par défaut),
+  et les titres (tâches, cartes, colonnes, menu) reviennent à la ligne au lieu d'être coupés par « … ».
+
 ## 1.9.1 — 2026-10-20
 
 - Réglages → Basecamp : **Mon site de callback**. Tu saisis juste un domaine à toi (vide = example.com),

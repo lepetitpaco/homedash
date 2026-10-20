@@ -61,6 +61,39 @@
   box-shadow: var(--shadow);
 }
 
+/* Épinglés réordonnables : poignée ⠿ au survol, tuile saisie estompée, et un
+   trait à l'endroit où elle va tomber (avant ou après la tuile survolée). */
+.tile.is-sortable {
+  cursor: grab;
+}
+.tile.is-sortable:active {
+  cursor: grabbing;
+}
+.tile-grip {
+  position: absolute;
+  top: 50%;
+  left: 2px;
+  transform: translateY(-50%);
+  font-size: 12px;
+  line-height: 1;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.12s;
+  pointer-events: none;
+}
+.tile.is-sortable:hover .tile-grip {
+  opacity: 0.9;
+}
+.tile.is-dragging {
+  opacity: 0.35;
+}
+.tile.drop-before {
+  box-shadow: -4px 0 0 -1px var(--sig-info);
+}
+.tile.drop-after {
+  box-shadow: 4px 0 0 -1px var(--sig-info);
+}
+
 .tile-text {
   display: flex;
   flex-direction: column;

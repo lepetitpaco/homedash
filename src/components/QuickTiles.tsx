@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import type { FlatLink, Health } from '../types'
 import Favicon from './Favicon'
 
@@ -11,6 +12,8 @@ type Props = {
   faviconProvider: string
   onOpen: (link: FlatLink) => void
   onContext?: (e: React.MouseEvent, link: FlatLink) => void
+  /** Épinglés : nouvel ordre après un glisser-déposer (ids). Absent = pas de glisser. */
+  onReorder?: (ids: string[]) => void
 }
 
 export default function QuickTiles({
@@ -23,14 +26,37 @@ export default function QuickTiles({
   faviconProvider,
   onOpen,
   onContext,
+  onReorder,
 }: Props) {
+  const [dragged, setDragged] = useState<string | null>(null)
+  const [over, setOver] = useState<{ id: string; after: boolean } | null>(null)
   if (links.length === 0) return null
+
+  const sortable = !!onReorder && links.length > 1
+  const reset = () => {
+    setDragged(null)
+    setOver(null)
+  }
+  const drop = () => {
+    if (dragged && over && dragged !== over.id) {
+      const ids = links.map((l) => l.id).filter((id) => id !== dragged)
+      const at = ids.indexOf(over.id) + (over.after ? 1 : 0)
+      ids.splice(at, 0, dragged)
+      onReorder?.(ids)
+    }
+    reset()
+  }
+
   return (
     <section className={`tiles-wrap is-${variant}`}>
       <div className="tiles-head">
         <span className="tiles-title">{title}</span>
         <span className="tiles-hint">
-          {variant === 'pinned' ? 'clic droit → retirer des tuiles' : 'classés par ouvertures'}
+          {variant !== 'pinned'
+            ? 'classés par ouvertures'
+            : sortable
+              ? 'glisser ⠿ pour changer l’ordre · clic droit → retirer'
+              : 'clic droit → retirer des tuiles'}
         </span>
       </div>
       <div className="tiles">
@@ -39,7 +65,45 @@ export default function QuickTiles({
           return (
             <a
               key={link.id}
-              className="tile"
+              className={[
+                'tile',
+                sortable ? 'is-sortable' : '',
+                dragged === link.id ? 'is-dragging' : '',
+                over?.id === link.id && dragged !== link.id ? (over.after ? 'drop-after' : 'drop-before') : '',
+              ]
+                .filter(Boolean)
+                .join(' ')}
+              draggable={sortable}
+              onDragStart={
+                sortable
+                  ? (e) => {
+                      e.dataTransfer.effectAllowed = 'move'
+                      setDragged(link.id)
+                    }
+                  : undefined
+              }
+              onDragOver={
+                sortable
+                  ? (e) => {
+                      if (!dragged) return
+                      e.preventDefault()
+                      e.dataTransfer.dropEffect = 'move'
+                      // moitié gauche = avant, moitié droite = après
+                      const r = e.currentTarget.getBoundingClientRect()
+                      const after = e.clientX > r.left + r.width / 2
+                      if (over?.id !== link.id || over.after !== after) setOver({ id: link.id, after })
+                    }
+                  : undefined
+              }
+              onDrop={
+                sortable
+                  ? (e) => {
+                      e.preventDefault()
+                      drop()
+                    }
+                  : undefined
+              }
+              onDragEnd={sortable ? reset : undefined}
               href={link.url}
               target="_blank"
               rel="noreferrer"
@@ -48,6 +112,11 @@ export default function QuickTiles({
               onClick={() => onOpen(link)}
               onContextMenu={(e) => onContext?.(e, link)}
             >
+              {sortable ? (
+                <span className="tile-grip" aria-hidden="true" title="Glisser pour changer l’ordre">
+                  ⠿
+                </span>
+              ) : null}
               <Favicon
                 url={link.url}
                 name={link.name}

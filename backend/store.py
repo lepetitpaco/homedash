@@ -146,6 +146,9 @@ def validate_config(cfg):
     ui = cfg.get("ui")
     if ui is not None and not isinstance(ui, dict):
         return '"ui" doit être un objet'
+    order = cfg.get("pinnedOrder")
+    if order is not None and not (isinstance(order, list) and all(isinstance(x, str) for x in order)):
+        return '"pinnedOrder" doit être une liste de textes'
     bc = cfg.get("basecamp")
     if bc is not None:
         if not isinstance(bc, dict):

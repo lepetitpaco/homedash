@@ -178,6 +178,67 @@ function entriesOf(p: Project): Entry[] {
   ]
 }
 
+/** Largeur du menu, réglée en glissant sa poignée. Préférence du navigateur. */
+const NAV_KEY = 'homedash:bc-nav-w'
+const NAV_W = { min: 180, def: 260, max: 560 }
+
+function readNavW(): number {
+  try {
+    const v = Number(localStorage.getItem(NAV_KEY))
+    return v ? Math.min(NAV_W.max, Math.max(NAV_W.min, v)) : NAV_W.def
+  } catch {
+    return NAV_W.def
+  }
+}
+
+function saveNavW(w: number) {
+  try {
+    localStorage.setItem(NAV_KEY, String(w))
+  } catch {
+    /* stockage indisponible */
+  }
+}
+
+/** Poignée entre le menu et le contenu : glisser élargit, double-clic remet la largeur par défaut. */
+function NavResizer({ width, onWidth }: { width: number; onWidth: (w: number) => void }) {
+  const [drag, setDrag] = useState<{ x: number; w: number } | null>(null)
+  const clamp = (w: number) => Math.round(Math.min(NAV_W.max, Math.max(NAV_W.min, w)))
+  return (
+    <div
+      className={`bc-resizer${drag ? ' is-dragging' : ''}`}
+      role="separator"
+      aria-orientation="vertical"
+      aria-valuenow={width}
+      aria-valuemin={NAV_W.min}
+      aria-valuemax={NAV_W.max}
+      tabIndex={0}
+      title="Glisser pour élargir le menu · double-clic : largeur par défaut"
+      onPointerDown={(e) => {
+        e.currentTarget.setPointerCapture(e.pointerId)
+        setDrag({ x: e.clientX, w: width })
+      }}
+      onPointerMove={(e) => drag && onWidth(clamp(drag.w + e.clientX - drag.x))}
+      onPointerUp={() => {
+        setDrag(null)
+        saveNavW(width)
+      }}
+      onDoubleClick={() => {
+        onWidth(NAV_W.def)
+        saveNavW(NAV_W.def)
+      }}
+      onKeyDown={(e) => {
+        const step = e.key === 'ArrowRight' ? 20 : e.key === 'ArrowLeft' ? -20 : 0
+        if (!step) return
+        const w = clamp(width + step)
+        onWidth(w)
+        saveNavW(w)
+      }}
+    >
+      <span className="bc-resizer-grip" aria-hidden="true" />
+    </div>
+  )
+}
+
 /** Vue choisie : préférence d'affichage, propre au navigateur. */
 function readView(): string | null {
   try {
@@ -334,6 +395,7 @@ export default function BasecampView({
 }) {
   const projects = useMemo(() => (data ? group(data) : []), [data])
   const [picked, setPicked] = useState(readView)
+  const [navW, setNavW] = useState(readNavW)
   const off = new Set(hidden)
   const shown = projects.filter((p) => !off.has(p.key))
   const toggle = (key: string) => onHidden(off.has(key) ? hidden.filter((h) => h !== key) : [...hidden, key])
@@ -441,7 +503,7 @@ export default function BasecampView({
         </div>
       ) : null}
 
-      <div className="bc-layout">
+      <div className="bc-layout" style={{ ['--bc-nav-w' as string]: `${navW}px` }}>
         <nav className="bc-nav" aria-label="Projets Basecamp">
           <button
             className={`bc-nav-item is-top${view === URGENT ? ' is-active' : ''}`}
@@ -482,6 +544,7 @@ export default function BasecampView({
             )
           })}
         </nav>
+        <NavResizer width={navW} onWidth={setNavW} />
 
         <section className="card gh-card bc-view" style={{ ['--accent' as string]: '#facc15' }}>
           <header className="group-head">
