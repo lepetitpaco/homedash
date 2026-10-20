@@ -124,3 +124,7 @@
   text-transform: uppercase;
   color: var(--text-faint);
 }
+.bell-filter,
+.bell-head .bell-link {
+  white-space: nowrap;
+}

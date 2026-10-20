@@ -727,3 +727,19 @@
 .tab-audio:hover {
   background: var(--panel-2);
 }
+
+/* Beaucoup d'onglets : un nom tient sur une ligne, et la barre défile en
+   largeur plutôt que de passer les noms sur plusieurs lignes. */
+.tabs {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+}
+.tabs::-webkit-scrollbar {
+  display: none;
+}
+.tabs .tab,
+.tabs .tab-duo {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}

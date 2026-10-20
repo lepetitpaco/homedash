@@ -240,6 +240,15 @@ code {
   font-size: 11px;
   cursor: pointer;
 }
+.ctx-chip.is-on {
+  border-color: var(--c, #60a5fa);
+  background: color-mix(in srgb, var(--c, #60a5fa) 32%, transparent);
+  font-weight: 600;
+}
+.ctx-chip-row {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .ctx-chip:hover {
   background: color-mix(in srgb, var(--c, #60a5fa) 28%, transparent);
 }

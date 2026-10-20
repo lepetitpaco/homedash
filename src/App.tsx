@@ -430,46 +430,78 @@ export default function App() {
       [...tabSessions, { id, name: r.name, color: r.color }],
     )
   }
+  /** Ouvrir un onglet dans le navigateur par défaut (appli) ou un nouvel onglet (navigateur). */
+  const openOutside = (url: string) =>
+    desktop
+      ? desktop.openExternal(new URL(srcOf(url), window.location.href).href)
+      : window.open(srcOf(url), '_blank', 'noopener')
+  /**
+   * Clic droit sur un onglet perso (icône ou onglet du haut), rangé comme celui
+   * des liens : actions, puis Ranger (dossiers en pastilles), Compte (comptes en
+   * pastilles, le choisi en évidence), Onglet (son, veille, modifier).
+   */
   const tabMenu = (e: React.MouseEvent, t: (typeof customTabs)[number]) => {
     const here = folderOf(t, tabFolders)
     const mine = sessionOf(t, tabSessions)
     const setSession = (session?: string) =>
       saveTabs(customTabs.map((x) => (x.id === t.id ? { ...x, session } : x)))
+    const web = t.embed && !isLocal(t.url)
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
       title: t.label,
       items: [
-        {
-          label: 'Ouvrir dans le navigateur ↗',
-          onSelect: () =>
-            desktop
-              ? desktop.openExternal(new URL(srcOf(t.url), window.location.href).href)
-              : window.open(srcOf(t.url), '_blank', 'noopener'),
-        },
-        { label: 'Recharger', hint: desktop ? '⇧⌘R' : undefined, onSelect: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })) },
-        { sep: true },
-        ...tabFolders
-          .filter((f) => f.id !== here)
-          .map((f) => ({ label: `Mettre dans ${f.icon ?? '📁'} ${f.name}`, onSelect: () => saveTabs(moveTab(customTabs, t.id, null, f.id)) })),
-        ...(here ? [{ label: 'Sortir du dossier', onSelect: () => saveTabs(moveTab(customTabs, t.id, null)) }] : []),
-        { label: 'Nouveau dossier avec cet onglet…', onSelect: () => void newFolder([t.id]) },
-        // Comptes : seulement là où ils ont un effet (appli de bureau récente).
-        ...(hasSessions && t.embed && !isLocal(t.url)
+        { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(t.url) },
+        ...(t.embed
           ? [
-              { sep: true as const },
-              { label: `${mine ? '' : '✓ '}Compte commun`, onSelect: () => setSession(undefined) },
-              ...tabSessions.map((x) => ({
-                label: `${mine?.id === x.id ? '✓ ' : ''}Compte ${x.name}`,
-                onSelect: () => setSession(x.id),
-              })),
-              { label: 'Nouveau compte…', hint: 'connexion à part', onSelect: () => void newSession(t.id) },
+              {
+                icon: '↻',
+                label: 'Recharger',
+                hint: desktop ? '⇧⌘R' : undefined,
+                onSelect: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })),
+              },
             ]
           : []),
-        { sep: true },
-        ...(t.embed ? [muteItem(t)] : []),
-        sleepItem(t),
-        { label: 'Modifier…', hint: 'nom, adresse', onSelect: openTabSettings },
+        { heading: 'Ranger' },
+        tabFolders.length
+          ? {
+              icon: '📁',
+              label: 'Dossier',
+              chips: [
+                { label: 'aucun', on: !here, onSelect: () => here && saveTabs(moveTab(customTabs, t.id, null)) },
+                ...tabFolders.map((f) => ({
+                  label: f.name,
+                  color: f.color ?? '#60a5fa',
+                  on: f.id === here,
+                  onSelect: () => f.id !== here && saveTabs(moveTab(customTabs, t.id, null, f.id)),
+                })),
+              ],
+            }
+          : { icon: '📁', label: 'Aucun dossier pour l’instant', disabled: true, onSelect: () => undefined },
+        { icon: '＋', label: 'Nouveau dossier avec cet onglet…', onSelect: () => void newFolder([t.id]) },
+        // Comptes : seulement là où ils ont un effet (appli de bureau récente).
+        ...(hasSessions && web
+          ? [
+              { heading: 'Compte' },
+              {
+                icon: '◉',
+                label: 'Connexion',
+                chips: [
+                  { label: 'commune', on: !mine, onSelect: () => mine && setSession(undefined) },
+                  ...tabSessions.map((x) => ({
+                    label: x.name,
+                    color: x.color,
+                    on: mine?.id === x.id,
+                    onSelect: () => mine?.id !== x.id && setSession(x.id),
+                  })),
+                ],
+              },
+              { icon: '＋', label: 'Nouveau compte…', hint: 'connexion à part', onSelect: () => void newSession(t.id) },
+            ]
+          : []),
+        { heading: 'Onglet' },
+        ...(t.embed ? [muteItem(t), sleepItem(t)] : []),
+        { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: openTabSettings },
       ],
     })
   }
@@ -480,6 +512,7 @@ export default function App() {
       title: `${f.icon ?? '📁'} ${f.name}`,
       items: [
         {
+          icon: '✎',
           label: 'Nom et couleur…',
           onSelect: async () => {
             const r = await askNameColor({ title: 'Dossier', name: f.name, color: f.color, okLabel: 'Enregistrer' })
@@ -487,6 +520,7 @@ export default function App() {
           },
         },
         {
+          icon: '✕',
           label: 'Supprimer le dossier',
           hint: 'ses onglets restent',
           onSelect: () =>
@@ -571,7 +605,7 @@ export default function App() {
   })
   const sleepItem = (t: CustomTab): MenuItem => ({
     icon: '💤',
-    label: `${t.sleep ? '✓ ' : ''}Mettre en veille si inutilisé`,
+    label: t.sleep ? 'Ne plus mettre en veille' : 'Mettre en veille si inutilisé',
     hint: `${ui.tabSleepMinutes} min`,
     onSelect: () => toggleSleep(t),
   })
@@ -580,28 +614,22 @@ export default function App() {
       x: e.clientX,
       y: e.clientY,
       title: `${t.label} · ${t.kept ? 'éphémère gardé' : 'éphémère'}`,
-      items: t.kept
-        ? [
-            { icon: '📌', label: 'Garder cette page', hint: 'rouvrira ici', onSelect: () => promoteTemp(t, true) },
-            { icon: '◌', label: 'Ne plus garder', hint: 'disparaît au redémarrage', onSelect: () => unkeep(t) },
-            { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
-            { sep: true },
-            muteItem(t),
-            sleepItem(t),
-            { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => desktop?.openExternal(tempUrl.current.get(t.id) ?? t.url) },
-            { sep: true },
-            { icon: '✕', label: 'Fermer', danger: true, onSelect: () => closeTemp(t) },
-          ]
-        : [
-            { icon: '📌', label: 'Garder ouvert', hint: 'survit au redémarrage', onSelect: () => promoteTemp(t, true) },
-            { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
-            { sep: true },
-            muteItem(t),
-            sleepItem(t),
-            { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => desktop?.openExternal(tempUrl.current.get(t.id) ?? t.url) },
-            { sep: true },
-            { icon: '✕', label: 'Fermer', onSelect: () => closeTemp(t) },
-          ],
+      items: [
+        { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(tempUrl.current.get(t.id) ?? t.url) },
+        { heading: 'Garder' },
+        ...(t.kept
+          ? [
+              { icon: '📌', label: 'Garder cette page', hint: 'rouvrira ici', onSelect: () => promoteTemp(t, true) },
+              { icon: '◌', label: 'Ne plus garder', hint: 'disparaît au redémarrage', onSelect: () => unkeep(t) },
+            ]
+          : [{ icon: '📌', label: 'Garder ouvert', hint: 'survit au redémarrage', onSelect: () => promoteTemp(t, true) }]),
+        { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
+        { heading: 'Onglet' },
+        muteItem(t),
+        sleepItem(t),
+        { sep: true },
+        { icon: '✕', label: 'Fermer', danger: !!t.kept, onSelect: () => closeTemp(t) },
+      ],
     })
   /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
   const route = (url: string, fromId: number): boolean => {

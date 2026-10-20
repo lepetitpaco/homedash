@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 
-export type MenuChip = { label: string; color?: string; onSelect: () => void }
+/** `on` : le choix actuel (dossier, compte), mis en évidence. */
+export type MenuChip = { label: string; color?: string; on?: boolean; onSelect: () => void }
 
 export type MenuItem =
   | { sep: true }
@@ -98,7 +99,7 @@ export default function ContextMenu({ state, onClose }: Props) {
               {item.chips.map((c) => (
                 <button
                   key={c.label}
-                  className="ctx-chip"
+                  className={`ctx-chip${c.on ? ' is-on' : ''}`}
                   style={c.color ? { ['--c' as string]: c.color } : undefined}
                   onClick={() => {
                     onClose()

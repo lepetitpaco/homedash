@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.16.1 — 2026-10-20
+
+- Onglets en haut : avec beaucoup d'onglets, les noms restent sur une ligne (ils passaient sur deux ou
+  trois) et la barre défile en largeur ; même chose pour l'en-tête de la cloche.
+- Clic droit sur un onglet, rangé comme celui des liens : *Ranger* (dossier), *Compte* (connexion) en
+  pastilles, l'actuel en évidence, puis *Onglet* (son, veille, modifier). Idem pour les éphémères.
+
 ## 1.16.0 — 2026-10-20
 
 - **Mise en veille des onglets** (au choix, par onglet : clic droit ou Réglages) : un onglet laissé de
