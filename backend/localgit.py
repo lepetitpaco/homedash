@@ -21,6 +21,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import events
 import accounts as github   # vue regroupée de tous les comptes
 import gitread
+import perflog
 
 CFG = {
     "enabled": True,
@@ -662,6 +663,8 @@ def rebuild(trigger=None):
             _state["gh"] = gh_version
             _state["trigger"] = trigger
         print(f"✅ Local : {len(repos)} dépôts lus en {_state['took']:.2f}s", flush=True)
+        perflog.scanned("local")
+        perflog.timed("local", _state["took"], repos=len(repos))
     except Exception as e:
         with _state["lock"]:
             _state["error"] = str(e)

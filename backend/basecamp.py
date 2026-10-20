@@ -26,6 +26,7 @@ import urllib.request
 from datetime import datetime
 
 import events
+import perflog
 import store
 
 AUTHORIZE_URL = "https://launchpad.37signals.com/authorization/new"
@@ -420,6 +421,7 @@ def _diff(before, after, todo):
 
 def rebuild():
     """Relit tâches et notifications. Un seul à la fois (`kickoff`)."""
+    started_at = time.time()
     try:
         s = _secret()
         if not (s.get("access_token") and s.get("href")):
@@ -456,6 +458,7 @@ def rebuild():
             _state.update(ts=time.time(), error=None)
         if known:
             events.record(_diff(before, _data, known))
+        perflog.timed("basecamp", time.time() - started_at)
     except Exception as e:
         with _lock:
             _state["error"] = str(e)

@@ -22,6 +22,7 @@ import events
 import favicons
 import localfile
 import localgit
+import perflog
 import store
 import updates
 
@@ -87,11 +88,14 @@ def load_sections():
         accounts.migrate_secrets(cfg["github_accounts"][0]["id"])
     accounts.configure(cfg)
     localgit.configure(cfg.get("local") or {})
+    # Journal de performance : désactivé par défaut (Réglages → Affichage).
+    perflog.configure((cfg.get("ui") or {}).get("perfLog") is True)
 
 def reload_all():
     """Après toute écriture de config (Réglages, restauration) : recharge les
     sections, vide les caches, et réveille ce qui dormait faute de config — un
     premier dossier de dépôts ajouté depuis la page doit suffire."""
+    started_at = time.time()
     load_sections()
     accounts.invalidate_all()
     localgit.invalidate()
@@ -99,6 +103,7 @@ def reload_all():
         localgit.start_watch()
         localgit.kickoff("réglages")
     accounts.kickoff_all()
+    perflog.timed("config", time.time() - started_at)
 
 def adopt_login(acc_id, login):
     """Premier branchement d'un compte : son login devient l'utilisateur observé,
@@ -228,6 +233,7 @@ class Handler(BaseHTTPRequestHandler):
             return self._err(403, refused)
         try:
             if path.startswith("/api/"):
+                perflog.hit("GET", path)
                 return self._api_get(path)
             return self._static(path)
         except Exception as e:
@@ -239,13 +245,18 @@ class Handler(BaseHTTPRequestHandler):
         refused = self._refused(write=True)
         if refused:
             return self._err(403, refused)
-        return self._api_write(urllib.parse.urlparse(self.path).path)
+        path = urllib.parse.urlparse(self.path).path
+        perflog.hit("PUT", path)
+        return self._api_write(path)
 
     def do_POST(self):
         refused = self._refused(write=True)
         if refused:
             return self._err(403, refused)
-        return self._api_write(urllib.parse.urlparse(self.path).path)
+        path = urllib.parse.urlparse(self.path).path
+        if path != "/api/perf":          # le journal ne se compte pas lui-même
+            perflog.hit("POST", path)
+        return self._api_write(path)
 
     def do_DELETE(self):
         path = urllib.parse.urlparse(self.path).path
@@ -258,6 +269,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/events":
             events.clear()
             return self._json({"ok": True})
+        if path == "/api/perf":
+            perflog.clear()
+            return self._json(perflog.usage())
         if path == "/api/github/token":
             mod = self._acc()
             if not mod:
@@ -370,6 +384,9 @@ class Handler(BaseHTTPRequestHandler):
             return self._json(events.payload(
                 since=int(since) if since.isdigit() else None,
                 limit=int(limit) if limit.isdigit() else events.MAX))
+        if path == "/api/perf":
+            # Réglages : journal actif ? et la place qu'il prend sur le disque.
+            return self._json(perflog.usage())
         if path == "/api/health":
             return self._json({"ok": True, "github": accounts.enabled(),
                                "basecamp": basecamp.connected(),
@@ -466,6 +483,18 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/basecamp/refresh":
                 return self._json({"ok": True, "started": basecamp.kickoff()})
+
+            if path == "/api/perf":
+                # Mesures de l'appli de bureau et actions de la page (perflog.py).
+                body = self._body()
+                if not isinstance(body, dict):
+                    return self._err(422, "objet attendu")
+                source = body.pop("source", None)
+                try:
+                    perflog.append(source, body)
+                except ValueError as e:
+                    return self._err(422, str(e))
+                return self._json({"ok": True})
 
             if path == "/api/backup/restore" or (path.startswith("/api/backups/")
                                                   and path.endswith("/restore")):
@@ -672,6 +701,8 @@ def main():
     else:
         print(f"ℹ GitHub : {len(connected)} compte(s) connecté(s)", flush=True)
     accounts.kickoff_all()   # premier fetch au démarrage : la page n'attend pas
+    accounts.start_loop()    # puis toutes les 3 min sans page (journal, cloche)
+    perflog.start(accounts.github_stats)   # data/perf/ : ce que homedash consomme
 
     if localgit.enabled():
         localgit.kickoff("démarrage")

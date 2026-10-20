@@ -8,6 +8,7 @@ pour vérifier seulement *quel compte* est interrogé.
 import copy
 import json
 import unittest
+from unittest import mock
 
 from tests import _path
 
@@ -199,6 +200,28 @@ class RoutingTest(unittest.TestCase):
         accounts.configure({"github_accounts": [{"id": "boulot", "me": "moi"}]})
         self.assertEqual([m.ACCOUNT["id"] for m in accounts.all_mods()], ["boulot"])
 
+
+
+class RemoteVersionTest(unittest.TestCase):
+    """L'onglet Local relit tout le disque à chaque nouvelle version : elle ne doit
+    bouger que si les branches distantes ont changé, pas à chaque relecture."""
+
+    def test_version_only_moves_when_the_remote_changes(self):
+        m = accounts._load_module("ver-test")
+        m.CFG["repos"] = ["api"]
+        branches = [{"name": "main", "commit": {"sha": "a"}}, {"name": "feat", "commit": {"sha": "b"}}]
+
+        def gh(path, token, params=None, cache=True):
+            return {"default_branch": "main"} if path.endswith("/api") else list(branches)
+
+        with mock.patch.object(m, "gh", gh), mock.patch.object(m, "_branch_fact", lambda *a: None):
+            m._repo_branch_facts(("api", "t"))
+            v1 = m.remote_version()
+            m._repo_branch_facts(("api", "t"))
+            self.assertEqual(m.remote_version(), v1, "même distant : même version")
+            branches[1] = {"name": "feat", "commit": {"sha": "c"}}
+            m._repo_branch_facts(("api", "t"))
+            self.assertEqual(m.remote_version(), v1 + 1, "un nouveau commit : nouvelle version")
 
 if __name__ == "__main__":
     unittest.main()

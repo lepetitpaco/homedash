@@ -171,6 +171,8 @@ class TabsConfigTest(unittest.TestCase):
         self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "session": 1}]}))
         self.assertIsNone(store.validate_config({**base, "tabs": [{**ok, "domains": ["twitter.com"]}]}))
         self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "domains": "twitter.com"}]}))
+        self.assertIsNone(store.validate_config({**base, "tabs": [{**ok, "sleep": True, "kept": True}]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "sleep": "oui"}]}))
 
     def test_tab_folders_are_optional_and_checked(self):
         base = {"groups": []}

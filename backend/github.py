@@ -22,6 +22,7 @@ from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import events
 import store
+import perflog
 
 MAX_WORKERS = 10
 ETAG_MAX    = 1000
@@ -435,8 +436,13 @@ def _repo_branch_facts(args):
             break
         page += 1
     with _branch_lock:
+        before = _remote_state.get(repo) or {}
+        # La version ne bouge que si le distant a changé : l'onglet Local relance
+        # un scan complet du disque à chaque nouvelle version, et GitHub est relu
+        # toutes les ~15 s (presque toujours des 304, donc rien de neuf).
+        if before.get("default") != base or before.get("branches") != every:
+            _remote_state["#version"] = _remote_state.get("#version", 0) + 1
         _remote_state[repo] = {"default": base, "branches": every, "ts": time.time()}
-        _remote_state["#version"] = _remote_state.get("#version", 0) + 1
 
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
         facts = [f for f in ex.map(lambda b: _branch_fact(repo, base, b, token), branches) if f]
@@ -853,6 +859,7 @@ SECTIONS = ("branches", "prs", "renovate", "merged")
 
 def rebuild(token, sections=None):
     """Rafraîchit tout, ou seulement les sections demandées (bouton ↻ d'une carte)."""
+    started_at = time.time()
     user = current_user()
     todo = tuple(s for s in (sections or SECTIONS) if s in SECTIONS) or SECTIONS
     label = "tout" if len(todo) == len(SECTIONS) else ", ".join(todo)
@@ -893,6 +900,7 @@ def rebuild(token, sections=None):
         with _state["lock"]:
             _state["ts"], _state["error"] = time.time(), None
         print(f"✅ GitHub à jour — {STATS['calls']} appels, {STATS['hits']} 304", flush=True)
+        perflog.timed("github", time.time() - started_at, account=ACCOUNT.get("id"))
     except Exception as e:
         with _state["lock"]:
             _state["error"] = str(e)
@@ -912,6 +920,11 @@ def kickoff(token, sections=None):
             _state["user"] = CFG.get("me")
     threading.Thread(target=rebuild, args=(token, sections), daemon=True).start()
     return True
+
+def age():
+    """Secondes depuis la dernière lecture complète de GitHub."""
+    with _state["lock"]:
+        return time.time() - _state["ts"]
 
 def payload(token):
     """Snapshot complet ; relance un fetch en tâche de fond si le cache est périmé."""

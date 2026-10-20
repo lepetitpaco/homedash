@@ -20,6 +20,7 @@ import json
 import re
 import sys
 import threading
+import time
 from pathlib import Path
 
 import store
@@ -215,6 +216,27 @@ def kickoff_all():
             mod.kickoff(mod.token())
 
 
+# Page fermée ou cachée, plus personne ne sonde : le serveur relit quand même
+# GitHub (tous les comptes) à ce rythme lent, pour que le journal et la cloche
+# restent à jour. Page visible, c'est elle qui donne la cadence (`auto_refresh`).
+SLOW_EVERY = 180
+
+
+def _slow_loop():
+    while True:
+        time.sleep(60)
+        for mod in all_mods():
+            try:
+                if mod.token() and mod.enabled() and mod.age() >= SLOW_EVERY:
+                    mod.kickoff(mod.token())
+            except Exception as e:
+                print(f"✗ GitHub ({mod.ACCOUNT.get('id')}) : {e}", file=sys.stderr, flush=True)
+
+
+def start_loop():
+    threading.Thread(target=_slow_loop, daemon=True, name="github-slow").start()
+
+
 def invalidate_all():
     for mod in all_mods():
         mod.invalidate()
@@ -225,6 +247,15 @@ def invalidate_all():
 # l'ensemble des comptes. Un dépôt local est confronté au compte qui le suit.
 def enabled():
     return any(m.token() and m.enabled() for m in all_mods())
+
+
+def github_stats():
+    """Appels à GitHub et réponses 304 depuis le démarrage, tous comptes (journal de perf)."""
+    out = {"calls": 0, "hits": 0}
+    for m in all_mods():
+        out["calls"] += m.STATS.get("calls", 0)
+        out["hits"] += m.STATS.get("hits", 0)
+    return out
 
 
 def remote_version():
