@@ -63,12 +63,32 @@ const isHome = (url) => {
   }
 }
 const isWeb = (url) => /^https?:\/\//i.test(url)
-/** `mail.google.com` → `google.com` : deux sous-domaines d'un même site. */
-const siteOf = (url) => {
+
+/**
+ * Lien de redirection d'un site (Google Chat et Gmail passent leurs liens par
+ * google.com/url?q=…) → l'adresse finale. Sans ça, un lien X reçu dans Chat
+ * passe pour un lien Google et s'ouvre dans l'onglet Chat.
+ */
+function unwrap(url) {
   try {
-    return new URL(url).hostname.split('.').slice(-2).join('.')
+    const u = new URL(url)
+    const h = u.hostname
+    const q =
+      (/(^|\.)google\.[a-z.]+$/.test(h) && u.pathname === '/url' && (u.searchParams.get('q') || u.searchParams.get('url'))) ||
+      (/^l\.(facebook|instagram)\.com$/.test(h) && u.searchParams.get('u'))
+    return q && isWeb(q) ? q : url
   } catch {
-    return ''
+    return url
+  }
+}
+
+/** Pages de connexion : restent dans l'onglet (la session est la sienne). */
+const AUTH = /^(accounts\.google\.com|appleid\.apple\.com|login\.microsoftonline\.com|login\.live\.com)$/
+const isAuth = (url) => {
+  try {
+    return AUTH.test(new URL(url).hostname)
+  } catch {
+    return false
   }
 }
 
@@ -175,7 +195,9 @@ function createWindow() {
   // preload, toujours la session partagée, et seulement une page web ou un
   // fichier servi par homedash.
   wc.on('will-attach-webview', (e, prefs, params) => {
-    delete prefs.preload
+    // Seul preload admis : le nôtre (boutons précédent / suivant de la souris),
+    // en monde isolé, sans rien exposer au site.
+    prefs.preload = path.join(__dirname, 'guest-preload.js')
     prefs.nodeIntegration = false
     prefs.nodeIntegrationInSubFrames = false
     prefs.contextIsolation = true
@@ -186,7 +208,8 @@ function createWindow() {
     if (!isWeb(params.src || '')) e.preventDefault()
   })
   wc.on('did-attach-webview', (_e, guest) => {
-    guest.setWindowOpenHandler(({ url, disposition }) => {
+    guest.setWindowOpenHandler(({ url: raw, disposition }) => {
+      const url = unwrap(raw)
       // Fenêtre surgissante de connexion Google (window.open, « Se connecter
       // avec Google », Meet…) : dans l'appli, pour garder la session, et la page
       // qui l'a ouverte attend sa réponse.
@@ -202,10 +225,10 @@ function createWindow() {
           },
         }
       }
-      // Lien « nouvel onglet » vers le même site (workspace.google.com →
-      // accounts.google.com : « Se connecter ») : dans l'onglet lui-même, sinon
-      // la connexion se ferait dans le navigateur et pas dans homedash.
-      if (isWeb(url) && siteOf(url) === siteOf(guest.getURL())) {
+      // « Se connecter » ouvert en nouvel onglet (workspace.google.com →
+      // accounts.google.com) : dans l'onglet lui-même, sinon la connexion se
+      // ferait dans le navigateur et pas dans homedash.
+      if (isAuth(url)) {
         void guest.loadURL(url)
         return { action: 'deny' }
       }
@@ -309,6 +332,14 @@ ipcMain.on('homedash:badge', (e, n) => {
   const count = Math.max(0, Math.floor(Number(n) || 0))
   if (process.platform === 'darwin') app.dock.setBadge(count ? String(count > 99 ? '99+' : count) : '')
   else app.setBadgeCount(count)
+})
+
+// Boutons précédent / suivant de la souris dans un site (guest-preload.js).
+ipcMain.on('homedash:guest-nav', (e, dir) => {
+  const g = e.sender
+  if (!guests.has(g.id)) return
+  if (dir === 'back' && g.navigationHistory.canGoBack()) g.navigationHistory.goBack()
+  if (dir === 'forward' && g.navigationHistory.canGoForward()) g.navigationHistory.goForward()
 })
 
 // Actions du menu de clic droit d'un site, sur la webview visée.

@@ -25,8 +25,8 @@ for s in 16 32 128 256 512; do
 done
 iconutil -c icns build/icon.iconset -o build/icon.icns
 
-# Seuls ces trois fichiers vont dans l'appli.
-cp main.js preload.js package.json build/app/
+# Seuls ces fichiers vont dans l'appli.
+cp main.js preload.js guest-preload.js package.json build/app/
 PACK="npx -y @electron/packager@18 build/app homedash --platform=darwin --arch=$ARCH \
   --electron-version=$ELECTRON --app-version=$APP_VERSION --icon=build/icon.icns --out=dist.noindex --overwrite \
   --app-bundle-id=com.github.davidgennaoui.homedash --extend-info=Info.extra.plist"
