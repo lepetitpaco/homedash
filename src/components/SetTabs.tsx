@@ -13,7 +13,7 @@ import {
   sessionOf,
 } from '../lib/customTabs'
 import { desktop, hasSessions } from '../lib/desktop'
-import { NEW_TAB_EVENT, NEW_TAB_KEY } from '../lib/settingsNav'
+import { EDIT_TAB_EVENT, EDIT_TAB_KEY, NEW_TAB_EVENT, NEW_TAB_KEY } from '../lib/settingsNav'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SiteIcon, { isImageIcon } from './SiteIcon'
@@ -59,6 +59,7 @@ export default function SetTabs({
   onOpenLinks,
 }: Props) {
   const [open, setOpen] = useState<string | null>(null)
+  const editing = useRef<{ id: string | null; label: string }>({ id: null, label: '' })
   // Explorateur de fichiers de l'éditeur ouvert.
   const [view, setView] = useState<Browse | null>(null)
   const [browsing, setBrowsing] = useState(false)
@@ -90,6 +91,32 @@ export default function SetTabs({
     take()
     window.addEventListener(NEW_TAB_EVENT, take)
     return () => window.removeEventListener(NEW_TAB_EVENT, take)
+  }, [])
+
+  // « Modifier… » d'un onglet (clic droit, ✎ de l'en-tête) : son éditeur ouvert, à l'écran.
+  useEffect(() => {
+    const edit = (id: string) => {
+      setOpen(id)
+      setBrowsing(false)
+      window.setTimeout(() => document.getElementById(`xs-${id}`)?.scrollIntoView({ block: 'center' }), 50)
+    }
+    try {
+      const id = sessionStorage.getItem(EDIT_TAB_KEY)
+      sessionStorage.removeItem(EDIT_TAB_KEY)
+      if (id) edit(id)
+    } catch {
+      /* stockage indisponible */
+    }
+    const on = (e: Event) => {
+      try {
+        sessionStorage.removeItem(EDIT_TAB_KEY)
+      } catch {
+        /* stockage indisponible */
+      }
+      edit((e as CustomEvent<string>).detail)
+    }
+    window.addEventListener(EDIT_TAB_EVENT, on)
+    return () => window.removeEventListener(EDIT_TAB_EVENT, on)
   }, [])
 
   /** Un site du catalogue : ajouté, affiché dans homedash, son éditeur ouvert. */
@@ -369,6 +396,36 @@ export default function SetTabs({
 
         {web && t.embed ? (
           <div className="xs-field xs-wide">
+            <span>Notifications</span>
+            <span className="xs-seg" role="radiogroup">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={t.notify !== false}
+                className={t.notify !== false ? 'is-on' : ''}
+                onClick={() => patch(t.id, { notify: undefined })}
+              >
+                🔔 Actives
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={t.notify === false}
+                className={t.notify === false ? 'is-on' : ''}
+                onClick={() => patch(t.id, { notify: false })}
+              >
+                🔕 Coupées
+              </button>
+            </span>
+            <em className="xs-note">
+              Coupées : pas de pastille de non-lus (ni dans le total du Dock), et le site ne peut plus afficher
+              de notification depuis sa page. Aussi au clic droit sur l'icône.
+            </em>
+          </div>
+        ) : null}
+
+        {web && t.embed ? (
+          <div className="xs-field xs-wide">
             <span>Liens vers ce site, cliqués dans un autre onglet</span>
             <span className="xs-inline xs-capture">
               <span className="xs-seg" role="radiogroup">
@@ -461,8 +518,16 @@ export default function SetTabs({
     )
   }
 
+  // Ordre alphabétique (celui de la barre se règle en glissant les icônes).
+  // L'onglet ouvert garde la place de son nom d'avant l'édition : sa ligne ne
+  // saute pas pendant qu'on tape ; un nouvel onglet (sans nom) reste en tête.
+  if (editing.current.id !== open)
+    editing.current = { id: open, label: tabs.find((t) => t.id === open)?.label ?? '' }
+  const nameOf = (t: CustomTab) => (t.id === editing.current.id ? editing.current.label : t.label)
   // Les éphémères gardés vivent dans la config mais sont listés à part.
-  const mine = tabs.filter((t) => !t.kept)
+  const mine = tabs
+    .filter((t) => !t.kept)
+    .sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'fr', { sensitivity: 'base', numeric: true }))
   const kept = tabs.filter((t) => t.kept)
 
   return (
@@ -512,7 +577,7 @@ export default function SetTabs({
             const s = sessionOf(t, sessions)
             const isOpen = open === t.id
             return (
-              <li key={t.id} className={`xs-item${isOpen ? ' is-open' : ''}`}>
+              <li key={t.id} id={`xs-${t.id}`} className={`xs-item${isOpen ? ' is-open' : ''}`}>
                 <button
                   type="button"
                   className="xs-row"
@@ -551,6 +616,16 @@ export default function SetTabs({
                         `💤 ${t.sleep ? `${sleepMinutes} min` : 'jamais'}`,
                         t.sleep ? 'En veille après ' + sleepMinutes + ' min sans y aller : clic pour ne plus la mettre' : 'Jamais en veille : clic pour la mettre après ' + sleepMinutes + ' min sans y aller',
                         () => patch(t.id, { sleep: t.sleep ? undefined : true }),
+                      )
+                    : null}
+                  {isWeb(t) && t.embed
+                    ? opt(
+                        t.notify !== false,
+                        t.notify !== false ? '🔔 notifs' : '🔕 coupées',
+                        t.notify !== false
+                          ? 'Pastille de non-lus et notifications du site : clic pour les couper'
+                          : 'Ni pastille ni notifications : clic pour les rétablir',
+                        () => patch(t.id, { notify: t.notify === false ? undefined : false }),
                       )
                     : null}
                   {isWeb(t) && t.embed && desktop

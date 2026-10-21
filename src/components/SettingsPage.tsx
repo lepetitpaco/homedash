@@ -16,7 +16,7 @@ import {
   type NotifState,
 } from '../lib/notifications'
 import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
-import { NEW_TAB_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
+import { EDIT_TAB_EVENT, NEW_TAB_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import { hostOf } from '../lib/customTabs'
 import { repoTabs, type Config, type CustomTab, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -28,6 +28,10 @@ import SetRenovate from './SetRenovate'
 import SetRepos, { type Use } from './SetRepos'
 import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
+import { ChangelogBody } from './VersionMenu'
+import { useGuide } from '../lib/guide'
+import { Markdown } from '../lib/markdown'
+import type { useChangelog } from '../lib/changelog'
 import SetTeam from './SetTeam'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
@@ -112,7 +116,12 @@ type Props = {
   /** Relit config.json : après une connexion, le backend a pu y écrire. */
   onReload: () => void
   saving: boolean
+  /** Version et changelog (Aide → Nouveautés), le même état que la barre du haut. */
+  changelog: ReturnType<typeof useChangelog>
 }
+
+/** Pages de l'Aide qui ne viennent pas de GUIDE.md. */
+const NEWS = { id: 'help-news', icon: '📜', label: 'Nouveautés', group: 'Aide' }
 
 type GhCfg = {
   id?: string
@@ -131,7 +140,7 @@ type GhCfg = {
 
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
 
-export default function SettingsPage({ config, onSave, onReload, saving }: Props) {
+export default function SettingsPage({ config, onSave, onReload, saving, changelog }: Props) {
   // Brouillon local : rien n'est écrit avant « Enregistrer ».
   const [draft, setDraft] = useState<Config | null>(config)
   const [auth, setAuth] = useState<Auth | null>(null)
@@ -199,23 +208,41 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   // « User » sont des collaborateurs croisés sur un repo, pas des comptes à lister.
   const accounts = useMemo(() => owners.filter((o, i) => i === 0 || o.type === 'Organization'), [owners])
 
+  // Aide : Nouveautés, puis une page par partie de GUIDE.md.
+  const guide = useGuide()
+  const nav = useMemo(
+    () => [
+      ...SECTIONS,
+      NEWS,
+      ...(guide ?? []).map((p) => ({ id: p.id, icon: p.icon, label: p.title, group: 'Aide' })),
+    ],
+    [guide],
+  )
+
   const cleanedRef = useRef<(c: Config) => Config>((c) => c)
   // Une seule partie à l'écran ; le menu de gauche passe de l'une à l'autre.
   // Mémorisée : on revient là où on réglait.
   const [active, setActive] = useState<string>(() => {
     try {
       const saved = localStorage.getItem(SECTION_KEY)
-      if (SECTIONS.some((sec) => sec.id === saved)) return saved as string
+      // `help-…` : une page de l'Aide (le guide arrive après, son menu aussi).
+      if (saved && (SECTIONS.some((sec) => sec.id === saved) || saved.startsWith('help-'))) return saved
     } catch {
       /* stockage indisponible */
     }
     return SECTIONS[0].id
   })
-  // ＋ de la barre de gauche, Réglages déjà ouvert : Onglets perso (SetTabs crée l'onglet).
+  const help = guide?.find((p) => p.id === active)
+  // ＋ de la barre de gauche ou « Modifier… », Réglages déjà ouvert : Onglets perso
+  // (SetTabs crée l'onglet, ou ouvre son éditeur).
   useEffect(() => {
     const go = () => setActive('set-tabs')
     window.addEventListener(NEW_TAB_EVENT, go)
-    return () => window.removeEventListener(NEW_TAB_EVENT, go)
+    window.addEventListener(EDIT_TAB_EVENT, go)
+    return () => {
+      window.removeEventListener(NEW_TAB_EVENT, go)
+      window.removeEventListener(EDIT_TAB_EVENT, go)
+    }
   }, [])
 
   const jump = (id: string) => {
@@ -448,9 +475,9 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
   return (
     <div className="settings-layout">
       <nav className="set-nav" aria-label="Parties des réglages">
-        {SECTIONS.map((sec, i) => (
+        {nav.map((sec, i) => (
           <Fragment key={sec.id}>
-            {sec.group !== SECTIONS[i - 1]?.group ? <span className="set-nav-group">{sec.group}</span> : null}
+            {sec.group !== nav[i - 1]?.group ? <span className="set-nav-group">{sec.group}</span> : null}
             <button
               className={`set-nav-item${active === sec.id ? ' is-active' : ''}`}
               onClick={() => jump(sec.id)}
@@ -637,6 +664,40 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
         </Card>
         ) : null}
 
+        {active === NEWS.id ? (
+        <Card id={NEWS.id} icon={NEWS.icon} title={`Nouveautés · homedash ${changelog.data?.current ?? ''}`}>
+          {changelog.data ? (
+            <div className="cl-body help-news">
+              <p className="set-hint">
+                {changelog.data.error
+                  ? `⚠ ${changelog.data.error}`
+                  : changelog.data.update
+                    ? `homedash ${changelog.data.latest} est disponible.`
+                    : changelog.data.checked_at
+                      ? '✓ À jour (homedash vérifie toutes les 10 min).'
+                      : ''}{' '}
+                <button className="set-inline-btn" onClick={() => void changelog.check()} disabled={changelog.busy}>
+                  {changelog.busy ? 'vérification…' : 'vérifier maintenant'}
+                </button>
+              </p>
+              <ChangelogBody data={changelog.data} />
+            </div>
+          ) : (
+            <p className="set-hint">chargement…</p>
+          )}
+        </Card>
+        ) : null}
+
+        {active.startsWith('help-') && active !== NEWS.id ? (
+        <Card id={active} icon={help?.icon ?? '📖'} title={help?.title ?? 'Aide'}>
+          {help ? (
+            <Markdown text={help.body} />
+          ) : (
+            <p className="set-hint">{guide ? 'Cette page du guide n’existe plus : choisis-en une à gauche.' : 'chargement…'}</p>
+          )}
+        </Card>
+        ) : null}
+
         {active === 'set-backups' ? (
         <Card id="set-backups" icon="💾" title="Sauvegardes">
           <SetBackups />
@@ -761,6 +822,8 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
         ) : null}
         </div>
 
+        {/* Pages de l'Aide : rien à enregistrer, sauf un brouillon laissé ailleurs. */}
+        {active.startsWith('help-') && !dirty ? null : (
         <div className={`set-actions${dirty ? ' is-dirty' : ''}`}>
           <span className="set-actions-note">
             {dirty
@@ -774,6 +837,7 @@ export default function SettingsPage({ config, onSave, onReload, saving }: Props
             {saving ? 'enregistrement…' : dirty ? 'Enregistrer  ⌘S' : 'Enregistré ✓'}
           </button>
         </div>
+        )}
       </div>
     </div>
   )

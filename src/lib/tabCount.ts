@@ -46,6 +46,23 @@ export function pageCounter(url: string): string | undefined {
   return PAGE_COUNTERS.find((c) => host === c.host || host.endsWith('.' + c.host))?.code
 }
 
+/**
+ * Notifications coupées pour un onglet (`notify: false`) : la page du site ne
+ * peut plus en créer, ni elle-même ni en passant par son service worker.
+ * Exécuté dans la page à chaque chargement. Une notification que le service
+ * worker affiche seul (push reçu page fermée) passe encore : seule la coquille
+ * de l'appli (permissions de la session) pourrait l'arrêter.
+ */
+export const MUTE_SITE_NOTIFICATIONS = `(() => {
+  const Off = function () { return { close() {}, addEventListener() {}, removeEventListener() {} } }
+  Off.permission = 'denied'
+  Off.requestPermission = () => Promise.resolve('denied')
+  try { Object.defineProperty(window, 'Notification', { value: Off, configurable: true, writable: true }) } catch {}
+  if (window.ServiceWorkerRegistration)
+    ServiceWorkerRegistration.prototype.showNotification = () => Promise.resolve()
+  return true
+})()`
+
 /** Délai avant de croire un « 0 non-lu » après un chargement (onglet caché seulement). */
 export const SETTLE_MS = 20_000
 

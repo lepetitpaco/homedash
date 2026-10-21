@@ -28,9 +28,11 @@ import events
 import store
 
 CHANGELOG   = Path(os.environ.get("CHANGELOG", Path(__file__).resolve().parent.parent / "CHANGELOG.md"))
+# Mode d'emploi, affiché dans Réglages → Aide (copié dans l'image comme le changelog).
+GUIDE       = Path(os.environ.get("GUIDE", Path(__file__).resolve().parent.parent / "GUIDE.md"))
 REPO        = os.environ.get("HOMEDASH_REPO", "davidgennaoui/homedash")
 BRANCH      = os.environ.get("HOMEDASH_BRANCH", "main")
-CHECK_EVERY = 6 * 3600
+CHECK_EVERY = 10 * 60      # un appel à GitHub (6/h, sur un plafond de 5 000)
 VERSION     = "version.json"
 # Avec le dossier du projet (transmis par compose), la commande se colle depuis
 # n'importe quel terminal ; sans lui, elle suppose qu'on y est déjà.
@@ -67,6 +69,13 @@ def entries():
         return parse(CHANGELOG.read_text(encoding="utf-8"))
     except OSError:
         return []
+
+def guide():
+    """Texte de GUIDE.md ; vide s'il manque (la page Aide le dit)."""
+    try:
+        return GUIDE.read_text(encoding="utf-8")
+    except OSError:
+        return ""
 
 def current():
     e = entries()

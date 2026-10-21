@@ -309,6 +309,8 @@ class Handler(BaseHTTPRequestHandler):
     def _api_get(self, path):
         if path == "/api/changelog":
             return self._json(updates.payload())
+        if path == "/api/guide":
+            return self._json({"text": updates.guide()})
         if path == "/api/config":
             try:
                 with _config_lock:

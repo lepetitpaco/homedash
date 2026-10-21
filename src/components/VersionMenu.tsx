@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Changelog, ChangelogEntry } from '../lib/changelog'
+import { inline } from '../lib/markdown'
 
 /**
  * Version installée, dans la barre du haut. Discrète quand tout est à jour,
@@ -18,7 +19,6 @@ export default function VersionMenu({
   onCheck: () => void
 }) {
   const [open, setOpen] = useState(false)
-  const [copied, setCopied] = useState<false | 'update' | 'desktop'>(false)
 
   // Échap ferme la modale (le clic sur le fond aussi, plus bas).
   useEffect(() => {
@@ -29,18 +29,6 @@ export default function VersionMenu({
   }, [open])
 
   if (!data) return null
-
-  // `which` : la commande copiée (mise à jour, ou construction de l'appli).
-  const copy = (text = data.command, which: 'update' | 'desktop' = 'update') => {
-    try {
-      void navigator.clipboard?.writeText(text).then(() => {
-        setCopied(which)
-        window.setTimeout(() => setCopied(false), 1400)
-      })
-    } catch {
-      /* presse-papier absent hors localhost/HTTPS */
-    }
-  }
 
   return (
     <>
@@ -66,50 +54,7 @@ export default function VersionMenu({
             </div>
 
             <div className="modal-body cl-body">
-              {/* Toujours là : la commande à coller dans un terminal pour mettre à jour. */}
-              <div className={`cl-update${data.update ? '' : ' is-idle'}`}>
-                <strong>
-                  {data.update ? `⬆️ La version ${data.latest} est disponible` : 'Mettre à jour homedash'}
-                </strong>
-                <p>
-                  {data.update
-                    ? 'Colle cette commande dans un terminal :'
-                    : 'Tu es à jour. Quand une version sortira, colle cette commande dans un terminal :'}
-                </p>
-                <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
-                  <code>{data.command}</code>
-                  <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
-                </button>
-                <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
-                {data.desktop_url ? (
-                  <div className="cl-desktop">
-                    <strong>💻 Appli de bureau (Mac)</strong>
-                    <p>
-                      <a href={data.desktop_url} target="_blank" rel="noreferrer">
-                        ⬇ Télécharger la dernière version
-                      </a>{' '}
-                      (<code>-arm64</code> : Mac M1/M2/M3…, <code>-x64</code> : Intel), ou la construire sur ce Mac, sans
-                      GitHub ni blocage au premier lancement :
-                    </p>
-                    {data.desktop_command ? (
-                      <button
-                        className="cl-cmd"
-                        onClick={() => copy(data.desktop_command, 'desktop')}
-                        title="Copier la commande"
-                      >
-                        <code>{data.desktop_command}</code>
-                        <span>{copied === 'desktop' ? '✓ copié' : 'copier'}</span>
-                      </button>
-                    ) : null}
-                  </div>
-                ) : null}
-                {data.incoming.map((e) => (
-                  <Entry key={e.version} entry={e} fresh />
-                ))}
-              </div>
-              {data.entries.map((e, i) => (
-                <Entry key={e.version} entry={e} current={i === 0} />
-              ))}
+              <ChangelogBody data={data} />
             </div>
 
             <div className="modal-foot">
@@ -129,6 +74,75 @@ export default function VersionMenu({
   )
 }
 
+/**
+ * Commande de mise à jour, appli de bureau et changelog : la fenêtre de la
+ * version, et Réglages → Aide → Nouveautés.
+ */
+export function ChangelogBody({ data }: { data: Changelog }) {
+  const [copied, setCopied] = useState<false | 'update' | 'desktop'>(false)
+
+  // `which` : la commande copiée (mise à jour, ou construction de l'appli).
+  const copy = (text = data.command, which: 'update' | 'desktop' = 'update') => {
+    try {
+      void navigator.clipboard?.writeText(text).then(() => {
+        setCopied(which)
+        window.setTimeout(() => setCopied(false), 1400)
+      })
+    } catch {
+      /* presse-papier absent hors localhost/HTTPS */
+    }
+  }
+
+  return (
+    <>
+    {/* Toujours là : la commande à coller dans un terminal pour mettre à jour. */}
+    <div className={`cl-update${data.update ? '' : ' is-idle'}`}>
+      <strong>
+        {data.update ? `⬆️ La version ${data.latest} est disponible` : 'Mettre à jour homedash'}
+      </strong>
+      <p>
+        {data.update
+          ? 'Colle cette commande dans un terminal :'
+          : 'Tu es à jour. Quand une version sortira, colle cette commande dans un terminal :'}
+      </p>
+      <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
+        <code>{data.command}</code>
+        <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
+      </button>
+      <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
+      {data.desktop_url ? (
+        <div className="cl-desktop">
+          <strong>💻 Appli de bureau (Mac)</strong>
+          <p>
+            <a href={data.desktop_url} target="_blank" rel="noreferrer">
+              ⬇ Télécharger la dernière version
+            </a>{' '}
+            (<code>-arm64</code> : Mac M1/M2/M3…, <code>-x64</code> : Intel), ou la construire sur ce Mac, sans
+            GitHub ni blocage au premier lancement :
+          </p>
+          {data.desktop_command ? (
+            <button
+              className="cl-cmd"
+              onClick={() => copy(data.desktop_command, 'desktop')}
+              title="Copier la commande"
+            >
+              <code>{data.desktop_command}</code>
+              <span>{copied === 'desktop' ? '✓ copié' : 'copier'}</span>
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+      {data.incoming.map((e) => (
+        <Entry key={e.version} entry={e} fresh />
+      ))}
+    </div>
+    {data.entries.map((e, i) => (
+      <Entry key={e.version} entry={e} current={i === 0} />
+    ))}
+    </>
+  )
+}
+
 function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boolean; fresh?: boolean }) {
   return (
     <article className={`cl-entry${fresh ? ' is-fresh' : ''}`}>
@@ -140,29 +154,9 @@ function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boo
       </div>
       <ul>
         {entry.items.map((item, i) => (
-          <li key={i}>{renderBold(item)}</li>
+          <li key={i}>{inline(item)}</li>
         ))}
       </ul>
     </article>
   )
-}
-
-/**
- * Le peu de Markdown utilisé dans CHANGELOG.md : `**gras**`, `*italique*`,
- * `` `code` `` et `[lien](https://…)` (ouvert à part, http(s) seulement).
- */
-function renderBold(text: string) {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\(https?:\/\/[^)\s]+\)|\*[^*\s][^*]*\*)/g).map((part, i) => {
-    if (part.startsWith('**') && part.endsWith('**')) return <strong key={i}>{part.slice(2, -2)}</strong>
-    if (part.startsWith('`') && part.endsWith('`') && part.length > 1) return <code key={i}>{part.slice(1, -1)}</code>
-    const link = /^\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)$/.exec(part)
-    if (link)
-      return (
-        <a key={i} href={link[2]} target="_blank" rel="noreferrer">
-          {link[1]}
-        </a>
-      )
-    if (part.length > 2 && part.startsWith('*') && part.endsWith('*')) return <em key={i}>{part.slice(1, -1)}</em>
-    return part
-  })
 }

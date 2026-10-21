@@ -2,8 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { folderOf, moveTab, sessionOf, srcOf, tabKey } from '../lib/customTabs'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 
-/** Largeur de la barre : icônes + noms, icônes seules, ou cachée. */
-export type RailMode = 'wide' | 'icons' | 'hidden'
+/** Largeur de la barre : icônes + noms, icônes seules, petites icônes, ou cachée. */
+export type RailMode = 'wide' | 'icons' | 'mini' | 'hidden'
 
 const OPEN_KEY = 'homedash:rail-closed'
 
@@ -42,8 +42,6 @@ type Props = {
   onToggleMute: (tab: CustomTab) => void
   onTempMenu: (e: React.MouseEvent, tab: CustomTab) => void
   onTempClose: (tab: CustomTab) => void
-  /** ⧉ : nouvel onglet éphémère vierge. */
-  onNewTemp: (e: React.MouseEvent) => void
   folders: TabFolder[]
   sessions: TabSession[]
   /** Onglet perso ouvert (`x:…`), `settings`, ou null quand on est dans homedash. */
@@ -54,8 +52,10 @@ type Props = {
   onHome: () => void
   onSettings: () => void
   onSelect: (key: `x:${string}`) => void
-  onMode: (mode: RailMode) => void
+  /** ＋ : nouvel onglet (une fenêtre, sans passer par Réglages). */
   onAdd: () => void
+  /** Clic droit sur la barre hors d'une icône : ajouter, éphémère, largeur, cacher. */
+  onMenu: (e: React.MouseEvent) => void
   /** Ordre ou dossier changé par glisser-déposer : écrit dans la config. */
   onTabs: (tabs: CustomTab[]) => void
   /** Une icône lâchée sur une autre hors dossier : nouveau dossier pour les deux. */
@@ -73,6 +73,9 @@ type Props = {
  * autre = les réunir dans un dossier (ou rejoindre le sien) ; sur un dossier =
  * y entrer ; tout en bas = sortir du dossier. Clic droit pour le reste.
  *
+ * En bas, ＋ et ⚙ seuls : un éphémère, la largeur et « cacher » passent par
+ * le clic droit sur la barre (`onMenu`).
+ *
  * Replié ou non, un dossier est une préférence de l'écran (localStorage) ; les
  * dossiers eux-mêmes et l'ordre vivent dans la config.
  */
@@ -85,7 +88,6 @@ export default function Rail({
   onToggleMute,
   onTempMenu,
   onTempClose,
-  onNewTemp,
   folders,
   sessions,
   active,
@@ -95,8 +97,8 @@ export default function Rail({
   onHome,
   onSettings,
   onSelect,
-  onMode,
   onAdd,
+  onMenu,
   onTabs,
   onMerge,
   onTabMenu,
@@ -119,7 +121,8 @@ export default function Rail({
   const loose = tabs.filter((t) => !folderOf(t, folders))
   const inFolder = (f: TabFolder) => tabs.filter((t) => folderOf(t, folders) === f.id)
   const wide = mode === 'wide'
-  const unread = (t: CustomTab) => (t.embed ? (counts[tabKey(t)] ?? 0) : 0)
+  // Notifications coupées (`notify: false`) : pas de pastille.
+  const unread = (t: CustomTab) => (t.embed && t.notify !== false ? (counts[tabKey(t)] ?? 0) : 0)
   const endDrag = () => {
     setDrag(null)
     setOver(null)
@@ -240,7 +243,16 @@ export default function Rail({
   }
 
   return (
-    <nav className={`rail is-${mode}`} aria-label="Onglets perso">
+    <nav
+      className={`rail is-${mode}`}
+      aria-label="Onglets perso"
+      // Les icônes ont leur propre menu (elles l'ont déjà ouvert : defaultPrevented).
+      onContextMenu={(e) => {
+        if (e.defaultPrevented) return
+        e.preventDefault()
+        onMenu(e)
+      }}
+    >
       <div className={`rail-item rail-home${active ? '' : ' is-active'}`}>
         <span className="rail-pill" aria-hidden="true" />
         <button className="rail-btn" onClick={onHome} title="homedash : Raccourcis, GitHub, Local…">
@@ -359,29 +371,15 @@ export default function Rail({
       </div>
 
       <div className="rail-foot">
+        <button className="rail-tool rail-add" onClick={onAdd} title="Ajouter un onglet">
+          ＋{wide ? <span className="rail-label">Ajouter</span> : null}
+        </button>
         <button
           className={`rail-tool rail-settings${active === 'settings' ? ' is-active' : ''}`}
           onClick={onSettings}
-          title="Réglages"
+          title="Réglages · clic droit sur la barre : ajouter un onglet, éphémère, largeur"
         >
           ⚙{wide ? <span className="rail-label">Réglages</span> : null}
-        </button>
-        <button className="rail-tool" onClick={onAdd} title="Ajouter un onglet">
-          ＋{wide ? <span className="rail-label">ajouter</span> : null}
-        </button>
-        <button className="rail-tool" onClick={onNewTemp} title="Nouvel onglet éphémère (disparaît à la fermeture)">
-          ⧉{wide ? <span className="rail-label">éphémère</span> : null}
-        </button>
-        <button
-          className="rail-tool"
-          onClick={() => onMode(wide ? 'icons' : 'wide')}
-          title={wide ? 'Icônes seules' : 'Afficher les noms'}
-        >
-          {wide ? '«' : '»'}
-          {wide ? <span className="rail-label">réduire</span> : null}
-        </button>
-        <button className="rail-tool" onClick={() => onMode('hidden')} title="Cacher la barre (les onglets reviennent en haut)">
-          ✕{wide ? <span className="rail-label">cacher</span> : null}
         </button>
       </div>
     </nav>

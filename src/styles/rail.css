@@ -261,7 +261,7 @@ body {
 .rail-foot {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   padding: 8px 12px 0;
   border-top: 1px solid var(--border-soft);
 }
@@ -290,12 +290,109 @@ body {
   color: var(--text);
   background: color-mix(in srgb, #60a5fa 18%, var(--panel-2));
 }
-.rail-settings {
-  font-size: 1rem;
+/* ＋ et ⚙ : les deux seuls boutons du bas, à la taille des icônes. */
+.rail-foot .rail-tool {
+  height: 40px;
+  font-size: 1.45rem;
 }
-.rail.is-icons .rail-tool {
+.rail.is-mini .rail-foot .rail-tool {
+  height: 34px;
+  font-size: 1.2rem;
+}
+.rail.is-icons .rail-tool,
+.rail.is-mini .rail-tool {
   justify-content: center;
   padding: 0;
+}
+
+/* Super réduite : petites icônes, mêmes repères en plus discrets (lettre du
+   compte devenue un point, pastille resserrée). */
+.rail.is-mini .rail-item {
+  padding: 0 6px 0 8px;
+}
+.rail.is-mini .rail-icon {
+  width: 32px;
+  height: 32px;
+  font-size: 0.95rem;
+}
+.rail.is-mini .rail-icon .favicon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+}
+.rail.is-mini .rail-item.is-active .rail-icon {
+  border-radius: 10px;
+  box-shadow:
+    0 0 0 2px var(--session, #60a5fa),
+    0 0 10px color-mix(in srgb, var(--session, #60a5fa) 55%, transparent);
+}
+.rail.is-mini .rail-item.is-active .rail-pill {
+  height: 28px;
+  width: 4px;
+}
+.rail.is-mini .rail-item:hover .rail-pill {
+  height: 12px;
+}
+.rail.is-mini .rail-badge {
+  right: -4px;
+  bottom: -4px;
+  min-width: 11px;
+  height: 13px;
+  padding: 0 3px;
+  border-width: 2px;
+  font-size: 9px;
+  line-height: 13px;
+}
+.rail.is-mini .rail-session {
+  left: -2px;
+  top: -2px;
+  width: 8px;
+  height: 8px;
+  font-size: 0;
+}
+.rail.is-mini .rail-audio {
+  right: -5px;
+  top: -5px;
+  width: 13px;
+  height: 13px;
+  font-size: 7px;
+}
+.rail.is-mini .rail-zz {
+  right: -4px;
+  top: -5px;
+  font-size: 8px;
+}
+.rail.is-mini .rail-out {
+  font-size: 0.5rem;
+}
+.rail.is-mini .rail-sep {
+  margin: 6px 10px 2px;
+}
+.rail.is-mini .rail-folder.is-open {
+  margin: 0 3px;
+  border-radius: 12px;
+}
+.rail.is-mini .rail-folder.is-open .rail-pill {
+  left: -3px;
+}
+.rail.is-mini .rail-mini {
+  padding: 4px;
+  border-radius: 10px;
+  gap: 1px;
+}
+.rail.is-mini .rail-mini .favicon {
+  width: 10px;
+  height: 10px;
+}
+.rail.is-mini .rail-temp-x {
+  left: 30px;
+  width: 13px;
+  height: 13px;
+  font-size: 7px;
+  line-height: 13px;
+}
+.rail.is-mini .rail-foot {
+  padding: 6px 4px 0;
 }
 
 /* Barre cachée : une languette pour la rouvrir. */

@@ -15,6 +15,21 @@ export function presetNewTab() {
   }
 }
 
+/** « Modifier… » d'un onglet : Réglages → Onglets perso, son éditeur ouvert. */
+export const EDIT_TAB_KEY = 'homedash:edit-tab'
+/** Même demande quand Réglages est déjà ouvert (détail : l'id de l'onglet). */
+export const EDIT_TAB_EVENT = 'homedash:edit-tab'
+
+export function presetEditTab(id: string) {
+  presetSettingsSection('set-tabs')
+  try {
+    sessionStorage.setItem(EDIT_TAB_KEY, id)
+  } catch {
+    /* stockage indisponible : la liste s'ouvre sans éditeur */
+  }
+  window.dispatchEvent(new CustomEvent(EDIT_TAB_EVENT, { detail: id }))
+}
+
 /** Prépare la partie à afficher à la prochaine ouverture de Réglages. */
 export function presetSettingsSection(id: string) {
   try {

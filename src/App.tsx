@@ -6,6 +6,7 @@ import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
+import AddTabDialog from './components/AddTabDialog'
 import Rail, { type RailMode } from './components/Rail'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
@@ -51,12 +52,13 @@ import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
-import { NEW_TAB_EVENT, presetNewTab, presetSettingsSection } from './lib/settingsNav'
+import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection } from './lib/settingsNav'
 import type { CustomTab, FlatLink, UiConfig } from './types'
 import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
 
 const RAIL_KEY = 'homedash:rail'
+const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
 /** Dernières pastilles des onglets perso, par `tabKey`. */
 const TAB_COUNTS_KEY = 'homedash:tab-counts'
 
@@ -256,7 +258,7 @@ export default function App() {
   const [railMode, setRailMode] = useState<RailMode>(() => {
     try {
       const v = localStorage.getItem(RAIL_KEY)
-      return v === 'wide' || v === 'icons' || v === 'hidden' ? v : 'icons'
+      return v === 'wide' || v === 'icons' || v === 'mini' || v === 'hidden' ? v : 'icons'
     } catch {
       return 'icons'
     }
@@ -272,12 +274,14 @@ export default function App() {
   // La barre n'existe que s'il y a des onglets perso à y mettre.
   const railOn = customTabs.length > 0 && railMode !== 'hidden'
   useEffect(() => {
-    const w = !railOn ? '0px' : railMode === 'wide' ? '200px' : '68px'
+    const w = !railOn ? '0px' : RAIL_WIDTH[railMode]
     document.documentElement.style.setProperty('--rail-w', w)
   }, [railOn, railMode])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
+  // Fenêtre « Nouvel onglet » (＋ de la barre de gauche).
+  const [adding, setAdding] = useState(false)
   // Non-lus de chaque onglet perso (appli de bureau seulement). Gardés dans le
   // localStorage : la pastille survit au redémarrage et à la veille, jusqu'à ce
   // que le site, rechargé, en donne une nouvelle.
@@ -373,7 +377,11 @@ export default function App() {
   }, [sleepMinutes])
 
   // Icône du Dock (appli de bureau) : non-lus des onglets perso + ceux de la cloche.
-  const tabUnread = allTabs.reduce((sum, t) => sum + (t.embed ? (tabCounts[tabKey(t)] ?? 0) : 0), 0)
+  // (sauf les onglets aux notifications coupées)
+  const tabUnread = allTabs.reduce(
+    (sum, t) => sum + (t.embed && t.notify !== false ? (tabCounts[tabKey(t)] ?? 0) : 0),
+    0,
+  )
   useEffect(() => desktop?.setBadge(tabUnread + events.unseen), [tabUnread, events.unseen])
   useEffect(() => {
     if (tab === 'events') markEvents()
@@ -658,8 +666,8 @@ export default function App() {
             ]
           : []),
         { heading: 'Onglet' },
-        ...(t.embed ? [muteItem(t), sleepItem(t)] : []),
-        { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: openTabSettings },
+        ...(t.embed ? [notifyItem(t), muteItem(t), sleepItem(t)] : []),
+        { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: () => openTabSettings(t.id) },
       ],
     })
   }
@@ -717,7 +725,7 @@ export default function App() {
   }
   openTempRef.current = (url) => openTemp(url)
   /** ⧉ de la barre : un onglet éphémère vierge (Google), avec le compte choisi s'il y en a. */
-  const newTemp = (e: React.MouseEvent) => {
+  const newTemp = (e: { clientX: number; clientY: number }) => {
     const start = 'https://www.google.com/'
     if (!hasSessions || !tabSessions.length) return openTemp(start)
     menus.openMenu({
@@ -727,6 +735,41 @@ export default function App() {
       items: [
         { label: 'Connexion commune', onSelect: () => openTemp(start) },
         ...tabSessions.map((s) => ({ label: `Compte ${s.name}`, onSelect: () => openTemp(start, s.id) })),
+      ],
+    })
+  }
+  // ＋ de la barre : une fenêtre ; « Plus de réglages » = Réglages → Onglets perso.
+  const addTab = () => setAdding(true)
+  const addTabInSettings = () => {
+    setAdding(false)
+    search.setQuery('')
+    presetNewTab()
+    // Réglages déjà ouvert : il bascule lui-même, sans perdre un brouillon.
+    if (tab === 'settings') window.dispatchEvent(new Event(NEW_TAB_EVENT))
+    else selectTab('settings')
+  }
+  /** Clic droit sur la barre de gauche (hors icône) : ce qui n'a plus de bouton. */
+  const railMenu = (e: React.MouseEvent) => {
+    const at = { clientX: e.clientX, clientY: e.clientY }
+    const width = (mode: RailMode, label: string): MenuItem => ({
+      icon: railMode === mode ? '✓' : '',
+      label,
+      onSelect: () => changeRail(mode),
+    })
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'Barre de gauche',
+      items: [
+        { icon: '＋', label: 'Ajouter un onglet', onSelect: addTab },
+        { icon: '⧉', label: 'Nouvel onglet éphémère', onSelect: () => newTemp(at) },
+        { sep: true },
+        { heading: 'Largeur' },
+        width('wide', 'Étendue (icônes et noms)'),
+        width('icons', 'Réduite (icônes)'),
+        width('mini', 'Super réduite (petites icônes)'),
+        { sep: true },
+        { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => changeRail('hidden') },
       ],
     })
   }
@@ -762,6 +805,18 @@ export default function App() {
     if (t.id.startsWith('tmp-')) setTemps((ts) => ts.map((x) => (x.id === t.id ? { ...x, sleep } : x)))
     else saveTabs(customTabs.map((x) => (x.id === t.id ? { ...x, sleep } : x)))
   }
+  /** Notifications de l'onglet : pastille et notifications du site (`notify`). */
+  const toggleNotify = (t: CustomTab) => {
+    const notify = t.notify === false ? undefined : false
+    if (t.id.startsWith('tmp-')) setTemps((ts) => ts.map((x) => (x.id === t.id ? { ...x, notify } : x)))
+    else saveTabs(customTabs.map((x) => (x.id === t.id ? { ...x, notify } : x)))
+  }
+  const notifyItem = (t: CustomTab): MenuItem => ({
+    icon: t.notify === false ? '🔔' : '🔕',
+    label: t.notify === false ? 'Rétablir les notifications' : 'Couper les notifications',
+    hint: t.notify === false ? 'pastille et notifs' : 'ni pastille ni notifs',
+    onSelect: () => toggleNotify(t),
+  })
   const toggleMute = (t: CustomTab) => {
     const key = tabKey(t)
     setMuted((m) => ({ ...m, [key]: !m[key] }))
@@ -793,6 +848,7 @@ export default function App() {
           : [{ icon: '📌', label: 'Garder ouvert', hint: 'survit au redémarrage', onSelect: () => promoteTemp(t, true) }]),
         { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
         { heading: 'Onglet' },
+        notifyItem(t),
         muteItem(t),
         sleepItem(t),
         { sep: true },
@@ -940,7 +996,7 @@ export default function App() {
         label: t.label,
         title: t.url,
         ...(t.embed ? {} : { href: srcOf(t.url) }),
-        badge: t.embed ? tabCounts[tabKey(t)] : 0,
+        badge: t.embed && t.notify !== false ? tabCounts[tabKey(t)] : 0,
         badgeTitle: `${tabCounts[tabKey(t)] ?? 0} non lu(s) d'après la page`,
         badgeAlert: true,
         session: t.embed ? sessionOf(t, tabSessions) : undefined,
@@ -963,9 +1019,11 @@ export default function App() {
   const shown: TabId = tab.startsWith('x:') && !openCustom ? 'links' : tab
   // La recherche court-circuite les onglets : ses résultats valent partout.
   const view: TabId | 'search' = searching ? 'search' : shown
-  const openTabSettings = () => {
+  /** Réglages → Onglets perso ; avec un id, l'éditeur de cet onglet déplié. */
+  const openTabSettings = (id?: string) => {
     search.setQuery('')
-    presetSettingsSection('set-tabs')
+    if (id) presetEditTab(id)
+    else presetSettingsSection('set-tabs')
     selectTab('settings')
   }
 
@@ -1022,7 +1080,6 @@ export default function App() {
           onToggleMute={toggleMute}
           onTempMenu={tempMenu}
           onTempClose={closeTemp}
-          onNewTemp={newTemp}
           folders={tabFolders}
           sessions={tabSessions}
           active={shown.startsWith('x:') || shown === 'settings' ? shown : null}
@@ -1041,14 +1098,8 @@ export default function App() {
             search.setQuery('')
             selectTab(key)
           }}
-          onMode={changeRail}
-          onAdd={() => {
-            search.setQuery('')
-            presetNewTab()
-            // Réglages déjà ouvert : il bascule lui-même, sans perdre un brouillon.
-            if (tab === 'settings') window.dispatchEvent(new Event(NEW_TAB_EVENT))
-            else selectTab('settings')
-          }}
+          onAdd={addTab}
+          onMenu={railMenu}
           onTabs={(next) => saveTabs([...next, ...keptTabs])}
           onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
           onTabMenu={tabMenu}
@@ -1071,7 +1122,7 @@ export default function App() {
           tabs={tabs}
           active={shown}
           onSelect={selectTab}
-          onAdd={railOn ? undefined : openTabSettings}
+          onAdd={railOn ? undefined : () => openTabSettings()}
           onNewTemp={railOn || !desktop ? undefined : newTemp}
           onMove={(id, before) => {
             const d = customTabs.find((t) => tabKey(t) === id)
@@ -1098,7 +1149,7 @@ export default function App() {
             tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
             session={sessionOf(t, tabSessions)}
             hidden={view !== tabKey(t)}
-            onSettings={openTabSettings}
+            onSettings={() => openTabSettings(t.id)}
             onGuest={(id) => guestTab.current.set(id, t.id)}
             icon={iconOf[t.id]}
             onNavigate={
@@ -1186,6 +1237,7 @@ export default function App() {
           onSave={persist}
           onReload={reload}
           saving={saveState.kind === 'saving'}
+          changelog={changelog}
         />
       ) : view === 'github' ? (
         <GithubView
@@ -1243,6 +1295,21 @@ export default function App() {
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
       <NameColorHost />
+      {adding ? (
+        <AddTabDialog
+          folders={tabFolders}
+          sessions={desktop && hasSessions ? tabSessions : []}
+          onClose={() => setAdding(false)}
+          onMore={addTabInSettings}
+          onAdd={(t) => {
+            const id = newTabId(allTabs.map((x) => x.id))
+            saveTabs([...customTabs, { ...t, id }])
+            setAdding(false)
+            search.setQuery('')
+            if (t.embed) selectTab(`x:${id}`)
+          }}
+        />
+      ) : null}
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
       {menus.draft ? (
         <EditDialog

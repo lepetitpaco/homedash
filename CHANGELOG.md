@@ -4,6 +4,24 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.18.0 — 2026-10-21
+
+- **＋ de la barre de gauche : une fenêtre d'ajout** (adresse, nom, où l'ouvrir, dossier, compte, sites
+  courants en un clic), sans passer par Réglages.
+- **Barre de gauche épurée** : en bas, seulement ＋ et ⚙, plus grands. Éphémère, largeur et « cacher »
+  passent au clic droit sur la barre.
+- **Largeur « super réduite »** : petites icônes, en plus d'« étendue » et « réduite ».
+- **Onglets perso par ordre alphabétique** dans Réglages.
+- **« Modifier… » ouvre l'onglet dans Réglages**, son éditeur déplié.
+- **Couper les notifications d'un onglet** : clic droit sur son icône, ou 🔕 dans Réglages → Onglets
+  perso. Plus de pastille (ni dans le total du Dock), et le site ne peut plus afficher de notification.
+- **Réglages → Aide** : les nouveautés (ce changelog) et un guide illustré, une page par sujet, avec un
+  lien pour signaler un problème.
+- **Sauvegardes : ménage en quelques clics** : cases à cocher, *tout*, *les automatiques* ou *plus de
+  7 jours*, puis une seule suppression.
+- **Mises à jour détectées en 10 min** au lieu de 6 h : la cloche et le numéro de version préviennent
+  presque tout de suite qu'une nouvelle version est publiée.
+
 ## 1.17.1 — 2026-10-21
 
 - **Pastilles des onglets gardées** : elles survivent au redémarrage de l'appli, à la mise en veille et au

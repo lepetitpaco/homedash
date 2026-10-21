@@ -40,6 +40,18 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(keys, sorted(keys, reverse=True), "versions du plus récent au plus ancien")
         self.assertTrue(all(x["items"] for x in e), "chaque version décrit ce qu'elle apporte")
 
+    def test_guide_is_served_and_split_in_parts(self):
+        text = updates.guide()
+        self.assertIn("\n## ", text, "GUIDE.md : une page de l'Aide par titre `## `")
+
+    def test_missing_guide_is_empty(self):
+        saved = updates.GUIDE
+        updates.GUIDE = saved.with_name("absent.md")
+        try:
+            self.assertEqual(updates.guide(), "")
+        finally:
+            updates.GUIDE = saved
+
 
 class OnStartTest(unittest.TestCase):
     def setUp(self):

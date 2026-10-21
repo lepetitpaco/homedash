@@ -11,9 +11,10 @@ dist
 .DS_Store
 *.log
 README.md
-GUIDE.md
 CLAUDE.md
 ARCHITECTURE.md
 desktop
 .github
 docs
+# …sauf les captures, affichées dans Réglages → Aide
+!docs/screenshots

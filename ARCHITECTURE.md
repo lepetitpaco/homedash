@@ -16,12 +16,13 @@ backend/                  Python stdlib, aucune dépendance
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
   backup.py               instantanés, export, restauration
-  updates.py              version installée (CHANGELOG.md), mise à jour disponible sur GitHub
+  updates.py              version installée (CHANGELOG.md), mise à jour disponible sur GitHub, GUIDE.md servi
 src/
   App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…)
-  lib/                    appels API et polling (ghboard, local, events, admin…)
+  lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
+                          tabCount (pastilles des onglets perso)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
                           webviews des onglets perso, badge du Dock. Build : CI sur tag desktop-v*,
@@ -29,6 +30,8 @@ desktop/                  appli de bureau facultative (Electron) : fenêtre sur 
 scripts/perf-report.py    résumé du journal de performance, jour par jour et par onglet
 tests/                    unittest stdlib
 CHANGELOG.md              une entrée par version ; la première = version installée
+GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
+docs/screenshots/         captures (instance de démo) : README, GUIDE, et servies sous /guide/
 data/                     (non versionné) config.json, secrets.json, notes, journal, backups/, version.json
 ```
 
@@ -55,6 +58,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |
 | `/api/backups[/{nom}[/restore]]` | GET, POST, DELETE | Instantanés |
 | `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |
+| `/api/guide` | GET | Texte de GUIDE.md (Réglages → Aide) |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.

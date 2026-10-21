@@ -19,8 +19,10 @@ ENV TZ=Europe/Paris \
     PYTHONUNBUFFERED=1
 WORKDIR /app
 COPY backend ./backend
-# Version installée et onglet Changelog : lus au runtime par backend/updates.py
-COPY CHANGELOG.md ./
+# Version installée, changelog et guide (Réglages → Aide) : lus au runtime par backend/updates.py
+COPY CHANGELOG.md GUIDE.md ./
 COPY --from=build /app/dist ./public
+# Captures du guide (Réglages → Aide), servies sous /guide/
+COPY docs/screenshots ./public/guide
 EXPOSE 80
 CMD ["python", "backend/server.py"]

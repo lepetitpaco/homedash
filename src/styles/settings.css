@@ -382,3 +382,37 @@
   color: var(--text);
 }
 
+
+/* Sauvegardes : cases à cocher et suppression groupée. */
+.set-bk-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin: 0.6rem 0 0.3rem;
+  font-size: 0.85rem;
+}
+.set-bk-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  color: var(--text-dim);
+  cursor: pointer;
+}
+.set-bk-cell {
+  width: 1.5rem;
+}
+.set-backups tr.is-picked td {
+  background: color-mix(in srgb, var(--sig-bad) 9%, transparent);
+}
+.set-del-many {
+  padding: 0.3rem 0.7rem;
+  border: 1px solid color-mix(in srgb, var(--sig-bad) 55%, var(--border));
+  border-radius: 0.4rem;
+  background: color-mix(in srgb, var(--sig-bad) 14%, var(--panel-2));
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.set-del-many:hover {
+  background: color-mix(in srgb, var(--sig-bad) 28%, var(--panel-2));
+}

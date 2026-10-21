@@ -170,6 +170,11 @@ export type CustomTab = {
    */
   preload?: boolean
   /**
+   * Faux = l'onglet ne remonte rien : ni pastille de non-lus (barre, Dock), ni
+   * notifications du site. Absent = oui.
+   */
+  notify?: boolean
+  /**
    * Onglet éphémère gardé : survit au rechargement et à la fermeture de l'appli,
    * rangé avec les éphémères (en bas de la barre) plutôt qu'avec les onglets
    * perso, et ne capte pas les liens des autres onglets.

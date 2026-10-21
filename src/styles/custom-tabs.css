@@ -790,3 +790,68 @@
   flex: 0 0 auto;
   white-space: nowrap;
 }
+
+/* Fenêtre « Nouvel onglet » (＋ de la barre de gauche). */
+.modal.add-tab {
+  width: min(600px, 100%);
+}
+.add-tab-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.add-tab-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+.add-tab-field > span,
+.add-tab-row > span:first-child,
+.add-tab-sites-title {
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+}
+.add-tab-field input {
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 0.45rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95rem;
+  padding: 0.45rem 0.6rem;
+}
+.add-tab-field input:focus {
+  outline: none;
+  border-color: #60a5fa;
+}
+.add-tab-row {
+  display: flex;
+  align-items: center;
+  gap: 0.8rem;
+}
+.add-tab-row > span:first-child {
+  width: 5.5rem;
+  flex: 0 0 auto;
+}
+.add-tab-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+.add-tab-sites {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid var(--border-soft);
+}
+.add-tab-sites .xs-btn {
+  font-size: 0.74rem;
+  padding: 0.2rem 0.5rem;
+}
+.add-tab-more {
+  margin-right: auto;
+}

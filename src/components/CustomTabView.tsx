@@ -8,7 +8,7 @@ import {
   type OpenInTab,
   type WebviewEl,
 } from '../lib/desktop'
-import { pageCounter, tabCounter } from '../lib/tabCount'
+import { MUTE_SITE_NOTIFICATIONS, pageCounter, tabCounter } from '../lib/tabCount'
 import type { CustomTab } from '../types'
 
 /** Relecture des non-lus dans la page (`pageCounter`), sites concernés seulement. */
@@ -96,6 +96,23 @@ export default function CustomTabView({
   const loadStart = useRef(0)
   const mutedRef = useRef(muted)
   mutedRef.current = muted
+  // Notifications coupées : réappliqué à chaque chargement (dom-ready) ; les
+  // rétablir recharge le site, seul moyen de lui rendre les vraies.
+  const silent = tab.notify === false
+  const silentRef = useRef(silent)
+  const wasSilent = useRef(silent)
+  silentRef.current = silent
+  useEffect(() => {
+    const el = view.current
+    if (!desktop || !el) return
+    try {
+      if (silent) void el.executeJavaScript(MUTE_SITE_NOTIFICATIONS).catch(() => {})
+      else if (wasSilent.current) el.reload()
+    } catch {
+      /* webview pas encore attachée : dom-ready s'en charge */
+    }
+    wasSilent.current = silent
+  }, [silent])
   useEffect(() => {
     try {
       view.current?.setAudioMuted(muted)
@@ -148,6 +165,7 @@ export default function CustomTabView({
     const onReady = () => {
       try {
         if (mutedRef.current) el.setAudioMuted(true)
+        if (silentRef.current) void el.executeJavaScript(MUTE_SITE_NOTIFICATIONS).catch(() => {})
         guestRef.current?.(el.getWebContentsId())
       } catch {
         /* pas encore attachée */

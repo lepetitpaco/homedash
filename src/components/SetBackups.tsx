@@ -15,6 +15,13 @@ const REASON: Record<string, string> = {
   'avant-restauration': 'avant restauration',
 }
 
+/** `auto-2` → automatique, `avant-1-18-0` → avant 1.18.0 (prise juste avant une mise à jour). */
+const reasonOf = (r: string) => {
+  const update = /^avant-(\d+)-(\d+)-(\d+)(?:-\d+)?$/.exec(r)
+  if (update) return `avant ${update[1]}.${update[2]}.${update[3]}`
+  return REASON[r.replace(/-\d+$/, '')] ?? r
+}
+
 const when = (ts: number) =>
   new Date(ts * 1000).toLocaleString('fr-FR', { dateStyle: 'short', timeStyle: 'short' })
 
@@ -27,12 +34,40 @@ export default function SetBackups() {
   const [items, setItems] = useState<BackupEntry[] | null>(null)
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null)
+  // Cochées pour « supprimer la sélection » (noms de fichier).
+  const [picked, setPicked] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const load = () =>
     listBackups()
-      .then(setItems)
+      .then((list) => {
+        setItems(list)
+        // une sauvegarde qui n'existe plus ne reste pas cochée
+        setPicked((p) => p.filter((n) => list.some((b) => b.name === n)))
+      })
       .catch(() => setItems([]))
+
+  const toggle = (name: string) => setPicked((p) => (p.includes(name) ? p.filter((n) => n !== name) : [...p, name]))
+  const removePicked = () => {
+    const names = picked
+    const keep = (items?.length ?? 0) - names.length
+    void confirmDialog({
+      title: `Supprimer ${names.length} sauvegarde${names.length > 1 ? 's' : ''} ?`,
+      body: [
+        'Elles sont effacées de data/backups/.',
+        keep ? `Les ${keep} autre${keep > 1 ? 's' : ''} sont conservée${keep > 1 ? 's' : ''}.` : 'Il ne restera plus aucune sauvegarde : la prochaine automatique arrive dans la journée.',
+      ],
+      confirmLabel: 'Supprimer',
+      danger: true,
+    }).then(
+      (ok) =>
+        ok &&
+        run(
+          names.reduce<Promise<unknown>>((p, n) => p.then(() => deleteBackup(n)), Promise.resolve()),
+          `${names.length} supprimée${names.length > 1 ? 's' : ''}`,
+        ),
+    )
+  }
 
   useEffect(() => {
     void load()
@@ -109,12 +144,55 @@ export default function SetBackups() {
       ) : items.length === 0 ? (
         <p className="set-hint">Aucune sauvegarde pour l'instant — la première automatique arrive au démarrage.</p>
       ) : (
+        <>
+        <div className="set-bk-bar">
+          <label className="set-bk-check">
+            <input
+              type="checkbox"
+              checked={picked.length === items.length}
+              ref={(el) => {
+                if (el) el.indeterminate = picked.length > 0 && picked.length < items.length
+              }}
+              onChange={() => setPicked(picked.length === items.length ? [] : items.map((b) => b.name))}
+            />
+            tout
+          </label>
+          <button
+            className="set-inline-btn"
+            onClick={() => setPicked(items.filter((b) => b.reason.startsWith('auto')).map((b) => b.name))}
+          >
+            les automatiques
+          </button>
+          <button
+            className="set-inline-btn"
+            onClick={() => setPicked(items.filter((b) => Date.now() / 1000 - b.created > 7 * 86400).map((b) => b.name))}
+          >
+            plus de 7 jours
+          </button>
+          <span className="set-spacer" />
+          {picked.length ? (
+            <button className="set-del-many" onClick={removePicked} disabled={busy}>
+              ✕ supprimer la sélection ({picked.length} ·{' '}
+              {(items.filter((b) => picked.includes(b.name)).reduce((n, b) => n + b.size, 0) / 1024).toFixed(0)} ko)
+            </button>
+          ) : (
+            <span className="set-hint">coche des sauvegardes pour les supprimer d'un coup</span>
+          )}
+        </div>
         <table className="set-table set-backups">
           <tbody>
             {items.map((b) => (
-              <tr key={b.name}>
+              <tr key={b.name} className={picked.includes(b.name) ? 'is-picked' : undefined}>
+                <td className="set-bk-cell">
+                  <input
+                    type="checkbox"
+                    checked={picked.includes(b.name)}
+                    onChange={() => toggle(b.name)}
+                    aria-label={`Sélectionner la sauvegarde du ${when(b.created)}`}
+                  />
+                </td>
                 <td>{when(b.created)}</td>
-                <td className="set-hint">{REASON[b.reason.replace(/-\d+$/, '')] ?? b.reason}</td>
+                <td className="set-hint">{reasonOf(b.reason)}</td>
                 <td className="set-hint">{(b.size / 1024).toFixed(0)} ko</td>
                 <td className="set-row-actions">
                   <button onClick={() => restore(b.name)} disabled={busy}>
@@ -142,6 +220,7 @@ export default function SetBackups() {
             ))}
           </tbody>
         </table>
+        </>
       )}
       <p className="set-hint">
         Contient liens, infos, réglages, notes et compteurs — pas le jeton GitHub ni le journal.

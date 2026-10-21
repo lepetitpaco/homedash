@@ -148,3 +148,120 @@
 .cl-entry a {
   color: #60a5fa;
 }
+
+/* Réglages → Aide : Nouveautés (le corps de la fenêtre de version, sans la
+   hauteur bornée d'une modale) et les pages de GUIDE.md. */
+.help-news.cl-body {
+  overflow: visible;
+}
+.set-inline-btn {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: #60a5fa;
+  font: inherit;
+  cursor: pointer;
+}
+.set-inline-btn:hover {
+  text-decoration: underline;
+}
+.set-inline-btn:disabled {
+  color: var(--text-faint);
+  cursor: default;
+  text-decoration: none;
+}
+.md {
+  max-width: 78ch;
+  color: var(--text-dim);
+  font-size: 0.92rem;
+  line-height: 1.6;
+}
+.md p,
+.md ul,
+.md ol {
+  margin: 0 0 0.8rem;
+}
+.md ul,
+.md ol {
+  padding-left: 1.3rem;
+}
+.md li {
+  margin-bottom: 0.35rem;
+}
+.md strong {
+  color: var(--text);
+}
+.md code {
+  padding: 0.05rem 0.3rem;
+  border-radius: 0.25rem;
+  background: var(--panel-2);
+  font-size: 0.85em;
+}
+.md a {
+  color: #60a5fa;
+}
+.md .md-h3 {
+  margin: 1.6rem 0 0.6rem;
+  color: var(--text);
+  font-size: 1.05rem;
+}
+.md .md-h3:first-child {
+  margin-top: 0;
+}
+.md .md-h4 {
+  margin: 1.1rem 0 0.4rem;
+  color: var(--text);
+  font-size: 0.95rem;
+}
+.md .md-code {
+  margin: 0 0 0.8rem;
+  padding: 0.7rem 0.9rem;
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+  overflow-x: auto;
+}
+.md .md-code code {
+  padding: 0;
+  background: none;
+}
+.md .md-table {
+  width: 100%;
+  margin: 0 0 1rem;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.md .md-table th,
+.md .md-table td {
+  padding: 0.4rem 0.6rem;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+  vertical-align: top;
+}
+.md .md-table th {
+  color: var(--text-faint);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+.md .md-figure {
+  margin: 0.4rem 0 1.2rem;
+}
+.md .md-figure img {
+  display: block;
+  max-width: min(100%, 900px);
+  max-height: 420px;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+}
+.md .md-figure figcaption {
+  margin-top: 0.4rem;
+  color: var(--text-faint);
+  font-size: 0.78rem;
+}
+.md .md-h4 {
+  color: #60a5fa;
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}

@@ -173,6 +173,9 @@ class TabsConfigTest(unittest.TestCase):
         self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "domains": "twitter.com"}]}))
         self.assertIsNone(store.validate_config({**base, "tabs": [{**ok, "sleep": True, "kept": True}]}))
         self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "sleep": "oui"}]}))
+        # notifications coupées par onglet : un booléen, absent = actives
+        self.assertIsNone(store.validate_config({**base, "tabs": [{**ok, "notify": False}]}))
+        self.assertIsNotNone(store.validate_config({**base, "tabs": [{**ok, "notify": "non"}]}))
 
     def test_tab_folders_are_optional_and_checked(self):
         base = {"groups": []}
