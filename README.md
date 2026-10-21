@@ -22,7 +22,7 @@ cd ~/dev        # ou n'importe quel dossier à toi (mkdir -p ~/dev d'abord s'il 
 git clone https://github.com/davidgennaoui/homedash.git
 cd homedash
 docker compose up -d --build            # le serveur (2-3 min la première fois)
-sh desktop/build-local.sh --install     # l'appli de bureau, dans Applications (2 min)
+sh desktop/build-local.sh --install     # l'appli de bureau, dans Applications (1 min)
 open -a homedash                        # et c'est parti
 ```
 
@@ -40,7 +40,7 @@ cd $HOME                                # ou n'importe quel dossier à toi
 git clone https://github.com/davidgennaoui/homedash.git
 cd homedash
 docker compose up -d --build            # le serveur (2-3 min la première fois)
-powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (5 min)
+powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (1 à 2 min)
 ```
 
 L'appli s'installe dans le menu Démarrer et s'ouvre. Pas d'appli voulue ? Saute la dernière ligne et
@@ -57,10 +57,9 @@ Puis **⚙ Réglages** :
 C'est tout. Aucun fichier à éditer.
 
 **Appli de bureau** : homedash dans sa fenêtre, avec Gmail, Google Chat… affichés dans ses onglets et
-leurs non-lus en pastille, pour Mac et Windows. Le container reste nécessaire : l'appli l'affiche.
-**[⬇ Télécharger l'appli](https://github.com/davidgennaoui/homedash/releases/latest)** : `-arm64.dmg` pour
-un Mac M1/M2/M3…, `-x64.dmg` pour un Mac Intel, `-win-x64-setup.exe` pour Windows. Détails :
-[GUIDE.md](GUIDE.md).
+leurs non-lus en pastille, pour Mac et Windows. Le container reste nécessaire : l'appli l'affiche. Elle
+se construit sur ta machine (dernière ligne des installations ci-dessus), une seule fois : ensuite,
+*Aide → Mettre à jour* met à jour homedash et la reconstruit quand il le faut. Détails : [GUIDE.md](GUIDE.md).
 
 **Jeton GitHub** : *GitHub → Settings → Developer settings → Fine-grained tokens*, en lecture seule :
 *Contents*, *Pull requests*, *Checks*, *Metadata* (+ *Members* sur l'organisation pour l'équipe).

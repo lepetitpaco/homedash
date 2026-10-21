@@ -9,6 +9,8 @@ export type Desktop = {
   features?: string[]
   /** Version de l'appli (≥ 1.4.0 ; absente avant). */
   appVersion?: string
+  /** Menu de l'appli → une page (`settings`, `help-news`, `help-guide`) ; `menu` dans features. */
+  onMenu?: (cb: (target: string) => void) => () => void
   /** Mise à jour depuis l'appli (`update` dans features). */
   update?: () => Promise<{ ok: boolean; reason?: string; relaunch?: boolean }>
   onUpdateLog?: (cb: (msg: { line: string; kind: 'cmd' | 'out' | 'error' | 'done' }) => void) => () => void

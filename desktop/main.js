@@ -306,9 +306,36 @@ function setupMenu() {
     })
     if (choice.response === 1) shell.showItemInFolder(settingsFile())
   }
+  const mac = process.platform === 'darwin'
+  const settings = { label: 'Réglages…', accelerator: 'CmdOrCtrl+,', click: () => toPage('settings') }
+  // Menus réduits à ce qui sert (issue #7) : les menus standard d'Electron
+  // (rôles editMenu, windowMenu…) ajoutent une vingtaine d'entrées inutiles ici.
   const template = [
-    ...(process.platform === 'darwin' ? [{ role: 'appMenu' }] : []),
-    { role: 'editMenu' },
+    mac
+      ? {
+          label: app.name,
+          submenu: [
+            { role: 'about', label: 'À propos de homedash' },
+            settings,
+            { type: 'separator' },
+            { role: 'hide', label: 'Masquer homedash' },
+            { role: 'quit', label: 'Quitter homedash' },
+          ],
+        }
+      : { label: 'homedash', submenu: [settings, { type: 'separator' }, { role: 'quit', label: 'Quitter' }] },
+    // Indispensable sur Mac : sans ces rôles, ⌘C / ⌘V / ⌘Z ne marchent plus nulle part.
+    {
+      label: 'Édition',
+      submenu: [
+        { role: 'undo', label: 'Annuler' },
+        { role: 'redo', label: 'Rétablir' },
+        { type: 'separator' },
+        { role: 'cut', label: 'Couper' },
+        { role: 'copy', label: 'Copier' },
+        { role: 'paste', label: 'Coller' },
+        { role: 'selectAll', label: 'Tout sélectionner' },
+      ],
+    },
     {
       label: 'Présentation',
       submenu: [
@@ -326,18 +353,42 @@ function setupMenu() {
           accelerator: 'Shift+CmdOrCtrl+R',
           click: () => win?.webContents.send('homedash:reload-tab'),
         },
-        { role: 'toggleDevTools' },
         { type: 'separator' },
-        { role: 'resetZoom' },
-        { role: 'zoomIn' },
-        { role: 'zoomOut' },
+        { role: 'zoomIn', label: 'Zoom avant' },
+        { role: 'zoomOut', label: 'Zoom arrière' },
+        { role: 'resetZoom', label: 'Taille réelle' },
         { type: 'separator' },
-        { role: 'togglefullscreen' },
-        { type: 'separator' },
+        { role: 'togglefullscreen', label: 'Plein écran' },
         { label: 'Adresse de homedash…', click: askUrl },
+        // Outils de développement : au clavier seulement (⌥⌘I), pas dans le menu.
+        { role: 'toggleDevTools', visible: false },
       ],
     },
-    { role: 'windowMenu' },
+    {
+      label: 'Fenêtre',
+      submenu: [
+        { role: 'minimize', label: 'Réduire' },
+        { role: 'close', label: 'Fermer' },
+      ],
+    },
+    {
+      role: 'help',
+      label: 'Aide',
+      submenu: [
+        { label: 'Nouveautés', click: () => toPage('help-news') },
+        { label: 'Guide', click: () => toPage('help-guide') },
+        { type: 'separator' },
+        // Mettre à jour = homedash ET l'appli : elle se reconstruit sur place quand
+        // le CHANGELOG le demande, rien à télécharger.
+        { label: 'Vérifier les mises à jour…', click: () => void checkUpdates() },
+        { label: 'Mettre à jour maintenant…', click: () => void startUpdate(false) },
+        { label: 'Forcer la mise à jour…', click: () => void startUpdate(true) },
+        { type: 'separator' },
+        { label: 'Signaler un problème…', click: () => void openRepo('issues/new') },
+        { label: 'Voir les issues', click: () => void openRepo('issues') },
+        { label: 'Voir le dépôt sur GitHub', click: () => void openRepo('') },
+      ],
+    },
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
@@ -429,24 +480,83 @@ ipcMain.on('homedash:app-version', (e) => {
   e.returnValue = fromHome(e) ? app.getVersion() : ''
 })
 
-// Bouton « Mettre à jour maintenant » du changelog : updater.js, qui demande
-// confirmation. La page ne choisit rien d'autre que de le demander.
-ipcMain.handle('homedash:update', async (e) => {
-  if (!fromHome(e)) return { ok: false, reason: 'refusé' }
+// ── Mises à jour et actions du menu ─────────────────────────────────────────
+/** Version, changelog et dépôt d'après le serveur (`/api/changelog`) ; `check` le fait vérifier GitHub. */
+async function changelog(check = false) {
+  const r = await fetch(`${HOME}/api/changelog${check ? '/check' : ''}`, {
+    cache: 'no-store',
+    ...(check ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' } : {}),
+  })
+  return r.json()
+}
+
+/** La page affiche une partie de Réglages (`settings`, `help-news`, `help-guide`). */
+function toPage(target) {
+  if (!win) return
+  win.show()
+  win.webContents.send('homedash:menu', target)
+}
+
+async function openRepo(sub) {
+  let repo = 'davidgennaoui/homedash'
+  try {
+    repo = (await changelog()).repo || repo
+  } catch {
+    /* serveur injoignable : le dépôt par défaut */
+  }
+  void shell.openExternal(`https://github.com/${repo}${sub ? `/${sub}` : ''}`)
+}
+
+/** Bouton de la page ou menu : updater.js, qui demande confirmation. */
+async function startUpdate(force) {
   let serverDir = ''
   try {
-    serverDir = (await (await fetch(`${HOME}/api/changelog`, { cache: 'no-store' })).json()).dir || ''
+    serverDir = (await changelog()).dir || ''
   } catch {
     /* serveur injoignable : on demandera le dossier */
   }
+  win?.show()
   return runUpdate({
     win,
     home: HOME,
     serverDir,
+    force,
     settings: { read: readSettings, write: writeSettings },
     send: (msg) => win?.webContents.send('homedash:update-log', msg),
   })
-})
+}
+
+/** Menu « Vérifier les mises à jour… » : GitHub interrogé tout de suite, réponse en fenêtre. */
+async function checkUpdates() {
+  let data
+  try {
+    data = await changelog(true)
+  } catch {
+    return dialog.showMessageBox(win, { type: 'warning', message: 'homedash ne répond pas', detail: 'Docker Desktop est-il lancé ?' })
+  }
+  if (data.error)
+    return dialog.showMessageBox(win, { type: 'warning', message: 'Vérification impossible', detail: data.error })
+  if (!data.update)
+    return dialog.showMessageBox(win, {
+      type: 'info',
+      message: `homedash est à jour (${data.current})`,
+      detail: `Appli de bureau ${app.getVersion()}.`,
+    })
+  const r = await dialog.showMessageBox(win, {
+    type: 'info',
+    message: `homedash ${data.latest} est disponible`,
+    detail: `Tu as la ${data.current}.\n\n` + data.incoming.map((e) => `${e.version} : ${e.items.length} nouveauté(s)`).join('\n'),
+    buttons: ['Mettre à jour', 'Voir les nouveautés', 'Plus tard'],
+    defaultId: 0,
+    cancelId: 2,
+  })
+  if (r.response === 0) void startUpdate(false)
+  if (r.response === 1) toPage('help-news')
+}
+
+// Bouton « Mettre à jour maintenant » du changelog. La page ne choisit rien
+// d'autre que de le demander.
+ipcMain.handle('homedash:update', async (e) => (fromHome(e) ? startUpdate(false) : { ok: false, reason: 'refusé' }))
 
 ipcMain.on('homedash:open', (e, url) => {
   if (fromHome(e) && isWeb(String(url))) void shell.openExternal(String(url))

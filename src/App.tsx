@@ -53,7 +53,7 @@ import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
-import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection } from './lib/settingsNav'
+import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection, showSettingsSection } from './lib/settingsNav'
 import type { CustomTab, FlatLink, UiConfig } from './types'
 import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
@@ -338,6 +338,16 @@ export default function App() {
   useEffect(() => setUnread(events.unseen), [events.unseen])
   useEffect(() => setPerfLog(cfg?.ui.perfLog === true), [cfg?.ui.perfLog])
   useEffect(() => setIconProvider(cfg?.ui.faviconProvider), [cfg?.ui.faviconProvider])
+  // Menu de l'appli (Réglages…, Aide → Nouveautés / Guide) : la bonne page de Réglages.
+  useEffect(
+    () =>
+      desktop?.onMenu?.((target) => {
+        search.setQuery('')
+        if (target !== 'settings') showSettingsSection(target)
+        selectTab('settings')
+      }),
+    [selectTab],
+  )
   // Mise en veille : l'onglet quitté et l'onglet ouvert sont « vus maintenant » ;
   // ouvrir un onglet en veille le réveille (sa webview est remontée, il recharge).
   const prevTab = useRef(tab)

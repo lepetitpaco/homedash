@@ -29,8 +29,7 @@ export type Changelog = {
   /** Variante PowerShell (Windows) ; absente d'un serveur plus ancien. */
   command_windows?: string
   repo: string
-  /** Dernière appli de bureau (release GitHub), et la commande pour la construire soi-même. */
-  desktop_url?: string
+  /** Commande pour construire l'appli de bureau sur la machine (Mac ; Windows à part). */
   desktop_command?: string
   desktop_command_windows?: string
   checked_at: number | null

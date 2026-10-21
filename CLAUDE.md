@@ -14,9 +14,9 @@
   | Ajustement visible (mise en page, texte, réglage d'un comportement existant) ou correction | patch `1.6.1` |
   | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
 
-  Une version qui a besoin d'une nouvelle appli de bureau (main.js, preload.js… publiés en
-  `desktop-vA.B.C`) porte, juste sous son titre, la ligne `Appli de bureau : A.B.C` : la page l'affiche
-  et prévient ceux dont l'appli est plus ancienne.
+  Une version qui change l'appli de bureau (main.js, preload.js, updater.js, Electron) monte la version
+  de `desktop/package.json` et porte, juste sous son titre, la ligne `Appli de bureau : A.B.C` : la page
+  l'affiche, et la mise à jour depuis l'appli la reconstruit sur la machine.
 
   Plusieurs changements livrés ensemble = une seule version. Après le commit : `git tag -a vX.Y.Z -m
   "X.Y.Z"` puis `git push --follow-tags`.
@@ -94,11 +94,11 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 
 **Appli de bureau (`desktop/`)**
 - Elle charge la page du container, elle n'embarque ni front ni backend : une fonction de la page se
-  livre par le container, pas par un nouveau `.dmg`. On ne publie (`git tag desktop-vX.Y.Z && git push
-  origin desktop-vX.Y.Z` → CI macOS, repo privé = minutes ×10) que si `main.js`, `preload.js` ou la
-  version d'Electron changent. Une seule recette, locale comme en CI : `build-local.sh` (Node sinon
-  Docker), `build-windows.sh` (Docker : .exe NSIS + .zip) et `release.sh` (les deux .dmg, Windows, la
-  release ; en CI, Windows sur un job Linux à part).
+  livre par le container. **Pas de release ni de CI** : chacun construit l'appli sur sa machine
+  (`build-local.sh` sur Mac, `build-windows.ps1` sous Windows, `build-windows.sh` depuis un Mac/Linux),
+  une fois ; ensuite `updater.js` (Aide → Mettre à jour) fait `git pull`, `docker compose up`, et
+  reconstruit puis relance l'appli si `desktop/package.json` est plus récent que celle qui tourne.
+  Construite sur place, ni macOS ni Windows ne la bloquent.
 - La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
   dans l'appli, iframe sinon.
 - `will-attach-webview` : sans Node, seul preload `guest-preload.js` (monde isolé, boutons précédent /

@@ -160,9 +160,7 @@ def payload():
         "dir": _DIR,
         "command_windows": COMMAND_WINDOWS,
         "repo": REPO,
-        # Appli de bureau : dernière release (seules les versions de l'appli en
-        # ont une), ou la construire soi-même.
-        "desktop_url": f"https://github.com/{REPO}/releases/latest",
+        # Appli de bureau : construite sur la machine (plus de release à télécharger).
         "desktop_command": DESKTOP_COMMAND,
         "desktop_command_windows": DESKTOP_COMMAND_WINDOWS,
         "checked_at": state["checked_at"],

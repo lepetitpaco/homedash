@@ -16,7 +16,7 @@ import {
   type NotifState,
 } from '../lib/notifications'
 import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
-import { EDIT_TAB_EVENT, NEW_TAB_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
+import { EDIT_TAB_EVENT, NEW_TAB_EVENT, SECTION_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import { hostOf } from '../lib/customTabs'
 import { repoTabs, type Config, type CustomTab, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -233,6 +233,15 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     }
     return SECTIONS[0].id
   })
+  // `help-guide` (menu Aide → Guide de l'appli) : la première page du guide.
+  useEffect(() => {
+    if (active === 'help-guide' && guide?.length) setActive(guide[0].id)
+  }, [active, guide])
+  useEffect(() => {
+    const go = (e: Event) => setActive((e as CustomEvent<string>).detail)
+    window.addEventListener(SECTION_EVENT, go)
+    return () => window.removeEventListener(SECTION_EVENT, go)
+  }, [])
   const help = guide?.find((p) => p.id === active)
   // ＋ de la barre de gauche ou « Modifier… », Réglages déjà ouvert : Onglets perso
   // (SetTabs crée l'onglet, ou ouvre son éditeur).

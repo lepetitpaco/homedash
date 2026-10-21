@@ -38,3 +38,12 @@ export function presetSettingsSection(id: string) {
     /* stockage indisponible */
   }
 }
+
+/** Réglages déjà ouvert : passer à cette partie (détail : son id, `help-guide` = 1re page du guide). */
+export const SECTION_EVENT = 'homedash:settings-section'
+
+/** Ouvre (ou prépare) cette partie de Réglages, Réglages ouvert ou non. */
+export function showSettingsSection(id: string) {
+  presetSettingsSection(id)
+  window.dispatchEvent(new CustomEvent(SECTION_EVENT, { detail: id }))
+}

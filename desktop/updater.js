@@ -115,9 +115,11 @@ function swapAndRelaunch(dir, version, log) {
 
 /**
  * Lance la mise à jour. `serverDir` : dossier du projet d'après le serveur
- * (HOMEDASH_DIR), vide sous Windows le plus souvent.
+ * (HOMEDASH_DIR), vide sous Windows le plus souvent. `force` (menu « Forcer la
+ * mise à jour ») : l'appli se reconstruit même sans nouvelle version, pour
+ * dépanner une installation abîmée.
  */
-async function runUpdate({ win, home, serverDir, settings, send }) {
+async function runUpdate({ win, home, serverDir, settings, send, force = false }) {
   const log = (line, kind = 'out') => send({ line, kind })
   if (running) return { ok: false, reason: 'déjà en cours' }
   const dir = await projectDir(win, serverDir, settings)
@@ -125,11 +127,13 @@ async function runUpdate({ win, home, serverDir, settings, send }) {
 
   const ok = await dialog.showMessageBox(win, {
     type: 'question',
-    message: 'Mettre à jour homedash ?',
+    message: force ? 'Forcer la mise à jour de homedash ?' : 'Mettre à jour homedash ?',
     detail:
-      `Dans ${dir} :\n• git pull (récupère la nouvelle version)\n• docker compose up -d --build (2 à 3 min)\n\n` +
-      "Tes données sont sauvegardées avant. Si l'appli elle-même a changé, elle se reconstruit, se ferme et se relance (quelques minutes de plus).",
-    buttons: ['Mettre à jour', 'Annuler'],
+      `Dans ${dir} :\n• git pull (récupère la nouvelle version)\n• docker compose up -d --build (quelques secondes, plus la première fois)\n` +
+      (force
+        ? "• l'appli se reconstruit, se ferme et se relance, même sans nouvelle version (une demi-minute environ)\n\nÀ utiliser si quelque chose semble cassé. Tes données sont sauvegardées avant."
+        : "\nTes données sont sauvegardées avant. Si l'appli elle-même a changé, elle se reconstruit, se ferme et se relance (une demi-minute de plus)."),
+    buttons: [force ? 'Tout reconstruire' : 'Mettre à jour', 'Annuler'],
     defaultId: 0,
     cancelId: 1,
   })
@@ -155,13 +159,17 @@ async function runUpdate({ win, home, serverDir, settings, send }) {
     } catch {
       /* pas de desktop/ : rien à reconstruire */
     }
-    if (!app.isPackaged || !shell || !newer(shell, app.getVersion())) {
+    if (!app.isPackaged || !shell || (!force && !newer(shell, app.getVersion()))) {
       log('Rechargement de la page…', 'done')
       setTimeout(() => win?.webContents.reloadIgnoringCache(), 1500)
       return { ok: true }
     }
 
-    log(`Nouvelle version de l'appli (${app.getVersion()} → ${shell}) : reconstruction…`)
+    log(
+      force && !newer(shell, app.getVersion())
+        ? `Reconstruction de l'appli (${shell})…`
+        : `Nouvelle version de l'appli (${app.getVersion()} → ${shell}) : reconstruction…`,
+    )
     const build = isWin
       ? `powershell -NoProfile -ExecutionPolicy Bypass -File desktop\\build-windows.ps1`
       : 'sh desktop/build-local.sh'

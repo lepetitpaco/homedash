@@ -6,7 +6,7 @@
 #
 #   sh desktop/build-local.sh            → desktop/dist.noindex/homedash-darwin-<arch>/homedash.app
 #   sh desktop/build-local.sh --install  → et la copie dans /Applications
-#   ARCH=x64 sh desktop/build-local.sh   → pour un Mac Intel (release.sh fait les deux)
+#   ARCH=x64 sh desktop/build-local.sh   → pour un Mac Intel
 #
 # Une appli construite sur la machine n'est pas bloquée par macOS au premier
 # lancement : seuls les fichiers téléchargés le sont.

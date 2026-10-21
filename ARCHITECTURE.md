@@ -26,8 +26,9 @@ src/
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
                           webviews des onglets perso, badge du Dock (barre des tâches sous Windows).
-                          Build : CI sur tag desktop-v*, ou build-local.sh (Mac, Docker + codesign) et
-                          build-windows.sh (Windows x64 : Docker, installateur NSIS installer.nsi)
+                          Construite sur la machine : build-local.sh (Mac, Docker + codesign),
+                          build-windows.ps1 / .sh (Windows x64 : Docker, installateur NSIS installer.nsi).
+                          updater.js : mise à jour depuis l'appli (git pull, compose, se reconstruit)
 scripts/perf-report.py    résumé du journal de performance, jour par jour et par onglet
 tests/                    unittest stdlib
 CHANGELOG.md              une entrée par version ; la première = version installée

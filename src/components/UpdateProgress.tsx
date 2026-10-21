@@ -4,8 +4,8 @@ import { desktop } from '../lib/desktop'
 /** Étape lisible d'après la commande lancée par l'appli (desktop/updater.js). */
 function stepOf(cmd: string): string {
   if (cmd.includes('git pull')) return 'récupération de la nouvelle version'
-  if (cmd.includes('docker compose')) return 'reconstruction du serveur (2-3 min)'
-  if (cmd.includes('build-local') || cmd.includes('build-windows')) return "reconstruction de l'appli (quelques min)"
+  if (cmd.includes('docker compose')) return 'reconstruction du serveur'
+  if (cmd.includes('build-local') || cmd.includes('build-windows')) return "reconstruction de l'appli"
   return cmd.replace(/^\$ /, '')
 }
 

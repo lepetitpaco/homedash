@@ -4,6 +4,18 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.20.0 — 2026-10-21
+
+Appli de bureau : 1.5.0
+
+- **Menu Aide de l'appli de bureau** (barre de menus du Mac, Alt sous Windows) : nouveautés, guide,
+  *Vérifier les mises à jour*, *Mettre à jour maintenant*, *Forcer la mise à jour* (tout reconstruire
+  pour dépanner), signaler un problème, issues, dépôt GitHub. *Réglages…* au `⌘,`. Menus en français et
+  réduits à l'utile (#7).
+- **Plus d'appli à télécharger** : elle se construit sur ta machine, une fois ; ensuite, *Mettre à jour*
+  la reconstruit toute seule quand une version le demande. Plus de blocage « appli non vérifiée » au
+  premier lancement.
+
 ## 1.19.0 — 2026-10-21
 
 Appli de bureau : 1.4.0

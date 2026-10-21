@@ -127,29 +127,17 @@ export function ChangelogBody({ data }: { data: Changelog }) {
       {appTooOld && !canUpdate ? (
         <p className="cl-warn">
           💻 Cette version demande l'<strong>appli de bureau {required}</strong> (tu as{' '}
-          {appVersion ?? 'une version plus ancienne'}) : télécharge-la ou reconstruis-la ci-dessous. Elle se
-          mettra ensuite à jour d'un clic.
+          {appVersion ?? 'une version plus ancienne'}) : reconstruis-la une fois avec la commande ci-dessous. Elle
+          se mettra ensuite à jour toute seule.
         </p>
       ) : null}
       <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
-      {data.desktop_url ? (
+      {desktopCommand && !desktop?.update ? (
         <div className="cl-desktop">
-          <strong>💻 Appli de bureau (Mac, Windows)</strong>
+          <strong>💻 Appli de bureau ({isMac ? 'Mac' : 'Windows'})</strong>
           <p>
-            <a href={data.desktop_url} target="_blank" rel="noreferrer" data-outside>
-              ⬇ Télécharger la dernière version
-            </a>{' '}
-            {isMac ? (
-              <>
-                (<code>-arm64.dmg</code> : Mac M1/M2/M3…, <code>-x64.dmg</code> : Intel), ou la construire sur ce
-                Mac, sans GitHub ni blocage au premier lancement :
-              </>
-            ) : (
-              <>
-                (<code>-win-x64-setup.exe</code> pour Windows), ou la construire sur ce PC (il faut Docker), sans
-                l'écran « Windows a protégé votre ordinateur » :
-              </>
-            )}
+            Elle se construit sur {isMac ? 'ce Mac' : 'ce PC'} (Docker suffit), une seule fois : ensuite, « Mettre à
+            jour » la reconstruit toute seule quand il le faut.
           </p>
           {desktopCommand ? (
             <button
@@ -209,7 +197,7 @@ function UpdateNow({ appTooOld, required }: { appTooOld: boolean; required: stri
       </button>
       <span className="cl-now-hint">
         {appTooOld
-          ? `L'appli de bureau se reconstruit aussi (version ${required}) puis se relance : quelques minutes.`
+          ? `L'appli de bureau se reconstruit aussi (version ${required}) puis se relance : une demi-minute de plus.`
           : 'git pull et docker compose, lancés pour toi ; la page se recharge à la fin.'}
       </span>
       {lines.length ? (

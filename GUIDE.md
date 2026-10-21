@@ -141,27 +141,27 @@ tâches). Docker reste nécessaire.
 
 #### Installer sur Mac
 
-- **Le plus simple** : dans le dossier homedash, `sh desktop/build-local.sh --install`.
-- **Ou** le `.dmg` de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest)
-  (`-arm64` : Mac M1, M2…, `-x64` : Intel). Au premier lancement : *Réglages Système → Confidentialité
-  et sécurité → Ouvrir quand même*.
+- Dans le dossier homedash : `sh desktop/build-local.sh --install`. L'appli est construite sur ton Mac
+  (Docker suffit) et copiée dans Applications ; construite sur place, macOS ne la bloque pas.
 
 #### Installer sur Windows
 
-- **Le plus simple** : dans le dossier homedash, dans PowerShell,
+- Dans le dossier homedash, dans PowerShell :
   `powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install`. Construite sur ton PC
-  (Docker suffit), Windows ne la bloque pas.
-- **Ou** le `-win-x64-setup.exe` de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest) :
-  double-clic, c'est installé (pas besoin d'être administrateur), avec un raccourci dans le menu Démarrer.
-- Au premier lancement, Windows affiche « Windows a protégé votre ordinateur » : *Informations
-  complémentaires → Exécuter quand même*.
-- Sans installation : le `.zip`, à décompresser, puis `homedash.exe`.
+  (Docker suffit, pas besoin d'être administrateur), avec un raccourci dans le menu Démarrer ; Windows
+  ne la bloque pas.
 - Sur Windows, les raccourcis s'écrivent `Ctrl` au lieu de `⌘`. Fermer la fenêtre quitte l'appli.
 
 #### Bon à savoir
 
+- **Une seule installation** : ensuite, *Aide → Mettre à jour maintenant* met homedash à jour et
+  reconstruit l'appli toute seule quand une version le demande (« 💻 appli requise » dans le changelog).
+  Rien à télécharger.
+- **Menu Aide** (barre de menus du Mac, touche Alt sous Windows) : nouveautés, guide, *Vérifier les mises
+  à jour*, *Mettre à jour maintenant*, *Forcer la mise à jour* (tout reconstruire si quelque chose semble
+  cassé), signaler un problème, dépôt GitHub. *Réglages…* : `⌘,`.
 - **Mettre à jour d'un clic** : quand une version sort, *Mettre à jour maintenant* dans la fenêtre de
-  version (en haut à droite). L'appli fait tout : `git pull`, le container, et elle-même si besoin
+  version (en haut à droite) ou dans le menu de l'appli. L'appli fait tout : `git pull`, le container, et elle-même si besoin
   (elle se reconstruit et se relance). Une version marquée « 💻 appli requise » dans le changelog demande
   une appli plus récente : le bouton s'en charge.
 - **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.

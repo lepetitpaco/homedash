@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
   appVersion: ipcRenderer.sendSync('homedash:app-version'),
   platform: process.platform,
   /** Ce que cette version de l'appli sait faire (absent = appli 1.0.0). */
-  features: ['sessions', 'reload-tab', 'links', 'audio', 'update'],
+  features: ['sessions', 'reload-tab', 'links', 'audio', 'update', 'menu'],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
   /**
@@ -25,6 +25,12 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     const handler = (_e, msg) => cb(msg)
     ipcRenderer.on('homedash:update-log', handler)
     return () => ipcRenderer.removeListener('homedash:update-log', handler)
+  },
+  /** Menu de l'appli → une page de homedash (`settings`, `help-news`, `help-guide`). */
+  onMenu: (cb) => {
+    const handler = (_e, target) => cb(target)
+    ipcRenderer.on('homedash:menu', handler)
+    return () => ipcRenderer.removeListener('homedash:menu', handler)
   },
   /** Ouvre une adresse http(s) dans le navigateur par défaut. */
   openExternal: (url) => ipcRenderer.send('homedash:open', url),
