@@ -111,7 +111,7 @@ export default function SetBackups() {
           confirmLabel: 'Restaurer',
         }).then((ok) => ok && run(restoreFile(data), 'restauré — rechargement…', true))
       })
-      .catch(() => setMsg({ ok: false, text: "fichier illisible — ce n'est pas du JSON" }))
+      .catch(() => setMsg({ ok: false, text: "Ce fichier n'est pas une sauvegarde homedash." }))
   }
 
   return (

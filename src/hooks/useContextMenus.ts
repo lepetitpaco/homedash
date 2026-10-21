@@ -87,7 +87,7 @@ export function useContextMenus(
           onSelect: () => {
             void confirmDialog({
               title: `Supprimer « ${link.name} » ?`,
-              body: [link.url, 'La version précédente reste dans config.prev.json et dans les sauvegardes.'],
+              body: [link.url, 'Tu peux revenir en arrière depuis Réglages → Sauvegardes.'],
               confirmLabel: 'Supprimer',
               danger: true,
             }).then((ok) => ok && persist(removeLink(raw, ref)))
@@ -140,7 +140,7 @@ export function useContextMenus(
         },
         {
           label: 'Masquer',
-          hint: 'gardée dans le JSON',
+          hint: 'gardée dans tes réglages',
           onSelect: () => persist(updateGroup(raw, name, { hidden: true })),
         },
         { sep: true },
@@ -167,7 +167,7 @@ export function useContextMenus(
               title: `Supprimer la catégorie « ${name} » ?`,
               body: [
                 `Ses ${group.links.length} lien(s) partent avec elle.`,
-                'La version précédente reste dans config.prev.json et dans les sauvegardes.',
+                'Tu peux revenir en arrière depuis Réglages → Sauvegardes.',
               ],
               confirmLabel: 'Supprimer la catégorie',
               danger: true,
@@ -186,7 +186,7 @@ export function useContextMenus(
       if (!raw) return
       void confirmDialog({
         title: `Supprimer « ${item.label} » ?`,
-        body: 'La version précédente reste dans config.prev.json et dans les sauvegardes.',
+        body: 'Tu peux revenir en arrière depuis Réglages → Sauvegardes.',
         confirmLabel: 'Supprimer',
         danger: true,
       }).then((ok) => ok && persist(removeInfo(raw, ref)))
@@ -269,7 +269,7 @@ export function useContextMenus(
               title: `Supprimer le groupe « ${group.title} » ?`,
               body: [
                 `Ses ${list.length} info(s) partent avec lui.`,
-                'La version précédente reste dans config.prev.json et dans les sauvegardes.',
+                'Tu peux revenir en arrière depuis Réglages → Sauvegardes.',
               ],
               confirmLabel: 'Supprimer le groupe',
               danger: true,

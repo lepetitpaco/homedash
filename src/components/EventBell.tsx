@@ -22,7 +22,7 @@ type Filter = 'all' | 'activity' | 'basecamp'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'non supportées par ce navigateur',
-  insecure: 'indisponibles hors HTTPS / localhost',
+  insecure: 'indisponibles à cette adresse : ouvre homedash par localhost',
   denied: 'bloquées dans le navigateur',
   default: 'désactivées',
   muted: 'en sourdine',

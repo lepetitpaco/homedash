@@ -21,6 +21,9 @@
   Plusieurs changements livrés ensemble = une seule version. Après le commit : `git tag -a vX.Y.Z -m
   "X.Y.Z"` puis `git push --follow-tags`.
 - Comportement visible modifié → `GUIDE.md` à jour.
+- Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
+  cause, la solution et la version qui la livre ; fermée avec le hash du commit. Une issue déjà ouverte
+  (collègue, utilisateur) sert de support : on y répond plutôt que d'en créer une autre.
 
 ## Commandes
 

@@ -352,7 +352,7 @@ export default function EditDialog({ draft, groups, infoGroups, onSave, onClose 
                 }
               />
               <span>
-                Masquée <em>conservée dans le JSON, retirée de la page</em>
+                Masquée <em>gardée dans tes réglages, retirée de la page</em>
               </span>
             </label>
           </div>

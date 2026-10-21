@@ -39,7 +39,7 @@ import { desktop } from '../lib/desktop'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'Non supportées par ce navigateur',
-  insecure: 'Indisponibles : origine non sécurisée (il faut localhost ou HTTPS)',
+  insecure: 'Indisponibles à cette adresse : ouvre homedash par localhost (ou en HTTPS)',
   denied: 'Bloquées dans les réglages du navigateur',
   default: 'Pas encore autorisées',
   muted: 'En sourdine (par défaut) — la cloche de la barre du haut suffit',

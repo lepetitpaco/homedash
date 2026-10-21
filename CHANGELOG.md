@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.21.1 — 2026-10-21
+
+- Derniers messages techniques reformulés : confirmations de suppression (« tu peux revenir en arrière
+  depuis Réglages → Sauvegardes »), catégorie masquée, restauration d'un fichier qui n'est pas une
+  sauvegarde, infobulles de l'onglet Local et des notifications.
+
 ## 1.21.0 — 2026-10-21
 
 Appli de bureau : 1.5.1
