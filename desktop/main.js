@@ -120,6 +120,28 @@ const needsChrome = (url) => {
     return false
   }
 }
+/**
+ * Page de connexion Google : un Firefox, pas un Chrome (issue #20). Pour un
+ * compte Gmail perso, Google recoupe l'UA avec les Client Hints (`sec-ch-ua`),
+ * où Electron s'annonce « Chromium » sans « Google Chrome » : « ce navigateur
+ * n'est peut-être pas sécurisé ». Firefox n'envoie pas ces en-têtes, ils sont
+ * retirés. Un compte pro (SSO de l'entreprise) passait déjà. Comme Ferdium.
+ */
+const GOOGLE_LOGIN = /^accounts\.google\.com$/i
+const needsFirefox = (url) => {
+  try {
+    return GOOGLE_LOGIN.test(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+const FIREFOX_UA =
+  process.platform === 'win32'
+    ? 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:145.0) Gecko/20100101 Firefox/145.0'
+    : 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10.15; rv:145.0) Gecko/20100101 Firefox/145.0'
+/** UA d'une adresse : Firefox (connexion Google), Chrome (`CHROME_ONLY`), sinon le vrai. */
+const uaFor = (url, ua) => (needsFirefox(url) ? FIREFOX_UA : needsChrome(url) ? ua.chrome : ua.honest)
+
 /** Sessions d'onglets : la page de chaque site y reçoit son UA (`web-contents-created`). */
 const tabSessions = new Map()
 
@@ -210,10 +232,16 @@ function createWindow() {
       return
     }
     // Ailleurs, fermer la fenêtre détruit les sites : fermés proprement d'abord.
-    if (closing) return
+    // En train de quitter : `before-quit` l'a déjà fait, et empêcher la fermeture
+    // ici annulerait la sortie (l'appli restait ouverte, sans fenêtre).
+    if (closing || quitting) return
     e.preventDefault()
     closing = true
     void unloadGuests().finally(() => win?.close())
+  })
+  // Fenêtre détruite : plus de `win` (sinon `activate` appelait show() dessus).
+  win.on('closed', () => {
+    win = null
   })
 
   const wc = win.webContents
@@ -320,10 +348,15 @@ function setupTabsSession(partition) {
   // (pages, cadres, redirections) — et pour leur navigator.userAgent, plus bas.
   const honest = s.getUserAgent()
   const chrome = chromeUA(honest)
-  tabSessions.set(s, { honest, chrome })
+  const ua = { honest, chrome }
+  tabSessions.set(s, ua)
   s.webRequest.onBeforeSendHeaders((details, done) => {
-    if (needsChrome(details.url)) details.requestHeaders['User-Agent'] = chrome
-    done({ requestHeaders: details.requestHeaders })
+    const h = details.requestHeaders
+    if (needsFirefox(details.url)) {
+      for (const k of Object.keys(h)) if (/^sec-ch-ua/i.test(k)) delete h[k]
+    }
+    if (needsFirefox(details.url) || needsChrome(details.url)) h['User-Agent'] = uaFor(details.url, ua)
+    done({ requestHeaders: h })
   })
   // Notifications de Gmail / Chat, presse-papiers, caméra et micro (Meet) : à
   // ces sites choisis par l'utilisateur. macOS demande en plus pour caméra et micro.
@@ -754,7 +787,7 @@ app.on('web-contents-created', (_e, wc) => {
   wc.on('did-start-navigation', (details) => {
     const ua = tabSessions.get(wc.session)
     if (!ua || !details.isMainFrame || details.isSameDocument) return
-    const want = needsChrome(details.url) ? ua.chrome : ua.honest
+    const want = uaFor(details.url, ua)
     if (wc.getUserAgent() !== want) wc.setUserAgent(want)
   })
 })

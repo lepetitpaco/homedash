@@ -4,6 +4,15 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.23.4 — 2026-10-21
+
+Appli de bureau : 1.5.5
+
+- **Connexion Google possible avec un compte Gmail perso** : Google la refusait (« ce navigateur ou cette
+  application ne sont peut-être pas sécurisés »). Un compte pro passait déjà.
+- **Quitter l'appli la ferme vraiment** sur Mac : elle restait ouverte sans fenêtre, et un clic sur son
+  icône affichait « Object has been destroyed ».
+
 ## 1.23.3 — 2026-10-21
 
 - **Un lien ouvert dans un onglet perso arrive bien sur la bonne page**, même au premier clic : un lien
