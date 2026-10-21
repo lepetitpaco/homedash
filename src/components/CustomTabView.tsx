@@ -164,9 +164,20 @@ export default function CustomTabView({
         isMainFrame: boolean
       }
       // -3 = navigation annulée (une redirection qui en remplace une autre)
-      if (isMainFrame && errorCode !== -3) setFailed(errorDescription || `erreur ${errorCode}`)
+      if (isMainFrame && errorCode !== -3) {
+        setFailed(errorDescription || `erreur ${errorCode}`)
+        loadStart.current = 0 // échec : pas une durée de chargement
+      }
     }
-    const onLoad = () => setFailed(null)
+    // Durée d'un chargement (journal de performance) : de la navigation de la page
+    // elle-même à `did-finish-load` (cadre principal seulement). Pas les cadres
+    // internes : Chat en recharge des dizaines par heure, les chiffres n'avaient
+    // plus de sens.
+    const onLoad = () => {
+      setFailed(null)
+      if (loadStart.current) loadedRef.current?.(Math.round(performance.now() - loadStart.current))
+      loadStart.current = 0
+    }
     const onReady = () => {
       try {
         if (mutedRef.current) el.setAudioMuted(true)
@@ -187,17 +198,12 @@ export default function CustomTabView({
     // `did-start-loading` part aussi pour les cadres : seule la page elle-même compte.
     const onPageStart = (e: Event) => {
       const { isMainFrame, isInPlace } = e as Event & { isMainFrame: boolean; isInPlace: boolean }
-      if (isMainFrame && !isInPlace) counter.loading()
+      if (!isMainFrame || isInPlace) return
+      counter.loading()
+      loadStart.current = performance.now()
     }
-    const onStart = () => {
-      setLoading(true)
-      if (!loadStart.current) loadStart.current = performance.now()
-    }
-    const onStop = () => {
-      setLoading(false)
-      if (loadStart.current) loadedRef.current?.(Math.round(performance.now() - loadStart.current))
-      loadStart.current = 0
-    }
+    const onStart = () => setLoading(true)
+    const onStop = () => setLoading(false)
     el.addEventListener('dom-ready', onReady)
     el.addEventListener('did-navigate', onNav)
     el.addEventListener('did-navigate-in-page', onNav)

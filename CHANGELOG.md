@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.22.1 — 2026-10-21
+
+- **Journal de performance : temps de chargement fiables.** Seul le chargement de la page d'un site est
+  mesuré, plus celui de chacun de ses cadres internes (Google Chat en comptait des dizaines par heure,
+  et sa moyenne n'avait plus de sens).
+
 ## 1.22.0 — 2026-10-21
 
 - **Aide réécrite et regroupée** : trois entrées (Nouveautés, Guide, Journal d'erreurs) au lieu d'une
