@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.18.1 — 2026-10-21
+
+- **Raccourcis affichés selon ton système** : `Ctrl+K`, `Ctrl+S`… sur Windows et Linux, `⌘K`, `⌘S` sur Mac.
+- La fenêtre de version et le guide expliquent l'**appli de bureau pour Windows** (installateur `.exe`),
+  disponible à sa prochaine publication.
+
 ## 1.18.0 — 2026-10-21
 
 - **＋ de la barre de gauche : une fenêtre d'ajout** (adresse, nom, où l'ouvrir, dossier, compte, sites

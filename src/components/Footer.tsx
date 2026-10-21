@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { keys } from '../lib/keys'
 
 /**
  * Pied de page collé en bas de l'écran. Sa hauteur est publiée dans
@@ -23,7 +24,7 @@ export default function Footer({ count }: { count: number }) {
   return (
     <footer className="footer" ref={ref}>
       <span>
-        <kbd>/</kbd> ou <kbd>⌘K</kbd> rechercher
+        <kbd>/</kbd> ou <kbd>{keys('K')}</kbd> rechercher
       </span>
       <span>
         <kbd>↑</kbd>

@@ -40,9 +40,10 @@ Puis **⚙ Réglages** :
 C'est tout. Aucun fichier à éditer.
 
 **Appli de bureau** : homedash dans sa fenêtre, avec Gmail, Google Chat… affichés dans ses onglets et
-leurs non-lus en pastille. Le container reste nécessaire : l'appli l'affiche. Aussi en `.dmg` :
-**[⬇ Télécharger l'appli](https://github.com/davidgennaoui/homedash/releases/latest)** (`-arm64` pour un
-Mac M1/M2/M3…, `-x64` pour un Mac Intel). Détails : [GUIDE.md](GUIDE.md).
+leurs non-lus en pastille, pour Mac et Windows. Le container reste nécessaire : l'appli l'affiche.
+**[⬇ Télécharger l'appli](https://github.com/davidgennaoui/homedash/releases/latest)** : `-arm64.dmg` pour
+un Mac M1/M2/M3…, `-x64.dmg` pour un Mac Intel, `-win-x64-setup.exe` pour Windows. Détails :
+[GUIDE.md](GUIDE.md).
 
 **Jeton GitHub** : *GitHub → Settings → Developer settings → Fine-grained tokens*, en lecture seule :
 *Contents*, *Pull requests*, *Checks*, *Metadata* (+ *Members* sur l'organisation pour l'équipe).

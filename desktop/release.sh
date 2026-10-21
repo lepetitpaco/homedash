@@ -1,11 +1,13 @@
 #!/bin/sh
-# Publie l'appli de bureau : .dmg arm64 et x64, déposés dans la release GitHub
+# Publie l'appli de bureau : .dmg arm64 et x64, et pour Windows l'installateur
+# .exe et un .zip (build-windows.sh, par Docker), déposés dans la release GitHub
 # `desktop-vX.Y.Z` (hors de l'historique git, téléchargeable par qui a accès
 # au repo). Lancé par la GitHub Action sur un tag `desktop-v*` ; à la main en
 # secours (il faut alors Docker ou Node, et `gh auth login`).
 #
 #   sh desktop/release.sh 1.0.0               → construit et publie
 #   sh desktop/release.sh 1.0.0 --no-publish  → construit seulement (desktop/dist.noindex/)
+#   WINDOWS=0 sh desktop/release.sh 1.0.0     → sans Windows (la CI le construit à part, sur Linux)
 #
 # Seulement si la coquille change (main.js, preload.js, version d'Electron) :
 # l'interface, elle, vient du container.
@@ -33,10 +35,20 @@ for ARCH in arm64 x64; do
   echo "✓ dist.noindex/homedash-$V-$ARCH.dmg"
 done
 
-$PUBLISH || exit 0
-gh release create "$TAG" "dist.noindex/homedash-$V-arm64.dmg" "dist.noindex/homedash-$V-x64.dmg" \
-  --title "Appli de bureau $V" \
-  --notes "homedash dans sa fenêtre (Mac). **arm64** = Apple Silicon (M1…), **x64** = Intel.
+WIN=""
+if [ "${WINDOWS:-1}" != 0 ]; then
+  APP_VERSION=$V sh build-windows.sh
+  WIN="dist.noindex/homedash-$V-win-x64-setup.exe dist.noindex/homedash-$V-win-x64.zip"
+fi
 
-Le container reste nécessaire : l'appli l'affiche. Premier lancement : Réglages Système → Confidentialité et sécurité → Ouvrir quand même (appli non signée par Apple). Détails : GUIDE.md, « L'appli de bureau »."
+$PUBLISH || exit 0
+# shellcheck disable=SC2086
+gh release create "$TAG" "dist.noindex/homedash-$V-arm64.dmg" "dist.noindex/homedash-$V-x64.dmg" $WIN \
+  --title "Appli de bureau $V" \
+  --notes "homedash dans sa fenêtre.
+
+- **Mac** : \`-arm64.dmg\` = Apple Silicon (M1…), \`-x64.dmg\` = Intel. Premier lancement : Réglages Système → Confidentialité et sécurité → Ouvrir quand même (appli non signée par Apple).
+- **Windows** : \`-win-x64-setup.exe\` (installateur), ou le \`.zip\` sans installation. Premier lancement : « Windows a protégé votre ordinateur » → Informations complémentaires → Exécuter quand même (appli non signée).
+
+Le container reste nécessaire : l'appli l'affiche. Détails : GUIDE.md, « Appli de bureau »."
 echo "✓ release $TAG publiée"

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import type { Changelog, ChangelogEntry } from '../lib/changelog'
 import { inline } from '../lib/markdown'
+import { isMac } from '../lib/keys'
 
 /**
  * Version installée, dans la barre du haut. Discrète quand tout est à jour,
@@ -112,15 +113,24 @@ export function ChangelogBody({ data }: { data: Changelog }) {
       <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
       {data.desktop_url ? (
         <div className="cl-desktop">
-          <strong>💻 Appli de bureau (Mac)</strong>
+          <strong>💻 Appli de bureau (Mac, Windows)</strong>
           <p>
-            <a href={data.desktop_url} target="_blank" rel="noreferrer">
+            <a href={data.desktop_url} target="_blank" rel="noreferrer" data-outside>
               ⬇ Télécharger la dernière version
             </a>{' '}
-            (<code>-arm64</code> : Mac M1/M2/M3…, <code>-x64</code> : Intel), ou la construire sur ce Mac, sans
-            GitHub ni blocage au premier lancement :
+            {isMac ? (
+              <>
+                (<code>-arm64.dmg</code> : Mac M1/M2/M3…, <code>-x64.dmg</code> : Intel), ou la construire sur ce
+                Mac, sans GitHub ni blocage au premier lancement :
+              </>
+            ) : (
+              <>
+                (<code>-win-x64-setup.exe</code> pour Windows). Au premier lancement : « Informations
+                complémentaires » → « Exécuter quand même ».
+              </>
+            )}
           </p>
-          {data.desktop_command ? (
+          {data.desktop_command && isMac ? (
             <button
               className="cl-cmd"
               onClick={() => copy(data.desktop_command, 'desktop')}

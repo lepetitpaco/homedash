@@ -25,8 +25,9 @@ src/
                           tabCount (pastilles des onglets perso)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
-                          webviews des onglets perso, badge du Dock. Build : CI sur tag desktop-v*,
-                          ou build-local.sh (Docker + codesign)
+                          webviews des onglets perso, badge du Dock (barre des tâches sous Windows).
+                          Build : CI sur tag desktop-v*, ou build-local.sh (Mac, Docker + codesign) et
+                          build-windows.sh (Windows x64 : Docker, installateur NSIS installer.nsi)
 scripts/perf-report.py    résumé du journal de performance, jour par jour et par onglet
 tests/                    unittest stdlib
 CHANGELOG.md              une entrée par version ; la première = version installée

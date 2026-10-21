@@ -10,6 +10,7 @@ import type {
   UiConfig,
 } from '../types'
 import { repoTabs, type RepoTab } from '../types'
+import { keys } from './keys'
 
 export const DEFAULT_UI: UiConfig = {
   theme: 'dark',
@@ -30,7 +31,7 @@ export const DEFAULT_UI: UiConfig = {
   showClock: true,
   showTiles: true,
   showFooter: true,
-  searchPlaceholder: 'Rechercher, ou taper une adresse…   /  ou  ⌘K',
+  searchPlaceholder: `Rechercher, ou taper une adresse…   /  ou  ${keys('K')}`,
   tabSleepMinutes: 5,
   openLinks: 'app',
   perfLog: false,

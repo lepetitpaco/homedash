@@ -56,6 +56,7 @@ import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection } fro
 import type { CustomTab, FlatLink, UiConfig } from './types'
 import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
+import { keys } from './lib/keys'
 
 const RAIL_KEY = 'homedash:rail'
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
@@ -623,7 +624,7 @@ export default function App() {
               {
                 icon: '↻',
                 label: 'Recharger',
-                hint: desktop ? '⇧⌘R' : undefined,
+                hint: desktop ? keys('R', true) : undefined,
                 onSelect: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })),
               },
             ]
@@ -926,14 +927,14 @@ export default function App() {
     }
     if (m.editable) {
       section('Édition')
-      items.push({ icon: '✂', label: 'Couper', hint: '⌘X', disabled: !m.text, onSelect: () => act(m.id, 'cut') })
-      items.push({ icon: '⧉', label: 'Copier', hint: '⌘C', disabled: !m.text, onSelect: () => act(m.id, 'copy') })
-      items.push({ icon: '📋', label: 'Coller', hint: '⌘V', onSelect: () => act(m.id, 'paste') })
-      items.push({ icon: '▭', label: 'Tout sélectionner', hint: '⌘A', onSelect: () => act(m.id, 'selectAll') })
+      items.push({ icon: '✂', label: 'Couper', hint: keys('X'), disabled: !m.text, onSelect: () => act(m.id, 'cut') })
+      items.push({ icon: '⧉', label: 'Copier', hint: keys('C'), disabled: !m.text, onSelect: () => act(m.id, 'copy') })
+      items.push({ icon: '📋', label: 'Coller', hint: keys('V'), onSelect: () => act(m.id, 'paste') })
+      items.push({ icon: '▭', label: 'Tout sélectionner', hint: keys('A'), onSelect: () => act(m.id, 'selectAll') })
     } else if (m.text) {
       const q = m.text.trim().slice(0, 200)
       section('Texte')
-      items.push({ icon: '⧉', label: 'Copier', hint: '⌘C', onSelect: () => act(m.id, 'copy') })
+      items.push({ icon: '⧉', label: 'Copier', hint: keys('C'), onSelect: () => act(m.id, 'copy') })
       items.push({
         icon: '⌕',
         label: `Rechercher « ${q.length > 24 ? q.slice(0, 24) + '…' : q} »`,
@@ -943,7 +944,7 @@ export default function App() {
     if (!items.length) {
       items.push({ icon: '←', label: 'Précédent', disabled: !m.canBack, onSelect: () => act(m.id, 'back') })
       items.push({ icon: '→', label: 'Suivant', disabled: !m.canForward, onSelect: () => act(m.id, 'forward') })
-      items.push({ icon: '↻', label: 'Recharger', hint: '⇧⌘R', onSelect: () => act(m.id, 'reload') })
+      items.push({ icon: '↻', label: 'Recharger', hint: keys('R', true), onSelect: () => act(m.id, 'reload') })
     }
     const from = fromGuest(m.id)
     // x / y d'Electron : déjà dans la fenêtre (pas dans la webview).

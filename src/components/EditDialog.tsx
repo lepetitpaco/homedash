@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { InfoRef, LinkRef } from '../lib/mutate'
 import type { Group, InfoGroup, InfoItem, Link } from '../types'
+import { keys } from '../lib/keys'
 
 export type Draft =
   | { kind: 'link'; ref: LinkRef | null; group: string; values: Link }
@@ -358,7 +359,7 @@ export default function EditDialog({ draft, groups, infoGroups, onSave, onClose 
         )}
 
         <div className="modal-foot">
-          <span className="modal-hint">⌘↵ enregistrer · Échap annuler</span>
+          <span className="modal-hint">{keys('↵')} enregistrer · Échap annuler</span>
           <button className="btn" onClick={onClose}>
             Annuler
           </button>

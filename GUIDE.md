@@ -118,7 +118,8 @@ La cloche, en haut à droite : ce qui s'est passé (CI, PRs, Basecamp…).
 
 ## 💻 Appli de bureau
 
-homedash dans sa propre fenêtre, dans le Dock, comme Slack. Docker reste nécessaire.
+homedash dans sa propre fenêtre, comme Slack : sur Mac (dans le Dock) ou sur Windows (dans la barre des
+tâches). Docker reste nécessaire.
 
 ![Un site dans un onglet de l'appli](docs/screenshots/02-site-dans-un-onglet.jpg)
 
@@ -133,12 +134,21 @@ homedash dans sa propre fenêtre, dans le Dock, comme Slack. Docker reste néces
 
 ![Clic droit sur un lien, dans un site](docs/screenshots/03-clic-droit-sur-un-lien.jpg)
 
-#### Installer
+#### Installer sur Mac
 
 - **Le plus simple** : dans le dossier homedash, `sh desktop/build-local.sh --install`.
 - **Ou** le `.dmg` de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest)
   (`-arm64` : Mac M1, M2…, `-x64` : Intel). Au premier lancement : *Réglages Système → Confidentialité
   et sécurité → Ouvrir quand même*.
+
+#### Installer sur Windows
+
+- Le `-win-x64-setup.exe` de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest) :
+  double-clic, c'est installé (pas besoin d'être administrateur), avec un raccourci dans le menu Démarrer.
+- Au premier lancement, Windows affiche « Windows a protégé votre ordinateur » : *Informations
+  complémentaires → Exécuter quand même*.
+- Sans installation : le `.zip`, à décompresser, puis `homedash.exe`.
+- Sur Windows, les raccourcis s'écrivent `Ctrl` au lieu de `⌘`. Fermer la fenêtre quitte l'appli.
 
 #### Bon à savoir
 

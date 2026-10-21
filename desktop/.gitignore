@@ -2,3 +2,4 @@ node_modules/
 # .noindex : Spotlight ignore ces builds (sinon trois « homedash » proposés)
 dist.noindex/
 build/
+build-win/

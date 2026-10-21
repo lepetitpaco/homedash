@@ -20,6 +20,7 @@ import SiteIcon, { isImageIcon } from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
 import { CATALOG, type CatalogSite } from '../lib/catalog'
+import { keys } from '../lib/keys'
 
 type Props = {
   tabs: CustomTab[]
@@ -746,7 +747,7 @@ export default function SetTabs({
             </button>
           </span>
           <em className="xs-note">
-            Dans homedash : l'onglet du site s'il y en a un, sinon un onglet éphémère. ⌘-clic : toujours le
+            Dans homedash : l'onglet du site s'il y en a un, sinon un onglet éphémère. {keys('clic')} : toujours le
             navigateur.
           </em>
         </div>

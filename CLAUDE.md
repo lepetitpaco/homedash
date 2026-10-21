@@ -27,6 +27,7 @@ docker compose up -d --build                                              # lanc
 docker run --rm -v "$PWD":/app -w /app node:22-alpine npx tsc --noEmit    # typecheck
 python3 -m unittest discover -s tests -t .                                # tests (~10 s)
 sh desktop/build-local.sh [--install]                                     # appli de bureau (Mac)
+sh desktop/build-windows.sh                                               # appli de bureau (Windows .exe)
 ```
 
 Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git sur l'hôte.
@@ -92,7 +93,8 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   livre par le container, pas par un nouveau `.dmg`. On ne publie (`git tag desktop-vX.Y.Z && git push
   origin desktop-vX.Y.Z` → CI macOS, repo privé = minutes ×10) que si `main.js`, `preload.js` ou la
   version d'Electron changent. Une seule recette, locale comme en CI : `build-local.sh` (Node sinon
-  Docker) et `release.sh` (les deux .dmg + la release).
+  Docker), `build-windows.sh` (Docker : .exe NSIS + .zip) et `release.sh` (les deux .dmg, Windows, la
+  release ; en CI, Windows sur un job Linux à part).
 - La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
   dans l'appli, iframe sinon.
 - `will-attach-webview` : sans Node, seul preload `guest-preload.js` (monde isolé, boutons précédent /

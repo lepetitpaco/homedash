@@ -33,6 +33,7 @@ import { useGuide } from '../lib/guide'
 import { Markdown } from '../lib/markdown'
 import type { useChangelog } from '../lib/changelog'
 import SetTeam from './SetTeam'
+import { keys } from '../lib/keys'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'Non supportées par ce navigateur',
@@ -834,7 +835,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             Annuler
           </button>
           <button className="set-save" onClick={() => onSave(cleaned(draft))} disabled={saving || !dirty}>
-            {saving ? 'enregistrement…' : dirty ? 'Enregistrer  ⌘S' : 'Enregistré ✓'}
+            {saving ? 'enregistrement…' : dirty ? `Enregistrer  ${keys('S')}` : 'Enregistré ✓'}
           </button>
         </div>
         )}

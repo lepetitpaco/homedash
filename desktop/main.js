@@ -147,6 +147,8 @@ function createWindow() {
     minHeight: 600,
     title: 'homedash',
     backgroundColor: '#0b0d12',
+    // Windows : la barre de menus n'apparaît qu'avec Alt (comme Slack, Discord).
+    autoHideMenuBar: process.platform === 'win32',
     show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
@@ -347,8 +349,33 @@ ipcMain.on('homedash:badge', (e, n) => {
   if (!fromHome(e)) return
   const count = Math.max(0, Math.floor(Number(n) || 0))
   if (process.platform === 'darwin') app.dock.setBadge(count ? String(count > 99 ? '99+' : count) : '')
+  else if (process.platform === 'win32') void setTaskbarBadge(count)
   else app.setBadgeCount(count)
 })
+
+/**
+ * Windows n'a pas de badge à nombre : une petite icône par-dessus celle de la
+ * barre des tâches (overlay), dessinée par la page (canvas) puisque le
+ * processus principal n'a pas de quoi dessiner du texte.
+ */
+async function setTaskbarBadge(count) {
+  if (!win) return
+  if (!count) return win.setOverlayIcon(null, '')
+  const text = count > 99 ? '99+' : String(count)
+  try {
+    const url = await win.webContents.executeJavaScript(`(() => {
+      const c = document.createElement('canvas'); c.width = c.height = 32
+      const g = c.getContext('2d')
+      g.fillStyle = '#f23f43'; g.beginPath(); g.arc(16, 16, 16, 0, Math.PI * 2); g.fill()
+      g.fillStyle = '#fff'; g.font = 'bold ${text.length > 2 ? 13 : text.length > 1 ? 17 : 20}px sans-serif'
+      g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(${JSON.stringify(text)}, 16, 17)
+      return c.toDataURL('image/png')
+    })()`)
+    win.setOverlayIcon(nativeImage.createFromDataURL(url), `${text} non lu(s)`)
+  } catch {
+    /* page pas encore chargée : le prochain nombre repassera */
+  }
+}
 
 /**
  * Précédent / suivant pour la page : le site ouvert s'il a de l'historique,
@@ -497,6 +524,9 @@ if (!app.requestSingleInstanceLock()) {
   app.on('window-all-closed', () => {
     if (process.platform !== 'darwin') app.quit()
   })
+  // Windows : identité de l'appli pour la barre des tâches et les notifications
+  // (sans elle, les notifications des sites ne s'affichent pas).
+  if (process.platform === 'win32') app.setAppUserModelId('com.github.davidgennaoui.homedash')
   app.whenReady().then(() => {
     if (process.platform === 'darwin' && !app.isPackaged) {
       const icon = nativeImage.createFromPath(path.join(__dirname, 'build', 'icon.png'))
