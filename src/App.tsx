@@ -57,6 +57,8 @@ import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
 
 const RAIL_KEY = 'homedash:rail'
+/** Dernières pastilles des onglets perso, par `tabKey`. */
+const TAB_COUNTS_KEY = 'homedash:tab-counts'
 
 /** Éphémère, simple ou gardé : rangé en bas, son adresse suit la navigation. */
 const isTemp = (t: CustomTab) => !!t.kept || t.id.startsWith('tmp-')
@@ -276,8 +278,31 @@ export default function App() {
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
-  // Non-lus lus dans le titre de chaque onglet perso (appli de bureau seulement).
-  const [tabCounts, setTabCounts] = useState<Record<string, number>>({})
+  // Non-lus de chaque onglet perso (appli de bureau seulement). Gardés dans le
+  // localStorage : la pastille survit au redémarrage et à la veille, jusqu'à ce
+  // que le site, rechargé, en donne une nouvelle.
+  const [tabCounts, setTabCounts] = useState<Record<string, number>>(() => {
+    try {
+      const v = JSON.parse(localStorage.getItem(TAB_COUNTS_KEY) ?? '{}')
+      return v && typeof v === 'object' ? v : {}
+    } catch {
+      return {}
+    }
+  })
+  // Onglet supprimé, éphémère fermé : sa pastille gardée s'en va (config chargée
+  // seulement, sinon tout partirait au démarrage).
+  useEffect(() => {
+    if (!cfg) return
+    const keys = new Set<string>(allTabs.map(tabKey))
+    setTabCounts((c) => (Object.keys(c).every((k) => keys.has(k)) ? c : Object.fromEntries(Object.entries(c).filter(([k]) => keys.has(k)))))
+  }, [cfg, allTabs])
+  useEffect(() => {
+    try {
+      localStorage.setItem(TAB_COUNTS_KEY, JSON.stringify(tabCounts))
+    } catch {
+      /* stockage indisponible : pastilles en mémoire seulement */
+    }
+  }, [tabCounts])
   const setCount = useCallback(
     (key: string, n: number) => setTabCounts((c) => (c[key] === n ? c : { ...c, [key]: n })),
     [],
@@ -323,7 +348,7 @@ export default function App() {
     })
   }, [tab])
   // Toutes les 30 s : les onglets « en veille si inutilisé » restés de côté
-  // plus de `tabSleepMinutes` sont déchargés. Leurs non-lus ne sont plus suivis.
+  // plus de `tabSleepMinutes` sont déchargés. Leur pastille reste, figée jusqu'au réveil.
   const allTabsRef = useRef(allTabs)
   allTabsRef.current = allTabs
   const sleepMinutes = cfg?.ui.tabSleepMinutes ?? 5
@@ -342,12 +367,6 @@ export default function App() {
             tabs: allTabsRef.current.filter((t) => add.includes(tabKey(t))).map((t) => t.label),
           })
         return add.length ? [...a, ...add] : a
-      })
-      setTabCounts((c) => {
-        if (!due.some((k) => k in c)) return c
-        const next = { ...c }
-        for (const k of due) delete next[k]
-        return next
       })
     }, 30_000)
     return () => window.clearInterval(id)

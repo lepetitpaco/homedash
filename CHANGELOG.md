@@ -4,6 +4,14 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.17.1 — 2026-10-21
+
+- **Pastilles des onglets gardées** : elles survivent au redémarrage de l'appli, à la mise en veille et au
+  rechargement d'un site, au lieu de disparaître jusqu'au prochain non-lu.
+- **Google Chat a sa pastille** : son titre ne compte rien, le nombre de non-lus est donc lu dans la page.
+- **Pastilles effacées dès la lecture** : un message lu dans l'onglet fait disparaître sa pastille
+  aussitôt (elle pouvait rester, surtout pour Gmail).
+
 ## 1.17.0 — 2026-10-20
 
 - **Icône d'onglet par lien** : dans Réglages → Onglets perso, le champ *Icône* accepte le lien d'une

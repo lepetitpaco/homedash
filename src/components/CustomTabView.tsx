@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { isLocal, refusesEmbed, srcOf, tabKey } from '../lib/customTabs'
 import {
-  countInTitle,
   desktop,
   OPEN_IN_TAB,
   partitionOf,
@@ -9,7 +8,11 @@ import {
   type OpenInTab,
   type WebviewEl,
 } from '../lib/desktop'
+import { pageCounter, tabCounter } from '../lib/tabCount'
 import type { CustomTab } from '../types'
+
+/** Relecture des non-lus dans la page (`pageCounter`), sites concernés seulement. */
+const PAGE_POLL_MS = 2_000
 
 /**
  * Onglet perso affiché dans la page : le site ou le fichier dans un cadre.
@@ -21,7 +24,8 @@ import type { CustomTab } from '../types'
  * refusent (page blanche) : le bandeau le dit et propose de l'ouvrir à part.
  * Dans l'appli de bureau (desktop/), c'est une <webview> : un affichage du
  * navigateur lui-même, que rien ne refuse. Elle remonte aussi les non-lus lus
- * dans le titre de la page (`onCount`).
+ * dans le titre de la page, ou dans la page pour les sites qui ne les y mettent
+ * pas (`pageCounter`) : `onCount`, d'après `tabCounter`.
  */
 export default function CustomTabView({
   tab,
@@ -74,6 +78,13 @@ export default function CustomTabView({
 
   const countRef = useRef(onCount)
   countRef.current = onCount
+  const hiddenRef = useRef(hidden)
+  hiddenRef.current = hidden
+  // Onglet qui s'affiche : son compte retenu (un 0 en attente) passe aussitôt.
+  const reportRef = useRef<() => void>(() => {})
+  useEffect(() => {
+    if (!hidden) reportRef.current()
+  }, [hidden])
   const guestRef = useRef(onGuest)
   guestRef.current = onGuest
   const navRef = useRef(onNavigate)
@@ -99,9 +110,25 @@ export default function CustomTabView({
   useEffect(() => {
     const el = view.current
     if (!desktop || !el) return
+    const code = pageCounter(startSrc)
+    const counter = tabCounter({
+      emit: (n) => countRef.current?.(n),
+      hidden: () => hiddenRef.current,
+      byPage: !!code,
+    })
+    reportRef.current = counter.report
+    const readPage = () => {
+      if (!code) return
+      el.executeJavaScript(code)
+        .then(counter.page)
+        .catch(() => {
+          /* page en cours de chargement */
+        })
+    }
+    const poll = code ? window.setInterval(readPage, PAGE_POLL_MS) : 0
     const onTitle = (e: Event) => {
       const title = (e as Event & { title: string }).title
-      countRef.current?.(countInTitle(title))
+      counter.title(title)
       try {
         visitRef.current?.(el.getURL(), title)
       } catch {
@@ -133,6 +160,11 @@ export default function CustomTabView({
       navRef.current?.(url)
       visitRef.current?.(url)
     }
+    // `did-start-loading` part aussi pour les cadres : seule la page elle-même compte.
+    const onPageStart = (e: Event) => {
+      const { isMainFrame, isInPlace } = e as Event & { isMainFrame: boolean; isInPlace: boolean }
+      if (isMainFrame && !isInPlace) counter.loading()
+    }
     const onStart = () => {
       setLoading(true)
       if (!loadStart.current) loadStart.current = performance.now()
@@ -150,7 +182,13 @@ export default function CustomTabView({
     el.addEventListener('page-title-updated', onTitle)
     el.addEventListener('did-fail-load', onFail)
     el.addEventListener('did-finish-load', onLoad)
+    el.addEventListener('page-favicon-updated', readPage)
+    el.addEventListener('did-start-navigation', onPageStart)
     return () => {
+      el.removeEventListener('did-start-navigation', onPageStart)
+      window.clearInterval(poll)
+      counter.stop()
+      el.removeEventListener('page-favicon-updated', readPage)
       el.removeEventListener('dom-ready', onReady)
       el.removeEventListener('did-navigate', onNav)
       el.removeEventListener('did-navigate-in-page', onNav)

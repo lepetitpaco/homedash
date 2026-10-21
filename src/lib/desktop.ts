@@ -70,16 +70,6 @@ export function partitionOf(name: string | undefined): string {
 }
 
 /**
- * Non-lus d'un site d'après le titre de sa page : « Boîte de réception (3) »,
- * « (12) WhatsApp », « Chat (2) »… La convention de presque tous les sites qui
- * comptent quelque chose ; 0 si le titre n'en porte pas.
- */
-export function countInTitle(title: string): number {
-  const m = /\((\d{1,4})\+?\)/.exec(title)
-  return m ? Number(m[1]) : 0
-}
-
-/**
  * Précédent / suivant au clavier, comme un navigateur : ⌘[ ⌘], et ⌘← ⌘→ hors
  * d'un champ de saisie (où ils déplacent le curseur). Même règle dans
  * desktop/guest-preload.js, pour les sites.
@@ -107,4 +97,5 @@ export type WebviewEl = HTMLElement & {
   loadURL: (url: string) => Promise<void>
   setAudioMuted: (muted: boolean) => void
   getWebContentsId: () => number
+  executeJavaScript: (code: string) => Promise<unknown>
 }

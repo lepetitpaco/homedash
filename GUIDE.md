@@ -177,9 +177,14 @@ Ce qu'elle apporte :
 - **Tous les onglets perso s'affichent**, Gmail, Google Chat et GitHub compris (dans un navigateur, ces
   sites refusent d'être affichés dans une page). Tu t'y connectes une fois, dans l'onglet : la connexion
   est gardée, et vaut pour tous les onglets Google.
-- **Pastilles** : le nombre que le site met dans son titre (« Boîte de réception (3) », « Chat (2) »)
-  devient une pastille rouge sur l'onglet, même fermé. Leur total, plus les non-lus de la cloche, s'affiche
-  sur l'**icône du Dock**.
+- **Pastilles** : le nombre que le site met dans son titre (« Boîte de réception (3) », « (12) WhatsApp »)
+  devient une pastille rouge sur l'onglet, même fermé. Google Chat, dont le titre ne compte rien, est lu
+  dans sa page (le total de *Accueil*). La pastille est gardée au redémarrage de l'appli et pendant la
+  veille, jusqu'à ce que le site rechargé en donne une nouvelle. Elle suit le site aussitôt (lire un
+  message l'efface), sauf juste après le chargement d'un onglet caché : 20 s avant d'effacer, le temps
+  que le site affiche son compteur. Gmail ne compte que la boîte de réception :
+  les non-lus de ses sections ou libellés n'y sont pas. Leur total, plus les non-lus de la cloche,
+  s'affiche sur l'**icône du Dock**.
 - Les liens s'ouvrent dans ton **navigateur par défaut** (Firefox…). Dans un onglet perso : ← pour revenir
   en arrière, ↗ pour ouvrir la page en cours dans le navigateur.
 - **`⌘R`** recharge homedash (après une mise à jour du container), onglets perso compris : « ↻ homedash
@@ -213,7 +218,7 @@ Ce qu'elle apporte :
 - **Mise en veille** (au choix, par onglet, éphémère compris : clic droit → *Mettre en veille si
   inutilisé*, ou sa pastille 💤 dans Réglages → Onglets perso) : laissé de côté plus de
   5 min (délai réglable dans la même page : 5 min, 15 min, 30 min, 1 h ou au choix), l'onglet est déchargé — mémoire libérée, icône grisée avec 💤 — et rechargé au clic. Pas par
-  défaut : en veille, il ne reçoit ni notifications ni non-lus.
+  défaut : en veille, il ne reçoit ni notifications ni non-lus (sa pastille reste celle d'avant la veille).
 - Un menu (clic droit, cloche…) se ferme par un clic n'importe où, site compris, ou Échap.
 - Fermer la fenêtre la cache (l'appli continue de compter) ; *homedash → Quitter* (`⌘Q`) la ferme.
 
