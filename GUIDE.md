@@ -202,6 +202,7 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dans ton dossier personnel) |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
 | Des lettres au lieu des icônes | *Réglages → Affichage → Favicons* doit être coché |
+| Un site boude (captcha refusé, page qui tourne en boucle) | Clic droit sur son icône → *Effacer les données de ce site*, puis reconnecte-toi. Sinon ↗ l'ouvre dans ton navigateur |
 | Rien sur l'icône du Dock | *Pastilles de l'app* désactivé dans macOS : voir *Notifications* ci-dessus |
 
 Autre chose ? Ouvre une **[issue sur GitHub](https://github.com/davidgennaoui/homedash/issues/new)** :

@@ -6,6 +6,7 @@ import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
+import { confirmDialog } from './components/ConfirmHost'
 import AddTabDialog from './components/AddTabDialog'
 import LoadTrouble from './components/LoadTrouble'
 import UpdateProgress from './components/UpdateProgress'
@@ -48,7 +49,7 @@ import {
   tabKey,
 } from './lib/customTabs'
 import { perfEvent, setPerfLog } from './lib/perf'
-import { desktop, hasSessions, navKey, OPEN_IN_TAB, RELOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
+import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, RELOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -704,7 +705,7 @@ export default function App() {
             ]
           : []),
         { heading: 'Onglet' },
-        ...(t.embed ? [notifyItem(t), muteItem(t), sleepItem(t)] : []),
+        ...(t.embed ? [notifyItem(t), muteItem(t), sleepItem(t), ...clearItem(t)] : []),
         { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: () => openTabSettings(t.id) },
       ],
     })
@@ -864,6 +865,35 @@ export default function App() {
     label: muted[tabKey(t)] ? 'Rétablir le son' : 'Couper le son',
     onSelect: () => toggleMute(t),
   })
+  /** Clic droit → Effacer les données de ce site : cookies, stockage, cache, dans le compte de l'onglet. */
+  const clearItem = (t: CustomTab): MenuItem[] => {
+    const host = hostOf(tempUrl.current.get(t.id) ?? t.url)
+    if (!desktop?.clearData || !host) return []
+    const account = sessionOf(t, tabSessions)
+    const base = host.replace(/^www\./, '')
+    return [
+      {
+        icon: '🧹',
+        label: 'Effacer les données de ce site',
+        hint: account ? `compte ${account.name}` : 'connexion commune',
+        onSelect: () =>
+          void confirmDialog({
+            title: `Effacer les données de ${base} ?`,
+            body: [
+              `Cookies, données enregistrées et cache de ${base}${account ? ` dans le compte ${account.name}` : ''} sont effacés : tu en seras déconnecté.`,
+              'Utile quand un site boude (captcha refusé, page qui tourne en boucle). Les autres sites et comptes ne bougent pas.',
+            ],
+            confirmLabel: 'Effacer',
+            danger: true,
+          }).then((ok) => {
+            if (!ok) return
+            void desktop
+              ?.clearData?.(partitionOf(account?.id), host)
+              .then(() => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })))
+          }),
+      },
+    ]
+  }
   const sleepItem = (t: CustomTab): MenuItem => ({
     icon: '💤',
     label: t.sleep ? 'Ne plus mettre en veille' : 'Mettre en veille si inutilisé',
@@ -889,6 +919,7 @@ export default function App() {
         notifyItem(t),
         muteItem(t),
         sleepItem(t),
+        ...clearItem(t),
         { sep: true },
         { icon: '✕', label: 'Fermer', danger: !!t.kept, onSelect: () => closeTemp(t) },
       ],

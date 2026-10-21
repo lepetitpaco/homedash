@@ -4,6 +4,17 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.23.0 — 2026-10-21
+
+Appli de bureau : 1.5.2
+
+- **Les captchas Cloudflare passent dans les onglets** (wiki-masters et les autres) : l'appli se présente
+  désormais telle qu'elle est, et ne se fait passer pour Chrome qu'auprès de Google, qui l'exige pour la
+  connexion. Le maquillage général faisait refuser tout captcha Turnstile, même coché à la main.
+- **Effacer les données d'un site** : clic droit sur son icône → *Effacer les données de ce site*
+  (cookies, stockage, cache, dans le compte de l'onglet). Pour tout un compte : *Réglages → Onglets
+  perso → Comptes de connexion*. Utile quand un site boude.
+
 ## 1.22.1 — 2026-10-21
 
 - **Journal de performance : temps de chargement fiables.** Seul le chargement de la page d'un site est

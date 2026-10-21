@@ -901,3 +901,8 @@
 .topbar-site .xtab-btn.xtab-icon-btn {
   padding: 0;
 }
+/* Réglages → Onglets perso → effacer les données d'un compte. */
+.xs-clear .xs-btn {
+  margin: 0 0.15rem;
+  border-color: color-mix(in srgb, var(--c, var(--border)) 60%, var(--border));
+}

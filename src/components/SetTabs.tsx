@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { browse, type Browse } from '../lib/admin'
 import {
+  tabKey,
   domainsOf,
   folderOf,
   hostOf,
@@ -12,7 +13,7 @@ import {
   refusesEmbed,
   sessionOf,
 } from '../lib/customTabs'
-import { desktop, hasSessions } from '../lib/desktop'
+import { desktop, hasSessions, partitionOf, RELOAD_TAB } from '../lib/desktop'
 import { EDIT_TAB_EVENT, EDIT_TAB_KEY, NEW_TAB_EVENT, NEW_TAB_KEY } from '../lib/settingsNav'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -134,6 +135,25 @@ export default function SetTabs({
     onChange(tabs.filter((x) => x.id !== t.id))
     setOpen(null)
   }
+
+  /** Toutes les données d'un compte (ou de la connexion commune) : déconnecte de tous ses sites. */
+  const clearAccount = (id: string | undefined, name: string) =>
+    void confirmDialog({
+      title: `Effacer toutes les données de ${id ? `« ${name} »` : 'la connexion commune'} ?`,
+      body: [
+        `Cookies, sessions et cache de tous les sites de ${id ? `ce compte` : 'la connexion commune'} sont effacés : tu en seras déconnecté partout.`,
+        "Tes onglets, leurs réglages et les autres comptes ne bougent pas. Pour un seul site : clic droit sur son icône → Effacer les données de ce site.",
+      ],
+      confirmLabel: 'Tout effacer',
+      danger: true,
+    }).then((ok) => {
+      if (!ok) return
+      void desktop?.clearData?.(partitionOf(id)).then(() =>
+        tabs.filter((t) => t.embed && (t.session ?? '') === (id ?? '')).forEach((t) =>
+          window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })),
+        ),
+      )
+    })
 
   const addFolder = async (tid?: string) => {
     const r = await askNameColor({ title: 'Nouveau dossier', name: `Dossier ${folders.length + 1}` })
@@ -808,6 +828,22 @@ export default function SetTabs({
             ))}
             {!sessions.length ? <span className="set-hint">Aucun : tous les onglets partagent la même connexion.</span> : null}
           </div>
+          {desktop?.clearData ? (
+            <p className="set-hint xs-clear">
+              🧹 Effacer toutes les données (cookies, sessions, cache) d'un compte :{' '}
+              {[{ id: undefined as string | undefined, name: 'connexion commune', color: undefined as string | undefined }, ...sessions].map((x) => (
+                <button
+                  key={x.id ?? 'commun'}
+                  type="button"
+                  className="xs-btn"
+                  style={x.color ? { ['--c' as string]: x.color } : undefined}
+                  onClick={() => clearAccount(x.id, x.name)}
+                >
+                  {x.name}
+                </button>
+              ))}
+            </p>
+          ) : null}
         </section>
       </div>
 

@@ -102,6 +102,23 @@ function chromeUA(ua) {
   return ua.replace(/ Electron\/\S+/, '').replace(new RegExp(` ${app.getName()}/\\S+`, 'i'), '')
 }
 
+/**
+ * Sites Google (et YouTube, qui se connecte par Google) : les seuls à recevoir
+ * l'UA de Chrome. Partout ailleurs l'appli se présente telle qu'elle est :
+ * l'UA maquillé ne collait pas au reste du navigateur, et l'anti-robots de
+ * Cloudflare (Turnstile) refusait alors tout captcha, même coché à la main.
+ */
+const GOOGLE = /(^|\.)(google\.[a-z.]+|youtube\.com|gmail\.com|googleusercontent\.com|gstatic\.com)$/i
+const isGoogle = (url) => {
+  try {
+    return GOOGLE.test(new URL(url).hostname)
+  } catch {
+    return false
+  }
+}
+/** Sessions d'onglets : la page de chaque site y reçoit son UA (`web-contents-created`). */
+const tabSessions = new Map()
+
 let win = null
 let quitting = false
 // Webviews des onglets perso : seules cibles des actions demandées par la page.
@@ -288,7 +305,15 @@ function setupTabsSession(partition) {
   if (ready.has(partition)) return
   ready.add(partition)
   const s = session.fromPartition(partition)
-  s.setUserAgent(chromeUA(s.getUserAgent()))
+  // UA honnête par défaut ; celui de Chrome pour les requêtes vers Google
+  // (pages, cadres, redirections) — et pour leur navigator.userAgent, plus bas.
+  const honest = s.getUserAgent()
+  const chrome = chromeUA(honest)
+  tabSessions.set(s, { honest, chrome })
+  s.webRequest.onBeforeSendHeaders((details, done) => {
+    if (isGoogle(details.url)) details.requestHeaders['User-Agent'] = chrome
+    done({ requestHeaders: details.requestHeaders })
+  })
   // Notifications de Gmail / Chat, presse-papiers, caméra et micro (Meet) : à
   // ces sites choisis par l'utilisateur. macOS demande en plus pour caméra et micro.
   const allowed = new Set(['notifications', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen', 'media'])
@@ -473,6 +498,33 @@ ipcMain.on('homedash:guest', (e, msg) => {
   else if (action === 'reload') g.reload()
   else if (action === 'copyImage') g.copyImageAt(Number(x) || 0, Number(y) || 0)
   else g[action]()
+})
+
+/**
+ * Effacer les données de navigation d'une session d'onglets (cookies, stockage,
+ * cache) : celles d'un site (`host`, et son domaine parent : `mail.google.com`
+ * → tout `google.com`), ou toute la session d'un compte. Déconnecte de ce site.
+ * Seules les sessions d'onglets sont acceptées, jamais celle de homedash.
+ */
+ipcMain.handle('homedash:clear-data', async (e, req) => {
+  if (!fromHome(e)) return false
+  const partition = String(req?.partition || '')
+  if (partition !== PARTITION && !OWN_PARTITION.test(partition)) return false
+  const s = session.fromPartition(partition)
+  const host = String(req?.host || '').toLowerCase()
+  if (!host) {
+    await s.clearStorageData()
+    await s.clearCache()
+    return true
+  }
+  if (!/^[a-z0-9.-]+$/.test(host)) return false
+  const base = host.split('.').slice(-2).join('.')
+  const mine = (d) => d.replace(/^\./, '') === base || d.endsWith(`.${base}`)
+  for (const c of await s.cookies.get({}))
+    if (mine(c.domain)) await s.cookies.remove(`${c.secure ? 'https' : 'http'}://${c.domain.replace(/^\./, '')}${c.path}`, c.name)
+  for (const h of new Set([host, base, `www.${base}`])) await s.clearStorageData({ origin: `https://${h}` })
+  await s.clearCache()
+  return true
 })
 
 // Version de l'appli (la page compare avec celle que demande le changelog).
@@ -662,6 +714,17 @@ function watchSpikes() {
 }
 
 // ── Cycle de vie ────────────────────────────────────────────────────────────
+// Page d'un onglet (webview, ou fenêtre de connexion qu'il ouvre) : son
+// navigator.userAgent suit le site affiché, comme les en-têtes ci-dessus.
+app.on('web-contents-created', (_e, wc) => {
+  wc.on('did-start-navigation', (details) => {
+    const ua = tabSessions.get(wc.session)
+    if (!ua || !details.isMainFrame || details.isSameDocument) return
+    const want = isGoogle(details.url) ? ua.chrome : ua.honest
+    if (wc.getUserAgent() !== want) wc.setUserAgent(want)
+  })
+})
+
 if (!app.requestSingleInstanceLock()) {
   app.quit()
 } else {

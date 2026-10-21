@@ -11,6 +11,8 @@ export type Desktop = {
   appVersion?: string
   /** Menu de l'appli → une page (`settings`, `help-news`, `help-guide`) ; `menu` dans features. */
   onMenu?: (cb: (target: string) => void) => () => void
+  /** Effacer les données d'un site ou d'un compte (`clear-data` dans features, ≥ 1.5.2). */
+  clearData?: (partition: string, host?: string) => Promise<boolean>
   /** Réglages de notifications du système (`notif-settings` dans features, ≥ 1.5.1). */
   openNotificationSettings?: () => void
   /** Mise à jour depuis l'appli (`update` dans features). */
