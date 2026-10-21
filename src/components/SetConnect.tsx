@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { connect, disconnect, type Auth } from '../lib/admin'
 import { confirmDialog } from './ConfirmHost'
+import { shown } from '../lib/errors'
 
 type Props = {
   account: string
@@ -33,7 +34,7 @@ export default function SetConnect({ account, auth, onChange }: Props) {
         setToken('')
         setEditing(false)
       })
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => setError(shown('compte GitHub', e)))
       .finally(() => setBusy(false))
   }
 
@@ -41,7 +42,7 @@ export default function SetConnect({ account, auth, onChange }: Props) {
     void confirmDialog({
       title: 'Déconnecter GitHub ?',
       body: [
-        'Le jeton enregistré est effacé de data/secrets.json. Il reste valide sur GitHub : révoque-le là-bas si tu ne veux plus t’en servir.',
+        'Le jeton est effacé de homedash. Il reste valide sur GitHub : révoque-le là-bas si tu ne veux plus t’en servir.',
         "L'onglet GitHub se vide jusqu'à la prochaine connexion. Les réglages (org, repos, équipe) sont conservés.",
       ],
       confirmLabel: 'Déconnecter',
@@ -53,7 +54,7 @@ export default function SetConnect({ account, auth, onChange }: Props) {
     setBusy(true)
     disconnect(account)
       .then(onChange)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => setError(shown('compte GitHub', e)))
       .finally(() => setBusy(false))
   }
 

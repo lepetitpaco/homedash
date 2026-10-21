@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { browse, getRoots, type Browse, type RootStatus } from '../lib/admin'
+import { shown as errorText } from '../lib/errors'
 
 type Root = { path?: string; as?: string }
 
@@ -38,7 +39,7 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
     setError(null)
     browse(path)
       .then((b) => (b.error ? setError(b.error) : setView(b)))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => setError(errorText('dépôts locaux', e)))
   }
 
   useEffect(() => {

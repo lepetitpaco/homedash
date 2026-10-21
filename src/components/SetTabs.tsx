@@ -21,6 +21,7 @@ import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
 import { CATALOG, type CatalogSite } from '../lib/catalog'
 import { keys } from '../lib/keys'
+import { shown } from '../lib/errors'
 
 type Props = {
   tabs: CustomTab[]
@@ -194,7 +195,7 @@ export default function SetTabs({
     setError(null)
     browse(path, true)
       .then((b) => (b.error ? setError(b.error) : setView(b)))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => setError(shown('onglets perso', e)))
   }
   const startBrowse = (t: CustomTab) => {
     setBrowsing(true)

@@ -16,7 +16,7 @@ export default function SetPerf({ enabled, onEnabled }: { enabled: boolean; onEn
   const clear = () =>
     void confirmDialog({
       title: 'Vider le journal de performance ?',
-      body: [`Les ${u?.files ?? 0} fichier(s) de ${u?.path ?? 'data/perf/'} sont supprimés.`, 'La config, les notes et le reste de data/ ne bougent pas.'],
+      body: [`Les ${u?.files ?? 0} jour(s) de mesures sont supprimés.`, 'Tes réglages, notes et sauvegardes ne bougent pas.'],
       confirmLabel: 'Vider',
       danger: true,
     }).then((ok) => {
@@ -30,8 +30,7 @@ export default function SetPerf({ enabled, onEnabled }: { enabled: boolean; onEn
         <input type="checkbox" checked={enabled} onChange={(e) => onEnabled(e.target.checked)} />
         Journal de performance{' '}
         <em>
-          mémoire et CPU du serveur, de l'appli et de chaque onglet, actions lourdes ; un fichier par jour dans{' '}
-          <code>data/perf/</code>, gardé {u?.keep_days ?? 30} jours
+          mémoire et CPU du serveur, de l'appli et de chaque onglet, actions lourdes ; gardé {u?.keep_days ?? 30} jours
         </em>
       </label>
       {u ? (

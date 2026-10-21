@@ -405,7 +405,7 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings, c
                 ? `Les fichiers .git sont surveillés toutes les ${data.watch} s : un `
                   + `git fetch ou un git branch -d lancé dans un terminal rafraîchit `
                   + `cette page tout seul.`
-                : 'Surveillance désactivée (local.watch = 0 dans config.json).') +
+                : 'Surveillance automatique désactivée dans tes réglages.') +
               ` Dernier scan en ${(data?.took ?? 0).toFixed(2)} s.`
             }>
             {data?.watching ? '👀 ' : ''}

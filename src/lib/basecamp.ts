@@ -4,6 +4,7 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { sameOr, usePageVisible } from './visible'
+import { shown } from './errors'
 
 export type BcStep = { title: string; url: string; due_on: string | null; completed: boolean }
 
@@ -98,7 +99,7 @@ export function useBasecamp(foreground: boolean) {
       setData((prev) => sameOr(prev, next, lastText))
       return next
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(shown('Basecamp', e))
       return null
     }
   }, [])

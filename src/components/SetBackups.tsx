@@ -8,6 +8,7 @@ import {
   type BackupEntry,
 } from '../lib/admin'
 import { confirmDialog } from './ConfirmHost'
+import { shown } from '../lib/errors'
 
 const REASON: Record<string, string> = {
   auto: 'automatique',
@@ -54,7 +55,7 @@ export default function SetBackups() {
     void confirmDialog({
       title: `Supprimer ${names.length} sauvegarde${names.length > 1 ? 's' : ''} ?`,
       body: [
-        'Elles sont effacées de data/backups/.',
+        'Elles sont effacées définitivement.',
         keep ? `Les ${keep} autre${keep > 1 ? 's' : ''} sont conservée${keep > 1 ? 's' : ''}.` : 'Il ne restera plus aucune sauvegarde : la prochaine automatique arrive dans la journée.',
       ],
       confirmLabel: 'Supprimer',
@@ -81,7 +82,7 @@ export default function SetBackups() {
       if (reload) window.setTimeout(() => window.location.reload(), 700)
       else void load()
     })
-      .catch((e: unknown) => setMsg({ ok: false, text: e instanceof Error ? e.message : String(e) }))
+      .catch((e: unknown) => setMsg({ ok: false, text: shown('sauvegardes', e) }))
       .finally(() => setBusy(false))
   }
 
@@ -206,7 +207,7 @@ export default function SetBackups() {
                     onClick={() => {
                       void confirmDialog({
                         title: `Supprimer la sauvegarde du ${when(b.created)} ?`,
-                        body: 'Elle est effacée de data/backups/ — les autres sont conservées.',
+                        body: 'Elle est effacée définitivement ; les autres sont conservées.',
                         confirmLabel: 'Supprimer',
                         danger: true,
                       }).then((ok) => ok && run(deleteBackup(b.name), 'supprimée'))
@@ -224,7 +225,7 @@ export default function SetBackups() {
       )}
       <p className="set-hint">
         Contient liens, infos, réglages, notes et compteurs — pas le jeton GitHub ni le journal.
-        Automatique une fois par jour, {30} conservées, dans <code>data/backups/</code>.
+        Automatique une fois par jour et avant chaque mise à jour, {30} conservées.
       </p>
     </>
   )

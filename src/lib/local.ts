@@ -1,6 +1,7 @@
 /** Dépôts git locaux servis par le backend Python (`GET /api/local`). */
 import { sameOr, usePageVisible } from './visible'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { shown } from './errors'
 
 /** Ordre = urgence. `protected` et `ok` ne demandent rien. */
 export type BranchState =
@@ -189,7 +190,7 @@ export function useLocal(foreground: boolean, onCleanup?: (d: LocalData, prev: L
       }
       return next
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(shown('onglet Local', e))
       return null
     }
   }, [onCleanup])

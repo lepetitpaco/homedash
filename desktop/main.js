@@ -12,7 +12,7 @@
  * soumis à aucun refus. La page détecte l'appli (`window.homedashDesktop`,
  * posé par preload.js) et choisit seule webview ou iframe.
  */
-const { app, BrowserWindow, Menu, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
+const { app, BrowserWindow, Menu, Notification, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
 const { runUpdate } = require('./updater')
@@ -560,6 +560,29 @@ ipcMain.handle('homedash:update', async (e) => (fromHome(e) ? startUpdate(false)
 
 ipcMain.on('homedash:open', (e, url) => {
   if (fromHome(e) && isWeb(String(url))) void shell.openExternal(String(url))
+})
+
+/**
+ * Réglages de notifications du système, sur la page de homedash : c'est là que
+ * macOS (« Pastilles de l'app ») ou Windows autorisent le nombre sur l'icône.
+ * Sur Mac, une notification d'abord : la première fois, elle déclenche la
+ * demande d'autorisation et inscrit homedash dans la liste des réglages, sans
+ * quoi la page s'ouvrirait sans lui.
+ */
+ipcMain.on('homedash:notif-settings', (e) => {
+  if (!fromHome(e)) return
+  if (process.platform === 'darwin') {
+    if (Notification.isSupported())
+      new Notification({
+        title: 'homedash',
+        body: "Active « Pastilles de l'app » pour voir les non-lus sur l'icône du Dock.",
+        silent: true,
+      }).show()
+    const id = 'com.github.davidgennaoui.homedash'
+    setTimeout(() => void shell.openExternal(`x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=${id}`), 800)
+  } else if (process.platform === 'win32') {
+    void shell.openExternal('ms-settings:notifications')
+  }
 })
 
 // ── Journal de performance ─────────────────────────────────────────────────

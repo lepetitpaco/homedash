@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { getRepos, type GhRepo, type Owner } from '../lib/admin'
+import { shown } from '../lib/errors'
 
 export type Use = 'prs' | 'branches' | 'github' | 'home'
 
@@ -80,7 +81,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
         .then((repos) => alive && setLists((cur) => ({ ...cur, [login]: repos })))
         .catch(
           (e: unknown) =>
-            alive && setLists((cur) => ({ ...cur, [login]: e instanceof Error ? e.message : String(e) })),
+            alive && setLists((cur) => ({ ...cur, [login]: shown('repos suivis', e) })),
         )
     }
     return () => {

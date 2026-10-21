@@ -126,6 +126,30 @@ def restore(data):
     return before
 
 
+def latest_good():
+    """La sauvegarde la plus récente dont la config se relit : {name, created} ou None."""
+    for entry in listing():
+        try:
+            data = load(entry["name"])
+        except (OSError, ValueError):
+            continue
+        if not check(data) and isinstance((data.get("files") or {}).get("config"), dict):
+            return {"name": entry["name"], "created": entry["created"]}
+    return None
+
+
+def repair():
+    """config.json ne se relit plus : il est mis de côté (rien n'est perdu), puis
+    la dernière sauvegarde valide est restaurée. Renvoie {restored, aside} ou lève
+    ValueError s'il n'y a aucune sauvegarde utilisable."""
+    good = latest_good()
+    if not good:
+        raise ValueError("aucune sauvegarde utilisable")
+    aside = store.set_aside(store.CONFIG)
+    restore(load(good["name"]))
+    return {"restored": good["name"], "created": good["created"], "aside": aside}
+
+
 def _auto_loop():
     while True:
         try:

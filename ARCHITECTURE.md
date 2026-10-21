@@ -15,7 +15,8 @@ backend/                  Python stdlib, aucune dépendance
   events.py               journal des événements (la cloche)
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
-  backup.py               instantanés, export, restauration
+  backup.py               instantanés, export, restauration, réparation d'une config abîmée
+  errlog.py               journal d'erreurs (data/logs/, 30 jours) : message vu + détail technique
   updates.py              version installée (CHANGELOG.md), mise à jour disponible sur GitHub, GUIDE.md servi
 src/
   App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
@@ -61,6 +62,8 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/backups[/{nom}[/restore]]` | GET, POST, DELETE | Instantanés |
 | `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |
 | `/api/guide` | GET | Texte de GUIDE.md (Réglages → Aide) |
+| `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
+| `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.

@@ -130,6 +130,9 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   navigation (cf. éphémères gardés).
 
 **Front**
+- Erreurs : jamais de jargon à l'écran (nom de fichier, code HTTP, `Failed to fetch`). `shown(où, e)`
+  (`src/lib/errors.ts`) donne la phrase lisible et note le détail au journal (`errlog.py`,
+  Réglages → Aide → Journal d'erreurs). Serveur injoignable = passager : la page réessaie seule.
 - `reload_all()` est le seul chemin après une écriture de config côté serveur.
 - Tout déclenchement manuel du polling relance la boucle (`pulse`), pas seulement `load()`.
 - Couleurs de signal via `--sig-*` (lisibles en thème clair) ; pas de teinte claire en dur dans `color:`.

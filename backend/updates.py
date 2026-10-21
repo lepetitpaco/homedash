@@ -24,6 +24,7 @@ from pathlib import Path
 
 import accounts
 import backup
+import errlog
 import events
 import store
 
@@ -110,17 +111,19 @@ def on_start():
 def check():
     mods = [m for m in accounts.all_mods() if m.token()]
     if not mods:
-        return _set(error="aucun compte GitHub connecté : impossible de vérifier les mises à jour")
+        return _set(error="connecte un compte GitHub (Réglages) pour que homedash vérifie les mises à jour")
     status, body, _ = mods[0].probe(f"/repos/{REPO}/contents/CHANGELOG.md", mods[0].token(),
                                     {"ref": BRANCH})
     if status != 200 or not isinstance(body, dict):
-        why = ("pas de CHANGELOG.md sur GitHub, ou dépôt inaccessible avec ce jeton"
-               if status in (403, 404) else f"GitHub a répondu {status}")
-        return _set(error=f"{why} ({REPO})")
+        why = ("ton compte GitHub n'a pas accès au dépôt homedash"
+               if status in (403, 404) else "GitHub ne répond pas pour le moment")
+        errlog.record("serveur", f"vérification des mises à jour : {why}", f"GitHub {status} sur {REPO}")
+        return _set(error=f"impossible de vérifier les mises à jour : {why}")
     try:
         remote = parse(base64.b64decode(body.get("content") or "").decode("utf-8"))
     except Exception as e:
-        return _set(error=f"changelog distant illisible : {e}")
+        errlog.record("serveur", "vérification des mises à jour", f"changelog distant illisible : {e}")
+        return _set(error="impossible de vérifier les mises à jour pour le moment")
     mine = key(current())
     incoming = [e for e in remote if key(e["version"]) > mine]
     latest = remote[0]["version"] if remote else None
@@ -173,7 +176,8 @@ def _loop():
         try:
             check()
         except Exception as e:
-            _set(error=str(e))
+            errlog.record("serveur", "vérification des mises à jour", repr(e))
+            _set(error="impossible de vérifier les mises à jour pour le moment")
         time.sleep(CHECK_EVERY)
 
 def start():

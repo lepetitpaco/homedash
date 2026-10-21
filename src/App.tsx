@@ -7,7 +7,9 @@ import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
 import AddTabDialog from './components/AddTabDialog'
+import LoadTrouble from './components/LoadTrouble'
 import UpdateProgress from './components/UpdateProgress'
+import DockHint from './components/DockHint'
 import Rail, { type RailMode } from './components/Rail'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
@@ -80,7 +82,7 @@ function shortLink(url: string): string {
 }
 
 export default function App() {
-  const { raw, cfg, error, saveState, setSaveState, persist, reload } = useConfigState()
+  const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad } = useConfigState()
   const [notes, setNotes] = useState<Note[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -519,20 +521,9 @@ export default function App() {
   })
 
   // --- rendu ---------------------------------------------------------------
-  if (error) {
-    return (
-      <div className="app">
-        <div className="card fatal">
-          <h1>config.json illisible</h1>
-          <p>{error}</p>
-          <p className="muted">
-            Vérifie la validité du JSON (virgule en trop, guillemet manquant) et le montage du volume
-            dans <code>docker-compose.yml</code>.
-          </p>
-        </div>
-      </div>
-    )
-  }
+  // Réglages pas chargés : serveur qui redémarre (réessai seul), fichier abîmé
+  // (proposer la dernière sauvegarde), ou autre — jamais de jargon (LoadTrouble).
+  if (error && !cfg) return <LoadTrouble error={error} onRetry={retryLoad} />
 
   if (!cfg) {
     return (
@@ -1339,6 +1330,7 @@ export default function App() {
       ) : null}
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
       <UpdateProgress />
+      <DockHint />
       {menus.draft ? (
         <EditDialog
           draft={menus.draft}
@@ -1352,7 +1344,7 @@ export default function App() {
   )
 }
 
-/** Témoin d'écriture de config.json, en bas à droite. */
+/** Témoin d'enregistrement des réglages, en bas à droite. */
 function SaveToast({ state, onClose }: { state: SaveState; onClose: () => void }) {
   if (state.kind === 'error') {
     return (
@@ -1367,7 +1359,7 @@ function SaveToast({ state, onClose }: { state: SaveState; onClose: () => void }
   if (state.kind === 'idle') return null
   return (
     <div className={`toast toast-${state.kind}`}>
-      {state.kind === 'saving' ? 'enregistrement…' : '✓ config.json enregistré'}
+      {state.kind === 'saving' ? 'enregistrement…' : '✓ Enregistré'}
     </div>
   )
 }

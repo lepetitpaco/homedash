@@ -4,6 +4,24 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.21.0 — 2026-10-21
+
+Appli de bureau : 1.5.1
+
+- **Fini le faux « config.json illisible »** : quand homedash redémarre (mise à jour, réveil du Mac), la
+  page affiche « Connexion à homedash… » et se recharge toute seule dès qu'il répond, sans rien toucher.
+- **Réglages vraiment abîmés** (une virgule de trop après une modification à la main) : la page le dit
+  clairement, avec la ligne fautive, et propose de **revenir à la dernière sauvegarde** d'un clic. La
+  version abîmée est gardée à côté.
+- **Des messages d'erreur en français courant** : plus de noms de fichiers, de codes HTTP ni de
+  « Failed to fetch ».
+- **Journal d'erreurs** (Réglages → Aide) : ce qui a raté, le message affiché et son détail technique,
+  gardé 30 jours, avec *Copier pour une issue*.
+
+- **Rien sur l'icône du Dock ?** macOS n'y affiche les non-lus que si *Pastilles de l'app* est activé
+  pour homedash. Une carte le propose au premier lancement de l'appli, et Réglages → Affichage a un lien
+  qui **ouvre directement la bonne page des réglages** du Mac (ou de Windows).
+
 ## 1.20.0 — 2026-10-21
 
 Appli de bureau : 1.5.0

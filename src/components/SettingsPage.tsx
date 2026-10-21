@@ -28,12 +28,14 @@ import SetRenovate from './SetRenovate'
 import SetRepos, { type Use } from './SetRepos'
 import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
+import ErrorLog from './ErrorLog'
 import { ChangelogBody } from './VersionMenu'
 import { useGuide } from '../lib/guide'
 import { Markdown } from '../lib/markdown'
 import type { useChangelog } from '../lib/changelog'
 import SetTeam from './SetTeam'
 import { keys } from '../lib/keys'
+import { desktop } from '../lib/desktop'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'Non supportées par ce navigateur',
@@ -123,6 +125,7 @@ type Props = {
 
 /** Pages de l'Aide qui ne viennent pas de GUIDE.md. */
 const NEWS = { id: 'help-news', icon: '📜', label: 'Nouveautés', group: 'Aide' }
+const ERRORS = { id: 'help-errors', icon: '🧾', label: "Journal d'erreurs", group: 'Aide' }
 
 type GhCfg = {
   id?: string
@@ -216,6 +219,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
       ...SECTIONS,
       NEWS,
       ...(guide ?? []).map((p) => ({ id: p.id, icon: p.icon, label: p.title, group: 'Aide' })),
+      ERRORS,
     ],
     [guide],
   )
@@ -412,7 +416,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     void confirmDialog({
       title: `Supprimer le compte « ${label} » ?`,
       body: [
-        'Son jeton est effacé de data/secrets.json, et ses réglages (repos suivis, équipe, Renovate) disparaissent.',
+        'Son jeton est effacé de homedash, et ses réglages (repos suivis, équipe, Renovate) disparaissent.',
         'Les autres comptes ne bougent pas. Une sauvegarde automatique est faite chaque jour.',
       ],
       confirmLabel: 'Supprimer le compte',
@@ -698,7 +702,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
 
-        {active.startsWith('help-') && active !== NEWS.id ? (
+        {active === ERRORS.id ? (
+        <Card id={ERRORS.id} icon={ERRORS.icon} title={ERRORS.label}>
+          <ErrorLog repo={changelog.data?.repo} />
+        </Card>
+        ) : null}
+
+        {active.startsWith('help-') && active !== NEWS.id && active !== ERRORS.id ? (
         <Card id={active} icon={help?.icon ?? '📖'} title={help?.title ?? 'Aide'}>
           {help ? (
             <Markdown text={help.body} />
@@ -811,6 +821,15 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             Le nombre sur l'icône de l'appli de bureau (Dock sur Mac, barre des tâches sur Windows). Les pastilles de
             la barre de gauche et de la cloche ne changent pas.
           </p>
+          {desktop?.openNotificationSettings ? (
+            <p className="set-hint">
+              Rien sur l'icône ? Le système doit l'autoriser
+              {desktop.platform === 'darwin' ? " (« Pastilles de l'app » pour homedash)" : ''} :{' '}
+              <button className="set-inline-btn" onClick={() => desktop?.openNotificationSettings?.()}>
+                ouvrir les réglages de notifications {desktop.platform === 'darwin' ? 'du Mac' : 'de Windows'}
+              </button>
+            </p>
+          ) : null}
           <div className="set-toggles">
             {(
               [

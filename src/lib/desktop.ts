@@ -11,6 +11,8 @@ export type Desktop = {
   appVersion?: string
   /** Menu de l'appli → une page (`settings`, `help-news`, `help-guide`) ; `menu` dans features. */
   onMenu?: (cb: (target: string) => void) => () => void
+  /** Réglages de notifications du système (`notif-settings` dans features, ≥ 1.5.1). */
+  openNotificationSettings?: () => void
   /** Mise à jour depuis l'appli (`update` dans features). */
   update?: () => Promise<{ ok: boolean; reason?: string; relaunch?: boolean }>
   onUpdateLog?: (cb: (msg: { line: string; kind: 'cmd' | 'out' | 'error' | 'done' }) => void) => () => void

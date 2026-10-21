@@ -19,6 +19,7 @@ import backup
 import accounts
 import basecamp
 import events
+import errlog
 import favicons
 import localfile
 import localgit
@@ -186,6 +187,9 @@ class Handler(BaseHTTPRequestHandler):
         return accounts.get(acc_id or self._query("account"))
 
     def _err(self, status, message):
+        # Pannes du serveur et refus de sécurité : au journal d'erreurs (Réglages → Aide).
+        if status >= 500 or status == 403:
+            errlog.record("serveur", message, where=f"{self.command} {urllib.parse.urlparse(self.path).path}")
         self._json({"error": message}, status)
 
     def _refused(self, write):
@@ -269,6 +273,9 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/events":
             events.clear()
             return self._json({"ok": True})
+        if path == "/api/errors":
+            errlog.clear()
+            return self._json({"ok": True})
         if path == "/api/perf":
             perflog.clear()
             return self._json(perflog.usage())
@@ -316,8 +323,14 @@ class Handler(BaseHTTPRequestHandler):
                 with _config_lock:
                     cfg, ver = store.read(store.CONFIG, {}), store.version(store.CONFIG)
                 return self._json(cfg, headers={"X-Config-Version": ver})
-            except ValueError as e:
-                return self._err(500, str(e))
+            except store.Broken as e:
+                # Fichier abîmé (édité à la main) : la page propose de restaurer la
+                # dernière sauvegarde valide (POST /api/config/repair).
+                errlog.record("serveur", "réglages illisibles", str(e), "GET /api/config")
+                return self._json({"error": "réglages illisibles", "broken": True, "line": e.line,
+                                   "column": e.column, "detail": str(e), "backup": backup.latest_good()}, 500)
+        if path == "/api/errors":
+            return self._json({"errors": errlog.listing(), "keep_days": errlog.KEEP_DAYS})
         if path == "/api/notes":
             return self._json(store.read(store.NOTES, []))
         if path == "/api/usage":
@@ -454,6 +467,23 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/backups":
                 return self._json({"name": backup.snapshot("manuelle")})
+
+            # Réglages illisibles : mis de côté, dernière sauvegarde valide restaurée.
+            if path == "/api/config/repair":
+                with _config_lock:
+                    try:
+                        done = backup.repair()
+                    except ValueError as e:
+                        return self._err(409, str(e))
+                reload_all()
+                return self._json({"ok": True, **done})
+
+            # Erreur vue dans la page (et son détail technique) : au journal.
+            if path == "/api/errors":
+                body = self._body() or {}
+                if isinstance(body, dict):
+                    errlog.record("page", body.get("shown"), body.get("detail"), body.get("where"))
+                return self._json({"ok": True})
 
             if path == "/api/basecamp/app":
                 body = self._body() or {}

@@ -15,6 +15,7 @@ import {
   type BcStatus,
 } from '../lib/basecamp'
 import { confirmDialog } from './ConfirmHost'
+import { shown } from '../lib/errors'
 
 const LAUNCHPAD = 'https://launchpad.37signals.com/integrations'
 
@@ -46,14 +47,14 @@ export default function SetBasecamp() {
   useEffect(() => {
     bcStatus()
       .then(apply)
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => setError(shown('Basecamp', e)))
   }, [])
 
   const run = (p: Promise<BcStatus | void>) => {
     setBusy(true)
     setError(null)
     p.then((s) => s && apply(s))
-      .catch((e: unknown) => setError(e instanceof Error ? e.message : String(e)))
+      .catch((e: unknown) => setError(shown('Basecamp', e)))
       .finally(() => setBusy(false))
   }
 
@@ -75,7 +76,7 @@ export default function SetBasecamp() {
     void confirmDialog({
       title: 'Déconnecter Basecamp ?',
       body: [
-        "Le jeton est effacé de data/secrets.json. L'appli (client id et secret) est conservée : se reconnecter = un clic.",
+        "La connexion est effacée de homedash. L'appli (client id et secret) est conservée : se reconnecter = un clic.",
         'Rien ne change dans Basecamp. Pour retirer l’accès là-bas aussi : launchpad.37signals.com → Apps.',
       ],
       confirmLabel: 'Déconnecter',
@@ -86,7 +87,7 @@ export default function SetBasecamp() {
     void confirmDialog({
       title: 'Oublier l’appli Basecamp ?',
       body: [
-        'Client id, secret et jeton sont effacés de data/secrets.json ; l’onglet Basecamp disparaît.',
+        'Client id, secret et connexion sont effacés de homedash ; l’onglet Basecamp disparaît.',
         "L'appli reste déclarée sur Launchpad, tu pourras la recoller ici.",
       ],
       confirmLabel: 'Oublier',

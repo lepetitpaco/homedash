@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { getMembers, lookupUser, type Member } from '../lib/admin'
 import { confirmDialog } from './ConfirmHost'
+import { shown } from '../lib/errors'
 
 type Props = {
   account: string
@@ -38,7 +39,7 @@ export default function SetTeam({ account, orgs, users, me, connected, login, on
         .filter((m) => !seen.has(m.login) && seen.add(m.login))
       setMembers(all)
       const failed = res.find((r) => r.status === 'rejected')
-      if (!all.length && failed?.status === 'rejected') setMembersError(String(failed.reason))
+      if (!all.length && failed?.status === 'rejected') setMembersError(shown('équipe', failed.reason))
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connected, account, orgs.join(',')])

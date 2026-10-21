@@ -9,6 +9,7 @@ import hashlib
 import json
 import os
 import threading
+import time
 from pathlib import Path
 
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/app/data"))
@@ -33,6 +34,15 @@ def _lock(name):
 def path_of(name):
     return DATA_DIR / name
 
+class Broken(ValueError):
+    """Fichier présent mais pas du JSON valide (édité à la main, le plus souvent) :
+    `line` et `column` disent où."""
+    def __init__(self, name, err):
+        super().__init__(f"{name} illisible : {err}")
+        self.name   = name
+        self.line   = getattr(err, "lineno", None)
+        self.column = getattr(err, "colno", None)
+
 def read(name, default):
     p = path_of(name)
     if not p.exists():
@@ -41,7 +51,18 @@ def read(name, default):
         with open(p, encoding="utf-8") as f:
             return json.load(f)
     except Exception as e:
-        raise ValueError(f"{name} illisible : {e}") from e
+        raise Broken(name, e) from e
+
+def set_aside(name):
+    """Met de côté un fichier cassé (`config.broken-AAAAMMJJ-HHMMSS.json`) avant
+    qu'une restauration ne le remplace : la modification à la main n'est pas perdue."""
+    src = path_of(name)
+    if not src.exists():
+        return None
+    stamp = time.strftime("%Y%m%d-%H%M%S")
+    dest = src.with_name(f"{src.stem}.broken-{stamp}{src.suffix}")
+    dest.write_bytes(src.read_bytes())
+    return dest.name
 
 def write(name, payload, mode=0o644):
     """Écriture atomique : temporaire dans le même répertoire puis rename.

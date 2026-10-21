@@ -240,11 +240,14 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | Pas d'onglet GitHub | Aucun jeton : Réglages → Compte & équipe |
 | Un repo n'est pas proposé | Le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
 | Onglet Local vide | Ajoute un dossier dans Réglages → Dépôts locaux (dans ton dossier personnel) |
-| Config cassée | Réglages → Sauvegardes → restaurer celle de la veille |
+| « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page se recharge toute seule. Si ça dure, lance Docker Desktop |
+| « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
+| Rien sur l'icône du Dock | macOS masque le nombre : Réglages → Affichage & notifications → *ouvrir les réglages de notifications du Mac*, puis activer *Pastilles de l'app* |
 | Changer de machine | Réglages → Sauvegardes → télécharger, puis restaurer sur l'autre |
 
 Un bug, une idée, une question sans réponse ici :
 **[ouvre une issue sur GitHub](https://github.com/davidgennaoui/homedash/issues/new)** (il faut avoir
 accès au dépôt). Dis ce que tu faisais, ce que tu attendais, ce qui s'est passé, et ta version (en haut
-à droite).
+à droite). **Réglages → Aide → Journal d'erreurs → Copier pour une issue** donne le détail de ce qui a
+raté : colle-le dans l'issue.

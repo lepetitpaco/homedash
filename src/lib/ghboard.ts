@@ -1,6 +1,7 @@
 /** Données GitHub servies par le backend Python (`GET /api/github`). */
 import { sameOr, usePageVisible } from './visible'
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { shown } from './errors'
 
 export type CiState = 'pass' | 'fail' | 'pending' | 'unknown'
 
@@ -144,7 +145,7 @@ export function useGithub(foreground = true): {
       if (!next.building) setPending(null)
       return next
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(shown('GitHub', e))
       return null
     }
   }, [q])

@@ -416,3 +416,43 @@
 .set-del-many:hover {
   background: color-mix(in srgb, var(--sig-bad) 28%, var(--panel-2));
 }
+
+/* Réglages → Aide → Journal d'erreurs. */
+.errlog {
+  list-style: none;
+  margin: 0.4rem 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+.errlog-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.55rem 0;
+  border-bottom: 1px solid var(--border-soft);
+}
+.errlog-head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: var(--text-faint);
+  font-size: 0.76rem;
+}
+.errlog-where {
+  font-family: ui-monospace, monospace;
+}
+.errlog-shown {
+  color: var(--text);
+  font-size: 0.88rem;
+}
+.errlog details {
+  color: var(--text-faint);
+  font-size: 0.76rem;
+}
+.errlog details code {
+  display: block;
+  margin-top: 0.3rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}

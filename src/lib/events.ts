@@ -1,6 +1,7 @@
 /** Journal des événements servi par le backend Python (`GET /api/events`). */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { notifyEvents } from './notifications'
+import { shown } from './errors'
 
 export type EventLevel = 'ok' | 'bad' | 'warn' | 'info'
 export type EventSource = 'github' | 'local' | 'basecamp'
@@ -115,7 +116,7 @@ export function useEvents(openLocal: () => void): {
       }
       return data
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(shown('cloche', e))
       return null
     }
   }, [setSeen])

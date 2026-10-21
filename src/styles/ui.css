@@ -635,3 +635,13 @@ code {
   background: var(--panel);
 }
 
+
+/* Chargement en attente du serveur (LoadTrouble) : la roue tourne, rien d'alarmant. */
+.card.fatal.is-waiting h1 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.card.fatal.is-waiting h1 {
+  color: var(--text);
+}

@@ -16,6 +16,7 @@
  *    notifications système (en sourdine par défaut).
  */
 import type { HdEvent } from './events'
+import { shown } from './errors'
 
 // Sourdine par défaut : la cloche de la barre du haut est le canal principal, une
 // notification système ne part que si on l'a activée explicitement. Clé
@@ -121,7 +122,7 @@ export function testNotification(report?: (line: string) => void): void {
       2000,
     )
   } catch (e) {
-    say(`✗ exception : ${e instanceof Error ? e.message : String(e)}`)
+    say(`✗ ${shown('notifications', e)}`)
   }
 }
 
