@@ -84,6 +84,9 @@ export const MUTE_SITE_NOTIFICATIONS = `(() => {
   return true
 })()`
 
+/** « Tout actualiser » (barre du haut) : chaque site chargé relit ses non-lus. */
+export const RECOUNT_TABS = 'homedash:recount-tabs'
+
 /** Délai avant de croire un « 0 non-lu » après un chargement (onglet caché seulement). */
 export const SETTLE_MS = 20_000
 

@@ -29,6 +29,7 @@ import SetRepos, { type Use } from './SetRepos'
 import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
 import ErrorLog from './ErrorLog'
+import PerfLog from './PerfLog'
 import { ChangelogBody } from './VersionMenu'
 import { useGuide } from '../lib/guide'
 import { Markdown } from '../lib/markdown'
@@ -126,6 +127,11 @@ type Props = {
 /** Pages de l'Aide qui ne viennent pas de GUIDE.md. */
 const NEWS = { id: 'help-news', icon: '📜', label: 'Nouveautés', group: 'Aide' }
 const ERRORS = { id: 'help-errors', icon: '🧾', label: "Journal d'erreurs", group: 'Aide' }
+/** Le guide (GUIDE.md) : une seule entrée du menu, ses parties en pastilles dans la page. */
+const GUIDE = { id: 'help-guide', icon: '📖', label: 'Guide', group: 'Aide' }
+/** Seulement si le journal de performance a des mesures (Réglages → Affichage). */
+const PERF = { id: 'help-perf', icon: '📈', label: 'Journal de performance', group: 'Aide' }
+const GUIDE_PART_KEY = 'homedash:guide-part'
 
 type GhCfg = {
   id?: string
@@ -212,17 +218,33 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   // « User » sont des collaborateurs croisés sur un repo, pas des comptes à lister.
   const accounts = useMemo(() => owners.filter((o, i) => i === 0 || o.type === 'Organization'), [owners])
 
-  // Aide : Nouveautés, puis une page par partie de GUIDE.md.
+  // Aide : trois entrées (Nouveautés, Guide, Journal d'erreurs) ; les parties du
+  // guide se choisissent dans sa page, sinon l'Aide dépassait les réglages.
   const guide = useGuide()
-  const nav = useMemo(
-    () => [
-      ...SECTIONS,
-      NEWS,
-      ...(guide ?? []).map((p) => ({ id: p.id, icon: p.icon, label: p.title, group: 'Aide' })),
-      ERRORS,
-    ],
-    [guide],
-  )
+  const [hasPerf, setHasPerf] = useState(false)
+  useEffect(() => {
+    fetch('api/perf', { cache: 'no-store' })
+      .then((r) => r.json() as Promise<{ files?: number }>)
+      .then((u) => setHasPerf((u.files ?? 0) > 0))
+      .catch(() => undefined)
+  }, [])
+  const nav = [...SECTIONS, NEWS, GUIDE, ERRORS, ...(hasPerf ? [PERF] : [])]
+  const [guidePart, setGuidePart] = useState<string | null>(() => {
+    try {
+      return localStorage.getItem(GUIDE_PART_KEY)
+    } catch {
+      return null
+    }
+  })
+  const pickPart = (id: string) => {
+    setGuidePart(id)
+    window.scrollTo({ top: 0 })
+    try {
+      localStorage.setItem(GUIDE_PART_KEY, id)
+    } catch {
+      /* stockage indisponible */
+    }
+  }
 
   const cleanedRef = useRef<(c: Config) => Config>((c) => c)
   // Une seule partie à l'écran ; le menu de gauche passe de l'une à l'autre.
@@ -237,16 +259,18 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     }
     return SECTIONS[0].id
   })
-  // `help-guide` (menu Aide → Guide de l'appli) : la première page du guide.
+  // Ancienne page du guide mémorisée (`help-raccourcis`…) : le guide, sur cette partie.
   useEffect(() => {
-    if (active === 'help-guide' && guide?.length) setActive(guide[0].id)
+    if (!guide || !active.startsWith('help-') || [NEWS.id, GUIDE.id, ERRORS.id, PERF.id].includes(active)) return
+    if (guide.some((p) => p.id === active)) setGuidePart(active)
+    setActive(GUIDE.id)
   }, [active, guide])
   useEffect(() => {
     const go = (e: Event) => setActive((e as CustomEvent<string>).detail)
     window.addEventListener(SECTION_EVENT, go)
     return () => window.removeEventListener(SECTION_EVENT, go)
   }, [])
-  const help = guide?.find((p) => p.id === active)
+  const help = guide?.find((p) => p.id === guidePart) ?? guide?.[0]
   // ＋ de la barre de gauche ou « Modifier… », Réglages déjà ouvert : Onglets perso
   // (SetTabs crée l'onglet, ou ouvre son éditeur).
   useEffect(() => {
@@ -708,12 +732,38 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
 
-        {active.startsWith('help-') && active !== NEWS.id && active !== ERRORS.id ? (
-        <Card id={active} icon={help?.icon ?? '📖'} title={help?.title ?? 'Aide'}>
-          {help ? (
-            <Markdown text={help.body} />
+        {active === PERF.id ? (
+        <Card id={PERF.id} icon={PERF.icon} title={PERF.label}>
+          <PerfLog />
+        </Card>
+        ) : null}
+
+        {active === GUIDE.id ? (
+        <Card id={GUIDE.id} icon={GUIDE.icon} title="Guide">
+          {guide?.length ? (
+            <>
+              <nav className="guide-parts" aria-label="Parties du guide">
+                {guide.map((p) => (
+                  <button
+                    key={p.id}
+                    className={`xs-btn${p.id === help?.id ? ' is-on' : ''}`}
+                    onClick={() => pickPart(p.id)}
+                  >
+                    {p.icon} {p.title}
+                  </button>
+                ))}
+              </nav>
+              {help ? (
+                <>
+                  <h2 className="guide-title">
+                    {help.icon} {help.title}
+                  </h2>
+                  <Markdown text={help.body} />
+                </>
+              ) : null}
+            </>
           ) : (
-            <p className="set-hint">{guide ? 'Cette page du guide n’existe plus : choisis-en une à gauche.' : 'chargement…'}</p>
+            <p className="set-hint">{guide ? 'Le guide est introuvable.' : 'chargement…'}</p>
           )}
         </Card>
         ) : null}

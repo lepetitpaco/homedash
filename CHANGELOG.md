@@ -4,6 +4,21 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.22.0 — 2026-10-21
+
+- **Aide réécrite et regroupée** : trois entrées (Nouveautés, Guide, Journal d'erreurs) au lieu d'une
+  douzaine ; les parties du guide se choisissent en pastilles. Pages plus courtes et sans redites,
+  captures à jour, tableau des raccourcis clavier Mac et Windows.
+- **Journal de performance dans l'Aide** (quand il est activé) : mémoire et CPU de l'appli et du
+  serveur jour par jour, chaque site avec sa mémoire, son pic et son temps de chargement, les pics et
+  les opérations lentes, avec les sites à mettre en veille pour gagner de la mémoire, et *Copier pour une
+  issue*.
+- **⟳ « Tout actualiser »** (à côté de la cloche) : GitHub, Basecamp, dépôts locaux, la cloche et les
+  non-lus de tous les sites d'un coup ; les sites en veille sont réveillés pour l'occasion. Il ne
+  servait qu'à retester les liens surveillés (il le fait toujours).
+- Le nom d'un onglet trop long (un éphémère, par exemple) est coupé avec « … » au lieu de passer sur
+  les boutons ← →.
+
 ## 1.21.1 — 2026-10-21
 
 - Derniers messages techniques reformulés : confirmations de suppression (« tu peux revenir en arrière

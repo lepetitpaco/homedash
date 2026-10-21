@@ -618,6 +618,14 @@
 .topbar-site .xtab-title {
   flex: 0 1 auto;
   min-width: 0;
+  max-width: 16rem;
+  white-space: nowrap;
+}
+/* Nom trop long (éphémère : le domaine visité) : coupé avec « … », jamais sur les boutons. */
+.xtab-label {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 .topbar-site .xtab-address {

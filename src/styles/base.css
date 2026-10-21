@@ -266,6 +266,11 @@ body::before {
 .icon-btn.spin {
   animation: spin 0.6s ease;
 }
+/* « Tout actualiser » en cours : la flèche tourne jusqu'à la fin. */
+.icon-btn.is-spinning {
+  animation: spin 0.9s linear infinite;
+  cursor: progress;
+}
 
 @keyframes spin {
   to {

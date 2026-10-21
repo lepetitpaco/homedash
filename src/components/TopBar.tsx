@@ -9,8 +9,10 @@ type Props = {
   onTheme: () => void
   searchRef: React.RefObject<HTMLInputElement | null>
   resultCount: number | null
-  hasChecks: boolean
+  /** « Tout actualiser » : GitHub, Basecamp, Local, la cloche, les non-lus des sites. */
   onRefresh: () => void
+  /** Actualisation en cours : la flèche tourne. */
+  refreshing?: boolean
   /** Cloche du journal, posée à gauche des boutons. */
   bell?: React.ReactNode
   /** Version installée / mise à jour disponible. */
@@ -41,14 +43,13 @@ export default function TopBar({
   onTheme,
   searchRef,
   resultCount,
-  hasChecks,
   onRefresh,
+  refreshing = false,
   bell,
   version,
   site = false,
 }: Props) {
   const now = useClock(showClock)
-  const spinRef = useRef<HTMLButtonElement>(null)
   const barRef = useRef<HTMLElement>(null)
   const [stuck, setStuck] = useState(false)
 
@@ -104,22 +105,15 @@ export default function TopBar({
         ) : null}
         {version}
         {bell}
-        {hasChecks ? (
-          <button
-            className="icon-btn"
-            ref={spinRef}
-            onClick={() => {
-              spinRef.current?.classList.remove('spin')
-              void spinRef.current?.offsetWidth
-              spinRef.current?.classList.add('spin')
-              onRefresh()
-            }}
-            title="Re-tester les liens surveillés"
-            aria-label="Re-tester les liens surveillés"
-          >
-            ⟳
-          </button>
-        ) : null}
+        <button
+          className={`icon-btn${refreshing ? ' is-spinning' : ''}`}
+          onClick={onRefresh}
+          disabled={refreshing}
+          title="Tout actualiser : GitHub, Basecamp, dépôts locaux, la cloche et les non-lus des sites (ceux en veille sont réveillés)"
+          aria-label="Tout actualiser"
+        >
+          ⟳
+        </button>
         <button
           className="icon-btn"
           onClick={onTheme}

@@ -10,7 +10,7 @@ import {
   type OpenInTab,
   type WebviewEl,
 } from '../lib/desktop'
-import { MUTE_SITE_NOTIFICATIONS, pageCounter, tabCounter } from '../lib/tabCount'
+import { MUTE_SITE_NOTIFICATIONS, RECOUNT_TABS, pageCounter, tabCounter } from '../lib/tabCount'
 import type { CustomTab } from '../types'
 
 /** Relecture des non-lus dans la page (`pageCounter`), sites concernés seulement. */
@@ -208,7 +208,18 @@ export default function CustomTabView({
     el.addEventListener('did-finish-load', onLoad)
     el.addEventListener('page-favicon-updated', readPage)
     el.addEventListener('did-start-navigation', onPageStart)
+    // « Tout actualiser » : relire titre et page, sans recharger le site.
+    const recount = () => {
+      readPage()
+      try {
+        counter.title(el.getTitle())
+      } catch {
+        /* webview pas encore attachée */
+      }
+    }
+    window.addEventListener(RECOUNT_TABS, recount)
     return () => {
+      window.removeEventListener(RECOUNT_TABS, recount)
       el.removeEventListener('did-start-navigation', onPageStart)
       window.clearInterval(poll)
       counter.stop()
@@ -263,7 +274,7 @@ export default function CustomTabView({
         <span className="xtab-icon" aria-hidden="true">
           {icon ?? (tab.icon || (local ? '📄' : '🌐'))}
         </span>
-        {tab.label}
+        <span className="xtab-label">{tab.label}</span>
       </span>
       {session ? (
         <span className="xtab-session" style={{ ['--session' as string]: session.color }}>

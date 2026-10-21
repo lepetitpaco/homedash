@@ -1,94 +1,90 @@
 # homedash
 
-Page d'accueil auto-hébergée : raccourcis, notes, tableau de bord GitHub (branches, PRs, CI), un onglet
-**Local** qui repère les branches mergées qui traînent dans tes clones, Basecamp, et tes sites (Gmail,
-Chat, Claude…) en **onglets perso**, façon Discord, dans une appli de bureau pour Mac.
+Ta page d'accueil, chez toi : tes liens et notes, ton code (GitHub et dépôts locaux), Basecamp, et tes
+sites (Gmail, Chat, Claude…) dans une barre façon Discord, avec leurs non-lus. Dans le navigateur, ou
+dans sa propre appli sur Mac et Windows.
 
-![homedash : raccourcis, barre de gauche façon Discord, onglets perso](docs/screenshots/01-accueil.jpg)
+![homedash : un site ouvert dans l'appli, barre de gauche et non-lus](docs/screenshots/site-dans-un-onglet.jpg)
 
-| Un site dans un onglet | Dossiers et comptes | Clic droit sur un lien |
+| Raccourcis | Clic droit sur un lien | La cloche |
 | --- | --- | --- |
-| ![](docs/screenshots/02-site-dans-un-onglet.jpg) | ![](docs/screenshots/04-barre-large-dossiers-comptes.jpg) | ![](docs/screenshots/03-clic-droit-sur-un-lien.jpg) |
+| ![](docs/screenshots/accueil.jpg) | ![](docs/screenshots/clic-droit-sur-un-lien.jpg) | ![](docs/screenshots/cloche.jpg) |
 
-Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (instance de démo, données fictives).
+Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (démo, données fictives).
 
-## Installation facile (Mac)
+## Ce que ça fait
 
-Il faut **Docker Desktop** lancé, et l'accès au repo. Ouvre le Terminal, va dans le dossier où tu ranges
-tes projets, puis colle tout le bloc d'un coup :
+- **Raccourcis** : liens, tuiles des plus utilisés, notes, infos à copier (Wi-Fi, IP…).
+- **Onglets perso** : Gmail, Chat, WhatsApp, Claude… à côté de homedash, avec la pastille de leurs
+  non-lus, des dossiers et plusieurs comptes par site.
+- **GitHub et Local** : tes branches, PRs et CI, et les branches mergées qui traînent sur ton disque.
+- **Basecamp** : tes tâches en retard ou à venir, en lecture seule.
+- **La cloche** : CI cassée ou réparée, PR mergée, nouvelle version…
+
+## Installer
+
+Il faut **Docker Desktop** (lancé), **Git** et l'accès au dépôt. Colle le bloc de ton système dans un
+terminal, depuis le dossier où tu ranges tes projets.
+
+**Mac** (Terminal) :
 
 ```bash
-cd ~/dev        # ou n'importe quel dossier à toi (mkdir -p ~/dev d'abord s'il n'existe pas)
-git clone https://github.com/davidgennaoui/homedash.git
-cd homedash
-docker compose up -d --build            # le serveur (2-3 min la première fois)
-sh desktop/build-local.sh --install     # l'appli de bureau, dans Applications (1 min)
-open -a homedash                        # et c'est parti
+git clone https://github.com/davidgennaoui/homedash.git && cd homedash
+docker compose up -d --build              # le serveur (2-3 min la première fois)
+sh desktop/build-local.sh --install       # l'appli, dans Applications (1 min)
+open -a homedash
 ```
 
-L'appli s'ouvre sur homedash. Pas d'appli voulue ? Saute les deux dernières lignes et ouvre
-**http://localhost:7777** dans ton navigateur. Dans Docker Desktop, coche *Start Docker Desktop when you
-sign in* : homedash redémarre alors tout seul avec le Mac.
-
-## Installation facile (Windows)
-
-Il faut **Docker Desktop** lancé, **Git**, et l'accès au repo. Ouvre **PowerShell**, va dans le dossier
-où tu ranges tes projets, puis colle tout le bloc d'un coup :
+**Windows** (PowerShell) :
 
 ```powershell
-cd $HOME                                # ou n'importe quel dossier à toi
-git clone https://github.com/davidgennaoui/homedash.git
-cd homedash
-docker compose up -d --build            # le serveur (2-3 min la première fois)
-powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (1 à 2 min)
+git clone https://github.com/davidgennaoui/homedash.git; cd homedash
+docker compose up -d --build              # le serveur (2-3 min la première fois)
+powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (1-2 min)
 ```
 
-L'appli s'installe dans le menu Démarrer et s'ouvre. Pas d'appli voulue ? Saute la dernière ligne et
-ouvre **http://localhost:7777** dans ton navigateur. Dans Docker Desktop, coche *Start Docker Desktop when
-you sign in*. Mise à jour : `git pull; docker compose up -d --build`.
+Pas envie de l'appli ? Arrête-toi après `docker compose` et ouvre **http://localhost:7777**. Dans
+Docker Desktop, coche *Start Docker Desktop when you sign in* : homedash redémarre avec ta machine.
 
-Puis **⚙ Réglages** :
+## Premiers réglages
 
-1. **Compte** : colle un jeton GitHub (voir ci-dessous).
-2. **Repos suivis** : clique **＋** sur tes repos.
-3. **Dépôts locaux** : ajoute le dossier de tes clones (ex. `~/dev`).
-4. **Enregistrer** (`⌘S`).
+Tout se fait dans **⚙ Réglages**, aucun fichier à éditer :
 
-C'est tout. Aucun fichier à éditer.
+1. **Compte & équipe** : colle un jeton GitHub. Crée-le dans *GitHub → Settings → Developer settings →
+   Fine-grained tokens*, en lecture seule : *Contents*, *Pull requests*, *Checks*, *Metadata* (+
+   *Members* sur l'organisation pour voir l'équipe).
+2. **Repos suivis** : ＋ sur tes repos.
+3. **Dépôts locaux** : le dossier de tes clones (`~/dev`…).
+4. **Onglets perso** : tes sites, ou ＋ en bas de la barre de gauche.
 
-**Appli de bureau** : homedash dans sa fenêtre, avec Gmail, Google Chat… affichés dans ses onglets et
-leurs non-lus en pastille, pour Mac et Windows. Le container reste nécessaire : l'appli l'affiche. Elle
-se construit sur ta machine (dernière ligne des installations ci-dessus), une seule fois : ensuite,
-*Aide → Mettre à jour* met à jour homedash et la reconstruit quand il le faut. Détails : [GUIDE.md](GUIDE.md).
+## Mettre à jour
 
-**Jeton GitHub** : *GitHub → Settings → Developer settings → Fine-grained tokens*, en lecture seule :
-*Contents*, *Pull requests*, *Checks*, *Metadata* (+ *Members* sur l'organisation pour l'équipe).
+Une nouvelle version, la cloche et le numéro de version (en haut à droite) le disent.
 
-## Au quotidien
+- **Dans l'appli** : *Aide → Mettre à jour maintenant*. Elle récupère la version, reconstruit le
+  serveur, et se reconstruit elle-même quand il le faut.
+- **Sans l'appli** : `git pull && docker compose up -d --build` (sous Windows : `git pull; docker
+  compose up -d --build`).
 
-```bash
-docker compose logs -f                      # logs
-docker compose down                         # arrêter (les données restent)
-git pull && docker compose up -d --build    # mettre à jour
-```
+Tes données sont sauvegardées automatiquement avant chaque mise à jour.
 
-Quand une nouvelle version est publiée, la cloche 🔔 et le numéro de version en haut à droite te le disent. Un
-clic sur ce numéro donne la commande de mise à jour, prête à coller dans n'importe quel terminal. Tes données sont sauvegardées automatiquement avant chaque mise à jour.
+## Bon à savoir
 
-Mode d'emploi complet : **[GUIDE.md](GUIDE.md)**.
-
-## À savoir
-
-- **Tes données** sont dans `data/` (jamais versionné). Sauvegarde auto chaque jour, restauration dans Réglages.
-- **Le jeton** reste côté serveur (`data/secrets.json`), jamais renvoyé au navigateur ni sauvegardé.
-- **L'onglet Local ne touche à rien** : ton dossier personnel est monté en lecture seule et aucune
-  commande git n'est lancée.
-- **Accessible en local uniquement** (`127.0.0.1`). Pour l'ouvrir au réseau : remplace
+- **Tes données** sont dans `data/`, jamais dans git. Sauvegarde automatique chaque jour, restauration
+  dans *Réglages → Sauvegardes*.
+- **Les jetons** restent côté serveur (`data/secrets.json`) : jamais envoyés au navigateur, ni mis dans
+  les sauvegardes.
+- **L'onglet Local ne touche à rien** : ton dossier personnel est lu, jamais modifié, et aucune commande
+  git n'est lancée.
+- **Accessible depuis ta machine seulement** (`127.0.0.1`). Pour l'ouvrir au réseau : remplace
   `127.0.0.1:${HOMEDASH_PORT:-7777}:80` par `${HOMEDASH_PORT:-7777}:80` dans `docker-compose.yml`, et
   lance avec `HOMEDASH_HOSTS=<nom-ou-ip>`.
+- **Un souci ?** *Réglages → Aide* (guide, *En cas de souci*, journal d'erreurs), puis une
+  [issue](https://github.com/davidgennaoui/homedash/issues/new).
 
-## Contribuer
+## Aller plus loin
 
-- [CLAUDE.md](CLAUDE.md) : règles du code, à lire avant de modifier (humain ou IA).
-- [ARCHITECTURE.md](ARCHITECTURE.md) : fichiers et routes de l'API.
-- Tests : `python3 -m unittest discover -s tests -t .`
+- **[GUIDE.md](GUIDE.md)** : le mode d'emploi, aussi dans *Réglages → Aide*.
+- **[CHANGELOG.md](CHANGELOG.md)** : les nouveautés de chaque version.
+- **[CLAUDE.md](CLAUDE.md)** (règles du code) et **[ARCHITECTURE.md](ARCHITECTURE.md)** (fichiers,
+  API) : à lire avant de contribuer. Tests : `python3 -m unittest discover -s tests -t .`

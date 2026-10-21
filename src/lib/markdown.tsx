@@ -4,12 +4,15 @@ import { Fragment, type ReactNode } from 'react'
  * Le Markdown de CHANGELOG.md et GUIDE.md, en éléments React (jamais de HTML
  * injecté) : rien de plus que ce que ces deux fichiers utilisent.
  *
- * En ligne : `**gras**` (qui peut contenir du code), `*italique*`,
+ * En ligne : `**gras**` (qui peut contenir du code), `*italique*`, `![image](…)`,
  * `` `code` `` et `[lien](…)` : http(s) ouvert dans le navigateur, une adresse relative
  * (`README.md`) reste du texte.
  */
 export function inline(text: string): ReactNode[] {
-  return text.split(/(\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\)|\*[^*\s][^*]*\*)/g).map((part, i) => {
+  return text.split(/(!\[[^\]]*\]\([^)\s]+\)|\*\*[^*]+\*\*|`[^`]+`|\[[^\]]+\]\([^)\s]+\)|\*[^*\s][^*]*\*)/g).map((part, i) => {
+    // image dans le texte (une case de tableau) : même règle d'adresse que les figures
+    const img = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(part)
+    if (img) return <img key={i} className="md-img" src={imageSrc(img[2])} alt={img[1]} loading="lazy" />
     if (part.length > 4 && part.startsWith('**') && part.endsWith('**'))
       return <strong key={i}>{inline(part.slice(2, -2))}</strong>
     if (part.length > 1 && part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>

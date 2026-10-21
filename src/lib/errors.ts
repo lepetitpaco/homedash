@@ -54,8 +54,13 @@ export function shown(where: string, e: unknown): string {
   return text
 }
 
+/** Avertissements du navigateur sans conséquence : pas au journal. */
+const HARMLESS = /ResizeObserver loop/i
+
 /** Plantages non rattrapés de la page : notés, sans rien afficher de plus. */
 export function watchCrashes() {
-  window.addEventListener('error', (ev) => report('page', ev.error ?? ev.message))
+  window.addEventListener('error', (ev) => {
+    if (!HARMLESS.test(String(ev.message))) report('page', ev.error ?? ev.message)
+  })
   window.addEventListener('unhandledrejection', (ev) => report('page (promesse)', ev.reason))
 }

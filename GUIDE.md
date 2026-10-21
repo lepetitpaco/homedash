@@ -1,7 +1,7 @@
 # Guide
 
-Installation : voir le [README](README.md). Chaque partie ci-dessous est aussi une page de
-**Réglages → Aide**, dans homedash.
+Installation : voir le [README](README.md). Ce guide est aussi dans homedash : **Réglages → Aide →
+Guide**, une partie par pastille.
 
 ## ⚡ Raccourcis
 
@@ -11,11 +11,10 @@ Ta page d'accueil : tes liens, des notes, des infos à copier.
 
 #### Comment faire
 
-- **Modifier quoi que ce soit** : clic droit dessus (un lien, une catégorie, une info).
-- **Nouvelle catégorie** : clic droit sur une catégorie → *Nouvelle catégorie…* (ou tape « nouvelle
-  catégorie » dans la recherche).
-- **Épingler un lien** : clic droit → *Épingler*. Pour changer l'ordre, glisse la tuile par sa poignée ⠿.
-- **Copier une info** (Wi-Fi, IP…) : un clic. Les valeurs secrètes se copient sans s'afficher.
+- **Modifier quoi que ce soit** : clic droit dessus (un lien, une catégorie, une info, une note).
+- **Nouvelle catégorie** : clic droit sur une catégorie → *Nouvelle catégorie…*
+- **Épingler un lien** : clic droit → *Épingler*. Glisse une tuile par sa poignée ⠿ pour la déplacer.
+- **Copier une info** (Wi-Fi, IP…) : un clic. Une valeur secrète se copie sans s'afficher.
 
 #### Bon à savoir
 
@@ -24,33 +23,98 @@ Ta page d'accueil : tes liens, des notes, des infos à copier.
 
 ## 🗂 Onglets perso
 
-Tes sites (Gmail, Chat, Claude…) et fichiers, à côté de homedash, dans la barre de gauche.
+Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côté de homedash.
 
-![La barre de gauche en trois largeurs : étendue, réduite, super réduite](docs/screenshots/barre-trois-largeurs.jpg)
+![Un site ouvert dans un onglet](docs/screenshots/site-dans-un-onglet.jpg)
 
 #### Comment faire
 
-- **Ajouter un onglet** : ＋ en bas de la barre. Tape une adresse, ou choisis un site courant.
-- **Ouvrir** : clic sur l'icône. Le site prend toute la page ; en haut, son nom (l'adresse au survol),
-  ← → ↻, ↗ pour l'ouvrir dans le navigateur et ⚙ pour le modifier. **⚡** ramène à homedash.
-- **Modifier** : clic droit sur l'icône → *Modifier…*.
-- **Ranger dans un dossier** : glisse une icône sur une autre.
-- **Changer la largeur, cacher la barre** : clic droit sur la barre, hors d'une icône.
+- **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
+- **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), ⚙ (modifier). L'adresse s'affiche au
+  survol du nom. **⚡** ramène à homedash.
+- **Tout le reste** : clic droit sur l'icône (dossier, compte, notifications, son, veille, modifier).
+- **Ranger** : glisse une icône sur une autre pour créer un dossier.
+- **Largeur de la barre, la cacher** : clic droit sur la barre, hors d'une icône.
 
-![La fenêtre « Nouvel onglet »](docs/screenshots/nouvel-onglet.jpg)
-
-![Clic droit sur la barre](docs/screenshots/barre-clic-droit.jpg)
+| Ajouter un onglet | Clic droit sur une icône |
+| --- | --- |
+| ![](docs/screenshots/nouvel-onglet.jpg) | ![](docs/screenshots/menu-d-un-onglet.jpg) |
 
 #### Bon à savoir
 
-- La **pastille rouge** compte les non-lus du site (appli de bureau).
-- **Un onglet trop bavard** : clic droit sur son icône → *Couper les notifications*. Plus de pastille,
-  plus de notifications de ce site.
-- **Comptes** (appli de bureau) : deux connexions pour un même site, par exemple Gmail « pro » et
-  « perso ». Clic droit sur l'icône → *Nouveau compte…*.
-- Un **fichier** de ton disque marche aussi : `~/Documents/procédure.pdf`. Il est lu, jamais modifié.
-- Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page.
-  L'**appli de bureau** les affiche tous.
+- La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
+- **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…*
+- **Onglet éphémère** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse.
+  Clic droit sur un lien, ou sur la barre → *Nouvel onglet éphémère*.
+- Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
+- Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
+  l'**appli de bureau** les affiche tous.
+
+## 💻 Appli de bureau
+
+homedash dans sa propre fenêtre, sur Mac et Windows. Docker reste nécessaire : l'appli affiche ton
+homedash.
+
+![Clic droit sur un lien, dans un site](docs/screenshots/clic-droit-sur-un-lien.jpg)
+
+#### Ce qu'elle ajoute
+
+- **Tous les sites s'affichent**, Gmail et Chat compris. Tu t'y connectes une fois, c'est gardé.
+- **Non-lus** sur les icônes de la barre et sur l'icône de l'appli (Dock, barre des tâches).
+- **Liens entre onglets** : un lien YouTube cliqué dans Chat s'ouvre dans ton onglet YouTube.
+- **Clic droit dans un site** : ouvrir le lien ailleurs (onglet, éphémère, navigateur), copier,
+  rechercher.
+
+#### Installer et mettre à jour
+
+- **Installer** : une fois, avec la commande du [README](README.md) (Mac ou Windows). Construite sur ta
+  machine, elle n'est pas bloquée au premier lancement.
+- **Mettre à jour** : *Aide → Mettre à jour maintenant*. homedash et l'appli se mettent à jour ;
+  l'appli se reconstruit et se relance seule quand une version le demande (« 💻 appli requise » dans
+  les nouveautés).
+- **Quelque chose semble cassé** : *Aide → Forcer la mise à jour* reconstruit tout.
+
+#### Raccourcis
+
+| Mac | Windows | Action |
+| --- | --- | --- |
+| `⌘R` | `Ctrl+R` | Recharger homedash |
+| `⇧⌘R` | `Ctrl+Maj+R` | Recharger le site ouvert |
+| `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
+| `⌘,` | `Ctrl+,` | Réglages |
+| `⌘Q` | Fermer la fenêtre | Quitter (sur Mac, fermer la fenêtre la cache seulement) |
+
+#### Bon à savoir
+
+- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
+  Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller.
+- **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
+- **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
+  Ajouter au Dock* dans Safari.
+
+## 🔔 Notifications
+
+La cloche, en haut à droite : ce qui s'est passé (CI, PRs, branches à nettoyer, Basecamp, nouvelle
+version).
+
+![La cloche ouverte](docs/screenshots/cloche.jpg)
+
+#### Comment faire
+
+- **Voir** : clic sur la cloche ; *Tout voir* ouvre l'historique.
+- **Tout actualiser** : ⟳ à côté de la cloche relit GitHub, Basecamp, tes dépôts, la cloche et les
+  non-lus de tes sites (ceux en veille sont réveillés).
+- **Notifications du système** : *activer* en bas de la cloche (coupées au départ).
+- **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications*.
+- **Le nombre sur l'icône de l'appli** : non-lus des onglets, cloche, ou les deux (*Réglages → Affichage
+  & notifications*).
+
+#### Bon à savoir
+
+- Ouvrir la cloche efface ses nouveautés. Une notif Basecamp reste comptée tant qu'elle n'est pas lue
+  dans Basecamp.
+- **Rien sur l'icône du Dock ?** macOS l'affiche seulement si *Pastilles de l'app* est activé pour
+  homedash : *Réglages → Affichage & notifications → ouvrir les réglages de notifications du Mac*.
 
 ## 🐙 GitHub et 💻 Local
 
@@ -58,13 +122,9 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
 ![L'onglet GitHub](docs/screenshots/12-github.jpg)
 
-**GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) :
-
-- 🌿 **Branches actives** : tes branches, leur PR, leur CI.
-- 🔀 **PRs ouvertes** : CI, revues, conflits.
-- ✅ **Mergées** : 🧹 = la branche locale peut partir.
-
-**Local** : tes clones, branche par branche, avec un verdict.
+- **GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) : 🌿 branches actives avec leur
+  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir).
+- **Local** : tes clones, branche par branche, avec un verdict.
 
 | Verdict | Ce que ça veut dire |
 | --- | --- |
@@ -75,116 +135,38 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
 #### Bon à savoir
 
-- **Rien n'est exécuté** : les commandes (`git branch -d …`) sont à copier et lancer toi-même.
+- **Rien n'est exécuté** : les commandes proposées (`git branch -d …`) sont à copier et lancer toi-même.
 - Plusieurs comptes GitHub : choisis lequel afficher en haut de l'onglet.
 
 ## 🏕 Basecamp
 
-Tes tâches Basecamp, sans ouvrir Basecamp. **Lecture seule** : homedash ne coche ni ne poste rien.
+Tes tâches Basecamp sans ouvrir Basecamp. **Lecture seule** : homedash ne coche ni ne poste rien.
 
 ![L'onglet Basecamp](docs/screenshots/13-basecamp.jpg)
 
-#### Comment faire
-
 - **🔥 À traiter** : tout ce qui est en retard ou dû dans les 7 jours.
-- **Un projet** à gauche : ses tableaux et ses to-dos.
-- **Masquer un projet** : les pastilles en haut de l'onglet.
+- **Un projet** (à gauche) : ses tableaux et ses to-dos. Les pastilles du haut masquent un projet.
+- **Se connecter** (une fois, pas besoin d'être admin) : le pas-à-pas est dans *Réglages → Basecamp*.
+  Le jeton se renouvelle ensuite tout seul.
 
-**Se connecter** (une fois, pas besoin d'être admin) : le pas-à-pas est dans **Réglages → Basecamp**.
-En résumé :
+## 🔎 Recherche
 
-1. Crée une appli sur [launchpad.37signals.com/integrations](https://launchpad.37signals.com/integrations).
-2. Colle son Client ID et son Client Secret dans Réglages → Basecamp.
-3. **Se connecter à Basecamp**, puis colle l'adresse de la page où tu arrives.
+`/` ou `⌘K` : tout retrouver, et ouvrir une adresse.
 
-Le jeton se renouvelle ensuite tout seul.
+- **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
+- **Une adresse** (`exemple.com`, `localhost:3000`) : Entrée l'ouvre.
+- **Un raccourci** en premier mot : `g` Google, `gh` GitHub, `yt` YouTube, `w` Wikipédia, `maps`, `tr`
+  traduction, `mdn`.
+- **Une action** : « réglages », « thème », « nouvelle catégorie », « éphémère »…
 
-## 🔔 Notifications
-
-La cloche, en haut à droite : ce qui s'est passé (CI, PRs, Basecamp…).
-
-![La cloche ouverte](docs/screenshots/cloche.jpg)
-
-#### Comment faire
-
-- **Voir** : clic sur la cloche. **Tout voir** ouvre l'historique.
-- **Notifications du Mac** : *activer* en bas de la cloche (désactivées au départ).
-- **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications* (ou 🔕 sur sa ligne,
-  dans Réglages → Onglets perso).
-- **Le nombre sur l'icône de l'appli** (Dock, barre des tâches) : non-lus des onglets, notifications de la
-  cloche, ou les deux, au choix dans Réglages → Affichage & notifications.
-
-#### Bon à savoir
-
-- Ouvrir la cloche efface ses nouveautés. Une notif Basecamp reste comptée tant qu'elle n'est pas lue
-  dans Basecamp.
-- **Nouvelle version de homedash** : la cloche le dit, dans les 10 min. Dans l'appli de bureau, la mise à
-  jour se fait d'un clic depuis la fenêtre de version.
-
-## 💻 Appli de bureau
-
-homedash dans sa propre fenêtre, comme Slack : sur Mac (dans le Dock) ou sur Windows (dans la barre des
-tâches). Docker reste nécessaire.
-
-![Un site dans un onglet de l'appli](docs/screenshots/02-site-dans-un-onglet.jpg)
-
-#### Ce qu'elle ajoute
-
-- **Tous les sites s'affichent**, Gmail et Chat compris. Tu t'y connectes une fois, c'est gardé.
-- **Pastilles de non-lus** sur les onglets et sur l'icône du Dock. Elles s'effacent dès que tu lis.
-- **Liens entre onglets** : un lien YouTube cliqué dans Chat s'ouvre dans ton onglet YouTube.
-- **Clic droit dans un site** : ouvrir un lien ailleurs, copier, rechercher.
-- **Onglets éphémères** (contour pointillé) : un site le temps d'une recherche. Clic droit sur un lien,
-  ou clic droit sur la barre → *Nouvel onglet éphémère*.
-
-![Clic droit sur un lien, dans un site](docs/screenshots/03-clic-droit-sur-un-lien.jpg)
-
-#### Installer sur Mac
-
-- Dans le dossier homedash : `sh desktop/build-local.sh --install`. L'appli est construite sur ton Mac
-  (Docker suffit) et copiée dans Applications ; construite sur place, macOS ne la bloque pas.
-
-#### Installer sur Windows
-
-- Dans le dossier homedash, dans PowerShell :
-  `powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install`. Construite sur ton PC
-  (Docker suffit, pas besoin d'être administrateur), avec un raccourci dans le menu Démarrer ; Windows
-  ne la bloque pas.
-- Sur Windows, les raccourcis s'écrivent `Ctrl` au lieu de `⌘`. Fermer la fenêtre quitte l'appli.
-
-#### Bon à savoir
-
-- **Une seule installation** : ensuite, *Aide → Mettre à jour maintenant* met homedash à jour et
-  reconstruit l'appli toute seule quand une version le demande (« 💻 appli requise » dans le changelog).
-  Rien à télécharger.
-- **Menu Aide** (barre de menus du Mac, touche Alt sous Windows) : nouveautés, guide, *Vérifier les mises
-  à jour*, *Mettre à jour maintenant*, *Forcer la mise à jour* (tout reconstruire si quelque chose semble
-  cassé), signaler un problème, dépôt GitHub. *Réglages…* : `⌘,`.
-- **Mettre à jour d'un clic** : quand une version sort, *Mettre à jour maintenant* dans la fenêtre de
-  version (en haut à droite) ou dans le menu de l'appli. L'appli fait tout : `git pull`, le container, et elle-même si besoin
-  (elle se reconstruit et se relance). Une version marquée « 💻 appli requise » dans le changelog demande
-  une appli plus récente : le bouton s'en charge.
-- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
-- **Mise en veille** : clic droit sur une icône → *Mettre en veille si inutilisé*. L'onglet libère sa
-  mémoire après 5 min sans y aller.
-- **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
-- **Précédent / suivant** : boutons de la souris, ou ⌘[ et ⌘].
-- `⌘R` recharge homedash ; `⇧⌘R` seulement le site ouvert.
-- Fermer la fenêtre la cache ; `⌘Q` quitte.
-
-**Sans l'appli** : dans Chrome, ⊕ *Installer* dans la barre d'adresse ; dans Safari, *Fichier → Ajouter
-au Dock*.
+`↑` `↓` pour choisir, `↵` pour ouvrir ou copier, `Échap` pour effacer. `⌘S` enregistre les réglages.
 
 ## ⚙️ Réglages
 
-Tout ce qui se règle, rangé par thème dans le menu de gauche.
+Tout ce qui se règle, rangé par thème. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale
+ce qui ne l'est pas encore.
 
 ![Réglages → Onglets perso](docs/screenshots/reglages-onglets.jpg)
-
-#### Comment faire
-
-- **Enregistrer** : `⌘S`, ou le bouton en bas. La barre du bas signale ce qui n'est pas enregistré.
-- **Un onglet perso** : clic sur sa ligne pour l'ouvrir. Les pastilles de la ligne se basculent d'un clic.
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
@@ -192,10 +174,10 @@ Tout ce qui se règle, rangé par thème dans le menu de gauche.
 | 📦 Repos suivis | Les repos à suivre, et où ils apparaissent |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion |
-| 🗂 Onglets perso | Tes onglets, le catalogue de sites, la mise en veille |
-| 🎛 Affichage | Taille de l'écran, thème, horloge, notifications, journal de performance |
+| 🗂 Onglets perso | Tes onglets (une ligne chacun, clic pour l'ouvrir), la mise en veille |
+| 🎛 Affichage | Taille de l'écran, thème, horloge, pastille de l'icône, journal de performance |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
-| 📖 Aide | Les nouveautés et ce guide |
+| 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (s'il est activé) |
 
 ## 💾 Sauvegardes
 
@@ -203,51 +185,25 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 
 ![Réglages → Sauvegardes](docs/screenshots/sauvegardes.jpg)
 
-#### Comment faire
-
 - **Revenir en arrière** : *restaurer* sur une ligne. L'état actuel est sauvegardé juste avant.
 - **Faire le ménage** : coche des lignes (ou *tout*, *les automatiques*, *plus de 7 jours*), puis
   *supprimer la sélection*.
-- **Changer de machine** : *télécharger*, puis *restaurer un fichier…* sur l'autre.
-
-#### Bon à savoir
-
-- Le jeton GitHub n'est pas dans les sauvegardes : à recoller après une restauration sur une autre machine.
-
-## 🔎 Recherche
-
-`/` ou `⌘K` : tout retrouver, et aussi une barre d'adresse.
-
-#### Ce que tu peux taper
-
-- **Un mot** : tes liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
-- **Une adresse** (`exemple.com`, `localhost:3000`) : Entrée l'ouvre.
-- **Un raccourci** en premier mot : `g` Google, `gh` GitHub, `yt` YouTube, `w` Wikipédia, `maps`,
-  `tr` traduction, `mdn`.
-- **Une action** : « réglages », « thème », « éphémère »…
-
-| Touche | Action |
-| --- | --- |
-| `/` ou `⌘K` | Rechercher |
-| `↑` `↓` puis `↵` | Choisir, puis ouvrir ou copier |
-| `Échap` | Effacer, fermer |
-| `⌘S` | Enregistrer les réglages |
+- **Changer de machine** : *télécharger*, puis *restaurer un fichier…* sur l'autre. Les jetons ne sont
+  pas dans les sauvegardes : recolle-les ensuite.
 
 ## 🆘 En cas de souci
 
-| Problème | Solution |
+| Ce que tu vois | Quoi faire |
 | --- | --- |
-| Pas d'onglet GitHub | Aucun jeton : Réglages → Compte & équipe |
-| Un repo n'est pas proposé | Le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
-| Onglet Local vide | Ajoute un dossier dans Réglages → Dépôts locaux (dans ton dossier personnel) |
-| « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page se recharge toute seule. Si ça dure, lance Docker Desktop |
+| « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, lance Docker Desktop |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
+| Pas d'onglet GitHub | Aucun jeton : *Réglages → Compte & équipe* |
+| Un repo n'est pas proposé | Le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
+| Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dans ton dossier personnel) |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
-| Rien sur l'icône du Dock | macOS masque le nombre : Réglages → Affichage & notifications → *ouvrir les réglages de notifications du Mac*, puis activer *Pastilles de l'app* |
-| Changer de machine | Réglages → Sauvegardes → télécharger, puis restaurer sur l'autre |
+| Des lettres au lieu des icônes | *Réglages → Affichage → Favicons* doit être coché |
+| Rien sur l'icône du Dock | *Pastilles de l'app* désactivé dans macOS : voir *Notifications* ci-dessus |
 
-Un bug, une idée, une question sans réponse ici :
-**[ouvre une issue sur GitHub](https://github.com/davidgennaoui/homedash/issues/new)** (il faut avoir
-accès au dépôt). Dis ce que tu faisais, ce que tu attendais, ce qui s'est passé, et ta version (en haut
-à droite). **Réglages → Aide → Journal d'erreurs → Copier pour une issue** donne le détail de ce qui a
-raté : colle-le dans l'issue.
+Autre chose ? Ouvre une **[issue sur GitHub](https://github.com/davidgennaoui/homedash/issues/new)** :
+ce que tu faisais, ce que tu attendais, ce qui s'est passé, et ta version (en haut à droite). *Réglages
+→ Aide → Journal d'erreurs → Copier pour une issue* donne le détail technique à coller dedans.

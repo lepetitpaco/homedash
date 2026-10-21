@@ -64,6 +64,7 @@ export function useEvents(openLocal: () => void): {
   seen: number
   markSeen: () => void
   clear: () => void
+  refresh: () => Promise<unknown>
 } {
   const [events, setEvents] = useState<HdEvent[]>([])
   const [error, setError] = useState<string | null>(null)
@@ -154,6 +155,8 @@ export function useEvents(openLocal: () => void): {
     seen,
     markSeen,
     clear,
+    /** Relit le journal tout de suite (bouton « tout actualiser »). */
+    refresh: load,
   }
 }
 

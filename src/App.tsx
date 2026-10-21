@@ -60,6 +60,7 @@ import type { CustomTab, FlatLink, UiConfig } from './types'
 import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
 import { keys } from './lib/keys'
+import { RECOUNT_TABS } from './lib/tabCount'
 
 const RAIL_KEY = 'homedash:rail'
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
@@ -286,6 +287,8 @@ export default function App() {
   const [visited, setVisited] = useState<string[]>([])
   // Fenêtre « Nouvel onglet » (＋ de la barre de gauche).
   const [adding, setAdding] = useState(false)
+  // « Tout actualiser » en cours (⟳ de la barre du haut).
+  const [syncing, setSyncing] = useState(false)
   // Non-lus de chaque onglet perso (appli de bureau seulement). Gardés dans le
   // localStorage : la pastille survit au redémarrage et à la veille, jusqu'à ce
   // que le site, rechargé, en donne une nouvelle.
@@ -558,6 +561,32 @@ export default function App() {
   }
   const searching = search.query.trim().length > 0
   const hasChecks = links.some((l) => l.check) && ui.healthcheckInterval > 0
+  /**
+   * ⟳ de la barre du haut : tout ce qui peut avoir du nouveau, d'un coup. Le
+   * serveur relit GitHub, Basecamp et le disque ; les sites relisent leurs
+   * non-lus, et ceux en veille sont réveillés (ils se rendorment ensuite comme
+   * d'habitude) ; la cloche est relue à mesure que les réponses arrivent.
+   */
+  const refreshAll = () => {
+    if (syncing) return
+    setSyncing(true)
+    perfEvent('refresh-all', {})
+    if (hasChecks) refresh()
+    gh.refresh()
+    local.refresh()
+    if (bc.data?.configured) bc.refresh()
+    void changelog.check()
+    const now = Date.now()
+    setAsleep((a) => {
+      for (const k of a) lastSeen.current.set(k, now)
+      return a.length ? [] : a
+    })
+    window.dispatchEvent(new Event(RECOUNT_TABS))
+    for (const ms of [2500, 6000, 12000]) window.setTimeout(() => void events.refresh(), ms)
+    // les sites réveillés ont le temps de charger avant une dernière relecture
+    window.setTimeout(() => window.dispatchEvent(new Event(RECOUNT_TABS)), 8000)
+    window.setTimeout(() => setSyncing(false), 6000)
+  }
   const bcHidden = raw?.basecamp?.hidden ?? []
   const bcLate = lateCount(bc.data, bcHidden)
   // GitHub et Local : le même code, en ligne et sur le disque. Côte à côte dans
@@ -1053,8 +1082,8 @@ export default function App() {
         onTheme={switchTheme}
         searchRef={searchRef}
         resultCount={searching ? search.hits.length : null}
-        hasChecks={hasChecks}
-        onRefresh={refresh}
+        onRefresh={refreshAll}
+        refreshing={syncing}
         version={
           <VersionMenu data={changelog.data} busy={changelog.busy} onCheck={() => void changelog.check()} />
         }

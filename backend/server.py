@@ -24,6 +24,7 @@ import favicons
 import localfile
 import localgit
 import perflog
+import perfreport
 import store
 import updates
 
@@ -402,6 +403,10 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/perf":
             # Réglages : journal actif ? et la place qu'il prend sur le disque.
             return self._json(perflog.usage())
+        if path == "/api/perf/report":
+            # Réglages → Aide → Journal de performance : le résumé, jour par jour.
+            days = perfreport.report(perflog.perf_dir(), max(1, min(30, int(self._query("days") or 7))))
+            return self._json({"days": days, "text": perfreport.text(days)})
         if path == "/api/health":
             return self._json({"ok": True, "github": accounts.enabled(),
                                "basecamp": basecamp.connected(),

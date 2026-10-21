@@ -30,7 +30,8 @@ desktop/                  appli de bureau facultative (Electron) : fenêtre sur 
                           Construite sur la machine : build-local.sh (Mac, Docker + codesign),
                           build-windows.ps1 / .sh (Windows x64 : Docker, installateur NSIS installer.nsi).
                           updater.js : mise à jour depuis l'appli (git pull, compose, se reconstruit)
-scripts/perf-report.py    résumé du journal de performance, jour par jour et par onglet
+scripts/perf-report.py    résumé du journal de performance en texte (même calcul que la page :
+                          backend/perfreport.py)
 tests/                    unittest stdlib
 CHANGELOG.md              une entrée par version ; la première = version installée
 GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
@@ -63,6 +64,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |
 | `/api/guide` | GET | Texte de GUIDE.md (Réglages → Aide) |
 | `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
+| `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Aide) |
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
