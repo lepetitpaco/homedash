@@ -37,6 +37,7 @@ export default function CustomTabView({
   onCount,
   session,
   onGuest,
+  takeLink,
   icon,
   onNavigate,
   onVisit,
@@ -62,6 +63,8 @@ export default function CustomTabView({
   onVisit?: (url: string, title?: string) => void
   /** Id de la webview (appli de bureau) : App sait ainsi de quel onglet vient un lien ou un clic droit. */
   onGuest?: (id: number) => void
+  /** Lien qu'App veut ouvrir ici (`openInTab`), pris une seule fois : au montage, il remplace l'adresse de départ. */
+  takeLink?: () => string | undefined
   /** Compte de connexion de l'onglet, rappelé dans l'en-tête. */
   session?: { name: string; color: string }
   hidden: boolean
@@ -79,7 +82,14 @@ export default function CustomTabView({
   const src = new URL(srcOf(tab.url), window.location.href).href
   // Adresse de départ seulement : celle d'un éphémère suit sa navigation, et la
   // repasser à la webview la rechargerait. Autre adresse voulue = autre `key`.
-  const [startSrc] = useState(src)
+  // Un lien cliqué alors que l'onglet n'était pas monté passe avant (issue #18).
+  const [startSrc] = useState(() => {
+    const link = takeLink?.()
+    return link ? new URL(link, window.location.href).href : src
+  })
+  // Webview prête (premier dom-ready) : avant, `loadURL` échoue ; le lien attend ici.
+  const ready = useRef(false)
+  const waiting = useRef<string | null>(null)
   const blocked = !desktop && !local && refusesEmbed(tab.url)
 
   const countRef = useRef(onCount)
@@ -93,6 +103,8 @@ export default function CustomTabView({
   }, [hidden])
   const guestRef = useRef(onGuest)
   guestRef.current = onGuest
+  const takeRef = useRef(takeLink)
+  takeRef.current = takeLink
   const navRef = useRef(onNavigate)
   navRef.current = onNavigate
   const visitRef = useRef(onVisit)
@@ -180,6 +192,10 @@ export default function CustomTabView({
       loadStart.current = 0
     }
     const onReady = () => {
+      ready.current = true
+      const link = waiting.current
+      waiting.current = null
+      if (link) void el.loadURL(link).catch(() => undefined)
       try {
         if (mutedRef.current) el.setAudioMuted(true)
         if (silentRef.current) void el.executeJavaScript(MUTE_SITE_NOTIFICATIONS).catch(() => {})
@@ -258,7 +274,10 @@ export default function CustomTabView({
     // Un lien d'un autre onglet, à ouvrir ici (App a choisi cet onglet).
     const open = (e: Event) => {
       const d = (e as CustomEvent<OpenInTab>).detail
-      if (d.key === key && view.current) void view.current.loadURL(d.url)
+      if (d.key !== key) return
+      takeRef.current?.() // pris ici : un remontage ne le rouvrira pas
+      if (ready.current && view.current) void view.current.loadURL(d.url).catch(() => undefined)
+      else waiting.current = d.url
     }
     window.addEventListener(OPEN_IN_TAB, open)
     // Mise en veille imminente : fermer le site proprement (voir UNLOAD_TAB).

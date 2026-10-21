@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.23.3 — 2026-10-21
+
+- **Un lien ouvert dans un onglet perso arrive bien sur la bonne page**, même au premier clic : un lien
+  de repo (PRs, Branches…) ouvert dans ton onglet GitHub encore fermé, en veille ou en cours de
+  chargement (juste après un démarrage ou une mise à jour) affichait la page d'accueil de l'onglet au
+  lieu du lien.
+
 ## 1.23.2 — 2026-10-21
 
 - **L'onglet Local ne fait plus disparaître la page** quand aucun dossier de dépôts n'est choisi : il

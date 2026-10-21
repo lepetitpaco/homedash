@@ -103,6 +103,13 @@ export default function App() {
   const allTabs = useMemo(() => [...regularTabs, ...allTemps], [regularTabs, allTemps])
   // Adresse où est chaque onglet éphémère (gardé ou non), suivie pendant la navigation.
   const tempUrl = useRef(new Map<string, string>())
+  // Lien à ouvrir dans un onglet perso, pas encore pris par lui (voir openInTab).
+  const pendingLinks = useRef(new Map<string, string>())
+  const takeLink = useCallback((key: string) => {
+    const url = pendingLinks.current.get(key)
+    pendingLinks.current.delete(key)
+    return url
+  }, [])
 
   // ── son ─────────────────────────────────────────────────────────────────
   // Onglets qui émettent du son (main.js le signale), et ceux qu'on a coupés.
@@ -748,9 +755,14 @@ export default function App() {
     })
   // ── liens et clic droit dans les sites (appli de bureau) ─────────────────
   const fromGuest = (id: number) => allTabs.find((t) => t.id === guestTab.current.get(id))
-  /** Ouvre `url` dans l'onglet perso `t` (et l'affiche). */
+  /**
+   * Ouvre `url` dans l'onglet perso `t` (et l'affiche). Le lien reste en attente
+   * jusqu'à ce que l'onglet le prenne : pas encore monté (jamais ouvert, en veille),
+   * il le charge au montage au lieu de son adresse (issue #18).
+   */
   const openInTab = (t: CustomTab, url: string) => {
     search.setQuery('')
+    pendingLinks.current.set(tabKey(t), url)
     selectTab(tabKey(t))
     window.dispatchEvent(new CustomEvent<OpenInTab>(OPEN_IN_TAB, { detail: { key: tabKey(t), url } }))
   }
@@ -1233,6 +1245,7 @@ export default function App() {
             hidden={view !== tabKey(t)}
             onSettings={() => openTabSettings(t.id)}
             onGuest={(id) => guestTab.current.set(id, t.id)}
+            takeLink={() => takeLink(tabKey(t))}
             icon={iconOf[t.id]}
             onNavigate={
               isTemp(t)
