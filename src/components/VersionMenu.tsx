@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import type { Changelog, ChangelogEntry } from '../lib/changelog'
+import { newerThan, type Changelog, type ChangelogEntry } from '../lib/changelog'
+import { desktop } from '../lib/desktop'
 import { inline } from '../lib/markdown'
-import { isMac } from '../lib/keys'
+import { isMac, isWindows } from '../lib/keys'
 
 /**
  * Version installée, dans la barre du haut. Discrète quand tout est à jour,
@@ -81,9 +82,12 @@ export default function VersionMenu({
  */
 export function ChangelogBody({ data }: { data: Changelog }) {
   const [copied, setCopied] = useState<false | 'update' | 'desktop'>(false)
+  // Les commandes du système de celui qui lit (PowerShell sous Windows).
+  const command = (isWindows && data.command_windows) || data.command
+  const desktopCommand = isWindows ? data.desktop_command_windows : isMac ? data.desktop_command : undefined
 
   // `which` : la commande copiée (mise à jour, ou construction de l'appli).
-  const copy = (text = data.command, which: 'update' | 'desktop' = 'update') => {
+  const copy = (text = command, which: 'update' | 'desktop' = 'update') => {
     try {
       void navigator.clipboard?.writeText(text).then(() => {
         setCopied(which)
@@ -93,6 +97,15 @@ export function ChangelogBody({ data }: { data: Changelog }) {
       /* presse-papier absent hors localhost/HTTPS */
     }
   }
+
+  // Appli de bureau : la plus récente qu'exige une version (installée ou à venir).
+  const required = [...data.incoming, ...data.entries]
+    .map((e) => e.desktop)
+    .filter((v): v is string => !!v)
+    .reduce<string | null>((max, v) => (!max || newerThan(v, max) ? v : max), null)
+  const appVersion = desktop?.appVersion
+  const appTooOld = !!desktop && !!required && (!appVersion || newerThan(required, appVersion))
+  const canUpdate = !!desktop?.update
 
   return (
     <>
@@ -106,10 +119,18 @@ export function ChangelogBody({ data }: { data: Changelog }) {
           ? 'Colle cette commande dans un terminal :'
           : 'Tu es à jour. Quand une version sortira, colle cette commande dans un terminal :'}
       </p>
+      {canUpdate && data.update ? <UpdateNow appTooOld={appTooOld} required={required} /> : null}
       <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
-        <code>{data.command}</code>
+        <code>{command}</code>
         <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
       </button>
+      {appTooOld && !canUpdate ? (
+        <p className="cl-warn">
+          💻 Cette version demande l'<strong>appli de bureau {required}</strong> (tu as{' '}
+          {appVersion ?? 'une version plus ancienne'}) : télécharge-la ou reconstruis-la ci-dessous. Elle se
+          mettra ensuite à jour d'un clic.
+        </p>
+      ) : null}
       <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
       {data.desktop_url ? (
         <div className="cl-desktop">
@@ -125,18 +146,18 @@ export function ChangelogBody({ data }: { data: Changelog }) {
               </>
             ) : (
               <>
-                (<code>-win-x64-setup.exe</code> pour Windows). Au premier lancement : « Informations
-                complémentaires » → « Exécuter quand même ».
+                (<code>-win-x64-setup.exe</code> pour Windows), ou la construire sur ce PC (il faut Docker), sans
+                l'écran « Windows a protégé votre ordinateur » :
               </>
             )}
           </p>
-          {data.desktop_command && isMac ? (
+          {desktopCommand ? (
             <button
               className="cl-cmd"
-              onClick={() => copy(data.desktop_command, 'desktop')}
+              onClick={() => copy(desktopCommand, 'desktop')}
               title="Copier la commande"
             >
-              <code>{data.desktop_command}</code>
+              <code>{desktopCommand}</code>
               <span>{copied === 'desktop' ? '✓ copié' : 'copier'}</span>
             </button>
           ) : null}
@@ -153,6 +174,58 @@ export function ChangelogBody({ data }: { data: Changelog }) {
   )
 }
 
+/**
+ * « Mettre à jour maintenant » (appli de bureau ≥ 1.4.0) : l'appli demande
+ * confirmation, lance git pull et docker compose, se reconstruit si besoin, et
+ * raconte ici ce qu'elle fait.
+ */
+function UpdateNow({ appTooOld, required }: { appTooOld: boolean; required: string | null }) {
+  const [lines, setLines] = useState<{ line: string; kind: string }[]>([])
+  const [state, setState] = useState<'idle' | 'running' | 'done' | 'failed'>('idle')
+  const box = useRef<HTMLPreElement>(null)
+
+  useEffect(
+    () =>
+      desktop?.onUpdateLog?.((msg) => {
+        setLines((l) => [...l.slice(-400), msg])
+        window.setTimeout(() => box.current?.scrollTo({ top: box.current.scrollHeight }), 0)
+      }),
+    [],
+  )
+
+  const run = () => {
+    setLines([])
+    setState('running')
+    void desktop
+      ?.update?.()
+      .then((r) => setState(r.ok ? 'done' : r.reason === 'annulé' ? 'idle' : 'failed'))
+      .catch(() => setState('failed'))
+  }
+
+  return (
+    <div className="cl-now">
+      <button className="btn btn-primary" onClick={run} disabled={state === 'running'}>
+        {state === 'running' ? 'mise à jour…' : '⬆ Mettre à jour maintenant'}
+      </button>
+      <span className="cl-now-hint">
+        {appTooOld
+          ? `L'appli de bureau se reconstruit aussi (version ${required}) puis se relance : quelques minutes.`
+          : 'git pull et docker compose, lancés pour toi ; la page se recharge à la fin.'}
+      </span>
+      {lines.length ? (
+        <pre ref={box} className={`cl-log${state === 'failed' ? ' is-failed' : ''}`}>
+          {lines.map((l, i) => (
+            <span key={i} className={`cl-log-${l.kind}`}>
+              {l.line}
+              {'\n'}
+            </span>
+          ))}
+        </pre>
+      ) : null}
+    </div>
+  )
+}
+
 function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boolean; fresh?: boolean }) {
   return (
     <article className={`cl-entry${fresh ? ' is-fresh' : ''}`}>
@@ -161,6 +234,11 @@ function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boo
         {entry.date ? <time>{entry.date}</time> : null}
         {current ? <span className="cl-tag">installée</span> : null}
         {fresh ? <span className="cl-tag is-new">nouvelle</span> : null}
+        {entry.desktop ? (
+          <span className="cl-tag is-desktop" title="Cette version demande une appli de bureau au moins aussi récente">
+            💻 appli {entry.desktop} requise
+          </span>
+        ) : null}
       </div>
       <ul>
         {entry.items.map((item, i) => (

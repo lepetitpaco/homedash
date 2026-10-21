@@ -79,14 +79,6 @@
   outline: none;
   border-color: #60a5fa;
 }
-.xtab-url {
-  color: var(--text-faint);
-  font-size: 0.74rem;
-  max-width: 40ch;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
 .xtab-hint {
   color: var(--text-faint);
   font-size: 0.72rem;
@@ -604,9 +596,42 @@
 }
 
 /* Site ouvert depuis la barre de gauche : sans la barre d'onglets au-dessus,
-   le cadre récupère sa hauteur. */
+   et son en-tête monté dans la barre du haut (une seule rangée, issue #2), le
+   cadre récupère toute la hauteur. */
 .app.is-site .xtab-frame {
-  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 72px);
+  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 30px);
+}
+.topbar-site {
+  display: flex;
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.topbar-site .xtab-bar {
+  flex: 0 1 auto;
+  flex-wrap: nowrap;
+  min-width: 0;
+}
+/* Rien d'étiré côté site : ↗ ⚙ suivent le domaine, la recherche prend le reste. */
+.topbar-site .set-spacer {
+  display: none;
+}
+.topbar-site .xtab-title {
+  flex: 0 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+}
+.topbar-site .xtab-address {
+  flex: 0 1 22rem;
+  min-width: 10rem;
+}
+.topbar-site .xtab-btn {
+  flex: 0 0 auto;
+  padding: 0.3rem 0.6rem;
+}
+/* La recherche garde la place : on y écrit, alors que le domaine ne se modifie pas. */
+.topbar.is-site .search-wrap {
+  flex: 1 1 auto;
+  min-width: 220px;
 }
 
 /* Icône d'onglet perso recadrée (SiteIcon) : place gardée pendant le chargement. */
@@ -854,4 +879,17 @@
 }
 .add-tab-more {
   margin-right: auto;
+}
+/* Boutons-icônes de l'en-tête d'un site : ← → ↻ ↗ ⚙, carrés et discrets. */
+.xtab-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.topbar-site .xtab-btn.xtab-icon-btn {
+  padding: 0;
 }

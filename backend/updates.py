@@ -40,6 +40,11 @@ _DIR        = os.environ.get("HOMEDASH_DIR", "").strip()
 COMMAND     = (f"cd {shlex.quote(_DIR)} && " if _DIR else "") + "git pull && docker compose up -d --build"
 # Appli de bureau : la construire sur ce Mac plutôt que la télécharger.
 DESKTOP_COMMAND = (f"cd {shlex.quote(_DIR)} && " if _DIR else "") + "sh desktop/build-local.sh --install"
+# Windows : PowerShell 5.1 (celui d'origine) ne connaît pas `&&` ; `;` enchaîne.
+# Le dossier n'y est presque jamais connu (pas de PWD dans l'environnement).
+_WIN_CD         = f'cd "{_DIR}"; ' if _DIR else ""
+COMMAND_WINDOWS = _WIN_CD + "git pull; docker compose up -d --build"
+DESKTOP_COMMAND_WINDOWS = _WIN_CD + "powershell -ExecutionPolicy Bypass -File desktop\\build-windows.ps1 -Install"
 
 _state = {"latest": None, "incoming": [], "checked_at": None, "error": None}
 _lock  = threading.Lock()
@@ -47,14 +52,20 @@ _lock  = threading.Lock()
 
 # ── Changelog ────────────────────────────────────────────────────────────────
 _HEAD = re.compile(r"^##\s+(\d+\.\d+\.\d+)\s*(?:[—-]\s*(.+))?$")
+# Sous le titre d'une version : `Appli de bureau : 1.4.0` = elle demande cette
+# version de l'appli de bureau (ou plus récente).
+_DESKTOP = re.compile(r"^(?:💻\s*)?\**Appli de bureau\s*:?\**\s*:?\s*(\d+\.\d+\.\d+)", re.I)
 
 def parse(text):
-    """`## 1.2.0 — 2026-10-13` suivi de lignes `- …` → [{version, date, items}]."""
+    """`## 1.2.0 — 2026-10-13` suivi de lignes `- …` → [{version, date, items}],
+    plus `desktop` si une ligne `Appli de bureau : X.Y.Z` suit le titre."""
     out = []
     for line in (text or "").splitlines():
         m = _HEAD.match(line.strip())
         if m:
             out.append({"version": m.group(1), "date": (m.group(2) or "").strip(), "items": []})
+        elif out and not out[-1]["items"] and _DESKTOP.match(line.strip()):
+            out[-1]["desktop"] = _DESKTOP.match(line.strip()).group(1)
         elif out and line.startswith("- "):
             out[-1]["items"].append(line[2:].strip())
         elif out and out[-1]["items"] and line.startswith("  ") and line.strip():
@@ -145,11 +156,15 @@ def payload():
         "incoming": state["incoming"],
         "update": bool(state["incoming"]),
         "command": COMMAND,
+        # Dossier du projet sur la machine : l'appli de bureau y lance la mise à jour.
+        "dir": _DIR,
+        "command_windows": COMMAND_WINDOWS,
         "repo": REPO,
         # Appli de bureau : dernière release (seules les versions de l'appli en
         # ont une), ou la construire soi-même.
         "desktop_url": f"https://github.com/{REPO}/releases/latest",
         "desktop_command": DESKTOP_COMMAND,
+        "desktop_command_windows": DESKTOP_COMMAND_WINDOWS,
         "checked_at": state["checked_at"],
         "error": state["error"],
     }

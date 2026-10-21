@@ -31,6 +31,8 @@ export const DEFAULT_UI: UiConfig = {
   showClock: true,
   showTiles: true,
   showFooter: true,
+  badgeTabs: true,
+  badgeBell: true,
   searchPlaceholder: `Rechercher, ou taper une adresse…   /  ou  ${keys('K')}`,
   tabSleepMinutes: 5,
   openLinks: 'app',

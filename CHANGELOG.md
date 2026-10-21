@@ -4,6 +4,43 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.19.0 — 2026-10-21
+
+Appli de bureau : 1.4.0
+
+- **Mettre à jour d'un clic depuis l'appli de bureau** : bouton *Mettre à jour maintenant* dans la
+  fenêtre de version (et Réglages → Aide → Nouveautés). L'appli demande confirmation, lance `git pull` et
+  `docker compose up -d --build`, montre ce qu'elle fait, puis recharge la page. Si l'appli elle-même a
+  changé, elle se reconstruit, se ferme et se relance toute seule. Il faut l'appli 1.4.0 : à installer
+  une dernière fois à la main.
+- **Une seule barre en haut quand un site est ouvert** : son icône et son nom (l'adresse au survol),
+  puis ← → ↻ ↗ ⚙, à côté de la recherche ; le site gagne une rangée de hauteur. **→ (page suivante)** fait
+  son apparition (#2).
+- **Barre du haut épurée** : plus de logo ni de nom (⚡ de la barre de gauche ramène à homedash), la
+  recherche prend la place.
+- **Pastille de l'icône de l'appli au choix** : non-lus des onglets, notifications de la cloche, ou les
+  deux (Réglages → Affichage & notifications) (#4).
+- **Fini les vieux merges dans la cloche** : une branche locale dont la PR a été mergée il y a plus de
+  2 jours, découverte tard par le scan, n'est plus annoncée ; un dépôt ajouté non plus (#5).
+- **Icônes des onglets** : si homedash ne peut pas les récupérer (réseau, proxy), le navigateur les
+  demande lui-même ; la raison s'affiche dans `docker logs homedash` (#3).
+- **Telegram** : pastille de non-lus (comme Telegram, sourdines exclues), et « Open in new tab » ouvre
+  un onglet éphémère au lieu de ne rien faire ; pareil pour tout site qui ouvre un lien vers lui-même (#1).
+- **Le ＋ « nouvelle catégorie » quitte la barre du haut** : clic droit sur une catégorie, la recherche
+  (« nouvelle catégorie »), ou le bouton qui apparaît quand il n'y en a aucune (#6).
+- Le changelog indique les versions qui demandent une **nouvelle appli de bureau** (« 💻 appli 1.4.0
+  requise »), et la fenêtre de version prévient si la tienne est trop ancienne.
+- **homedash s'installe sur Windows** : le serveur démarre même sans variable `HOME` (le dossier personnel
+  de Windows est pris à la place). Pas d'effet sur Mac.
+- Sous Windows, la commande de mise à jour et celle de l'appli de bureau s'affichent **pour PowerShell**.
+- **Favicons des liens ajoutés à la main** : une adresse tapée sans `https://` (`notion.so`) le reçoit
+  automatiquement ; sans lui, le lien était cassé et n'avait pas d'icône. Les liens déjà enregistrés sont
+  réparés à la mise à jour.
+- Si le service d'icônes est bloqué par le navigateur (bloqueur, proxy), homedash va chercher l'icône
+  lui-même.
+- **L'appli de bureau se construit sur un PC Windows** comme sur un Mac : `desktop\build-windows.ps1
+  -Install` (Docker suffit, et Windows ne la bloque pas au premier lancement). Pas à pas dans le README.
+
 ## 1.18.1 — 2026-10-21
 
 - **Raccourcis affichés selon ton système** : `Ctrl+K`, `Ctrl+S`… sur Windows et Linux, `⌘K`, `⌘S` sur Mac.

@@ -35,7 +35,6 @@ jobs:
     timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
-      - run: sudo apt-get update -qq && sudo apt-get install -y -qq imagemagick
       - run: |
           V="${GITHUB_REF_NAME#desktop-v}"
           APP_VERSION=$V sh desktop/build-windows.sh

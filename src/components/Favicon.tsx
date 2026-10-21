@@ -24,20 +24,30 @@ const isLocal = (h: string) =>
   h.endsWith('.local') ||
   /^\d+\.\d+\.\d+\.\d+$/.test(h)
 
-/** Favicon distante quand c'est possible, sinon monogramme coloré. */
+/**
+ * Favicon distante quand c'est possible, sinon monogramme coloré. Si le
+ * service d'icônes ne répond pas au navigateur (bloqueur, proxy), homedash la
+ * redemande lui-même (`api/favicon`, même service, mis en cache) avant de
+ * renoncer.
+ */
 export default function Favicon({ url, name, color, enabled, provider }: Props) {
-  const [failed, setFailed] = useState(false)
+  // 0 : le service directement · 1 : relayé par homedash · 2 : monogramme
+  const [attempt, setAttempt] = useState(0)
   const h = host(url)
-  const remote = enabled && !!provider && !failed && !isLocal(h)
+  const remote = enabled && !!provider && attempt < 2 && !isLocal(h)
 
   if (remote) {
     return (
       <img
         className="favicon"
-        src={template(provider, { host: encodeURIComponent(h), url: encodeURIComponent(url) })}
+        src={
+          attempt === 0
+            ? template(provider, { host: encodeURIComponent(h), url: encodeURIComponent(url) })
+            : `api/favicon?host=${encodeURIComponent(h)}`
+        }
         alt=""
         loading="lazy"
-        onError={() => setFailed(true)}
+        onError={() => setAttempt((a) => a + 1)}
       />
     )
   }

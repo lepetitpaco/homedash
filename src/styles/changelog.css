@@ -265,3 +265,105 @@
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* Mise à jour depuis l'appli de bureau : bouton, puis ce qu'elle fait. */
+.cl-now {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  margin: 0.2rem 0 0.7rem;
+}
+.cl-now-hint {
+  color: var(--text-faint);
+  font-size: 0.8rem;
+}
+.cl-log {
+  flex-basis: 100%;
+  max-height: 240px;
+  margin: 0;
+  padding: 0.6rem 0.8rem;
+  overflow: auto;
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+.cl-log.is-failed {
+  outline: 1px solid color-mix(in srgb, var(--sig-bad) 60%, transparent);
+}
+.cl-log-cmd {
+  color: #60a5fa;
+}
+.cl-log-error {
+  color: var(--sig-bad);
+}
+.cl-log-done {
+  color: var(--sig-ok, #4ade80);
+  font-weight: 600;
+}
+.cl-warn {
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.45rem;
+  background: color-mix(in srgb, #f59e0b 14%, transparent);
+  font-size: 0.85rem;
+}
+.cl-tag.is-desktop {
+  background: color-mix(in srgb, #a78bfa 22%, transparent);
+  color: var(--text);
+}
+
+/* Avancement d'une mise à jour lancée depuis l'appli : en bas à gauche, à côté
+   de la barre de gauche, quelle que soit la page ouverte. */
+.toast.update-progress {
+  right: auto;
+  left: calc(var(--rail-w, 0px) + 18px);
+  max-width: 460px;
+  cursor: default;
+}
+.update-progress.is-done {
+  border-color: color-mix(in srgb, var(--sig-ok) 50%, var(--border));
+}
+.update-progress.is-failed {
+  border-color: color-mix(in srgb, var(--sig-bad) 60%, var(--border));
+  cursor: pointer;
+}
+.update-progress-text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.update-progress-text strong {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+.update-progress-text small {
+  overflow: hidden;
+  color: var(--text-faint);
+  font-size: 0.74rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.update-progress.is-done .update-progress-icon {
+  color: var(--sig-ok);
+}
+.update-progress.is-failed .update-progress-icon {
+  color: var(--sig-bad);
+}
+.update-spinner {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid var(--border);
+  border-top-color: #60a5fa;
+  border-radius: 50%;
+  animation: update-spin 0.8s linear infinite;
+}
+@keyframes update-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

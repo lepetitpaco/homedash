@@ -4,9 +4,10 @@ import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import BasecampView from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
-import SiteIcon, { isImageIcon } from './components/SiteIcon'
+import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
 import AddTabDialog from './components/AddTabDialog'
+import UpdateProgress from './components/UpdateProgress'
 import Rail, { type RailMode } from './components/Rail'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
@@ -336,6 +337,7 @@ export default function App() {
   const markEvents = events.markSeen
   useEffect(() => setUnread(events.unseen), [events.unseen])
   useEffect(() => setPerfLog(cfg?.ui.perfLog === true), [cfg?.ui.perfLog])
+  useEffect(() => setIconProvider(cfg?.ui.faviconProvider), [cfg?.ui.faviconProvider])
   // Mise en veille : l'onglet quitté et l'onglet ouvert sont « vus maintenant » ;
   // ouvrir un onglet en veille le réveille (sa webview est remontée, il recharge).
   const prevTab = useRef(tab)
@@ -383,7 +385,9 @@ export default function App() {
     (sum, t) => sum + (t.embed && t.notify !== false ? (tabCounts[tabKey(t)] ?? 0) : 0),
     0,
   )
-  useEffect(() => desktop?.setBadge(tabUnread + events.unseen), [tabUnread, events.unseen])
+  // Ce qu'elle compte se règle dans Réglages → Affichage (issue #4).
+  const dockCount = (cfg?.ui.badgeTabs !== false ? tabUnread : 0) + (cfg?.ui.badgeBell !== false ? events.unseen : 0)
+  useEffect(() => desktop?.setBadge(dockCount), [dockCount])
   useEffect(() => {
     if (tab === 'events') markEvents()
   }, [tab, markEvents, events.unseen])
@@ -418,6 +422,7 @@ export default function App() {
   const openItemsRef = useRef<(url: string) => MenuItem[]>(() => [])
   const openItems = useCallback((url: string) => openItemsRef.current(url), [])
   const menus = useContextMenus(raw, persist, copy, openItems)
+  const newGroup = menus.newGroup
   const linkMenuRef = useRef<(x: number, y: number, url: string) => void>(() => undefined)
   useEffect(() => {
     if (!desktop) return
@@ -462,6 +467,8 @@ export default function App() {
             },
           ]
         : []),
+      // Le ＋ de la barre du haut est parti (issue #6) : ici, et au clic droit d'une catégorie.
+      { id: 'group', icon: '📁', label: 'Nouvelle catégorie', keywords: 'ajouter groupe liens raccourcis', run: newGroup },
       {
         id: 'theme',
         icon: effectiveTheme === 'dark' ? '☀️' : '🌙',
@@ -478,7 +485,7 @@ export default function App() {
         run: clearVisits,
       },
     ],
-    [selectTab, switchTheme, effectiveTheme, bc.data?.configured],
+    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, newGroup],
   )
   const search = useSearch({
     cfg,
@@ -858,9 +865,14 @@ export default function App() {
     })
   /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
   const route = (url: string, fromId: number): boolean => {
-    const target = linkTarget(url, regularTabs, fromGuest(fromId))
+    const from = fromGuest(fromId)
+    const target = linkTarget(url, regularTabs, from)
     if (!target) return false
-    openInTab(target, url)
+    // Un site qui demande un nouvel onglet vers lui-même (Telegram « Open in new
+    // tab », un lien target=_blank du même site) : un éphémère du même compte,
+    // pas l'onglet d'origine rechargé sur cette adresse (issue #1).
+    if (from && target.id === from.id) openTemp(url, from.session)
+    else openInTab(target, url)
     return true
   }
   /** Comment ouvrir `url` : les onglets de ce site (avec leur compte), un éphémère (par compte), le navigateur. */
@@ -1031,8 +1043,7 @@ export default function App() {
   return (
     <div className={`app${railOn && shown.startsWith('x:') ? ' is-site' : ''}`} style={layoutVars(ui)}>
       <TopBar
-        title={cfg.title}
-        subtitle={cfg.subtitle}
+        site={railOn && view.startsWith('x:')}
         query={search.query}
         onQuery={search.setQuery}
         placeholder={ui.searchPlaceholder}
@@ -1043,7 +1054,6 @@ export default function App() {
         resultCount={searching ? search.hits.length : null}
         hasChecks={hasChecks}
         onRefresh={refresh}
-        onAddGroup={menus.newGroup}
         version={
           <VersionMenu data={changelog.data} busy={changelog.busy} onCheck={() => void changelog.check()} />
         }
@@ -1170,6 +1180,7 @@ export default function App() {
             onCount={(n) => setCount(tabKey(t), n)}
             onLoaded={(ms) => perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })}
             muted={!!muted[tabKey(t)]}
+            merged={railOn && view === tabKey(t)}
           />
         ))}
 
@@ -1287,6 +1298,11 @@ export default function App() {
             {cfg.sections.map((s) => (
               <Section key={s.key} section={s} ctx={ctx} />
             ))}
+            {cfg.sections.length ? null : (
+              <button className="btn board-empty" onClick={newGroup}>
+                ＋ Créer une catégorie de liens
+              </button>
+            )}
           </div>
         </>
       )}
@@ -1312,6 +1328,7 @@ export default function App() {
         />
       ) : null}
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
+      <UpdateProgress />
       {menus.draft ? (
         <EditDialog
           draft={menus.draft}

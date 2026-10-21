@@ -8,11 +8,24 @@ const { contextBridge, ipcRenderer } = require('electron')
 
 contextBridge.exposeInMainWorld('homedashDesktop', {
   version: process.versions.electron,
+  /** Version de l'appli elle-même (desktop/package.json), ≥ 1.4.0. */
+  appVersion: ipcRenderer.sendSync('homedash:app-version'),
   platform: process.platform,
   /** Ce que cette version de l'appli sait faire (absent = appli 1.0.0). */
-  features: ['sessions', 'reload-tab', 'links', 'audio'],
+  features: ['sessions', 'reload-tab', 'links', 'audio', 'update'],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
+  /**
+   * Met homedash à jour (git pull, docker compose, et l'appli si besoin), après
+   * confirmation dans une fenêtre du système. Résout { ok, reason?, relaunch? }.
+   */
+  update: () => ipcRenderer.invoke('homedash:update'),
+  /** Avancement de la mise à jour ({ line, kind }). Renvoie de quoi se désabonner. */
+  onUpdateLog: (cb) => {
+    const handler = (_e, msg) => cb(msg)
+    ipcRenderer.on('homedash:update-log', handler)
+    return () => ipcRenderer.removeListener('homedash:update-log', handler)
+  },
   /** Ouvre une adresse http(s) dans le navigateur par défaut. */
   openExternal: (url) => ipcRenderer.send('homedash:open', url),
   /**

@@ -25,6 +25,7 @@ import {
   type LinkRef,
 } from '../lib/mutate'
 import type { Config, FlatLink, InfoGroup, InfoItem, Link } from '../types'
+import { withScheme } from '../lib/url'
 
 const infoGroupsOf = (raw: Config): InfoGroup[] =>
   (Array.isArray(raw.infos) ? raw.infos : raw.infos?.groups) ?? []
@@ -372,7 +373,8 @@ function cleanInfo(values: InfoItem): InfoItem {
  * omet les booléens faux pour garder un JSON lisible.
  */
 function cleanLink(values: Link): Link {
-  const link: Link = { name: values.name.trim(), url: values.url.trim() }
+  // `notion.so` → `https://notion.so` : sinon lien cassé et pas de favicon
+  const link: Link = { name: values.name.trim(), url: withScheme(values.url) }
   if (values.note?.trim()) link.note = values.note.trim()
   if (values.pinned) link.pinned = true
   if (values.check) link.check = true

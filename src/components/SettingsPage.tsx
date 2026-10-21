@@ -797,6 +797,29 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
           />
 
+          <h3 className="set-sub">Pastille de l'icône de l'appli</h3>
+          <p className="set-hint">
+            Le nombre sur l'icône de l'appli de bureau (Dock sur Mac, barre des tâches sur Windows). Les pastilles de
+            la barre de gauche et de la cloche ne changent pas.
+          </p>
+          <div className="set-toggles">
+            {(
+              [
+                ['badgeTabs', 'Non-lus des onglets', 'messages de Gmail, Chat, WhatsApp… (sauf les onglets aux notifications coupées)'],
+                ['badgeBell', 'Notifications de la cloche', 'CI, PRs mergées, branches à nettoyer, Renovate…'],
+              ] as const
+            ).map(([key, label, hint]) => (
+              <label className="set-toggle" key={key} title={hint}>
+                <input
+                  type="checkbox"
+                  checked={(draft.ui?.[key] as boolean | undefined) ?? true}
+                  onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), [key]: e.target.checked } })}
+                />
+                {label} <em>{hint}</em>
+              </label>
+            ))}
+          </div>
+
           <h3 className="set-sub">Interface</h3>
           <div className="set-toggles">
             {(

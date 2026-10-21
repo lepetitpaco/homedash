@@ -798,3 +798,9 @@
   color: var(--sig-info);
   cursor: pointer;
 }
+
+/* Raccourcis sans catégorie : de quoi créer la première (le ＋ de la barre du haut n'existe plus). */
+.board-empty {
+  justify-self: start;
+  margin: 8px 0;
+}

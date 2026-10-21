@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 
 type Props = {
-  title: string
-  subtitle?: string
   query: string
   onQuery: (q: string) => void
   placeholder: string
@@ -13,12 +11,16 @@ type Props = {
   resultCount: number | null
   hasChecks: boolean
   onRefresh: () => void
-  onAddGroup: () => void
   /** Cloche du journal, posée à gauche des boutons. */
   bell?: React.ReactNode
   /** Version installée / mise à jour disponible. */
   version?: React.ReactNode
+  /** Un site est affiché (barre de gauche) : son en-tête prend la place du logo. */
+  site?: boolean
 }
+
+/** Où CustomTabView place l'en-tête du site affiché (une rangée de moins). */
+export const TOPBAR_SITE_SLOT = 'topbar-site'
 
 function useClock(enabled: boolean) {
   const [now, setNow] = useState(() => new Date())
@@ -31,8 +33,6 @@ function useClock(enabled: boolean) {
 }
 
 export default function TopBar({
-  title,
-  subtitle,
   query,
   onQuery,
   placeholder,
@@ -43,9 +43,9 @@ export default function TopBar({
   resultCount,
   hasChecks,
   onRefresh,
-  onAddGroup,
   bell,
   version,
+  site = false,
 }: Props) {
   const now = useClock(showClock)
   const spinRef = useRef<HTMLButtonElement>(null)
@@ -74,16 +74,8 @@ export default function TopBar({
   const date = now.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 
   return (
-    <header className={`topbar${stuck ? ' is-stuck' : ''}`} ref={barRef}>
-      <div className="brand">
-        <span className="logo" aria-hidden="true">
-          ⚡
-        </span>
-        <span className="brand-text">
-          <strong>{title}</strong>
-          {subtitle ? <em>{subtitle}</em> : null}
-        </span>
-      </div>
+    <header className={`topbar${stuck ? ' is-stuck' : ''}${site ? ' is-site' : ''}`} ref={barRef}>
+      {site ? <div className="topbar-site" id={TOPBAR_SITE_SLOT} /> : null}
 
       <div className="search-wrap">
         <span className="search-icon" aria-hidden="true">
@@ -128,14 +120,6 @@ export default function TopBar({
             ⟳
           </button>
         ) : null}
-        <button
-          className="icon-btn"
-          onClick={onAddGroup}
-          title="Nouvelle catégorie"
-          aria-label="Nouvelle catégorie"
-        >
-          ＋
-        </button>
         <button
           className="icon-btn"
           onClick={onTheme}

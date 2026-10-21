@@ -30,6 +30,13 @@ class ParseTest(unittest.TestCase):
         self.assertEqual(e[0]["date"], "2026-10-14")
         self.assertEqual(e[0]["items"], ["**Gras** et texte.", "Une puce sur deux lignes."])
 
+    def test_desktop_requirement(self):
+        e = updates.parse("## 2.0.0 — 2026-10-21\n\nAppli de bureau : 1.4.0\n\n- Mise à jour depuis l'appli.\n"
+                          "\n## 1.9.0 — 2026-10-20\n\n- Rien pour l'appli.\n")
+        self.assertEqual(e[0]["desktop"], "1.4.0")
+        self.assertEqual(e[0]["items"], ["Mise à jour depuis l'appli."])
+        self.assertNotIn("desktop", e[1])
+
     def test_version_order_is_numeric(self):
         self.assertGreater(updates.key("1.10.0"), updates.key("1.9.3"))
 
@@ -43,6 +50,13 @@ class ParseTest(unittest.TestCase):
     def test_guide_is_served_and_split_in_parts(self):
         text = updates.guide()
         self.assertIn("\n## ", text, "GUIDE.md : une page de l'Aide par titre `## `")
+
+    def test_windows_commands_work_in_powershell_5(self):
+        # PowerShell 5.1 (celui d'origine de Windows) refuse `&&`
+        self.assertNotIn("&&", updates.COMMAND_WINDOWS)
+        self.assertNotIn("&&", updates.DESKTOP_COMMAND_WINDOWS)
+        self.assertIn("docker compose up -d --build", updates.COMMAND_WINDOWS)
+        self.assertIn("build-windows.ps1", updates.DESKTOP_COMMAND_WINDOWS)
 
     def test_missing_guide_is_empty(self):
         saved = updates.GUIDE

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { DEFAULT_UI, template } from '../lib/config'
 import { hostOf } from '../lib/customTabs'
 
 /** Icônes déjà recadrées, par hôte ou adresse d'image : une seule fois par page. */
@@ -70,6 +71,17 @@ function trimmed(key: string, url: string, external = false): Promise<string | n
   return p
 }
 
+/**
+ * Service de favicons de la config (`ui.faviconProvider`), posé par App : le
+ * repli quand le serveur n'obtient pas l'icône (réseau du container filtré,
+ * proxy d'entreprise). Le navigateur la demande alors lui-même ; elle n'est pas
+ * recadrée (le canvas ne lit pas une image d'un autre site), mais elle est là.
+ */
+let provider = DEFAULT_UI.faviconProvider
+export function setIconProvider(p: string | undefined) {
+  provider = p || DEFAULT_UI.faviconProvider
+}
+
 /** Icône choisie par lien (`https://…/logo.png`) plutôt qu'un emoji. */
 export const isImageIcon = (icon?: string) => !!icon && /^https?:\/\/\S+$/i.test(icon.trim())
 
@@ -96,9 +108,12 @@ export default function SiteIcon({
   const [src, setSrc] = useState<string | null | undefined>(() => (key ? done.get(key) : null))
   // Image choisie que le canvas ne peut pas lire (CORS) ou introuvable.
   const [raw, setRaw] = useState(false)
+  // Repli direct (service de favicons depuis le navigateur) en échec lui aussi.
+  const [directFailed, setDirectFailed] = useState(false)
 
   useEffect(() => {
     setRaw(false)
+    setDirectFailed(false)
     if (!key) return setSrc(null)
     let alive = true
     void trimmed(key, own || `api/favicon?host=${encodeURIComponent(host)}`, !!own).then((r) => alive && setSrc(r))
@@ -112,6 +127,16 @@ export default function SiteIcon({
     return <img className="favicon site-icon" src={own} alt="" referrerPolicy="no-referrer" onError={() => setRaw(true)} />
   // En chargement : la place est gardée, rien ne saute à l'arrivée.
   if (src === undefined) return <span className="favicon site-icon" />
+  if (host && !own && !directFailed)
+    return (
+      <img
+        className="favicon site-icon"
+        src={template(provider, { host: encodeURIComponent(host), url: encodeURIComponent(url) })}
+        alt=""
+        referrerPolicy="no-referrer"
+        onError={() => setDirectFailed(true)}
+      />
+    )
   return (
     <span className="favicon monogram site-icon">
       {name.replace(/[^\p{L}\p{N}]/gu, '').charAt(0).toUpperCase() || '•'}

@@ -56,13 +56,30 @@ def _full(name, org):
     return f"{org}/{name}" if org and name and "/" not in name else name
 
 
+_SCHEME = re.compile(r"^[a-z][a-z0-9+.-]*://", re.I)
+_OTHER  = re.compile(r"^(mailto|tel|file|data|javascript):", re.I)
+_IPV4   = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+
+def _full_url(url):
+    """`notion.so` → `https://notion.so`, `localhost:3000` → `http://…` : sans
+    schéma, la page prend l'adresse pour un de ses chemins (lien cassé, pas de
+    favicon). Même règle que `withScheme()` (src/lib/url.ts)."""
+    u = url.strip() if isinstance(url, str) else url
+    if not isinstance(u, str) or not u or _SCHEME.match(u) or _OTHER.match(u) or u[0] in "/~.":
+        return u
+    host = re.split(r"[/?#]", u)[0]
+    host = re.sub(r":\d+$", "", host).lower()
+    local = host == "localhost" or host.endswith(".localhost") or bool(_IPV4.match(host))
+    return ("http://" if local else "https://") + u
+
 def migrate(cfg):
     """Ancien format → format courant. Renvoie (config, a_changé).
 
     · section `github` seule → `github_accounts` = [{"id": "main", …}] ;
     · clé `org` + noms courts → `propriétaire/repo`, `org` disparaît ;
     · entrées de la carte Repos sans `owner` → l'org du premier compte ;
-    · la section `github` (copie du premier compte) disparaît.
+    · la section `github` (copie du premier compte) disparaît ;
+    · liens de Raccourcis tapés sans schéma (`notion.so`) → `https://notion.so`.
     Idempotent : une config déjà migrée ressort identique."""
     before = json.dumps(cfg, sort_keys=True)
     accs = cfg.get("github_accounts")
@@ -95,6 +112,12 @@ def migrate(cfg):
         ]
         if repos.get("defaultOwner") is None:
             repos["defaultOwner"] = first_org
+
+    for group in cfg.get("groups") or []:
+        if isinstance(group, dict) and isinstance(group.get("links"), list):
+            for link in group["links"]:
+                if isinstance(link, dict) and isinstance(link.get("url"), str):
+                    link["url"] = _full_url(link["url"])
     return cfg, json.dumps(cfg, sort_keys=True) != before
 
 

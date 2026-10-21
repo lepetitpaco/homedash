@@ -2,7 +2,21 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { sameOr } from './visible'
 
-export type ChangelogEntry = { version: string; date: string; items: string[] }
+export type ChangelogEntry = {
+  version: string
+  date: string
+  items: string[]
+  /** Version de l'appli de bureau que demande cette version (ligne `Appli de bureau : X.Y.Z`). */
+  desktop?: string
+}
+
+/** `1.10.0` > `1.9.3`. */
+export function newerThan(a: string, b: string): boolean {
+  const x = a.split('.').map(Number)
+  const y = b.split('.').map(Number)
+  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0)
+  return false
+}
 
 export type Changelog = {
   current: string
@@ -12,10 +26,13 @@ export type Changelog = {
   incoming: ChangelogEntry[]
   update: boolean
   command: string
+  /** Variante PowerShell (Windows) ; absente d'un serveur plus ancien. */
+  command_windows?: string
   repo: string
   /** Dernière appli de bureau (release GitHub), et la commande pour la construire soi-même. */
   desktop_url?: string
   desktop_command?: string
+  desktop_command_windows?: string
   checked_at: number | null
   error: string | null
 }

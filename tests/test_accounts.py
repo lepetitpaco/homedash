@@ -56,6 +56,19 @@ class MigrationTest(unittest.TestCase):
         self.assertFalse(changed)
         self.assertEqual(again, cfg)
 
+    def test_links_typed_without_scheme_get_one(self):
+        urls = ["notion.so", "www.figma.com/files", "localhost:3000/app", "192.168.1.1",
+                "https://deja.fr", "http://intranet", "mailto:a@b.fr", "/api/file?p=x", "~/doc.pdf", ""]
+        cfg, changed = accounts.migrate({"groups": [{"name": "G", "links": [{"name": str(i), "url": u}
+                                                                           for i, u in enumerate(urls)]}]})
+        self.assertTrue(changed)
+        self.assertEqual([l["url"] for l in cfg["groups"][0]["links"]], [
+            "https://notion.so", "https://www.figma.com/files", "http://localhost:3000/app",
+            "http://192.168.1.1", "https://deja.fr", "http://intranet", "mailto:a@b.fr",
+            "/api/file?p=x", "~/doc.pdf", ""])
+        again, changed = accounts.migrate(copy.deepcopy(cfg))
+        self.assertFalse(changed)                            # idempotent
+
     def test_empty_config_gets_one_account(self):
         cfg, _ = accounts.migrate({"groups": []})
         self.assertEqual([a["id"] for a in cfg["github_accounts"]], ["main"])

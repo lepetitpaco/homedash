@@ -24,7 +24,8 @@ services:
       - HOMEDASH_DIR=${PWD:-}
       # Ce que vaut /host côté hôte : sert à écrire les commandes à copier avec
       # les vrais chemins, et à comprendre un chemin absolu de l'hôte.
-      - HOST_HOME=${HOME}
+      # Windows n'a souvent pas de HOME : son dossier personnel est USERPROFILE.
+      - HOST_HOME=${HOME:-${USERPROFILE:-}}
     volumes:
       # le répertoire entier, pas fichier par fichier : permet l'écriture atomique
       - ${HOMEDASH_DATA:-./data}:/app/data
@@ -33,4 +34,4 @@ services:
       # modifier ici. `:ro` est une ceinture par-dessus des bretelles : le backend
       # ne sait de toute façon que lire (backend/gitread.py relit les fichiers
       # .git lui-même, aucune commande git n'est lancée).
-      - ${HOME}:/host:ro
+      - ${HOME:-${USERPROFILE:-}}:/host:ro

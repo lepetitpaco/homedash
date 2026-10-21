@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
+import { TOPBAR_SITE_SLOT } from './TopBar'
 import { isLocal, refusesEmbed, srcOf, tabKey } from '../lib/customTabs'
 import {
   desktop,
@@ -39,7 +41,10 @@ export default function CustomTabView({
   onVisit,
   onLoaded,
   muted = false,
+  merged = false,
 }: {
+  /** Site affiché en grand (ouvert depuis la barre de gauche) : son en-tête va dans la barre du haut. */
+  merged?: boolean
   /** Son coupé (clic droit, ou 🔊 de l'onglet) : réappliqué à chaque chargement. */
   muted?: boolean
   /** Durée d'un chargement complet (ouverture, réveil, ↻) : journal de performance. */
@@ -172,8 +177,9 @@ export default function CustomTabView({
       }
     }
     const onNav = (e: Event) => {
-      const url = (e as Event & { url: string }).url
-      if (!/^https?:/.test(url)) return
+      const { url, isMainFrame } = e as Event & { url: string; isMainFrame?: boolean }
+      // les cadres du site (widgets, iframes) naviguent aussi : seule la page compte
+      if (!/^https?:/.test(url) || isMainFrame === false) return
       setAddress(url)
       navRef.current?.(url)
       visitRef.current?.(url)
@@ -245,88 +251,120 @@ export default function CustomTabView({
   // Dans l'appli : l'adresse où l'on est arrivé, pas celle de départ.
   const openOutside = () => desktop?.openExternal(view.current?.getURL() || src)
 
+  // Emplacement réservé dans la barre du haut (TopBar), présent quand un site est affiché.
+  const [slot, setSlot] = useState<HTMLElement | null>(null)
+  useEffect(() => setSlot(merged ? document.getElementById(TOPBAR_SITE_SLOT) : null), [merged])
+
+  const bar = (
+    <div className="xtab-bar">
+      {/* Où l'on est d'abord (icône et nom), puis la navigation, comme un navigateur (issue #2). */}
+      {/* L'adresse ne se modifie pas ici : au survol du nom, pas affichée (sauf éphémère). */}
+      <span className="xtab-title" title={address}>
+        <span className="xtab-icon" aria-hidden="true">
+          {icon ?? (tab.icon || (local ? '📄' : '🌐'))}
+        </span>
+        {tab.label}
+      </span>
+      {session ? (
+        <span className="xtab-session" style={{ ['--session' as string]: session.color }}>
+          {session.name}
+        </span>
+      ) : null}
+      {desktop ? (
+        <>
+          <button
+            className="xtab-btn xtab-icon-btn"
+            onClick={() => view.current?.canGoBack() && view.current.goBack()}
+            title="Page précédente"
+            aria-label="Page précédente"
+          >
+            ←
+          </button>
+          <button
+            className="xtab-btn xtab-icon-btn"
+            onClick={() => view.current?.canGoForward() && view.current.goForward()}
+            title="Page suivante"
+            aria-label="Page suivante"
+          >
+            →
+          </button>
+        </>
+      ) : null}
+      <button className="xtab-btn xtab-icon-btn" onClick={reload} title="Recharger" aria-label="Recharger">
+        ↻
+      </button>
+      {onNavigate && desktop ? (
+        <input
+          className="xtab-address"
+          value={typing ?? address}
+          placeholder="Adresse ou recherche"
+          onFocus={(e) => e.target.select()}
+          onChange={(e) => setTyping(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') {
+              setTyping(null)
+              e.currentTarget.blur()
+            }
+            if (e.key !== 'Enter' || !typing?.trim()) return
+            const q = typing.trim()
+            // une adresse (avec ou sans https://), sinon une recherche Google
+            const url = /^[a-z]+:\/\//i.test(q)
+              ? q
+              : /^[^\s]+\.[^\s]{2,}$/.test(q)
+                ? `https://${q}`
+                : `https://www.google.com/search?q=${encodeURIComponent(q)}`
+            setTyping(null)
+            e.currentTarget.blur()
+            void view.current?.loadURL(url)
+          }}
+          autoComplete="off"
+          spellCheck={false}
+          data-1p-ignore
+        />
+      ) : null}
+      {desktop ? null : blocked ? (
+        <span className="xtab-warn">
+          Ce site refuse l'affichage dans une page : il s'affiche dans l'appli de bureau homedash, ou ↗ à part.
+        </span>
+      ) : (
+        <span className="xtab-hint">Page blanche ? Le site refuse l'affichage intégré : ↗ pour l'ouvrir à part.</span>
+      )}
+      <span className="set-spacer" />
+      {desktop ? (
+        <button
+          className="xtab-btn xtab-icon-btn"
+          onClick={openOutside}
+          title={`Ouvrir dans le navigateur : ${address}`}
+          aria-label="Ouvrir dans le navigateur"
+        >
+          ↗
+        </button>
+      ) : (
+        <a
+          className="xtab-btn xtab-icon-btn"
+          href={src}
+          target="_blank"
+          rel="noreferrer"
+          data-outside
+          title={`Ouvrir dans un onglet du navigateur : ${address}`}
+          aria-label="Ouvrir dans un onglet du navigateur"
+        >
+          ↗
+        </a>
+      )}
+      <button className="xtab-btn xtab-icon-btn" onClick={onSettings} title="Modifier cet onglet" aria-label="Modifier cet onglet">
+        ⚙
+      </button>
+    </div>
+  )
+
   return (
     // Dans l'appli, une webview masquée (display: none) cesse de suivre sa page :
     // on la gare hors de l'écran, pour que les pastilles continuent d'arriver.
     <section className={`xtab${desktop && hidden ? ' is-parked' : ''}`} hidden={!desktop && hidden} aria-hidden={hidden}>
-      <div className="xtab-bar">
-        <span className="xtab-title">
-          <span className="xtab-icon" aria-hidden="true">
-            {icon ?? (tab.icon || (local ? '📄' : '🌐'))}
-          </span>
-          {tab.label}
-        </span>
-        {session ? (
-          <span className="xtab-session" style={{ ['--session' as string]: session.color }}>
-            compte {session.name}
-          </span>
-        ) : null}
-        {onNavigate && desktop ? (
-          <input
-            className="xtab-address"
-            value={typing ?? address}
-            placeholder="Adresse ou recherche"
-            onFocus={(e) => e.target.select()}
-            onChange={(e) => setTyping(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Escape') {
-                setTyping(null)
-                e.currentTarget.blur()
-              }
-              if (e.key !== 'Enter' || !typing?.trim()) return
-              const q = typing.trim()
-              // une adresse (avec ou sans https://), sinon une recherche Google
-              const url = /^[a-z]+:\/\//i.test(q)
-                ? q
-                : /^[^\s]+\.[^\s]{2,}$/.test(q)
-                  ? `https://${q}`
-                  : `https://www.google.com/search?q=${encodeURIComponent(q)}`
-              setTyping(null)
-              e.currentTarget.blur()
-              void view.current?.loadURL(url)
-            }}
-            autoComplete="off"
-            spellCheck={false}
-            data-1p-ignore
-          />
-        ) : (
-          <code className="xtab-url" title={tab.url}>
-            {tab.url}
-          </code>
-        )}
-        <span className="set-spacer" />
-        {desktop ? null : blocked ? (
-          <span className="xtab-warn">
-            Ce site refuse l'affichage dans une page : il s'affiche dans l'appli de bureau homedash, ou ↗ à part.
-          </span>
-        ) : (
-          <span className="xtab-hint">Page blanche ? Le site refuse l'affichage intégré : ouvre-le à part.</span>
-        )}
-        {desktop ? (
-          <button
-            className="xtab-btn"
-            onClick={() => view.current?.canGoBack() && view.current.goBack()}
-            title="Page précédente dans cet onglet"
-          >
-            ←
-          </button>
-        ) : null}
-        <button className="xtab-btn" onClick={reload} title="Recharger le contenu de l'onglet">
-          ↻
-        </button>
-        {desktop ? (
-          <button className="xtab-btn" onClick={openOutside} title="Ouvrir dans le navigateur par défaut">
-            ↗ ouvrir à part
-          </button>
-        ) : (
-          <a className="xtab-btn" href={src} target="_blank" rel="noreferrer" data-outside title="Ouvrir dans un onglet du navigateur">
-            ↗ ouvrir à part
-          </a>
-        )}
-        <button className="xtab-btn" onClick={onSettings} title="Modifier ou supprimer cet onglet">
-          ⚙
-        </button>
-      </div>
+      {/* Site ouvert depuis la barre de gauche : l'en-tête monte dans la barre du
+          haut (une rangée de moins) ; sinon il reste ici. */}
+      {merged && slot ? createPortal(bar, slot) : bar}
       {failed ? (
         <p className="xtab-warn">
           ✗ {failed} — <button className="bell-link" onClick={reload}>réessayer</button>

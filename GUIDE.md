@@ -12,7 +12,8 @@ Ta page d'accueil : tes liens, des notes, des infos à copier.
 #### Comment faire
 
 - **Modifier quoi que ce soit** : clic droit dessus (un lien, une catégorie, une info).
-- **Nouvelle catégorie** : ＋ en haut à droite.
+- **Nouvelle catégorie** : clic droit sur une catégorie → *Nouvelle catégorie…* (ou tape « nouvelle
+  catégorie » dans la recherche).
 - **Épingler un lien** : clic droit → *Épingler*. Pour changer l'ordre, glisse la tuile par sa poignée ⠿.
 - **Copier une info** (Wi-Fi, IP…) : un clic. Les valeurs secrètes se copient sans s'afficher.
 
@@ -30,7 +31,8 @@ Tes sites (Gmail, Chat, Claude…) et fichiers, à côté de homedash, dans la b
 #### Comment faire
 
 - **Ajouter un onglet** : ＋ en bas de la barre. Tape une adresse, ou choisis un site courant.
-- **Ouvrir** : clic sur l'icône. **⚡** ramène à homedash.
+- **Ouvrir** : clic sur l'icône. Le site prend toute la page ; en haut, son nom (l'adresse au survol),
+  ← → ↻, ↗ pour l'ouvrir dans le navigateur et ⚙ pour le modifier. **⚡** ramène à homedash.
 - **Modifier** : clic droit sur l'icône → *Modifier…*.
 - **Ranger dans un dossier** : glisse une icône sur une autre.
 - **Changer la largeur, cacher la barre** : clic droit sur la barre, hors d'une icône.
@@ -109,12 +111,15 @@ La cloche, en haut à droite : ce qui s'est passé (CI, PRs, Basecamp…).
 - **Notifications du Mac** : *activer* en bas de la cloche (désactivées au départ).
 - **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications* (ou 🔕 sur sa ligne,
   dans Réglages → Onglets perso).
+- **Le nombre sur l'icône de l'appli** (Dock, barre des tâches) : non-lus des onglets, notifications de la
+  cloche, ou les deux, au choix dans Réglages → Affichage & notifications.
 
 #### Bon à savoir
 
 - Ouvrir la cloche efface ses nouveautés. Une notif Basecamp reste comptée tant qu'elle n'est pas lue
   dans Basecamp.
-- **Nouvelle version de homedash** : la cloche le dit, dans les 10 min.
+- **Nouvelle version de homedash** : la cloche le dit, dans les 10 min. Dans l'appli de bureau, la mise à
+  jour se fait d'un clic depuis la fenêtre de version.
 
 ## 💻 Appli de bureau
 
@@ -143,7 +148,10 @@ tâches). Docker reste nécessaire.
 
 #### Installer sur Windows
 
-- Le `-win-x64-setup.exe` de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest) :
+- **Le plus simple** : dans le dossier homedash, dans PowerShell,
+  `powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install`. Construite sur ton PC
+  (Docker suffit), Windows ne la bloque pas.
+- **Ou** le `-win-x64-setup.exe` de la [dernière release](https://github.com/davidgennaoui/homedash/releases/latest) :
   double-clic, c'est installé (pas besoin d'être administrateur), avec un raccourci dans le menu Démarrer.
 - Au premier lancement, Windows affiche « Windows a protégé votre ordinateur » : *Informations
   complémentaires → Exécuter quand même*.
@@ -152,7 +160,10 @@ tâches). Docker reste nécessaire.
 
 #### Bon à savoir
 
-- **Mettre à jour** homedash met aussi l'appli à jour : pas besoin de la réinstaller.
+- **Mettre à jour d'un clic** : quand une version sort, *Mettre à jour maintenant* dans la fenêtre de
+  version (en haut à droite). L'appli fait tout : `git pull`, le container, et elle-même si besoin
+  (elle se reconstruit et se relance). Une version marquée « 💻 appli requise » dans le changelog demande
+  une appli plus récente : le bouton s'en charge.
 - **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
 - **Mise en veille** : clic droit sur une icône → *Mettre en veille si inutilisé*. L'onglet libère sa
   mémoire après 5 min sans y aller.

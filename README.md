@@ -30,6 +30,23 @@ L'appli s'ouvre sur homedash. Pas d'appli voulue ? Saute les deux dernières lig
 **http://localhost:7777** dans ton navigateur. Dans Docker Desktop, coche *Start Docker Desktop when you
 sign in* : homedash redémarre alors tout seul avec le Mac.
 
+## Installation facile (Windows)
+
+Il faut **Docker Desktop** lancé, **Git**, et l'accès au repo. Ouvre **PowerShell**, va dans le dossier
+où tu ranges tes projets, puis colle tout le bloc d'un coup :
+
+```powershell
+cd $HOME                                # ou n'importe quel dossier à toi
+git clone https://github.com/davidgennaoui/homedash.git
+cd homedash
+docker compose up -d --build            # le serveur (2-3 min la première fois)
+powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (5 min)
+```
+
+L'appli s'installe dans le menu Démarrer et s'ouvre. Pas d'appli voulue ? Saute la dernière ligne et
+ouvre **http://localhost:7777** dans ton navigateur. Dans Docker Desktop, coche *Start Docker Desktop when
+you sign in*. Mise à jour : `git pull; docker compose up -d --build`.
+
 Puis **⚙ Réglages** :
 
 1. **Compte** : colle un jeton GitHub (voir ci-dessous).

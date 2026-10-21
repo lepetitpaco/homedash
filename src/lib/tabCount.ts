@@ -33,6 +33,27 @@ const PAGE_COUNTERS: { host: string; code: string }[] = [
       return [...document.querySelectorAll('link[rel*="icon"]')].some((l) => /_dot_/.test(l.href) && !/_no_dot_/.test(l.href)) ? 1 : 0
     })()`,
   },
+  {
+    // Telegram Web (K et A) : titre fixe « Telegram Web ». Le premier dossier
+    // (« All 1 ») donne le total des conversations non lues ; sans dossiers, on
+    // compte les conversations non lues hors sourdine (`is-muted` sur la ligne).
+    // Sélecteurs à surveiller : Telegram les change sans prévenir (issue #1).
+    host: 'web.telegram.org',
+    code: `(() => {
+      const n = (e) => parseInt((e.textContent || '').replace(/\\D/g, ''), 10) || 0
+      const folder = document.querySelector('.menu-horizontal-div-item .badge, #folders-tabs .badge, .ChatFolders .Tab .badge')
+      if (folder) return n(folder)
+      // comme Telegram : une conversation non lue = 1, celles en sourdine exclues
+      const unread = new Set()
+      for (const e of document.querySelectorAll(
+        '.chatlist-chat:not(.is-muted) .dialog-subtitle-badge-unread.is-visible, .Chat:not(.muted) .ChatBadge.unread',
+      ))
+        unread.add(e.closest('[data-peer-id], .chatlist-chat, .Chat'))
+      if (unread.size) return unread.size
+      const m = /\\((\\d+)\\)/.exec(document.title)
+      return m ? Number(m[1]) : 0
+    })()`,
+  },
 ]
 
 /** Code qui lit les non-lus dans la page de ce site, s'il en faut un. */

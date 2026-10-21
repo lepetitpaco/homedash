@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { CATALOG, type CatalogSite } from '../lib/catalog'
-import { hostOf, isLocal } from '../lib/customTabs'
+import { hostOf } from '../lib/customTabs'
+import { withScheme } from '../lib/url'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 import Pick from './Pick'
 
-/** `mail.google.com/x` → `https://mail.google.com/x` ; un chemin local reste tel quel. */
-const withScheme = (url: string) => {
-  const u = url.trim()
-  return !u || isLocal(u) || /^[a-z]+:\/\//i.test(u) ? u : `https://${u}`
-}
 
 /** Nom proposé d'après l'adresse (même règle que Réglages → Onglets perso). */
 const nameFrom = (url: string) =>

@@ -489,7 +489,8 @@ def pr_for_branch(repo, branch, hint=None):
             continue
         cand = {"number": pr["number"], "url": pr["html_url"],
                 "author": (pr.get("user") or {}).get("login"),
-                "merged": bool(pr.get("merged_at")), "state": pr.get("state")}
+                "merged": bool(pr.get("merged_at")), "merged_at": pr.get("merged_at"),
+                "state": pr.get("state")}
         if cand["merged"]:
             return cand                 # une PR mergée tranche, on s'arrête
         best = best or cand

@@ -14,6 +14,10 @@
   | Ajustement visible (mise en page, texte, réglage d'un comportement existant) ou correction | patch `1.6.1` |
   | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
 
+  Une version qui a besoin d'une nouvelle appli de bureau (main.js, preload.js… publiés en
+  `desktop-vA.B.C`) porte, juste sous son titre, la ligne `Appli de bureau : A.B.C` : la page l'affiche
+  et prévient ceux dont l'appli est plus ancienne.
+
   Plusieurs changements livrés ensemble = une seule version. Après le commit : `git tag -a vX.Y.Z -m
   "X.Y.Z"` puis `git push --follow-tags`.
 - Comportement visible modifié → `GUIDE.md` à jour.

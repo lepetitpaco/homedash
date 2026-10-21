@@ -279,5 +279,49 @@ class RemoteParsingTest(unittest.TestCase):
         self.assertIsNone(name)
 
 
+
+class CleanupEventsTest(unittest.TestCase):
+    """🧹 dans la cloche : seulement les branches devenues supprimables pour de bon,
+    pas les vieux merges que le scan découvre tard (issue #5)."""
+
+    def setUp(self):
+        self.recorded = []
+        self._record = localgit.events.record
+        localgit.events.record = lambda items: self.recorded.extend(items)
+        localgit._prev_removable, localgit._prev_repos = set(), set()
+        localgit._seed["done"] = True
+
+    def tearDown(self):
+        localgit.events.record = self._record
+
+    @staticmethod
+    def repo(name, *branches):
+        return {"name": name, "url": "", "branches": [
+            {"name": b, "action": {"kind": "delete", "detail": ""}, "pr": pr} for b, pr in branches]}
+
+    @staticmethod
+    def iso(seconds_ago):
+        import time
+        return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(time.time() - seconds_ago))
+
+    def test_old_merge_found_late_is_silent_recent_one_is_reported(self):
+        localgit._record_cleanup([self.repo("api")])                      # dépôt connu, rien à jeter
+        localgit._record_cleanup([self.repo(
+            "api",
+            ("fix/vieux", {"merged_at": self.iso(90 * 86400), "url": ""}),  # PR #114 d'il y a 3 mois
+            ("fix/hier", {"merged_at": self.iso(3600), "url": ""}),        # mergée il y a une heure
+            ("supprimee", None),                                           # effacée sur GitHub, sans PR
+        )])
+        titles = [e["title"] for e in self.recorded]
+        self.assertEqual(len(titles), 2, titles)
+        self.assertTrue(any("fix/hier" in t for t in titles))
+        self.assertTrue(any("supprimee" in t for t in titles))
+
+    def test_repo_seen_for_the_first_time_produces_nothing(self):
+        localgit._record_cleanup([self.repo("api")])
+        localgit._record_cleanup([self.repo("api"), self.repo("nouveau", ("x", {"merged_at": self.iso(60)}))])
+        self.assertEqual(self.recorded, [])
+
+
 if __name__ == "__main__":
     unittest.main()

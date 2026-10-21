@@ -7,6 +7,11 @@ export type Desktop = {
   platform: string
   /** Absent sur l'appli 1.0.0. `sessions` = un compte de connexion par onglet. */
   features?: string[]
+  /** Version de l'appli (≥ 1.4.0 ; absente avant). */
+  appVersion?: string
+  /** Mise à jour depuis l'appli (`update` dans features). */
+  update?: () => Promise<{ ok: boolean; reason?: string; relaunch?: boolean }>
+  onUpdateLog?: (cb: (msg: { line: string; kind: 'cmd' | 'out' | 'error' | 'done' }) => void) => () => void
   /** Nombre sur l'icône du Dock (0 = rien). */
   setBadge: (n: number) => void
   /** Adresse http(s) dans le navigateur par défaut. */

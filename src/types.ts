@@ -118,6 +118,10 @@ export type UiConfig = {
   showClock: boolean
   showTiles: boolean
   showFooter: boolean
+  /** Pastille de l'icône de l'appli (Dock, barre des tâches) : non-lus des onglets perso. */
+  badgeTabs: boolean
+  /** …et nouveautés de la cloche (CI, PRs, branches à nettoyer…). */
+  badgeBell: boolean
   searchPlaceholder: string
   /** Minutes sans y aller avant qu'un onglet perso en veille soit déchargé. */
   tabSleepMinutes: number

@@ -5,6 +5,8 @@
  */
 export const isMac = /Mac|iPhone|iPad/.test(typeof navigator === 'undefined' ? 'Mac' : navigator.platform)
 
+export const isWindows = /^Win/.test(typeof navigator === 'undefined' ? '' : navigator.platform)
+
 /** `keys('K')` → ⌘K / Ctrl+K ; `keys('R', true)` (avec Maj) → ⇧⌘R / Ctrl+Maj+R. */
 export function keys(key: string, shift = false): string {
   return isMac ? `${shift ? '⇧' : ''}⌘${key}` : `Ctrl+${shift ? 'Maj+' : ''}${key}`

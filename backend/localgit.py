@@ -10,6 +10,7 @@ proposées sont du texte à copier. C'est délibéré — un tableau de bord qui
 supprime des branches tout seul est un tableau de bord qu'on n'ose plus ouvrir.
 """
 
+import calendar
 import os
 import sys
 import threading
@@ -568,7 +569,24 @@ def _commands(entry):
 # ne mérite pas d'entrée, une branche devenue supprimable autrement (effacée sur
 # GitHub par quelqu'un d'autre) la mérite tout autant.
 _prev_removable = set()
+_prev_repos = set()
 _seed = {"done": False, "start": time.time()}
+# Une PR mergée il y a plus longtemps n'est pas une nouvelle, c'est un vieux
+# merge que le scan découvre seulement maintenant : les recherches de PR sont
+# limitées (`pr_lookups`) par passage, une branche bascule donc des heures
+# après le démarrage. Pareil pour un dépôt jamais vu (nouveau dossier).
+RECENT_MERGE = 2 * 86400
+
+def _old_merge(pr, now=None):
+    """Vrai si la PR a été mergée il y a plus de RECENT_MERGE."""
+    raw = (pr or {}).get("merged_at")
+    if not raw:
+        return False
+    try:
+        ts = calendar.timegm(time.strptime(raw.replace("Z", ""), "%Y-%m-%dT%H:%M:%S"))
+    except (ValueError, OverflowError):
+        return False
+    return (now or time.time()) - ts > RECENT_MERGE
 
 def _removable(repos):
     """{(dépôt, branche): (dépôt, branche)} — les « 🗑 à supprimer » du moment."""
@@ -577,8 +595,9 @@ def _removable(repos):
             for b in r["branches"] if b["action"]["kind"] == "delete"}
 
 def _record_cleanup(repos):
-    global _prev_removable
+    global _prev_removable, _prev_repos
     current = _removable(repos)
+    seen_repos, _prev_repos = _prev_repos, {r["name"] for r in repos if not r.get("error")}
 
     # Amorçage. Tant que GitHub n'a pas répondu, les verdicts reposent sur les
     # seuls `refs/remotes` locaux : sa première réponse en bascule un paquet d'un
@@ -597,6 +616,8 @@ def _record_cleanup(repos):
     out = []
     for repo, b in fresh:
         pr = b.get("pr") or {}
+        if repo["name"] not in seen_repos or _old_merge(pr):
+            continue
         out.append(events.event(
             "local-cleanup", "warn", "local",
             f"🧹 {repo['name']} — {b['name']} est mergée",

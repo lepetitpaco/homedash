@@ -14,6 +14,7 @@ au serveur.
 """
 
 import re
+import sys
 import threading
 import time
 import urllib.error
@@ -52,7 +53,14 @@ def _download(url):
         with _open(req) as r:
             ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
             body = r.read(MAX_SIZE + 1)
-    except (urllib.error.URLError, OSError, ValueError):
+    except (urllib.error.URLError, OSError, ValueError) as e:
+        # Visible dans `docker logs` : un réseau filtré ou un proxy d'entreprise
+        # se voit ici (la page passe alors par le navigateur, cf. SiteIcon).
+        # Une fois par hôte et par heure : le cache retient l'échec (FAIL_TTL).
+        if isinstance(e, urllib.error.HTTPError):
+            return None, ""             # le service ne connaît pas le site : normal
+        host = urllib.parse.urlsplit(url).hostname or url
+        print(f"⚠ favicon indisponible via {host} : {getattr(e, 'reason', e)}", file=sys.stderr, flush=True)
         return None, ""
     if not ctype.startswith("image/") or not body or len(body) > MAX_SIZE:
         return None, ""

@@ -15,6 +15,7 @@
 const { app, BrowserWindow, Menu, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
+const { runUpdate } = require('./updater')
 
 // Session commune des webviews : une connexion Google vaut pour Gmail et pour
 // Chat, et survit au redémarrage de l'appli. Un onglet peut en demander une à
@@ -421,6 +422,30 @@ ipcMain.on('homedash:guest', (e, msg) => {
   else if (action === 'reload') g.reload()
   else if (action === 'copyImage') g.copyImageAt(Number(x) || 0, Number(y) || 0)
   else g[action]()
+})
+
+// Version de l'appli (la page compare avec celle que demande le changelog).
+ipcMain.on('homedash:app-version', (e) => {
+  e.returnValue = fromHome(e) ? app.getVersion() : ''
+})
+
+// Bouton « Mettre à jour maintenant » du changelog : updater.js, qui demande
+// confirmation. La page ne choisit rien d'autre que de le demander.
+ipcMain.handle('homedash:update', async (e) => {
+  if (!fromHome(e)) return { ok: false, reason: 'refusé' }
+  let serverDir = ''
+  try {
+    serverDir = (await (await fetch(`${HOME}/api/changelog`, { cache: 'no-store' })).json()).dir || ''
+  } catch {
+    /* serveur injoignable : on demandera le dossier */
+  }
+  return runUpdate({
+    win,
+    home: HOME,
+    serverDir,
+    settings: { read: readSettings, write: writeSettings },
+    send: (msg) => win?.webContents.send('homedash:update-log', msg),
+  })
 })
 
 ipcMain.on('homedash:open', (e, url) => {
