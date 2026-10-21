@@ -96,6 +96,13 @@ export function navKey(e: KeyboardEvent): 'back' | 'forward' | null {
   return null
 }
 
+/**
+ * Onglets sur le point d'être mis en veille (détail : leurs clés) : leur site
+ * passe sur une page vide, ce qui le ferme proprement (Discord y enregistre sa
+ * connexion), avant que la webview soit retirée.
+ */
+export const UNLOAD_TAB = 'homedash:unload-tab'
+
 /** `<webview>` d'Electron : ce dont la page se sert. */
 export type WebviewEl = HTMLElement & {
   reload: () => void

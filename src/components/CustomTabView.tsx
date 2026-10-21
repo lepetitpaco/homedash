@@ -7,6 +7,7 @@ import {
   OPEN_IN_TAB,
   partitionOf,
   RELOAD_TAB,
+  UNLOAD_TAB,
   type OpenInTab,
   type WebviewEl,
 } from '../lib/desktop'
@@ -260,9 +261,15 @@ export default function CustomTabView({
       if (d.key === key && view.current) void view.current.loadURL(d.url)
     }
     window.addEventListener(OPEN_IN_TAB, open)
+    // Mise en veille imminente : fermer le site proprement (voir UNLOAD_TAB).
+    const unload = (e: Event) => {
+      if ((e as CustomEvent<string[]>).detail.includes(key)) void view.current?.loadURL('about:blank').catch(() => undefined)
+    }
+    window.addEventListener(UNLOAD_TAB, unload)
     return () => {
       window.removeEventListener(RELOAD_TAB, on)
       window.removeEventListener(OPEN_IN_TAB, open)
+      window.removeEventListener(UNLOAD_TAB, unload)
     }
   }, [key])
   // Dans l'appli : l'adresse où l'on est arrivé, pas celle de départ.

@@ -4,6 +4,16 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.23.1 — 2026-10-21
+
+Appli de bureau : 1.5.4
+
+- **Discord (et les autres) ne déconnectent plus après un rechargement** : avant de recharger homedash,
+  de quitter, de se relancer après une mise à jour ou de mettre un onglet en veille, l'appli ferme
+  proprement chaque site, comme un navigateur ferme ses onglets. Discord n'enregistre sa connexion qu'à
+  ce moment-là : détruit net, il la perdait.
+- Discord reçoit de nouveau l'identité de Chrome (il se croyait sinon dans sa propre appli).
+
 ## 1.23.0 — 2026-10-21
 
 Appli de bureau : 1.5.2

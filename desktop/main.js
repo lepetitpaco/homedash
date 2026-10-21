@@ -103,15 +103,19 @@ function chromeUA(ua) {
 }
 
 /**
- * Sites Google (et YouTube, qui se connecte par Google) : les seuls à recevoir
- * l'UA de Chrome. Partout ailleurs l'appli se présente telle qu'elle est :
- * l'UA maquillé ne collait pas au reste du navigateur, et l'anti-robots de
- * Cloudflare (Turnstile) refusait alors tout captcha, même coché à la main.
+ * Sites qui exigent l'UA de Chrome, les seuls à le recevoir :
+ *  · Google (et YouTube, qui se connecte par Google) refuse sa page de
+ *    connexion aux navigateurs embarqués ;
+ *  · Discord, voyant « Electron », se croit dans sa propre appli de bureau et
+ *    range son jeton ailleurs : déconnecté à chaque rechargement.
+ * Partout ailleurs l'appli se présente telle qu'elle est : l'UA maquillé ne
+ * collait pas au reste du navigateur, et l'anti-robots de Cloudflare
+ * (Turnstile) refusait alors tout captcha, même coché à la main.
  */
-const GOOGLE = /(^|\.)(google\.[a-z.]+|youtube\.com|gmail\.com|googleusercontent\.com|gstatic\.com)$/i
-const isGoogle = (url) => {
+const CHROME_ONLY = /(^|\.)(google\.[a-z.]+|youtube\.com|gmail\.com|googleusercontent\.com|gstatic\.com|discord\.com|discordapp\.com|discord\.gg)$/i
+const needsChrome = (url) => {
   try {
-    return GOOGLE.test(new URL(url).hostname)
+    return CHROME_ONLY.test(new URL(url).hostname)
   } catch {
     return false
   }
@@ -198,11 +202,18 @@ function createWindow() {
   win.on('move', remember)
 
   // macOS : fermer la fenêtre la cache, l'appli continue (pastilles du Dock à jour).
+  let closing = false
   win.on('close', (e) => {
     if (process.platform === 'darwin' && !quitting) {
       e.preventDefault()
       win.hide()
+      return
     }
+    // Ailleurs, fermer la fenêtre détruit les sites : fermés proprement d'abord.
+    if (closing) return
+    e.preventDefault()
+    closing = true
+    void unloadGuests().finally(() => win?.close())
   })
 
   const wc = win.webContents
@@ -311,7 +322,7 @@ function setupTabsSession(partition) {
   const chrome = chromeUA(honest)
   tabSessions.set(s, { honest, chrome })
   s.webRequest.onBeforeSendHeaders((details, done) => {
-    if (isGoogle(details.url)) details.requestHeaders['User-Agent'] = chrome
+    if (needsChrome(details.url)) details.requestHeaders['User-Agent'] = chrome
     done({ requestHeaders: details.requestHeaders })
   })
   // Notifications de Gmail / Chat, presse-papiers, caméra et micro (Meet) : à
@@ -370,7 +381,7 @@ function setupMenu() {
         {
           label: 'Recharger homedash',
           accelerator: 'CmdOrCtrl+R',
-          click: () => win?.webContents.reloadIgnoringCache(),
+          click: () => void reloadHome(),
         },
         // ⇧⌘R : seulement le site ouvert ; la page sait lequel (preload.js).
         {
@@ -571,6 +582,7 @@ async function startUpdate(force) {
   return runUpdate({
     win,
     home: HOME,
+    reloadHome,
     serverDir,
     force,
     settings: { read: readSettings, write: writeSettings },
@@ -714,13 +726,35 @@ function watchSpikes() {
 }
 
 // ── Cycle de vie ────────────────────────────────────────────────────────────
+/**
+ * Ferme proprement les sites des onglets avant de les détruire (rechargement de
+ * homedash, fermeture de l'appli, relance après mise à jour) : leurs
+ * `beforeunload` / `unload` s'exécutent. Discord, par exemple, n'écrit son jeton
+ * de connexion qu'à ce moment-là ; détruit net, il redemandait la connexion.
+ * `ms` : le temps laissé au plus lent.
+ */
+async function unloadGuests(ms = 1500) {
+  const open = [...guests].map((id) => webContents.fromId(id)).filter((w) => w && !w.isDestroyed())
+  if (!open.length) return
+  await Promise.race([
+    Promise.all(open.map((w) => w.loadURL('about:blank').catch(() => undefined))),
+    new Promise((r) => setTimeout(r, ms)),
+  ])
+}
+
+/** Recharger homedash (⌘R, après une mise à jour) : les sites fermés proprement d'abord. */
+async function reloadHome() {
+  await unloadGuests()
+  win?.webContents.reloadIgnoringCache()
+}
+
 // Page d'un onglet (webview, ou fenêtre de connexion qu'il ouvre) : son
 // navigator.userAgent suit le site affiché, comme les en-têtes ci-dessus.
 app.on('web-contents-created', (_e, wc) => {
   wc.on('did-start-navigation', (details) => {
     const ua = tabSessions.get(wc.session)
     if (!ua || !details.isMainFrame || details.isSameDocument) return
-    const want = isGoogle(details.url) ? ua.chrome : ua.honest
+    const want = needsChrome(details.url) ? ua.chrome : ua.honest
     if (wc.getUserAgent() !== want) wc.setUserAgent(want)
   })
 })
@@ -734,9 +768,17 @@ if (!app.requestSingleInstanceLock()) {
     win.show()
     win.focus()
   })
-  app.on('before-quit', () => {
+  // Quitter : les sites d'abord fermés proprement (voir unloadGuests), puis on quitte pour de bon.
+  let unloaded = false
+  app.on('before-quit', (e) => {
     quitting = true
+    if (unloaded) return
+    e.preventDefault()
     postPerf({ kind: 'event', event: 'quit' })
+    void unloadGuests().finally(() => {
+      unloaded = true
+      app.quit()
+    })
   })
   app.on('activate', () => {
     if (win) win.show()

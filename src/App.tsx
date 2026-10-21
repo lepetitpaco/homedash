@@ -49,7 +49,7 @@ import {
   tabKey,
 } from './lib/customTabs'
 import { perfEvent, setPerfLog } from './lib/perf'
-import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, RELOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
+import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, RELOAD_TAB, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -122,6 +122,8 @@ export default function App() {
   // ── mise en veille ──────────────────────────────────────────────────────
   // Onglets déchargés (webview démontée, mémoire rendue) ; rechargés au clic.
   const [asleep, setAsleep] = useState<string[]>([])
+  const asleepRef = useRef(asleep)
+  asleepRef.current = asleep
   const lastSeen = useRef(new Map<string, number>())
   const startedAt = useRef(Date.now())
   // Webview → onglet : de quel onglet vient un lien ou un clic droit (appli de bureau).
@@ -382,15 +384,23 @@ export default function App() {
         .filter((t) => t.sleep && t.embed && tabKey(t) !== tabRef.current)
         .map((t) => tabKey(t))
         .filter((k) => now - (lastSeen.current.get(k) ?? startedAt.current) > sleepMinutes * 60_000)
-      if (!due.length) return
-      setAsleep((a) => {
-        const add = due.filter((k) => !a.includes(k))
-        if (add.length)
-          perfEvent('sleep', {
-            tabs: allTabsRef.current.filter((t) => add.includes(tabKey(t))).map((t) => t.label),
-          })
-        return add.length ? [...a, ...add] : a
-      })
+      const fresh = due.filter((k) => !asleepRef.current.includes(k))
+      if (!fresh.length) return
+      // Fermés proprement d'abord (Discord n'enregistre sa connexion qu'à la
+      // fermeture de sa page), puis déchargés.
+      window.dispatchEvent(new CustomEvent<string[]>(UNLOAD_TAB, { detail: fresh }))
+      window.setTimeout(
+        () =>
+          setAsleep((a) => {
+            const add = fresh.filter((k) => !a.includes(k) && k !== tabRef.current)
+            if (add.length)
+              perfEvent('sleep', {
+                tabs: allTabsRef.current.filter((t) => add.includes(tabKey(t))).map((t) => t.label),
+              })
+            return add.length ? [...a, ...add] : a
+          }),
+        1500,
+      )
     }, 30_000)
     return () => window.clearInterval(id)
   }, [sleepMinutes])

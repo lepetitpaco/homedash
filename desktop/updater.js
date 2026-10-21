@@ -110,7 +110,8 @@ function swapAndRelaunch(dir, version, log) {
     spawn('/bin/sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref()
   }
   log("L'appli se ferme, se remplace et se relance…", 'done')
-  setTimeout(() => app.exit(0), 1200)
+  // quit (pas exit) : les sites se ferment proprement avant (main.js, before-quit)
+  setTimeout(() => app.quit(), 1200)
 }
 
 /**
@@ -119,7 +120,7 @@ function swapAndRelaunch(dir, version, log) {
  * mise à jour ») : l'appli se reconstruit même sans nouvelle version, pour
  * dépanner une installation abîmée.
  */
-async function runUpdate({ win, home, serverDir, settings, send, force = false }) {
+async function runUpdate({ win, home, serverDir, settings, send, reloadHome, force = false }) {
   const log = (line, kind = 'out') => send({ line, kind })
   if (running) return { ok: false, reason: 'déjà en cours' }
   const dir = await projectDir(win, serverDir, settings)
@@ -161,7 +162,7 @@ async function runUpdate({ win, home, serverDir, settings, send, force = false }
     }
     if (!app.isPackaged || !shell || (!force && !newer(shell, app.getVersion()))) {
       log('Rechargement de la page…', 'done')
-      setTimeout(() => win?.webContents.reloadIgnoringCache(), 1500)
+      setTimeout(() => void reloadHome(), 1500)
       return { ok: true }
     }
 
@@ -175,7 +176,7 @@ async function runUpdate({ win, home, serverDir, settings, send, force = false }
       : 'sh desktop/build-local.sh'
     if ((await sh(build, dir, log)) !== 0) {
       log("La reconstruction de l'appli a échoué : homedash est à jour, l'appli garde son ancienne version.", 'error')
-      setTimeout(() => win?.webContents.reloadIgnoringCache(), 3000)
+      setTimeout(() => void reloadHome(), 3000)
       return { ok: false, reason: 'build' }
     }
     swapAndRelaunch(dir, shell, log)
