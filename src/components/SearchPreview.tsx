@@ -125,7 +125,7 @@ function RepoPreview(props: Props & { hit: Extract<Hit, { kind: 'repo' }> }) {
   const clone = repos?.cloneTemplate ? template(repos.cloneTemplate, vars) : null
   const opened = counts[`repo:${owner}/${repo.name}`] ?? 0
   // Le même repo cloné sur le disque : sa carte réunit les deux côtés.
-  const onDisk = props.local?.repos.find(
+  const onDisk = props.local?.repos?.find(
     (r) => (r.repo ?? r.name).toLowerCase() === repo.name.toLowerCase(),
   )
   return (

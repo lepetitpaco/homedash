@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.23.2 — 2026-10-21
+
+- **L'onglet Local ne fait plus disparaître la page** quand aucun dossier de dépôts n'est choisi : il
+  explique quoi faire (*Réglages → Dépôts locaux*) et la barre d'onglets, la cloche et les menus restent
+  là. Même correction pour la recherche, qui pouvait planter de la même façon.
+
 ## 1.23.1 — 2026-10-21
 
 Appli de bureau : 1.5.4

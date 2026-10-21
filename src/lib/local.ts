@@ -119,7 +119,8 @@ export type LocalData = {
   github_linked: boolean
   /** Dossiers parcourus, tels qu'affichés (`~/dev/projects`). */
   roots?: string[]
-  repos: LocalRepo[]
+  /** Absent quand `enabled` est faux (aucun dossier configuré). */
+  repos?: LocalRepo[]
   /** Commandes qui valent pour l'ensemble des dépôts. */
   global_commands: LocalCommand[]
   totals: {

@@ -329,7 +329,7 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings, c
 
   const repos = useMemo(() => {
     if (!data) return []
-    const here = data.repos.filter((r) => inRoot(r, activeRoot))
+    const here = (data.repos ?? []).filter((r) => inRoot(r, activeRoot))
     return onlyTodo ? here.filter((r) => r.branches.some((b) => !isCalm(b)) || r.error) : here
   }, [data, onlyTodo, activeRoot])
 
