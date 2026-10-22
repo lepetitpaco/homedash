@@ -537,29 +537,26 @@ def _commands(entry):
         })
 
     head = next((b for b in entry["branches"] if b["current"]), None)
-    if head and head["behind_default"]:
-        # Ce qui départage merge et rebase n'est pas la protection de la branche
-        # mais la publication de son historique : rebaser des commits déjà poussés
-        # les réécrit, et le push suivant part en non-fast-forward — il réclame
-        # alors un --force-with-lease que cette page ne proposera pas.
-        # Même faisceau de traces que `_verdict`, cf. `pushed_once`.
-        publiee = head["remote_ref"] or bool(head["upstream"]) or bool(head.get("pr"))
-        if head["protected"] or publiee:
-            out.append({
-                "id": "merge", "label": f"Rattraper origin/{default}",
-                "cmd": f"{cd} && git fetch origin && git merge origin/{default}",
-                "hint": f"{head['behind_default']} commit(s) de retard sur le distant"
-                        + ("" if head["protected"] else
-                           f" — merge et non rebase : {head['name']} est déjà poussée, "
-                           "la rebaser imposerait un push forcé"),
-            })
-        else:
-            out.append({
-                "id": "rebase", "label": f"Rebaser sur origin/{default}",
-                "cmd": f"{cd} && git fetch origin && git rebase origin/{default}",
-                "hint": f"{head['name']} a {head['behind_default']} commit(s) de retard sur "
-                        f"origin/{default} — jamais poussée, la réécriture ne coûte rien",
-            })
+    if head and head["push_behind"] and not head["push_ahead"]:
+        # Seulement en retard : le pull avance la branche sans commit de merge.
+        # Divergée, un `git pull` sans réglage refuse de choisir : rien de proposé.
+        # Sans amont configuré, `git pull` seul ne sait pas quoi tirer.
+        pull = "git pull" if head["upstream"] else f"git pull origin {_quote(head['name'])}"
+        out.append({
+            "id": "pull", "label": f"Tirer origin/{head['name']}",
+            "cmd": f"{cd} && {pull}",
+            "hint": f"{head['push_behind']} commit(s) poussé(s) sur origin/{head['name']} "
+                    "qui ne sont pas encore ici",
+        })
+    if head and head["name"] != default and head["behind_default"]:
+        # Merge et non rebase, même pour une branche jamais poussée : rien n'est
+        # réécrit, et les conflits se règlent une fois au lieu de commit par commit.
+        out.append({
+            "id": "merge", "label": f"Rattraper origin/{default}",
+            "cmd": f"{cd} && git fetch origin && git merge origin/{default}",
+            "hint": f"{head['name']} a {head['behind_default']} commit(s) de retard sur "
+                    f"origin/{default}",
+        })
     return out
 
 # ── Journal : une branche locale devenue supprimable ─────────────────────────
