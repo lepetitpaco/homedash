@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.23.5 — 2026-10-22
+
+- **Onglet Local : `git pull` quand ta branche est en retard** sur sa version en ligne, main/master
+  compris (on te proposait un merge sur main).
+- **Rattraper main/master depuis une branche, c'est toujours fetch + merge** : le rebase proposé aux
+  branches jamais poussées disparaît.
+
 ## 1.23.4 — 2026-10-21
 
 Appli de bureau : 1.5.5

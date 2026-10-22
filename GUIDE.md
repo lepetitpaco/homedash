@@ -136,6 +136,9 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 #### Bon à savoir
 
 - **Rien n'est exécuté** : les commandes proposées (`git branch -d …`) sont à copier et lancer toi-même.
+- **Branche courante pas à jour** : en retard sur sa version en ligne → `git pull` ; sur une autre
+  branche que main/master, main a avancé → `git fetch origin && git merge origin/main`. Les deux à la
+  fois : le pull d'abord.
 - Plusieurs comptes GitHub : choisis lequel afficher en haut de l'onglet.
 
 ## 🏕 Basecamp

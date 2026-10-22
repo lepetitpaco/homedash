@@ -244,25 +244,44 @@ class CommandsTest(unittest.TestCase):
         self.assertEqual(localgit._shell_path("~/dev/projet"), "~/dev/projet")
         self.assertEqual(localgit._shell_path("~/mes projets/x"), '"~/mes projets/x"')
 
-    def test_rebase_only_for_never_pushed_head(self):
+    def test_default_branch_behind_is_pulled_not_merged(self):
+        e = self.entry(branch(name="main", protected=True, current=True, ahead_default=0,
+                              behind_default=3, on_github=True, remote_ref=True,
+                              upstream="origin/main", push_ahead=0, push_behind=3))
+        cmds = self.by_id(localgit._commands(e))
+        self.assertEqual(cmds["pull"]["cmd"], "cd ~/dev/projet && git pull")
+        self.assertNotIn("merge", cmds)
+
+    def test_pull_names_the_branch_without_upstream(self):
+        e = self.entry(branch(name="feat", current=True, ahead_default=0, on_github=True,
+                              remote_ref=True, push_ahead=0, push_behind=2))
+        self.assertIn("git pull origin feat", self.by_id(localgit._commands(e))["pull"]["cmd"])
+
+    def test_no_pull_when_diverged(self):
+        e = self.entry(branch(name="feat", current=True, on_github=True, remote_ref=True,
+                              upstream="origin/feat", push_ahead=1, push_behind=2))
+        self.assertNotIn("pull", self.by_id(localgit._commands(e)))
+
+    def test_merge_even_for_never_pushed_head(self):
         e = self.entry(branch(name="wip", current=True, ahead_default=1,
                               behind_default=3, on_github=False))
         cmds = self.by_id(localgit._commands(e))
-        self.assertIn("rebase", cmds)
-        self.assertNotIn("merge", cmds)
+        self.assertIn("git fetch origin && git merge origin/main", cmds["merge"]["cmd"])
+        self.assertNotIn("rebase", cmds)
 
     def test_merge_for_pushed_head(self):
         e = self.entry(branch(name="feat", current=True, ahead_default=1, behind_default=3,
                               on_github=True, remote_ref=True, push_ahead=0, push_behind=0))
         cmds = self.by_id(localgit._commands(e))
         self.assertIn("merge", cmds)
-        self.assertNotIn("rebase", cmds)
+        self.assertNotIn("pull", cmds)
 
-    def test_merge_for_head_pushed_then_pruned(self):
-        # Même faisceau que `_verdict` : l'amont configuré suffit à dire « publiée ».
+    def test_pull_then_merge_when_behind_both(self):
         e = self.entry(branch(name="feat", current=True, ahead_default=1, behind_default=3,
-                              on_github=False, upstream="origin/feat"))
-        self.assertIn("merge", self.by_id(localgit._commands(e)))
+                              on_github=True, remote_ref=True, upstream="origin/feat",
+                              push_ahead=0, push_behind=2))
+        ids = [c["id"] for c in localgit._commands(e)]
+        self.assertLess(ids.index("pull"), ids.index("merge"))
 
 
 class RemoteParsingTest(unittest.TestCase):
