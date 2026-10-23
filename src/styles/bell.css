@@ -128,3 +128,22 @@
 .bell-head .bell-link {
   white-space: nowrap;
 }
+
+/* Notif Basecamp encore non lue dans Basecamp (issue #41) : en tête, marquée. */
+.ev-row.is-unread .ev-title {
+  font-weight: 600;
+}
+.ev-unread {
+  margin-left: 0.45rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--sig-info) 45%, transparent);
+  color: var(--sig-info);
+  font-size: 0.68rem;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.bell-more {
+  display: block;
+  margin: 0.5rem auto 0.3rem;
+}

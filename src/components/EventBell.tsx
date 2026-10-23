@@ -18,7 +18,7 @@ const BC_ICON: Record<string, string> = {
   bubbles: '🫧',
 }
 
-type Filter = 'all' | 'activity' | 'basecamp'
+type Filter = 'all' | 'code' | 'basecamp'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'non supportées par ce navigateur',
@@ -30,11 +30,13 @@ const NOTIF_LABEL: Record<NotifState, string> = {
 }
 
 /**
- * Une seule cloche pour tout : le journal de homedash (CI, PRs, Local…) et les
- * notifications Basecamp non lues, avec un filtre en tête quand Basecamp est
- * connecté. La pastille additionne les deux. Ouvrir efface les nouveautés du
- * journal ; une notif Basecamp, elle, reste comptée tant qu'elle n'est pas lue
- * dans Basecamp (lecture seule : on ne la marque jamais).
+ * Une seule cloche pour tout, une seule liste : en tête les notifications
+ * Basecamp non lues (en direct), puis le journal de homedash (CI, PRs, Local…
+ * et les notifs Basecamp passées, qui restent une fois lues : issue #41). Filtres
+ * Tout · GitHub & Local · Basecamp quand Basecamp est connecté. La pastille
+ * additionne les deux. Ouvrir efface les nouveautés du journal ; une notif
+ * Basecamp, elle, reste comptée tant qu'elle n'est pas lue dans Basecamp
+ * (lecture seule : on ne la marque jamais).
  *
  * Cloche de la barre du haut : le journal n'est pas un endroit où l'on travaille,
  * c'est un fil qu'on consulte quand la pastille s'allume, puis on revient à ce
@@ -97,7 +99,16 @@ export default function EventBell({
   useDismiss(open, wrap, close)
 
   const multiAccount = new Set(events.map((ev) => ev.account).filter(Boolean)).size > 1
-  const shown = events.slice(0, SHOWN)
+  // Une notif encore non lue est en tête : sa ligne du journal ne la répète pas.
+  const unreadTags = new Set((bc?.unreads ?? []).map((n) => `bc:notif:${n.id}`))
+  const journal = events.filter(
+    (e) =>
+      !unreadTags.has(e.tag) &&
+      (filter === 'all' || (filter === 'basecamp') === (e.source === 'basecamp')),
+  )
+  const shown = journal.slice(0, SHOWN)
+  const unreads = bc && filter !== 'code' ? bc.unreads : []
+  const codeFresh = events.filter((e) => e.seq > mark && e.source !== 'basecamp').length
   const blocked = notif === 'unsupported' || notif === 'insecure' || notif === 'denied'
   const go = (fn: () => void) => () => {
     setOpen(false)
@@ -130,7 +141,7 @@ export default function EventBell({
                 {(
                   [
                     ['all', 'Tout'],
-                    ['activity', `Activité${unseen ? ` · ${unseen}` : ''}`],
+                    ['code', `GitHub & Local${codeFresh ? ` · ${codeFresh}` : ''}`],
                     ['basecamp', `🏕 Basecamp${bcUnread ? ` · ${bcUnread}` : ''}`],
                   ] as const
                 ).map(([id, label]) => (
@@ -171,54 +182,52 @@ export default function EventBell({
           </div>
 
           <div className="bell-list">
-            {bc && filter !== 'activity' ? (
-              <>
-                <div className="bell-section">
-                  🏕 Basecamp · {bcUnread ? `${bcUnread} non lue(s)` : 'rien de non lu'}
-                  <span className="set-spacer" />
-                  {onOpenBasecamp ? (
-                    <button className="bell-link" onClick={go(onOpenBasecamp)}>
-                      Mes tâches →
-                    </button>
-                  ) : null}
-                </div>
-                {bc.error ? <p className="gh-empty">⚠ {bc.error}</p> : null}
-                {bc.unreads.map((n) => (
-                  <a
-                    key={n.id}
-                    className="ev-row is-info"
-                    href={n.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    title={n.excerpt || n.title}
-                    onClick={() => setOpen(false)}
-                  >
-                    <time className="ev-time">{n.ts ? agoShort(n.ts).replace('il y a ', '') : ''}</time>
-                    <div className="ev-main">
-                      <div className="ev-title">
-                        <span aria-hidden="true">{BC_ICON[n.section] ?? '🔔'} </span>
-                        {n.title}
-                        {n.unread_count > 1 ? <span className="bc-notif-count"> · {n.unread_count}</span> : null}
-                      </div>
-                      <div className="ev-body">
-                        {[n.project, n.creator && n.excerpt ? `${n.creator} — ${n.excerpt}` : n.creator || n.excerpt]
-                          .filter(Boolean)
-                          .join(' · ')}
-                      </div>
-                    </div>
-                  </a>
-                ))}
-                {filter === 'all' ? <div className="bell-section">Activité</div> : null}
-              </>
+            {filter === 'basecamp' && onOpenBasecamp ? (
+              <div className="bell-section">
+                🏕 Basecamp
+                <span className="set-spacer" />
+                <button className="bell-link" onClick={go(onOpenBasecamp)}>
+                  Mes tâches →
+                </button>
+              </div>
             ) : null}
-            {filter !== 'basecamp' && error ? <p className="gh-empty">✗ journal illisible : {error}</p> : null}
-            {filter !== 'basecamp' && events.length === 0 && !error ? (
+            {bc?.error && filter !== 'code' ? <p className="gh-empty">⚠ {bc.error}</p> : null}
+            {unreads.map((n) => (
+              <a
+                key={n.id}
+                className="ev-row is-info is-unread"
+                href={n.url}
+                target="_blank"
+                rel="noreferrer"
+                title={n.excerpt || n.title}
+                onClick={() => setOpen(false)}
+              >
+                <time className="ev-time">{n.ts ? agoShort(n.ts).replace('il y a ', '') : ''}</time>
+                <div className="ev-main">
+                  <div className="ev-title">
+                    <span aria-hidden="true">{BC_ICON[n.section] ?? '🏕'} </span>
+                    {n.title}
+                    {n.unread_count > 1 ? <span className="bc-notif-count"> · {n.unread_count}</span> : null}
+                    <span className="ev-unread">non lue</span>
+                  </div>
+                  <div className="ev-body">
+                    {[n.project, n.creator && n.excerpt ? `${n.creator} — ${n.excerpt}` : n.creator || n.excerpt]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
+                </div>
+              </a>
+            ))}
+            {unreads.length && shown.length ? <div className="bell-section">Déjà vues</div> : null}
+            {error ? <p className="gh-empty">✗ journal illisible : {error}</p> : null}
+            {!unreads.length && !shown.length && !error ? (
               <p className="gh-empty">
-                Rien pour l'instant : CI qui casse ou repasse au vert, PR mergée, Renovate publiée,
-                branche locale devenue inutile arriveront ici.
+                {filter === 'basecamp'
+                  ? 'Rien pour l’instant : les notifications Basecamp arriveront ici, et y resteront une fois lues.'
+                  : 'Rien pour l’instant : CI qui casse ou repasse au vert, PR mergée, Renovate publiée, branche locale devenue inutile arriveront ici.'}
               </p>
             ) : null}
-            {(filter === 'basecamp' ? [] : shown).map((e) => (
+            {shown.map((e) => (
               <EventRow
                 key={e.seq}
                 event={e}
@@ -231,6 +240,11 @@ export default function EventBell({
                 }}
               />
             ))}
+            {journal.length > SHOWN ? (
+              <button className="bell-link bell-more" onClick={go(onShowAll)}>
+                {journal.length - SHOWN} de plus : tout voir →
+              </button>
+            ) : null}
           </div>
 
           <div className="bell-foot">

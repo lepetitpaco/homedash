@@ -116,7 +116,10 @@ version).
 
 #### Comment faire
 
-- **Voir** : clic sur la cloche ; *Tout voir* ouvre l'historique.
+- **Voir** : clic sur la cloche ; *Tout voir* ouvre l'historique. Une seule liste, la plus récente en
+  haut ; filtres *Tout*, *GitHub & Local*, *Basecamp*.
+- **Notifs Basecamp** : les non lues en tête (« non lue »), puis celles déjà vues, qui **restent** une
+  fois lues dans Basecamp : tu peux y revenir.
 - **Tout actualiser** : ⟳ à côté de la cloche relit GitHub, Basecamp, tes dépôts, la cloche et les
   non-lus de tes sites (ceux en veille sont réveillés).
 - **Notifications du système** : *activer* en bas de la cloche (coupées au départ).
@@ -128,6 +131,8 @@ version).
 
 - Ouvrir la cloche efface ses nouveautés. Une notif Basecamp reste comptée tant qu'elle n'est pas lue
   dans Basecamp.
+- **🧹 Branche mergée** : annoncée une seule fois, en une ligne même si elle est dans plusieurs dépôts ;
+  un clic ouvre l'onglet Local et sa commande.
 - **Rien sur l'icône du Dock ?** macOS l'affiche seulement si *Pastilles de l'app* est activé pour
   homedash : *Réglages → Notifications → ouvrir les réglages de notifications du Mac*.
 
