@@ -61,8 +61,10 @@ const SECTIONS = [
   { id: 'set-ghtab', icon: '🐙', label: 'Onglet GitHub', group: 'GitHub' },
   { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
-  { id: 'set-tabs', icon: '🗂', label: 'Onglets perso', group: 'La page' },
-  { id: 'set-display', icon: '🎛', label: 'Affichage & notifications', group: 'La page' },
+  { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
+  { id: 'set-links', icon: '🔗', label: 'Liens & onglets', group: 'La page' },
+  { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
+  { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
 ] as const
 
@@ -88,6 +90,8 @@ const limitOf = (key: string) => SIZE_LIMITS.find(([k]) => k === key)
 /** Réglages numériques de « Affichage » : ce que chacun change, en une phrase. */
 const DISPLAY_FIELDS: {
   title: string
+  icon: string
+  hint: string
   fields: {
     key: 'maxTiles' | 'linkWidth' | 'railWidth' | 'sidebarWidth' | 'healthcheckInterval' | 'pageWidth' | 'cardColumns' | 'cardWidth'
     label: string
@@ -97,6 +101,8 @@ const DISPLAY_FIELDS: {
 }[] = [
   {
     title: 'Onglet Raccourcis',
+    icon: '🔗',
+    hint: 'Tailles et rythme de l’accueil. Vide = la valeur par défaut.',
     fields: [
       { key: 'maxTiles', label: 'Tuiles « les plus utilisés »', hint: 'nombre de liens dans la rangée des plus cliqués' },
       { key: 'linkWidth', label: 'Largeur d’un lien', unit: 'px', hint: 'plus petit = plus de liens par ligne' },
@@ -107,6 +113,8 @@ const DISPLAY_FIELDS: {
   },
   {
     title: 'Mise en page',
+    icon: '📐',
+    hint: 'Largeur de la page et des cartes GitHub / Local.',
     fields: [
       { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran ; jamais moins de 1 400 px' },
       { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
@@ -114,6 +122,24 @@ const DISPLAY_FIELDS: {
     ],
   },
 ]
+
+/** Une partie d'une carte de réglages : icône, titre et une phrase qui dit à quoi elle sert. */
+function Block({ icon, title, hint, children }: { icon: string; title: string; hint?: string; children: ReactNode }) {
+  return (
+    <section className="set-block">
+      <header>
+        <span className="set-block-icon" aria-hidden="true">
+          {icon}
+        </span>
+        <div>
+          <h3>{title}</h3>
+          {hint ? <p>{hint}</p> : null}
+        </div>
+      </header>
+      {children}
+    </section>
+  )
+}
 
 function Card({ id, icon, title, children }: { id: string; icon: string; title: string; children: ReactNode }) {
   return (
@@ -295,7 +321,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [active, draft])
   const help = guide?.find((p) => p.id === guidePart) ?? guide?.[0]
-  // ＋ de la barre de gauche ou « Modifier… », Réglages déjà ouvert : Onglets perso
+  // ＋ de la barre de gauche ou « Modifier… », Réglages déjà ouvert : Mes sites
   // (SetTabs crée l'onglet, ou ouvre son éditeur).
   useEffect(() => {
     const go = () => setActive('set-tabs')
@@ -728,8 +754,27 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
         {active === 'set-tabs' ? (
-        <Card id="set-tabs" icon="🗂" title="Onglets perso">
+        <Card id="set-tabs" icon="🗂" title="Mes sites">
           <SetTabs
+            tabs={draft.tabs ?? []}
+            folders={draft.tabFolders ?? []}
+            sessions={draft.tabSessions ?? []}
+            onChange={(tabs, tabFolders = draft.tabFolders, tabSessions = draft.tabSessions) =>
+              setDraft({ ...draft, tabs, tabFolders, tabSessions })
+            }
+            sleepMinutes={(draft.ui?.tabSleepMinutes as number | undefined) ?? DEFAULT_UI.tabSleepMinutes}
+            onSleepMinutes={(n) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), tabSleepMinutes: n } })}
+            openLinks={draft.ui?.openLinks === 'browser' ? 'browser' : 'app'}
+            onOpenLinks={(openLinks) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), openLinks } })}
+            linkTabsKept={draft.ui?.linkTabsKept === true}
+            onLinkTabsKept={(linkTabsKept) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), linkTabsKept } })}
+          />
+        </Card>
+        ) : null}
+        {active === 'set-links' ? (
+        <Card id="set-links" icon="🔗" title="Liens & onglets">
+          <SetTabs
+            part="links"
             tabs={draft.tabs ?? []}
             folders={draft.tabFolders ?? []}
             sessions={draft.tabSessions ?? []}
@@ -829,29 +874,52 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         ) : null}
 
         {active === 'set-display' ? (
-        <Card id="set-display" icon="🎛" title="Affichage & notifications">
-          <h3 className="set-sub">Presets</h3>
-          <p className="set-hint">Un clic remplit les réglages ci-dessous ; ajuste si besoin, puis Enregistrer.</p>
-          <div className="set-presets">
-            {DISPLAY_PRESETS.map((p) => {
-              const on = Object.entries(p.ui).every(
-                ([k, v]) => ((draft.ui?.[k as keyof typeof p.ui] as number | undefined) || DEFAULT_UI[k as keyof typeof p.ui]) === v,
-              )
-              return (
-                <button
-                  key={p.id}
-                  className={`set-preset${on ? ' is-on' : ''}`}
-                  onClick={() => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...p.ui } })}
-                >
-                  <strong>{p.label}</strong>
-                  <span>{p.hint}</span>
-                </button>
-              )
-            })}
-          </div>
+        <Card id="set-display" icon="🎛" title="Affichage">
+          <Block icon="🧭" title="Ce qui s'affiche" hint="Ce que tu vois dans la page, à cocher ou décocher.">
+            <div className="set-toggles">
+              {(
+                [
+                  ['showClock', 'Horloge', 'heure et date dans la barre du haut'],
+                  ['showTiles', 'Tuiles', 'rangées « épinglés » et « les plus utilisés » en haut de Raccourcis'],
+                  ['showFooter', 'Pied de page', 'raccourcis clavier rappelés en bas de page'],
+                  ['favicons', 'Favicons', 'icône du site devant chaque lien'],
+                ] as const
+              ).map(([key, label, hint]) => (
+                <label className="set-toggle" key={key}>
+                  <input
+                    type="checkbox"
+                    checked={(draft.ui?.[key] as boolean | undefined) ?? true}
+                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), [key]: e.target.checked } })}
+                  />
+                  <span>
+                    {label}
+                    <em>{hint}</em>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </Block>
+          <Block icon="🖥" title="Taille de l'écran" hint="Un clic règle toutes les tailles ci-dessous d'un coup ; ajuste ensuite si besoin.">
+            <div className="set-presets">
+              {DISPLAY_PRESETS.map((p) => {
+                const on = Object.entries(p.ui).every(
+                  ([k, v]) => ((draft.ui?.[k as keyof typeof p.ui] as number | undefined) || DEFAULT_UI[k as keyof typeof p.ui]) === v,
+                )
+                return (
+                  <button
+                    key={p.id}
+                    className={`set-preset${on ? ' is-on' : ''}`}
+                    onClick={() => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...p.ui } })}
+                  >
+                    <strong>{p.label}</strong>
+                    <span>{p.hint}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </Block>
           {DISPLAY_FIELDS.map((section) => (
-            <div key={section.title}>
-              <h3 className="set-sub">{section.title}</h3>
+            <Block key={section.title} icon={section.icon} title={section.title} hint={section.hint}>
               <div className="set-grid">
                 {section.fields.map(({ key, label, unit, hint }) => (
                   <label className="set-field" key={key}>
@@ -877,103 +945,94 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                   </label>
                 ))}
               </div>
-            </div>
+            </Block>
           ))}
-          <h3 className="set-sub">Notifications</h3>
-          <p className="set-hint">
-            Notifications du bureau quand un événement arrive (CI cassée, PR mergée…), en plus de la
-            cloche. État : <strong>{NOTIF_LABEL[bell]}</strong>. « Tester » en envoie une tout de suite.
-          </p>
-          <div className="set-add">
-            <button
-              onClick={() => void toggleNotifications().then(setBell)}
-              disabled={bell === 'unsupported' || bell === 'insecure' || bell === 'denied'}
-            >
-              {bell === 'default'
-                ? 'Autoriser'
-                : bell === 'muted'
-                  ? 'Activer'
-                  : 'Mettre en sourdine'}
-            </button>
-            <button
-              onClick={() => {
-                setNotifLog('…')
-                testNotification(setNotifLog)
-              }}
-              disabled={bell !== 'on'}
-            >
-              🔔 Tester
-            </button>
-          </div>
-
-          {notifLog ? <p className="set-notif-log">{notifLog}</p> : null}
-          <p className="set-hint">
-            Rien à l'écran alors que le test dit « affichée » ? C'est macOS :
-            Réglages Système → Notifications → ton navigateur, style <strong>Alertes</strong>
-            (les bannières s'effacent en 5 s), et surtout <strong>mode Concentration désactivé</strong>
-            — il les avale sans rien dire.
-          </p>
-
-          <h3 className="set-sub">Journal de performance</h3>
-          <SetPerf
-            enabled={draft.ui?.perfLog === true}
-            onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
-          />
-
-          <h3 className="set-sub">Pastille de l'icône de l'appli</h3>
-          <p className="set-hint">
-            Le nombre sur l'icône de l'appli de bureau (Dock sur Mac, barre des tâches sur Windows). Les pastilles de
-            la barre de gauche et de la cloche ne changent pas.
-          </p>
-          {desktop?.openNotificationSettings ? (
-            <p className="set-hint">
-              Rien sur l'icône ? Le système doit l'autoriser
-              {desktop.platform === 'darwin' ? " (« Pastilles de l'app » pour homedash)" : ''} :{' '}
-              <button className="set-inline-btn" onClick={() => desktop?.openNotificationSettings?.()}>
-                ouvrir les réglages de notifications {desktop.platform === 'darwin' ? 'du Mac' : 'de Windows'}
-              </button>
+          <Block
+            icon="⏱"
+            title="Journal de performance"
+            hint="Pour comprendre une lenteur : note ce qui prend du temps. Inutile au quotidien."
+          >
+            <SetPerf
+              enabled={draft.ui?.perfLog === true}
+              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
+            />
+          </Block>
+        </Card>
+        ) : null}
+        {active === 'set-notifs' ? (
+        <Card id="set-notifs" icon="🔔" title="Notifications">
+          <Block
+            icon="💬"
+            title="Notifications du bureau"
+            hint="Une alerte du système quand un événement arrive (CI cassée, PR mergée…), en plus de la cloche."
+          >
+            <p className="set-state">
+              État : <strong>{NOTIF_LABEL[bell]}</strong>
             </p>
-          ) : null}
-          <div className="set-toggles">
-            {(
-              [
-                ['badgeTabs', 'Non-lus des onglets', 'messages de Gmail, Chat, WhatsApp… (sauf les onglets aux notifications coupées)'],
-                ['badgeBell', 'Notifications de la cloche', 'CI, PRs mergées, branches à nettoyer, Renovate…'],
-              ] as const
-            ).map(([key, label, hint]) => (
-              <label className="set-toggle" key={key} title={hint}>
-                <input
-                  type="checkbox"
-                  checked={(draft.ui?.[key] as boolean | undefined) ?? true}
-                  onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), [key]: e.target.checked } })}
-                />
-                {label} <em>{hint}</em>
-              </label>
-            ))}
-          </div>
+            <div className="set-add">
+              <button
+                onClick={() => void toggleNotifications().then(setBell)}
+                disabled={bell === 'unsupported' || bell === 'insecure' || bell === 'denied'}
+              >
+                {bell === 'default'
+                  ? 'Autoriser'
+                  : bell === 'muted'
+                    ? 'Activer'
+                    : 'Mettre en sourdine'}
+              </button>
+              <button
+                onClick={() => {
+                  setNotifLog('…')
+                  testNotification(setNotifLog)
+                }}
+                disabled={bell !== 'on'}
+              >
+                🔔 Tester
+              </button>
+            </div>
 
-          <h3 className="set-sub">Interface</h3>
-          <div className="set-toggles">
-            {(
-              [
-                ['showClock', 'Horloge', 'heure et date dans la barre du haut'],
-                ['showTiles', 'Tuiles', 'rangées « épinglés » et « les plus utilisés » en haut de Raccourcis'],
-                ['showFooter', 'Pied de page', 'raccourcis clavier rappelés en bas de page'],
-                ['favicons', 'Favicons', 'icône du site devant chaque lien'],
-              ] as const
-            ).map(([key, label, hint]) => (
-              <label className="set-toggle" key={key} title={hint}>
-                <input
-                  type="checkbox"
-                  checked={(draft.ui?.[key] as boolean | undefined) ?? true}
-                  onChange={(e) =>
-                    setDraft({ ...draft, ui: { ...(draft.ui ?? {}), [key]: e.target.checked } })
-                  }
-                />
-                {label} <em>{hint}</em>
-              </label>
-            ))}
-          </div>
+            {notifLog ? <p className="set-notif-log">{notifLog}</p> : null}
+            <p className="set-hint">
+              Rien à l'écran alors que le test dit « affichée » ? C'est macOS : Réglages Système → Notifications → ton
+              navigateur, style <strong>Alertes</strong> (les bannières s'effacent en 5 s), et surtout{' '}
+              <strong>mode Concentration désactivé</strong> : il les avale sans rien dire.
+            </p>
+          </Block>
+          <Block
+            icon="🔴"
+            title="Pastille de l'icône de l'appli"
+            hint="Le nombre sur l'icône de l'appli de bureau (Dock sur Mac, barre des tâches sur Windows). Les pastilles de la barre de gauche et de la cloche ne changent pas."
+          >
+            <div className="set-toggles">
+              {(
+                [
+                  ['badgeTabs', 'Non-lus des sites', 'messages de Gmail, Chat, WhatsApp… (sauf les sites aux notifications coupées)'],
+                  ['badgeBell', 'Notifications de la cloche', 'CI, PRs mergées, branches à nettoyer, Renovate…'],
+                ] as const
+              ).map(([key, label, hint]) => (
+                <label className="set-toggle" key={key}>
+                  <input
+                    type="checkbox"
+                    checked={(draft.ui?.[key] as boolean | undefined) ?? true}
+                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), [key]: e.target.checked } })}
+                  />
+                  <span>
+                    {label}
+                    <em>{hint}</em>
+                  </span>
+                </label>
+              ))}
+            </div>
+            {desktop?.openNotificationSettings ? (
+              <p className="set-hint">
+                Rien sur l'icône ? Le système doit l'autoriser
+                {desktop.platform === 'darwin' ? " (« Pastilles de l'app » pour homedash)" : ''} :{' '}
+                <button className="set-inline-btn" onClick={() => desktop?.openNotificationSettings?.()}>
+                  ouvrir les réglages de notifications {desktop.platform === 'darwin' ? 'du Mac' : 'de Windows'}
+                </button>
+              </p>
+            ) : null}
+          </Block>
         </Card>
         ) : null}
         </div>

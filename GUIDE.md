@@ -21,7 +21,7 @@ Ta page d'accueil : tes liens, des notes, des infos à copier.
 - « Les plus utilisés » se remplit tout seul, d'après tes clics.
 - Un lien **surveillé** a un voyant : vert, le site répond ; rouge, il ne répond pas.
 
-## 🗂 Onglets perso
+## 🗂 Mes sites
 
 Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côté de homedash.
 
@@ -30,9 +30,12 @@ Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côt�
 #### Comment faire
 
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
-- **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), ⚙ (modifier). L'adresse s'affiche au
-  survol du nom. **⚡** ramène à homedash.
-- **Tout le reste** : clic droit sur l'icône (dossier, compte, notifications, son, veille, modifier).
+- **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
+  L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
+- **Tout le reste** : clic droit sur l'icône (copier le lien, dossier, compte, notifications, son, veille,
+  modifier, supprimer).
+- **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse de la page affichée, sans
+  l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier.
 - **Largeur de la barre, la cacher** : clic droit sur la barre, hors d'une icône.
 
@@ -64,12 +67,16 @@ homedash.
 - **Non-lus** sur les icônes de la barre et sur l'icône de l'appli (Dock, barre des tâches).
 - **Un lien s'ouvre en onglet, là où tu es** : cliqué dans le dash (raccourci, PR, tâche Basecamp,
   recherche…), il s'ouvre en onglet à côté de *Raccourcis*, *GitHub*, *Basecamp* ; cliqué dans un site
-  (X, Chat…), en onglet en haut de ce site. Tu restes où tu étais. Si le site a son onglet perso, l'onglet
+  (X, Chat…), en onglet en haut de ce site. Tu restes où tu étais. Si le site est dans *Mes sites*, l'onglet
   ouvert est connecté avec le même compte. ✕ ou clic molette pour fermer ; ⚡ ramène au dash, là où tu
   l'avais laissé.
+- **Plutôt le navigateur ?** *Réglages → Liens & onglets → Liens qui ouvrent un nouvel onglet → Dans le
+  navigateur*. Valable pour les liens du dash et ceux d'un site qui ouvrent un nouvel onglet (un lien qui
+  change juste de page reste dans le site). Dans les deux cas, ⌘clic (Ctrl+clic sous Windows, ou ⇧clic)
+  fait l'inverse, et le clic droit propose les deux.
 - **Garder ces onglets** : ils disparaissent à la relance de l'appli, sauf *Garder ouvert* (clic droit
-  sur l'onglet). Pour les garder tous d'office : *Réglages → Onglets perso → Onglets ouverts par un lien*.
-- **Clic droit dans un site** : ouvrir le lien ailleurs (en onglet ici, dans l'onglet perso du site,
+  sur l'onglet). Pour les garder tous d'office : *Réglages → Liens & onglets → Onglets ouverts par un lien*.
+- **Clic droit dans un site** : ouvrir le lien ailleurs (en onglet ici, dans le site de *Mes sites*,
   éphémère dans la barre de gauche, navigateur), copier, rechercher.
 
 #### Installer et mettre à jour
@@ -121,7 +128,7 @@ version).
 - Ouvrir la cloche efface ses nouveautés. Une notif Basecamp reste comptée tant qu'elle n'est pas lue
   dans Basecamp.
 - **Rien sur l'icône du Dock ?** macOS l'affiche seulement si *Pastilles de l'app* est activé pour
-  homedash : *Réglages → Affichage & notifications → ouvrir les réglages de notifications du Mac*.
+  homedash : *Réglages → Notifications → ouvrir les réglages de notifications du Mac*.
 
 ## 🐙 GitHub et 💻 Local
 
@@ -235,7 +242,7 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 Tout ce qui se règle, rangé par thème. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale
 ce qui ne l'est pas encore.
 
-![Réglages → Onglets perso](docs/screenshots/reglages-onglets.jpg)
+![Réglages → Mes sites](docs/screenshots/reglages-onglets.jpg)
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
@@ -244,8 +251,10 @@ ce qui ne l'est pas encore.
 | 📦 Repos suivis | Les repos à suivre, et où ils apparaissent |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion |
-| 🗂 Onglets perso | Tes onglets (une ligne chacun, clic pour l'ouvrir), la mise en veille |
-| 🎛 Affichage | Taille de l'écran, thème, horloge, pastille de l'icône, journal de performance |
+| 🗂 Mes sites | Tes sites (une ligne chacun, clic pour l'ouvrir), dossiers, comptes de connexion |
+| 🔗 Liens & onglets | Où s'ouvrent les liens, onglets ouverts par un lien, mise en veille |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
+| 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
 | 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (s'il est activé) |
 

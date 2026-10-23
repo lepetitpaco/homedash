@@ -245,7 +245,7 @@ export default function Rail({
   return (
     <nav
       className={`rail is-${mode}`}
-      aria-label="Onglets perso"
+      aria-label="Mes sites"
       // Les icônes ont leur propre menu (elles l'ont déjà ouvert : defaultPrevented).
       onContextMenu={(e) => {
         if (e.defaultPrevented) return
@@ -371,7 +371,7 @@ export default function Rail({
       </div>
 
       <div className="rail-foot">
-        <button className="rail-tool rail-add" onClick={onAdd} title="Ajouter un onglet">
+        <button className="rail-tool rail-add" onClick={onAdd} title="Ajouter un site">
           ＋{wide ? <span className="rail-label">Ajouter</span> : null}
         </button>
         <button

@@ -13,7 +13,7 @@ import {
   refusesEmbed,
   sessionOf,
 } from '../lib/customTabs'
-import { desktop, hasSessions, partitionOf, RELOAD_TAB } from '../lib/desktop'
+import { desktop, hasLinkFlip, hasSessions, partitionOf, RELOAD_TAB } from '../lib/desktop'
 import { EDIT_TAB_EVENT, EDIT_TAB_KEY, NEW_TAB_EVENT, NEW_TAB_KEY } from '../lib/settingsNav'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -39,6 +39,8 @@ type Props = {
   /** Onglets ouverts par un lien : gardés à la relance (Réglages → `ui.linkTabsKept`). */
   linkTabsKept: boolean
   onLinkTabsKept: (v: boolean) => void
+  /** Quelle entrée de Réglages : Mes sites (sites, dossiers, comptes) ou Liens & onglets (comportement). */
+  part?: 'sites' | 'links'
 }
 
 /** Délais proposés en un clic à côté du champ de mise en veille. */
@@ -49,10 +51,11 @@ const nameFrom = (url: string) =>
   hostOf(url).replace(/^www\./, '') || (url.split('/').pop() ?? '').replace(/\.[^.]+$/, '')
 
 /**
- * Réglages → Onglets perso. Une liste compacte (un onglet par ligne, ses
+ * Réglages → Mes sites. Une liste compacte (un onglet par ligne, ses
  * étiquettes dossier / compte), un éditeur à la fois sous la ligne choisie, et
  * les dossiers et comptes en étiquettes. L'ordre se règle en glissant les
  * icônes dans la barre de gauche. Écrit dans config.json avec « Enregistrer ».
+ * `part="links"` : Réglages → Liens & onglets, le comportement (liens, veille).
  */
 export default function SetTabs({
   tabs,
@@ -65,6 +68,7 @@ export default function SetTabs({
   onOpenLinks,
   linkTabsKept,
   onLinkTabsKept,
+  part = 'sites',
 }: Props) {
   const [open, setOpen] = useState<string | null>(null)
   const editing = useRef<{ id: string | null; label: string }>({ id: null, label: '' })
@@ -220,7 +224,7 @@ export default function SetTabs({
     setError(null)
     browse(path, true)
       .then((b) => (b.error ? setError(b.error) : setView(b)))
-      .catch((e: unknown) => setError(shown('onglets perso', e)))
+      .catch((e: unknown) => setError(shown('mes sites', e)))
   }
   const startBrowse = (t: CustomTab) => {
     setBrowsing(true)
@@ -557,6 +561,102 @@ export default function SetTabs({
     .sort((a, b) => nameOf(a).localeCompare(nameOf(b), 'fr', { sensitivity: 'base', numeric: true }))
   const kept = tabs.filter((t) => t.kept)
 
+  if (part === 'links')
+    return (
+      <div className="xs">
+        <p className="set-hint">Ce que fait un clic sur un lien, et combien de temps les sites restent chargés.</p>
+        {desktop ? (
+          <div className="xs-sleep">
+            <span>🔗 Liens qui ouvrent un nouvel onglet</span>
+            <span className="xs-seg" role="radiogroup">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={openLinks === 'app'}
+                className={openLinks === 'app' ? 'is-on' : ''}
+                onClick={() => onOpenLinks('app')}
+              >
+                Dans homedash
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={openLinks === 'browser'}
+                className={openLinks === 'browser' ? 'is-on' : ''}
+                onClick={() => onOpenLinks('browser')}
+              >
+                Dans le navigateur
+              </button>
+            </span>
+            <em className="xs-note">
+              Ceux du dash (raccourcis, GitHub, recherche…) et ceux d'un site qui demandent un nouvel onglet ; un
+              lien qui change simplement de page dans un site reste dans le site. Dans homedash : en onglet en haut, là
+              où tu es, connecté avec le compte du site s'il en a un. {keys('clic')} (ou ⇧clic) : l'inverse, au cas par
+              cas ; le clic droit sur un lien propose les deux.
+              {hasLinkFlip ? null : ` Dans un site, ${keys('clic')} demande l’appli de bureau à jour (Aide → Mettre à jour).`}
+            </em>
+          </div>
+        ) : null}
+
+        {desktop ? (
+          <div className="xs-sleep">
+            <span>◫ Onglets ouverts par un lien</span>
+            <span className="xs-seg" role="radiogroup">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={!linkTabsKept}
+                className={!linkTabsKept ? 'is-on' : ''}
+                onClick={() => onLinkTabsKept(false)}
+              >
+                Éphémères
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={linkTabsKept}
+                className={linkTabsKept ? 'is-on' : ''}
+                onClick={() => onLinkTabsKept(true)}
+              >
+                Gardés
+              </button>
+            </span>
+            <em className="xs-note">
+              Éphémères : fermés à la relance de l'appli. Gardés : rouverts à la relance. Un onglet à la fois : clic
+              droit → Garder ouvert, ou Ne plus garder.
+            </em>
+          </div>
+        ) : null}
+
+        <label className="xs-sleep">
+          <span>💤 Mise en veille des onglets qui l'autorisent, après</span>
+          <input
+            type="number"
+            min={1}
+            max={1440}
+            value={sleepMinutes}
+            onChange={(e) => onSleepMinutes(Math.min(1440, Math.max(1, Number.parseInt(e.target.value, 10) || 5)))}
+          />
+          <span>min sans y aller.</span>
+          <span className="xs-seg">
+            {SLEEP_PRESETS.map((n) => (
+              <button
+                key={n}
+                type="button"
+                className={sleepMinutes === n ? 'is-on' : ''}
+                onClick={() => onSleepMinutes(n)}
+              >
+                {n < 60 ? `${n} min` : `${n / 60} h`}
+              </button>
+            ))}
+          </span>
+          <em className="xs-note">
+            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — 💤 sur chaque ligne pour basculer.
+          </em>
+        </label>
+      </div>
+    )
+
   return (
     <div className="xs">
       <div className="xs-head">
@@ -565,7 +665,7 @@ export default function SetTabs({
           ☰ Catalogue
         </button>
         <button type="button" className="xs-primary" onClick={add}>
-          ＋ Ajouter un onglet
+          ＋ Ajouter un site
         </button>
       </div>
 
@@ -692,7 +792,7 @@ export default function SetTabs({
           })}
         </ul>
       ) : (
-        <p className="xs-empty">Aucun onglet pour l'instant : « ＋ Ajouter un onglet », puis colle une adresse.</p>
+        <p className="xs-empty">Aucun site pour l'instant : « ＋ Ajouter un site », puis colle une adresse.</p>
       )}
 
       {kept.length ? (
@@ -711,7 +811,7 @@ export default function SetTabs({
                 <span className="xs-name">{t.label}</span>
                 <span className="xs-url">{t.url}</span>
                 <button type="button" className="xs-btn" onClick={() => patch(t.id, { kept: undefined })}>
-                  ＋ Ajouter à mes onglets
+                  ＋ Ajouter à mes sites
                 </button>
                 <button type="button" className="set-del" onClick={() => remove(t)} title="Fermer et oublier">
                   ✕
@@ -720,93 +820,6 @@ export default function SetTabs({
             ))}
           </ul>
         </section>
-      ) : null}
-
-      <label className="xs-sleep">
-        <span>💤 Mise en veille des onglets qui l'autorisent, après</span>
-        <input
-          type="number"
-          min={1}
-          max={1440}
-          value={sleepMinutes}
-          onChange={(e) => onSleepMinutes(Math.min(1440, Math.max(1, Number.parseInt(e.target.value, 10) || 5)))}
-        />
-        <span>min sans y aller.</span>
-        <span className="xs-seg">
-          {SLEEP_PRESETS.map((n) => (
-            <button
-              key={n}
-              type="button"
-              className={sleepMinutes === n ? 'is-on' : ''}
-              onClick={() => onSleepMinutes(n)}
-            >
-              {n < 60 ? `${n} min` : `${n / 60} h`}
-            </button>
-          ))}
-        </span>
-        <em className="xs-note">
-          {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — 💤 sur chaque ligne pour basculer.
-        </em>
-      </label>
-
-      {desktop ? (
-        <div className="xs-sleep">
-          <span>🔗 Liens de homedash (raccourcis, GitHub, recherche…)</span>
-          <span className="xs-seg" role="radiogroup">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={openLinks === 'app'}
-              className={openLinks === 'app' ? 'is-on' : ''}
-              onClick={() => onOpenLinks('app')}
-            >
-              Dans homedash
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={openLinks === 'browser'}
-              className={openLinks === 'browser' ? 'is-on' : ''}
-              onClick={() => onOpenLinks('browser')}
-            >
-              Dans le navigateur
-            </button>
-          </span>
-          <em className="xs-note">
-            Dans homedash : en onglet en haut, là où tu es (le dash, ou l'onglet perso d'où vient le lien), connecté
-            avec le compte de l'onglet du site s'il en a un. {keys('clic')} : toujours le navigateur.
-          </em>
-        </div>
-      ) : null}
-
-      {desktop ? (
-        <div className="xs-sleep">
-          <span>◫ Onglets ouverts par un lien</span>
-          <span className="xs-seg" role="radiogroup">
-            <button
-              type="button"
-              role="radio"
-              aria-checked={!linkTabsKept}
-              className={!linkTabsKept ? 'is-on' : ''}
-              onClick={() => onLinkTabsKept(false)}
-            >
-              Éphémères
-            </button>
-            <button
-              type="button"
-              role="radio"
-              aria-checked={linkTabsKept}
-              className={linkTabsKept ? 'is-on' : ''}
-              onClick={() => onLinkTabsKept(true)}
-            >
-              Gardés
-            </button>
-          </span>
-          <em className="xs-note">
-            Éphémères : fermés à la relance de l'appli. Gardés : rouverts à la relance. Un onglet à la fois : clic
-            droit → Garder ouvert, ou Ne plus garder.
-          </em>
-        </div>
       ) : null}
 
       <div className="xs-groups">

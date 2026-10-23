@@ -130,6 +130,8 @@ export default function App() {
   const [childTitles, setChildTitles] = useState<Record<string, string>>({})
   // Adresse où est chaque onglet éphémère (gardé ou non), suivie pendant la navigation.
   const tempUrl = useRef(new Map<string, string>())
+  // Page affichée dans chaque onglet (perso ou éphémère) : « Copier le lien » (issue #33).
+  const pageUrl = useRef(new Map<string, string>())
   // Lien à ouvrir dans un onglet perso, pas encore pris par lui (voir openInTab).
   const pendingLinks = useRef(new Map<string, string>())
   const takeLink = useCallback((key: string) => {
@@ -163,12 +165,12 @@ export default function App() {
   // Webview → onglet : de quel onglet vient un lien ou un clic droit (appli de bureau).
   const guestTab = useRef(new Map<number, string>())
   // main.js appelle ces deux fonctions (executeJavaScript) : liens et clic droit dans les sites.
-  const routeRef = useRef<(url: string, fromId: number) => boolean>(() => false)
+  const routeRef = useRef<(url: string, fromId: number, flip?: boolean) => boolean>(() => false)
   const menuRef = useRef<(m: GuestMenu) => boolean>(() => false)
   useEffect(() => {
     if (!desktop) return
     const w = window as unknown as Record<string, unknown>
-    w.__homedashRoute = (url: string, fromId: number) => routeRef.current(url, fromId)
+    w.__homedashRoute = (url: string, fromId: number, flip?: boolean) => routeRef.current(url, fromId, flip)
     w.__homedashMenu = (m: GuestMenu) => menuRef.current(m)
     // Journal de performance (main.js) : nom et compte de l'onglet de chaque webview.
     w.__homedashTabs = () => {
@@ -218,8 +220,9 @@ export default function App() {
     return stepTab(dir)
   }
   // Liens de homedash dans l'appli (Réglages → `ui.openLinks`) : l'onglet perso du
-  // site, sinon un éphémère. Renvoie `false` → le navigateur. Défini plus bas.
-  const inAppRef = useRef<(url: string) => boolean>(() => false)
+  // site, sinon un éphémère. Renvoie `false` → le navigateur. `flip` (⌘clic) :
+  // l'inverse du réglage (issue #32). Défini plus bas.
+  const inAppRef = useRef<(url: string, flip?: boolean) => boolean>(() => false)
   const openLink = useCallback((url: string) => {
     if (!inAppRef.current(url)) window.open(url, '_blank', 'noopener')
   }, [])
@@ -227,11 +230,12 @@ export default function App() {
     if (!desktop) return
     // Après React (phase de bulle) : un lien dont le clic a déjà été pris en charge est laissé.
     // `data-outside` : lien fait pour le navigateur (onglet « ouvrir à part », connexion…).
+    // ⌘clic / Ctrl+clic (ou ⇧clic) : l'inverse du réglage ; laissé passer = le navigateur.
     const onClick = (e: MouseEvent) => {
-      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return
+      if (e.defaultPrevented || e.button !== 0 || e.altKey) return
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
       if (!a || a.target !== '_blank' || a.hasAttribute('data-outside') || !/^https?:/i.test(a.href)) return
-      if (inAppRef.current(a.href)) e.preventDefault()
+      if (inAppRef.current(a.href, e.metaKey || e.ctrlKey || e.shiftKey)) e.preventDefault()
     }
     window.addEventListener('click', onClick)
     return () => window.removeEventListener('click', onClick)
@@ -723,6 +727,25 @@ export default function App() {
     desktop
       ? desktop.openExternal(new URL(srcOf(url), window.location.href).href)
       : window.open(srcOf(url), '_blank', 'noopener')
+  /** Adresse de la page affichée dans l'onglet ; pas encore chargé (veille, jamais ouvert) : la sienne. */
+  const copyTabLink = (t: CustomTab) =>
+    void copy(`tab:${t.id}`, pageUrl.current.get(t.id) ?? new URL(srcOf(t.url), window.location.href).href)
+  const copyItem = (t: CustomTab): MenuItem => ({ icon: '⧉', label: 'Copier le lien', onSelect: () => copyTabLink(t) })
+  const removeTab = (t: CustomTab) =>
+    void confirmDialog({
+      title: `Supprimer l'onglet « ${t.label} » ?`,
+      body: [
+        t.url,
+        "L'onglet disparaît de la barre. La connexion au site est conservée : rajouté plus tard, il sera encore connecté.",
+        'Tu peux revenir en arrière depuis Réglages → Sauvegardes.',
+      ],
+      confirmLabel: 'Supprimer',
+      danger: true,
+    }).then((ok) => {
+      if (!ok) return
+      saveTabs(customTabs.filter((x) => x.id !== t.id))
+      if (tab === tabKey(t)) selectTab(lastNative.current)
+    })
   /**
    * Clic droit sur un onglet perso (icône ou onglet du haut), rangé comme celui
    * des liens : actions, puis Ranger (dossiers en pastilles), Compte (comptes en
@@ -740,6 +763,7 @@ export default function App() {
       title: t.label,
       items: [
         { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(t.url) },
+        copyItem(t),
         ...(t.embed
           ? [
               {
@@ -790,6 +814,7 @@ export default function App() {
         { heading: 'Onglet' },
         ...(t.embed ? [notifyItem(t), muteItem(t), sleepItem(t), ...clearItem(t)] : []),
         { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: () => openTabSettings(t.id) },
+        { icon: '✕', label: "Supprimer l'onglet…", danger: true, onSelect: () => removeTab(t) },
       ],
     })
   }
@@ -867,8 +892,8 @@ export default function App() {
     setTemps((ts) => [...ts, { id, label, url, embed: true, session, parent: space }])
     selectTab(`x:${id}`)
   }
-  inAppRef.current = (url) => {
-    if (!desktop || ui.openLinks === 'browser') return false
+  inAppRef.current = (url, flip = false) => {
+    if (!desktop || (ui.openLinks === 'browser') !== flip) return false
     // homedash lui-même (une autre page servie par le container) : le navigateur.
     if (new URL(url, window.location.href).host === window.location.host) return false
     // en onglet là où l'on est : le dash, ou l'onglet perso d'où l'on cherche
@@ -914,7 +939,7 @@ export default function App() {
       y: e.clientY,
       title: 'Barre de gauche',
       items: [
-        { icon: '＋', label: 'Ajouter un onglet', onSelect: addTab },
+        { icon: '＋', label: 'Ajouter un site', onSelect: addTab },
         { icon: '⧉', label: 'Nouvel onglet éphémère', onSelect: () => newTemp(at) },
         { sep: true },
         { heading: 'Largeur' },
@@ -1028,6 +1053,7 @@ export default function App() {
       title: `${t.label} · ${t.kept ? 'éphémère gardé' : 'éphémère'}`,
       items: [
         { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(tempUrl.current.get(t.id) ?? t.url) },
+        copyItem(t),
         { heading: 'Garder' },
         ...(t.kept
           ? [
@@ -1035,7 +1061,7 @@ export default function App() {
               { icon: '◌', label: 'Ne plus garder', hint: 'disparaît au redémarrage', onSelect: () => unkeep(t) },
             ]
           : [{ icon: '📌', label: 'Garder ouvert', hint: 'survit au redémarrage', onSelect: () => promoteTemp(t, true) }]),
-        { icon: '＋', label: 'Ajouter à mes onglets', onSelect: () => promoteTemp(t, false) },
+        { icon: '＋', label: 'Ajouter à mes sites', onSelect: () => promoteTemp(t, false) },
         { heading: 'Onglet' },
         notifyItem(t),
         muteItem(t),
@@ -1046,7 +1072,9 @@ export default function App() {
       ],
     })
   /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
-  const route = (url: string, fromId: number): boolean => {
+  const route = (url: string, fromId: number, flip = false): boolean => {
+    // Réglage des liens (et ⌘clic, l'inverse) : comme ceux de la page (issue #32).
+    if ((ui.openLinks === 'browser') !== flip) return false
     const from = fromGuest(fromId)
     // En onglet dans l'espace d'origine (l'onglet perso, ou le dash) : on ne quitte
     // pas ce qu'on faisait, même pour un site qui a son propre onglet perso.
@@ -1066,11 +1094,28 @@ export default function App() {
     return true
   }
   /** Comment ouvrir `url` : les onglets de ce site (avec leur compte), un éphémère (par compte), le navigateur. */
-  const openChoices = (url: string): MenuItem[] => {
+  /**
+   * `clicks` : lien de homedash (pas d'un site), dont le clic suit `ui.openLinks` :
+   * le choix du clic en tête, chacun avec sa touche (issue #32).
+   */
+  const openChoices = (url: string, clicks = false): MenuItem[] => {
     const here = spaceOf(tab)
-    const items: MenuItem[] = here
-      ? [{ icon: '◫', label: 'En onglet ici', onSelect: () => openChild(here, url, sessionFor(here, url)) }]
-      : []
+    const outside = clicks && ui.openLinks === 'browser'
+    const hint = (mine: boolean) => (clicks ? (mine ? 'clic' : keys('clic')) : undefined)
+    const browser: MenuItem = {
+      icon: '↗',
+      label: 'Dans le navigateur',
+      hint: hint(outside),
+      onSelect: () => desktop?.openExternal(url),
+    }
+    const items: MenuItem[] = outside ? [browser] : []
+    if (here)
+      items.push({
+        icon: '◫',
+        label: 'En onglet ici',
+        hint: hint(!outside),
+        onSelect: () => openChild(here, url, sessionFor(here, url)),
+      })
     items.push(...regularTabs
       .filter((x) => capturesLink(x, url))
       .map((t) => {
@@ -1095,10 +1140,10 @@ export default function App() {
           }
         : { icon: '◌', label: 'Onglet éphémère', onSelect: () => openTemp(url) },
     )
-    items.push({ icon: '↗', label: 'Dans le navigateur', onSelect: () => desktop?.openExternal(url) })
+    if (!outside) items.push(browser)
     return items
   }
-  openItemsRef.current = (url) => (desktop ? openChoices(url) : [])
+  openItemsRef.current = (url) => (desktop ? openChoices(url, true) : [])
   linkMenuRef.current = (x, y, url) =>
     menus.openMenu({
       x,
@@ -1106,7 +1151,7 @@ export default function App() {
       title: shortLink(url),
       items: [
         { heading: 'Ouvrir' },
-        ...openChoices(url),
+        ...openChoices(url, true),
         { sep: true },
         { icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${url}`, url) },
       ],
@@ -1463,6 +1508,8 @@ export default function App() {
             session={sessionOf(t, tabSessions)}
             hidden={view !== tabKey(t)}
             onSettings={() => openTabSettings(t.id)}
+            onCopyLink={() => copyTabLink(t)}
+            copied={copiedKey === `tab:${t.id}`}
             onGuest={(id) => guestTab.current.set(id, t.id)}
             takeLink={() => takeLink(tabKey(t))}
             icon={iconOf[t.id]}
@@ -1480,6 +1527,7 @@ export default function App() {
                 : undefined
             }
             onVisit={(url, title) => {
+              pageUrl.current.set(t.id, url)
               recordVisit(url, t.label, title)
               // onglet d'un espace : son nom suit le titre de la page
               if (title && parentOf(t)) {
@@ -1662,6 +1710,7 @@ export default function App() {
         />
       ) : null}
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
+      {copiedKey?.startsWith('tab:') ? <div className="toast toast-saved">⧉ Lien copié</div> : null}
       <UpdateProgress />
       <DockHint />
       {menus.draft ? (

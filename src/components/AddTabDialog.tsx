@@ -164,7 +164,7 @@ export default function AddTabDialog({
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn add-tab-more" onClick={onMore} title="Réglages → Onglets perso : icône, veille, liens…">
+          <button className="btn add-tab-more" onClick={onMore} title="Réglages → Mes sites : icône, veille, liens…">
             Plus de réglages…
           </button>
           <span className="modal-hint">↵ ajouter · Échap annuler</span>

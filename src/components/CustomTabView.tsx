@@ -40,6 +40,8 @@ export default function CustomTabView({
   takeLink,
   icon,
   onNavigate,
+  onCopyLink,
+  copied = false,
   onVisit,
   onLoaded,
   muted = false,
@@ -59,6 +61,9 @@ export default function CustomTabView({
    * atteinte remontée (son nom suit le site visité).
    */
   onNavigate?: (url: string) => void
+  /** Partager : l'adresse de la page affichée au presse-papiers (issue #33) ; `copied` : ✓ un instant. */
+  onCopyLink?: () => void
+  copied?: boolean
   /** Page vue ou son titre (`title` absent = nouvelle page) : historique de la recherche. */
   onVisit?: (url: string, title?: string) => void
   /** Id de la webview (appli de bureau) : App sait ainsi de quel onglet vient un lien ou un clic droit. */
@@ -395,6 +400,22 @@ export default function CustomTabView({
           ↗
         </a>
       )}
+      {onCopyLink ? (
+        <button
+          className="xtab-btn xtab-icon-btn"
+          onClick={onCopyLink}
+          title={copied ? 'Lien copié' : 'Partager : copier le lien de cette page'}
+          aria-label="Copier le lien de cette page"
+        >
+          {copied ? (
+            '✓'
+          ) : (
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M8 10V2M5 4.8 8 2l3 2.8M5.5 7H4v7h8V7h-1.5" />
+            </svg>
+          )}
+        </button>
+      ) : null}
       <button className="xtab-btn xtab-icon-btn" onClick={onSettings} title="Modifier cet onglet" aria-label="Modifier cet onglet">
         ⚙
       </button>

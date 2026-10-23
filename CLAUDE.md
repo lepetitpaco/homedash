@@ -8,7 +8,7 @@ homedash sert à toute l'équipe, et ce qui est poussé sur `main` arrive chez c
 jour. On peut tout améliorer, mais pas dénaturer ce qui suit.
 
 1. **Accueil** : liens, tuiles des plus utilisés, notes, infos à copier, recherche.
-2. **Onglets perso** : sites dans l'appli avec leurs non-lus, dossiers, plusieurs comptes par site ; la
+2. **Mes sites** (onglets perso) : sites dans l'appli avec leurs non-lus, dossiers, plusieurs comptes par site ; la
    page marche aussi sans l'appli, dans un navigateur.
 3. **GitHub** : branches, PRs, CI, Renovate, équipe, plusieurs comptes ; cache ETag (quota de l'API).
 4. **Onglet Local** : lecture seule du disque, verdicts des branches, commandes à copier.

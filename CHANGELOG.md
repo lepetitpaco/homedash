@@ -4,6 +4,25 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.30.0 — 2026-10-23
+
+Appli de bureau : 1.5.6
+
+- **« Onglets perso » devient « Mes sites »**, et ses réglages se rangent en deux : *Réglages → Mes sites*
+  (tes sites, dossiers, comptes) et *Réglages → Liens & onglets* (où s'ouvrent les liens, onglets
+  ouverts par un lien, mise en veille).
+- **Réglages plus lisibles** : *Affichage & notifications* devient deux parties, *Affichage* et
+  *Notifications*, rangées en blocs avec un titre et une phrase qui dit à quoi chacun sert, et des textes
+  plus grands et plus contrastés.
+- **Partager un onglet** : le bouton partager, en haut à côté de ↗, copie l'adresse de la page affichée,
+  sans l'ouvrir dans le navigateur (aussi : clic droit sur l'onglet → *Copier le lien*).
+- **Supprimer un site depuis son clic droit**, sous *Modifier…*, après confirmation.
+- **Liens : le clic par défaut au choix, ⌘clic fait l'inverse.** *Réglages → Liens & onglets → Liens qui
+  ouvrent un nouvel onglet* vaut maintenant aussi pour les liens d'un site qui ouvrent un nouvel onglet
+  (la navigation dans le site ne change pas). ⌘clic (Ctrl+clic sous Windows, ou ⇧clic) fait l'inverse
+  du réglage : par défaut, ⌘clic sur un lien ouvre donc le navigateur, y compris dans un site. Le clic
+  droit sur un lien met en tête ce que fait le clic.
+
 ## 1.29.0 — 2026-10-23
 
 - **Onglet Local : tes clones peuvent être n'importe où**, plus seulement dans ton dossier personnel.
