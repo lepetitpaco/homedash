@@ -193,7 +193,7 @@ function RepoCardLocal({ repo, copied, onCopy, onRefresh, refreshing }: {
           ) : null}
           {!repo.linked ? (
             <span className="gh-tag is-merged"
-              title="Ce dépôt n'est pas dans Réglages → Repos suivis : l'état en ligne vient de ton disque, peut-être pas à jour (git fetch)">
+              title="Ce dépôt n'est pas dans Réglages → GitHub → Repos suivis : l'état en ligne vient de ton disque, peut-être pas à jour (git fetch)">
               hors GitHub
             </span>
           ) : null}

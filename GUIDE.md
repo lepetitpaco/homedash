@@ -248,8 +248,7 @@ ce qui ne l'est pas encore.
 | Partie | Ce qu'on y fait |
 | --- | --- |
 | 🧩 Fonctionnalités | Couper GitHub, Local ou Basecamp si tu ne t'en sers pas |
-| 🔑 Compte & équipe | Jeton GitHub, membres de l'équipe, autre compte GitHub |
-| 📦 Repos suivis | Les repos à suivre, et où ils apparaissent |
+| 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion |
 | 🗂 Mes sites | Tes sites (une ligne chacun, clic pour l'ouvrir), dossiers, comptes de connexion |
@@ -283,7 +282,7 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | --- | --- |
 | « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, lance Docker Desktop |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
-| Pas d'onglet GitHub | Aucun jeton : *Réglages → Compte & équipe* |
+| Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion* |
 | Un repo n'est pas proposé | Le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
 | Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dossier personnel, ou 💽 ailleurs sur le disque) |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |

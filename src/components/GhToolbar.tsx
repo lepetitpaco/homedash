@@ -24,7 +24,7 @@ export function AccountSwitch({
           aria-selected={a.id === current}
           className={`gh-account${a.id === current ? ' is-active' : ''}${a.ok ? '' : ' is-off'}`}
           onClick={() => onAccount(a.id)}
-          title={a.ok ? `${a.label} — connecté en tant que ${a.login}` : `${a.label} — non connecté (Réglages → Compte)`}
+          title={a.ok ? `${a.label} — connecté en tant que ${a.login}` : `${a.label} — non connecté (Réglages → GitHub)`}
         >
           {a.avatar ? <img src={a.avatar} alt="" /> : <span className="gh-account-dot" />}
           {a.label}
