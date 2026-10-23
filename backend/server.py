@@ -89,7 +89,10 @@ def load_sections():
             print("ℹ config convertie au format courant", flush=True)
         accounts.migrate_secrets(cfg["github_accounts"][0]["id"])
     accounts.configure(cfg)
-    localgit.configure(cfg.get("local") or {})
+    # Fonctionnalité coupée : plus aucune lecture (GitHub, Basecamp, disque).
+    local = cfg.get("local") or {}
+    localgit.configure({**local, "enabled": store.feature_on(cfg, "local") and local.get("enabled", True) is not False})
+    basecamp.set_enabled(store.feature_on(cfg, "basecamp"))
     # Journal de performance : désactivé par défaut (Réglages → Affichage).
     perflog.configure((cfg.get("ui") or {}).get("perfLog") is True)
 

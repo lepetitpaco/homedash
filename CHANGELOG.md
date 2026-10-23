@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.28.0 — 2026-10-23
+
+- **Couper ce dont tu ne te sers pas** : *Réglages → 🧩 Fonctionnalités*. GitHub, Local ou Basecamp
+  décoché disparaît de la page (onglet, recherche, cartes de l'accueil, réglages, cloche et
+  notifications, même passées) et homedash cesse de le lire. Rien n'est effacé : recoche pour tout retrouver. Par défaut, tout reste activé.
+
 ## 1.27.0 — 2026-10-23
 
 - **Un lien s'ouvre en onglet, là où tu es** (appli de bureau) : cliqué dans le dash, il s'ouvre en

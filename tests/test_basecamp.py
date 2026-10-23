@@ -153,6 +153,30 @@ class BasecampTest(unittest.TestCase):
             basecamp._state["building"] = True
         basecamp.rebuild()
 
+    # ── coupé dans Réglages → Fonctionnalités ────────────────────────────────
+    def test_switched_off_reads_nothing_and_keeps_connection(self):
+        self.connect()
+        self.build()
+        self.addCleanup(basecamp.set_enabled, True)
+        basecamp.set_enabled(False)
+        before = len(self.net.requests)
+        self.assertFalse(basecamp.kickoff())
+        self.assertEqual(basecamp.search("congés"), [])
+        self.assertEqual(len(self.net.requests), before)
+        p = basecamp.payload()
+        self.assertFalse(p["configured"])
+        self.assertFalse(p["enabled"])
+        self.assertEqual(p["tasks"], {"priorities": [], "others": []})
+        self.assertEqual(p["unreads"], [])
+        # Rallumé : connexion gardée, et ce qui a bougé entre-temps ne sonne pas.
+        self.net.assignments["priorities"].append(task(3, "Nouvelle"))
+        basecamp.set_enabled(True)
+        self.assertTrue(basecamp.connected())
+        self.recorded.clear()
+        self.build()
+        self.assertEqual(self.recorded, [])
+        self.assertTrue(basecamp.payload()["enabled"])
+
     # ── lecture seule ────────────────────────────────────────────────────────
     def test_basecamp_itself_only_ever_receives_get(self):
         self.net.assignments["non_priorities"].append(card(5))

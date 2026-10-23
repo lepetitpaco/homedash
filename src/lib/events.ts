@@ -1,5 +1,5 @@
 /** Journal des événements servi par le backend Python (`GET /api/events`). */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { notifyEvents } from './notifications'
 import { shown } from './errors'
 
@@ -59,8 +59,11 @@ function readSeen(): number {
  *
  * Le sondage ne s'arrête PAS quand l'onglet est caché, pour la même raison que
  * celui de GitHub : c'est là que les notifications servent.
+ *
+ * `off` : sources des fonctionnalités coupées (Réglages → Fonctionnalités). Leurs
+ * événements, même anciens, ne sont ni montrés, ni comptés, ni notifiés.
  */
-export function useEvents(inApp: InApp): {
+export function useEvents(inApp: InApp, off: EventSource[] = []): {
   events: HdEvent[]
   error: string | null
   /** Nombre d'événements plus récents que ce qui a été lu. Pastille de l'onglet. */
@@ -83,6 +86,8 @@ export function useEvents(inApp: InApp): {
   // rapport prêt) ; passer par une ref évite de relancer la boucle à chaque rendu.
   const act = useRef(inApp)
   act.current = inApp
+  const offRef = useRef(off)
+  offRef.current = off
 
   const setSeen = useCallback((value: number) => {
     seenRef.current = value
@@ -118,7 +123,7 @@ export function useEvents(inApp: InApp): {
       } else if (data.seq > baseline.current) {
         const since = baseline.current
         baseline.current = data.seq
-        const fresh = data.events.filter((e) => e.seq > since)
+        const fresh = data.events.filter((e) => e.seq > since && !offRef.current.includes(e.source))
         if (fresh.length > 0) notifyEvents(fresh, act.current)
       }
       return data
@@ -153,10 +158,16 @@ export function useEvents(inApp: InApp): {
       .catch(() => undefined)
   }, [load])
 
+  const offKey = off.join(',')
+  const kept = useMemo(
+    () => (offKey ? events.filter((e) => !offKey.split(',').includes(e.source)) : events),
+    [events, offKey],
+  )
+
   return {
-    events,
+    events: kept,
     error,
-    unseen: events.filter((e) => e.seq > seen).length,
+    unseen: kept.filter((e) => e.seq > seen).length,
     latest,
     seen,
     markSeen,

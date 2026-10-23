@@ -60,6 +60,7 @@ _state  = {"ts": 0.0, "building": False, "error": None, "retry_at": 0.0}
 _seeded = set()             # sections déjà vues une fois : pas d'événement au premier passage
 _states = {}                # state OAuth -> heure d'émission
 _col_board = {}             # colonne -> tableau : une colonne ne change pas de tableau
+_on     = [True]            # faux : Basecamp coupé dans Réglages → Fonctionnalités
 
 
 # ── Secrets ──────────────────────────────────────────────────────────────────
@@ -77,6 +78,18 @@ def configured():
 def connected():
     s = _secret()
     return bool(s.get("access_token") and s.get("href"))
+
+def set_enabled(on):
+    """Basecamp coupé : plus de lecture ni de recherche, la page n'a plus d'onglet.
+    La connexion est gardée ; rallumé, la lecture reprend."""
+    _on[0] = bool(on)
+    if not on:
+        # Rallumé plus tard : ce qui a bougé entre-temps n'est pas une nouveauté.
+        with _lock:
+            _seeded.clear()
+
+def active():
+    return _on[0] and connected()
 
 def _reset():
     """Jeton ou appli changés : caches et amorçage du journal valaient pour l'ancien."""
@@ -476,7 +489,7 @@ def rebuild():
 
 def kickoff():
     with _lock:
-        if _state["building"] or not connected():
+        if _state["building"] or not active():
             return False
         _state["building"] = True
     threading.Thread(target=rebuild, daemon=True, name="basecamp").start()
@@ -487,9 +500,11 @@ def payload():
     with _lock:
         tasks, unreads, boards = _data["tasks"], _data["unreads"], _data["boards"]
         st = dict(_state)
+    if not _on[0]:
+        tasks, unreads, boards = None, None, {}
     return {
-        "configured": configured(),
-        "enabled": connected(),
+        "configured": _on[0] and configured(),
+        "enabled": active(),
         "account": s.get("account_name") or "",
         "app_href": s.get("app_href") or "",
         "name": s.get("name") or "",
@@ -534,7 +549,7 @@ def search(q):
     dans l'ordre de pertinence de Basecamp. [] si non connecté."""
     q = re.sub(r"\s+", " ", q or "").strip()[:100]
     s = _secret()
-    if len(q) < 2 or not (s.get("access_token") and s.get("href")):
+    if len(q) < 2 or not _on[0] or not (s.get("access_token") and s.get("href")):
         return []
     key, now = q.lower(), time.time()
     with _search_lock:

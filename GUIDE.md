@@ -235,6 +235,7 @@ ce qui ne l'est pas encore.
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
+| 🧩 Fonctionnalités | Couper GitHub, Local ou Basecamp si tu ne t'en sers pas |
 | 🔑 Compte & équipe | Jeton GitHub, membres de l'équipe, autre compte GitHub |
 | 📦 Repos suivis | Les repos à suivre, et où ils apparaissent |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
@@ -243,6 +244,12 @@ ce qui ne l'est pas encore.
 | 🎛 Affichage | Taille de l'écran, thème, horloge, pastille de l'icône, journal de performance |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
 | 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (s'il est activé) |
+
+**Couper une fonctionnalité** (🧩 Fonctionnalités) : décochée, elle disparaît de la page (onglet,
+recherche, cartes de l'accueil, ses parties de Réglages, ses notifications dans la cloche et
+l'historique, même passées) et homedash ne lit plus le service. Rien n'est
+effacé : jeton, connexion et réglages sont gardés, et la recocher remet tout en place. Le choix vaut pour
+ton homedash seulement.
 
 ## 💾 Sauvegardes
 
