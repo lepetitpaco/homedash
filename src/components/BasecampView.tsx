@@ -170,6 +170,15 @@ function doneOf(i: BcIssue, posted: Posted): 'posted' | 'dismissed' | 'dropped' 
   return null
 }
 
+/** Où en est une issue liée, dit sous son titre. */
+const STAGE = {
+  posted: 'rapport publié sur Basecamp',
+  dismissed: 'écartée',
+  dropped: 'fermée sans rapport',
+  ready: 'rapport prêt',
+  waiting: 'en attente du rapport',
+} as const
+
 /** ✕ : écarter une issue sans publier (rien n'est envoyé). */
 function Dismiss({ i }: { i: BcIssue }) {
   const { onDismiss } = useContext(IssuesCtx)
@@ -367,7 +376,7 @@ function IssueList({ issues }: { issues: BcIssue[] }) {
                 {i.state === 'closed' ? '✓' : '●'} {i.title}
               </a>
               <a className="bc-where" href={i.bc_url} target="_blank" rel="noreferrer" title="Ouvrir la tâche Basecamp">
-                {i.repo} #{i.number} · {i.report ? 'rapport prêt' : 'en attente du rapport'} · tâche Basecamp ↗
+                {i.repo} #{i.number} · {STAGE[doneOf(i, posted) ?? (i.report ? 'ready' : 'waiting')]} · tâche Basecamp ↗
               </a>
             </div>
             <span className="bc-issue-actions">

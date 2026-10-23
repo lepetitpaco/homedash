@@ -688,6 +688,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             onSleepMinutes={(n) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), tabSleepMinutes: n } })}
             openLinks={draft.ui?.openLinks === 'browser' ? 'browser' : 'app'}
             onOpenLinks={(openLinks) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), openLinks } })}
+            linkTabsKept={draft.ui?.linkTabsKept === true}
+            onLinkTabsKept={(linkTabsKept) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), linkTabsKept } })}
           />
         </Card>
         ) : null}

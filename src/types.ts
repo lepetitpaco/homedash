@@ -131,6 +131,11 @@ export type UiConfig = {
    * navigateur. Sans effet dans un navigateur.
    */
   openLinks: 'app' | 'browser'
+  /**
+   * Appli de bureau : un onglet ouvert par un lien (en haut du dash ou d'un onglet
+   * perso) est gardé à la relance (`true`) ou éphémère (défaut).
+   */
+  linkTabsKept: boolean
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
 }
@@ -162,6 +167,12 @@ export type CustomTab = {
   capture?: boolean
   /** Autres domaines dont les liens s'ouvrent ici (`twitter.com` pour X). */
   domains?: string[]
+  /**
+   * Onglet ouvert par un lien (éphémère, ou gardé) : l'espace d'où il vient, en
+   * haut duquel il s'affiche : `links` (le dash) ou `x:<id>` (un onglet perso).
+   * Absent, ou espace disparu = éphémère seul, dans la barre de gauche.
+   */
+  parent?: string
   /**
    * Mise en veille : déchargé (mémoire libérée) après `ui.tabSleepMinutes` sans
    * y être allé, rechargé au clic. Absent = jamais (on garde notifs et non-lus).

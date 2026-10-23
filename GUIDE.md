@@ -45,7 +45,8 @@ Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côt�
 - La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
 - **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…*
 - **Onglet éphémère** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse.
-  Clic droit sur un lien, ou sur la barre → *Nouvel onglet éphémère*.
+  Un lien cliqué dans l'appli en ouvre un en haut de l'endroit où tu es (voir *Appli de bureau*) ;
+  clic droit sur la barre → *Nouvel onglet éphémère* en ouvre un seul, dans la barre de gauche.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -61,9 +62,15 @@ homedash.
 
 - **Tous les sites s'affichent**, Gmail et Chat compris. Tu t'y connectes une fois, c'est gardé.
 - **Non-lus** sur les icônes de la barre et sur l'icône de l'appli (Dock, barre des tâches).
-- **Liens entre onglets** : un lien YouTube cliqué dans Chat s'ouvre dans ton onglet YouTube.
-- **Clic droit dans un site** : ouvrir le lien ailleurs (onglet, éphémère, navigateur), copier,
-  rechercher.
+- **Un lien s'ouvre en onglet, là où tu es** : cliqué dans le dash (raccourci, PR, tâche Basecamp,
+  recherche…), il s'ouvre en onglet à côté de *Raccourcis*, *GitHub*, *Basecamp* ; cliqué dans un site
+  (X, Chat…), en onglet en haut de ce site. Tu restes où tu étais. Si le site a son onglet perso, l'onglet
+  ouvert est connecté avec le même compte. ✕ ou clic molette pour fermer ; ⚡ ramène au dash, là où tu
+  l'avais laissé.
+- **Garder ces onglets** : ils disparaissent à la relance de l'appli, sauf *Garder ouvert* (clic droit
+  sur l'onglet). Pour les garder tous d'office : *Réglages → Onglets perso → Onglets ouverts par un lien*.
+- **Clic droit dans un site** : ouvrir le lien ailleurs (en onglet ici, dans l'onglet perso du site,
+  éphémère dans la barre de gauche, navigateur), copier, rechercher.
 
 #### Installer et mettre à jour
 
