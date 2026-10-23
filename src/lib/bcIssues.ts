@@ -91,8 +91,9 @@ export const REPORT_TEMPLATE = [
 export function claudeRules(close: string): string[] {
   return [
     "Lis le besoin et tous les échanges : sur Basecamp, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques** (problème, cause probable, solution retenue, ce qui sera touché). Ne modifie pas le corps de l'issue : il porte le lien vers la tâche, et sa section Besoin est la demande d'origine (reprise telle quelle de Basecamp) : en cas de doute, c'est elle qui fait foi, pas ta reformulation. Les captures (🖼) restent sur Basecamp, hors de ta portée : si l'une est indispensable, demande ce qu'elle montre.",
+    "Donne-lui la ou les étiquettes qui conviennent (bug, amélioration…), choisies parmi celles du repo (`gh label list`) : n'en crée pas.",
     'Fais le travail en suivant les règles du repo (CLAUDE.md).',
-    `Une fois livré, poste **un seul** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la tâche Basecamp.`,
+    `Une fois livré, poste **un** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la tâche Basecamp. Si on te redemande un rapport final, poste-en un nouveau : le dernier fait foi.`,
     `Puis ferme l'issue : ${close}.`,
     "Si le besoin n'est pas clair, demande avant de coder plutôt que d'inventer.",
   ]
@@ -138,8 +139,26 @@ export function claudePrompt(repo: string, number: number): string {
     `Elle vient d’une tâche Basecamp, souvent une conversation décousue : commence par en tirer le vrai besoin et ` +
     `la meilleure solution, reformulés en termes techniques (en commentaire de l’issue si ce n’est pas limpide), ` +
     `sans toucher au corps de l’issue ; en cas de doute, reviens à la demande d’origine (section Besoin). ` +
+    `Donne-lui ses étiquettes, parmi celles du repo (\`gh label list -R ${repo}\`) sans en créer. ` +
     `Puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).`
   )
+}
+
+/**
+ * Prompt « c'est fini, fais le rapport final » : à coller dans la session Claude
+ * Code qui a fait le travail. Le dernier rapport posté fait foi : en reposter un
+ * remplace l'ancien (et le rend publiable même si l'ancien l'a été).
+ */
+export function reportPrompt(repo: string, number: number, notes = ''): string {
+  return [
+    `Le travail sur l’issue ${repo}#${number} est terminé. Vérifie tout ce qui a été fait (commits, diff, tests, ce qui est livré) par rapport à la demande d’origine (section Besoin de l’issue) et aux échanges (\`gh issue view ${number} -R ${repo} --comments\`).`,
+    `Puis poste le rapport final en commentaire de l’issue (\`gh issue comment ${number} -R ${repo}\`), exactement au format ci-dessous : il est publié tel quel sur la tâche Basecamp et lu par des non-développeurs, donc clair, concret et sans jargon. S’il y a déjà un rapport, poste-en un nouveau : le dernier fait foi.`,
+    `Si l’issue n’a pas encore d’étiquette, donne-lui celle qui convient parmi celles du repo (\`gh label list -R ${repo}\`, sans en créer).`,
+    `Enfin, ferme l’issue si elle est encore ouverte : \`gh issue close ${number} -R ${repo} --reason completed\`.`,
+    ...(notes.trim() ? ['', `Précisions pour ce rapport : ${notes.trim()}`] : []),
+    '',
+    REPORT_TEMPLATE,
+  ].join('\n')
 }
 
 /** Commande qui lance Claude Code dans le clone local du repo, l'issue confiée. */

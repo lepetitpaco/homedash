@@ -4,6 +4,14 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.25.0 — 2026-10-23
+
+- **📝 rapport final** sur chaque issue en cours (Basecamp → 🐙 Issues GitHub) : tes précisions
+  (facultatives), puis un prompt copié qui demande à Claude Code de tout vérifier et de poster le
+  rapport final, puis de fermer l'issue. Un nouveau rapport remplace le précédent, et redevient publiable sur Basecamp même si
+  l'ancien l'a été.
+- **Claude Code étiquette l'issue** (bug, amélioration…), parmi les étiquettes du repo, sans en créer.
+
 ## 1.24.1 — 2026-10-23
 
 - **Les captures d'une tâche ne disparaissent plus de l'issue** : chacune devient un lien vers Basecamp
