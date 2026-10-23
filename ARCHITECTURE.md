@@ -10,9 +10,10 @@ backend/                  Python stdlib, aucune dépendance
   github.py               données GitHub d'un compte (cache ETag)
   basecamp.py             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
                           publié en commentaire (seule écriture)
-  localfile.py            onglets perso : un fichier du dossier personnel servi en lecture seule
-  favicons.py             icônes des onglets perso relayées (la page les recadre), en cache
+  localfile.py            Mes sites : un fichier du dossier personnel servi en lecture seule
+  favicons.py             icônes de Mes sites relayées (la page les recadre), en cache
   perflog.py              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
+  perfreport.py           ce journal résumé jour par jour (Réglages → Aide, scripts/perf-report.py)
   events.py               journal des événements (la cloche)
   gitread.py              lecture des .git sans git ni écriture
   localgit.py             onglet Local : verdicts et commandes proposées
@@ -24,10 +25,11 @@ src/
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
-                          tabCount (pastilles des onglets perso)
+                          tabCount (pastilles de Mes sites)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
-                          webviews des onglets perso, badge du Dock (barre des tâches sous Windows).
+                          webviews de Mes sites (guest-preload.js : souris, clavier, rien d'exposé),
+                          badge du Dock (barre des tâches sous Windows).
                           Construite sur la machine : build-local.sh (Mac, Docker + codesign),
                           build-windows.ps1 / .sh (Windows x64 : Docker, installateur NSIS installer.nsi).
                           updater.js : mise à jour depuis l'appli (git pull, compose, se reconstruit)
@@ -36,7 +38,7 @@ scripts/perf-report.py    résumé du journal de performance en texte (même cal
 tests/                    unittest stdlib
 CLAUDE.md                 règles du code et fonctionnalités principales (fait foi, pour humains et IA)
 AGENTS.md, .cursor/rules/ les mêmes règles pour Cursor et les autres IA (renvoient à CLAUDE.md)
-CHANGELOG.md              une entrée par version ; la première = version installée
+CHANGELOG.md              une entrée par version (un push) ; la première = version installée
 GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
 docs/screenshots/         captures (instance de démo) : README, GUIDE, et servies sous /guide/
 data/                     (non versionné) config.json, secrets.json, notes, journal, backups/, version.json
@@ -64,8 +66,8 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp (repos suivis) |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
 | `/api/perf` | GET, POST, DELETE | Journal de performance : état et place prise, mesure de l'appli / action de la page, vider |
-| `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est un onglet perso) |
-| `/api/file?path=` | GET | Fichier / dossier d'un onglet perso (dossier personnel, sans caché ni `data/`) |
+| `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est dans Mes sites) |
+| `/api/file?path=` | GET | Fichier / dossier de Mes sites (dossier personnel, sans caché ni `data/`) |
 | `/api/local`, `/api/local/refresh` | GET, POST | Dépôts du disque, relecture |
 | `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (dossier personnel et disque monté ; `&files=1` liste aussi les fichiers, dossier personnel seulement) |
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |
@@ -75,6 +77,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
 | `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Aide) |
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
+| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp connecté, nombre de comptes GitHub |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.

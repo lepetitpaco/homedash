@@ -9,3 +9,6 @@ Avant toute modification, applique les règles de @CLAUDE.md (elles font foi) ; 
 Avant de toucher une fonctionnalité principale (liste dans CLAUDE.md), arrête-toi et préviens :
 « ⚠️ Attention : ceci change <fonctionnalité> : <effet pour les utilisateurs>. Tout le monde l'aura à
 sa prochaine mise à jour. On continue ? » N'écris rien sans un « oui » explicite.
+
+Une vague de travail = une branche locale ; un push = une seule version dans CHANGELOG.md (et un tag),
+écrite au moment de fusionner, jamais une par commit.

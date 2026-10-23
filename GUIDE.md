@@ -34,12 +34,12 @@ Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côt�
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
 - **Tout le reste** : clic droit sur l'icône (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
-- **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse de la page affichée, sans
-  l'ouvrir dans le navigateur.
+- **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
+  de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier.
 - **Largeur de la barre, la cacher** : clic droit sur la barre, hors d'une icône.
 
-| Ajouter un onglet | Clic droit sur une icône |
+| Ajouter un site | Clic droit sur une icône |
 | --- | --- |
 | ![](docs/screenshots/nouvel-onglet.jpg) | ![](docs/screenshots/menu-d-un-onglet.jpg) |
 
@@ -101,7 +101,8 @@ homedash.
 #### Bon à savoir
 
 - **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
-  Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller.
+  Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller (durée dans
+  *Réglages → Liens & onglets*).
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.
@@ -120,8 +121,8 @@ version).
   non-lus de tes sites (ceux en veille sont réveillés).
 - **Notifications du système** : *activer* en bas de la cloche (coupées au départ).
 - **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications*.
-- **Le nombre sur l'icône de l'appli** : non-lus des onglets, cloche, ou les deux (*Réglages → Affichage
-  & notifications*).
+- **Le nombre sur l'icône de l'appli** : non-lus des sites, cloche, ou les deux (*Réglages →
+  Notifications*).
 
 #### Bon à savoir
 
