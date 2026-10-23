@@ -9,7 +9,7 @@ affichés par l'appli de bureau ; dans un navigateur, le reste est identique. Mo
 ![Wikipédia ouvert dans un onglet](screenshots/site-dans-un-onglet.jpg)
 
 Le site prend toute la page. En haut, une seule barre : son nom (l'adresse au survol), ← → ↻, ↗ pour
-l'ouvrir dans le navigateur, ⚙ pour le modifier, puis la recherche. À gauche, la barre façon Discord :
+l'ouvrir dans le navigateur, partager pour copier son lien, ⚙ pour le modifier, puis la recherche. À gauche, la barre façon Discord :
 ⚡ pour homedash, une icône par site avec son compte (P) et ses non-lus (3, 12), rangés en dossiers.
 
 ## Clic droit
@@ -23,15 +23,15 @@ de son choix, dans le navigateur, ou le copier. Sur du texte : copier, recherche
 | --- | --- |
 | ![](screenshots/menu-d-un-onglet.jpg) | ![](screenshots/barre-clic-droit.jpg) |
 
-Sur une icône : dossier, compte, notifications, son, mise en veille, modifier. Sur la barre : ajouter un
-onglet, un éphémère, la largeur, la cacher.
+Sur une icône : copier le lien, dossier, compte, notifications, son, mise en veille, modifier, supprimer.
+Sur la barre : ajouter un site, un éphémère, la largeur, la cacher.
 
 ## Onglet éphémère
 
 ![Onglet éphémère avec sa barre d'adresse](screenshots/onglet-ephemere.jpg)
 
 Un site le temps d'une recherche, en bas de la barre (contour pointillé), avec une barre d'adresse.
-Clic droit dessus : le garder, ou en faire un onglet.
+Clic droit dessus : le garder, copier son lien, ou l'ajouter à *Mes sites*.
 
 ## La barre de gauche
 
@@ -47,9 +47,9 @@ premières icônes et le total des non-lus.
 Tes liens épinglés et les plus utilisés, des notes, des infos à copier (Wi-Fi, IP…), et tes catégories
 de liens.
 
-## Ajouter un onglet
+## Ajouter un site
 
-![La fenêtre « Nouvel onglet »](screenshots/nouvel-onglet.jpg)
+![La fenêtre d'ajout d'un site](screenshots/nouvel-onglet.jpg)
 
 ＋ en bas de la barre : une adresse, ou un site courant en un clic.
 
@@ -71,9 +71,10 @@ Tes tâches en retard ou à venir, projet par projet, en lecture seule.
 
 ## Réglages
 
-![Réglages → Onglets perso](screenshots/reglages-onglets.jpg)
+![Réglages → Mes sites](screenshots/reglages-onglets.jpg)
 
-Un onglet par ligne, ses réglages en pastilles ; un clic l'ouvre.
+Un site par ligne, ses réglages en pastilles ; un clic l'ouvre. Où s'ouvrent les liens et la mise en
+veille sont à part, dans *Liens & onglets*.
 
 ![Réglages → Sauvegardes](screenshots/sauvegardes.jpg)
 

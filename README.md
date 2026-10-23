@@ -101,9 +101,10 @@ mise à jour. Améliore tout ce que tu veux, sans dénaturer l'existant.
   python3 -m unittest discover -s tests -t .                                # tests (~10 s)
   ```
 
-- **Livrer** : tu pousses directement sur `main`, après `git pull --rebase` et `git fetch --tags`. Un
-  changement visible = une entrée en tête du `CHANGELOG.md` avec la version suivante, un tag `vX.Y.Z`,
-  le `GUIDE.md` à jour et une issue qui le documente. Le détail est dans `CLAUDE.md`. Jamais de
+- **Livrer** : travaille ta vague sur une branche locale, puis pousse sur `main`, après `git pull
+  --rebase` et `git fetch --tags`. Un push = une version : une entrée en tête du `CHANGELOG.md` pour
+  toute la vague (pas une par commit), un tag `vX.Y.Z`, le `GUIDE.md` à jour et une issue par
+  changement. Le détail est dans `CLAUDE.md`. Jamais de
   `push --force`.
 
 ## Aller plus loin

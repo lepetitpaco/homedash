@@ -36,6 +36,11 @@ Même chose si la demande contredit une règle absolue : la signaler, proposer u
 Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
 devient un réglage.
 
+**Une vague = une branche, un push = une version.** On travaille sur une branche locale (`vague/<sujet>`)
+et on y commite librement, sans toucher au `CHANGELOG.md` ni aux versions. Une fois la vague testée :
+retour sur `main`, synchronisation (ci-dessous), **une** entrée de CHANGELOG pour toute la vague, fusion,
+tag, push. Trois commits poussés ensemble = une seule version, jamais une par commit.
+
 **Avant de pousser sur `main`** (chacun pousse directement) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
   `CHANGELOG.md` **après** synchronisation, et un tag déjà pris ne se réutilise pas.
@@ -58,7 +63,7 @@ devient un réglage.
   de `desktop/package.json` et porte, juste sous son titre, la ligne `Appli de bureau : A.B.C` : la page
   l'affiche, et la mise à jour depuis l'appli la reconstruit sur la machine.
 
-  Plusieurs changements livrés ensemble = une seule version. Après le commit : `git tag -a vX.Y.Z -m
+  Plusieurs changements livrés ensemble (une vague, un push) = une seule version. Après le commit : `git tag -a vX.Y.Z -m
   "X.Y.Z"` puis `git push --follow-tags`.
 - Comportement visible modifié → `GUIDE.md` à jour.
 - Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
@@ -136,7 +141,7 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - Dossiers stockés en `~/…` (ou chemin de l'hôte : `C:/…`, `/Volumes/…`), traduits par
   `localgit.resolve()`. Le disque est monté `:ro` sur `/hostdisk` (`HOST_DISK`) : `browse()` limité au
   dossier personnel et à ce disque après `realpath` (un lien vers le conteneur est refusé) ; choix de
-  fichier (`files`, onglets perso) : dossier personnel seulement, comme `localfile`.
+  fichier (`files`, Mes sites) : dossier personnel seulement, comme `localfile`.
 
 **Journal et cloche**
 - `events.py` est le **seul** endroit qui décide ce qui est un événement ; le front affiche.
@@ -161,7 +166,7 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   doit savoir qu'une appli ancienne ne l'a pas. UA sans « Electron » : sinon Google refuse sa page de connexion.
 - Comptes : `tab.session` = id de `tabSessions` ; partition `persist:homedash-tabs-<id>` (renommer ne
   déconnecte pas). Compte supprimé = `sessionOf()` vide = connexion commune.
-- Icônes des onglets perso : `SiteIcon` (recadrage canvas) via `/api/favicon?host=` ; le serveur ne
+- Icônes de Mes sites : `SiteIcon` (recadrage canvas) via `/api/favicon?host=` ; le serveur ne
   contacte que le service de favicons, ou le site lui-même s'il est un onglet de la config. Jamais une
   adresse venue de la page.
 - Pas de contrôle du système dans ces écrans (`<select>`, sélecteur de couleur) : `Pick`, `ColorSwatches`,
