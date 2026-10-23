@@ -64,6 +64,10 @@ devient un réglage.
 - Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
   cause, la solution et la version qui la livre ; fermée avec le hash du commit. Une issue déjà ouverte
   (collègue, utilisateur) sert de support : on y répond plutôt que d'en créer une autre.
+- **Toute issue porte une étiquette** (`gh issue create --label …`), une seule, parmi celles du repo :
+  `bug` (quelque chose ne marche pas comme prévu), `enhancement` (nouvelle possibilité ou ajustement),
+  `documentation` (doc seulement). `accessibility` est réservée à l'accès des personnes en situation de
+  handicap, pas à l'ergonomie. Une issue ouverte par quelqu'un d'autre sans étiquette : on la lui donne.
 
 ## Commandes
 
