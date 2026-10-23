@@ -9,7 +9,7 @@ import type {
   ReposConfig,
   UiConfig,
 } from '../types'
-import { repoTabs, type RepoTab } from '../types'
+import { featureOn, repoTabs, type Feature, type RepoTab } from '../types'
 import { keys } from './keys'
 
 export const DEFAULT_UI: UiConfig = {
@@ -132,6 +132,8 @@ export type Normalized = {
   sections: ResolvedSection[]
   /** Cartes de l'onglet GitHub — liste indépendante du tableau principal. */
   githubSections: ResolvedSection[]
+  /** Fonctionnalités actives (Réglages → Fonctionnalités). */
+  features: Record<Feature, boolean>
 }
 
 /** `infos` accepte l'ancienne forme (tableau de groupes) ou la nouvelle (objet). */
@@ -215,7 +217,7 @@ function normalizeStats(raw: StatsConfig | undefined): StatsConfig {
 function resolveList(
   entries: string[],
   groups: Group[],
-  has: { infos: boolean; repos: boolean; notes: boolean; stats: boolean },
+  has: { infos: boolean; repos: boolean; notes: boolean; stats: boolean; github: boolean },
   used: Set<string>,
   namedAnywhere: Set<string>,
 ): ResolvedSection[] {
@@ -232,7 +234,7 @@ function resolveList(
   for (const entry of entries) {
     const token = entry.toLowerCase()
     if ((GH_TOKENS as string[]).includes(token)) {
-      if (used.has(token)) continue
+      if (used.has(token) || !has.github) continue
       used.add(token)
       sections.push({ kind: token as GhKind, key: token })
     } else if (token === 'infos' || token === 'repos' || token === 'notes' || token === 'stats') {
@@ -288,11 +290,18 @@ export function normalizeConfig(raw: Config): Normalized {
   const layout = raw.layout?.length ? raw.layout : DEFAULT_LAYOUT
   const sidebarList = raw.sidebar?.length ? raw.sidebar : DEFAULT_SIDEBAR
 
+  const features: Record<Feature, boolean> = {
+    github: featureOn(raw, 'github'),
+    basecamp: featureOn(raw, 'basecamp'),
+    local: featureOn(raw, 'local'),
+  }
   const has = {
     infos: !!infos,
-    repos: !!repos,
+    // GitHub coupé : ni carte Repos ni cartes `gh:*` sur l'accueil.
+    repos: !!repos && features.github,
     notes: notes.enabled !== false,
     stats: stats.enabled !== false,
+    github: features.github,
   }
   const used = new Set<string>()
   const groupNames = new Set(groups.map((g) => g.name.toLowerCase()))
@@ -343,6 +352,7 @@ export function normalizeConfig(raw: Config): Normalized {
     sidebar,
     sections,
     githubSections,
+    features,
   }
 }
 

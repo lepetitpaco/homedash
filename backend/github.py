@@ -55,6 +55,9 @@ def configure(github_cfg):
             CFG["branch_repos"] = list(CFG.get("repos", []))
         if not CFG.get("users"):
             CFG["users"] = [CFG["me"]] if CFG.get("me") else []
+        if CFG.get("disabled"):
+            # Rallumé plus tard : ce qui a bougé entre-temps n'est pas une nouveauté.
+            _seeded["sections"].clear()
         # `users` accepte l'ancien format {login: prefix} comme le nouveau [login]
         CFG["users"] = list(CFG["users"])
         # Chaque repo s'écrit `propriétaire/repo`. Partout ailleurs il reste
@@ -89,7 +92,8 @@ def owner(repo, hint=None):
 
 def enabled():
     # Plus d'organisation obligatoire : chaque repo porte son propriétaire.
-    return bool(CFG.get("me"))
+    # `disabled` : GitHub coupé dans Réglages → Fonctionnalités.
+    return bool(CFG.get("me")) and not CFG.get("disabled")
 
 # ── Token ─────────────────────────────────────────────────────────────────────
 # Ce module est chargé UNE FOIS PAR COMPTE par `accounts.py` : chaque copie a

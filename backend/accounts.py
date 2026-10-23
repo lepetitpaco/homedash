@@ -41,9 +41,13 @@ def from_config(cfg):
     return []
 
 
-def settings_of(acc):
-    """Réglages d'un compte tels que `github.configure()` les attend."""
-    return {k: v for k, v in acc.items() if k not in ("id", "label")}
+def settings_of(acc, on=True):
+    """Réglages d'un compte tels que `github.configure()` les attend. `on` faux :
+    GitHub coupé dans Réglages → Fonctionnalités, le compte ne lit plus rien."""
+    out = {k: v for k, v in acc.items() if k not in ("id", "label", "disabled")}
+    if not on:
+        out["disabled"] = True
+    return out
 
 
 def normalized(cfg):
@@ -189,6 +193,7 @@ def configure(cfg):
     """(Re)charge les comptes de la config. À chaud : un compte qui reste garde
     son module, donc ses caches ; un compte retiré est oublié."""
     accs = from_config(cfg)
+    on = store.feature_on(cfg, "github")
     with _lock:
         ids = [a["id"] for a in accs]
         for gone in [i for i in _mods if i not in ids]:
@@ -199,7 +204,7 @@ def configure(cfg):
             _mods[acc["id"]] = mod
             _labels[acc["id"]] = acc.get("label") or ""
             mod.ACCOUNT.update(id=acc["id"], label=acc.get("label") or "")
-            mod.configure(settings_of(acc))
+            mod.configure(settings_of(acc, on))
             mod.apply_token(*_token_for(acc["id"]))
 
 

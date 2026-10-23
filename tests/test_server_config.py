@@ -6,7 +6,7 @@ import threading
 import unittest
 from http.server import ThreadingHTTPServer
 
-from tests import _path  # noqa: F401  (DATA_DIR temporaire avant tout import du backend)
+from tests import _path  # (DATA_DIR temporaire avant tout import du backend)
 
 import server
 import store
@@ -71,3 +71,25 @@ class ConfigVersionTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class FeaturesTest(unittest.TestCase):
+    """Réglages → Fonctionnalités : une fonctionnalité coupée ne lit plus rien."""
+
+    def tearDown(self):
+        store.write(store.CONFIG, BASE)
+        server.load_sections()
+
+    def test_local_switched_off_then_on(self):
+        import basecamp
+        import localgit
+        local = {"roots": [{"path": str(_path.DATA_DIR)}]}
+        store.write(store.CONFIG, {**BASE, "local": local, "features": {"local": False, "basecamp": False}})
+        server.load_sections()
+        self.assertFalse(localgit.enabled())
+        self.assertFalse(basecamp._on[0])
+        self.assertIn("Fonctionnalités", localgit.payload()["error"])
+        store.write(store.CONFIG, {**BASE, "local": local})
+        server.load_sections()
+        self.assertTrue(localgit.CFG["enabled"])
+        self.assertTrue(basecamp._on[0])

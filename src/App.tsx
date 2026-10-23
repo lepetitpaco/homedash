@@ -60,7 +60,7 @@ import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
 import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection, showSettingsSection } from './lib/settingsNav'
-import type { CustomTab, FlatLink, UiConfig } from './types'
+import { featureOn, type CustomTab, type FlatLink, type UiConfig } from './types'
 import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
 import { keys } from './lib/keys'
@@ -93,6 +93,8 @@ function shortLink(url: string): string {
 
 export default function App() {
   const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad } = useConfigState()
+  // Fonctionnalités coupées dans Réglages : ni onglet, ni commande, ni résultat de recherche.
+  const on = { github: featureOn(raw, 'github'), basecamp: featureOn(raw, 'basecamp'), local: featureOn(raw, 'local') }
   const [notes, setNotes] = useState<Note[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -188,6 +190,10 @@ export default function App() {
   const sessionsRef = useRef(tabSessions)
   sessionsRef.current = tabSessions
   const { tab, selectTab, goBack, stepTab } = useTabs(cfg?.title, customTabs)
+  // Onglet d'une fonctionnalité coupée (mémorisé, ou `?tab=`) : retour à l'accueil.
+  useEffect(() => {
+    if ((tab === 'github' || tab === 'basecamp' || tab === 'local') && raw && !featureOn(raw, tab)) selectTab('links')
+  }, [tab, raw, selectTab])
   // ⇧⌘R (appli de bureau) : le site ouvert, ou homedash sur un onglet natif.
   useEffect(() => setGhFront(tab === 'github' || tab === 'links'), [tab])
   const tabRef = useRef(tab)
@@ -375,7 +381,12 @@ export default function App() {
     (e: HdEvent) => (e.source === 'local' ? openLocal : e.kind === 'bc-report' ? openBcIssues : undefined),
     [openLocal, openBcIssues],
   )
-  const events = useEvents(inApp)
+  // Fonctionnalité coupée : ses événements quittent la cloche, l'historique et les notifications.
+  const eventsOff = useMemo(
+    () => (['github', 'basecamp', 'local'] as const).filter((f) => !featureOn(raw, f)),
+    [raw],
+  )
+  const events = useEvents(inApp, eventsOff)
   const { collapsed, toggleGroup, effectiveTheme, switchTheme } = usePrefs(cfg?.ui.theme)
   const { copiedKey, copy } = useCopy()
 
@@ -519,8 +530,12 @@ export default function App() {
   const commands = useMemo<Command[]>(
     () => [
       { id: 'links', icon: '⚡', label: 'Raccourcis', keywords: 'accueil liens dashboard', run: () => selectTab('links') },
-      { id: 'github', icon: '🐙', label: 'GitHub', keywords: 'prs branches', run: () => selectTab('github') },
-      { id: 'local', icon: '💻', label: 'Local', keywords: 'dépôts disque branches', run: () => selectTab('local') },
+      ...(on.github
+        ? [{ id: 'github', icon: '🐙', label: 'GitHub', keywords: 'prs branches', run: () => selectTab('github') }]
+        : []),
+      ...(on.local
+        ? [{ id: 'local', icon: '💻', label: 'Local', keywords: 'dépôts disque branches', run: () => selectTab('local') }]
+        : []),
       ...(bc.data?.configured
         ? [{ id: 'basecamp', icon: '🏕', label: 'Basecamp', keywords: 'tâches', run: () => selectTab('basecamp') }]
         : []),
@@ -555,7 +570,7 @@ export default function App() {
         run: clearVisits,
       },
     ],
-    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, newGroup],
+    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, newGroup, on.github, on.local],
   )
   // Basecamp dans la recherche : mes tâches (déjà là) ; tout Basecamp, useSearch le cherche
   const bcTasks = useMemo(
@@ -567,7 +582,7 @@ export default function App() {
     links,
     notes,
     gh: gh.data?.enabled ? gh.data : null,
-    local: local.data,
+    local: on.local ? local.data : null,
     bcTasks,
     bcSearch: !!bc.data?.enabled && !!bc.data.loaded,
     searchRef,
@@ -1232,22 +1247,26 @@ export default function App() {
   const tabs: Tab[] = [
     { id: 'links', icon: '⚡', label: 'Raccourcis' },
     // L'onglet existe dès qu'un compte est branché, même si le compte affiché ne l'est pas.
-    ...(gh.data?.enabled || gh.data?.accounts?.some((a) => a.enabled)
+    ...(on.github && (gh.data?.enabled || gh.data?.accounts?.some((a) => a.enabled))
       ? [{ id: 'github' as TabId, icon: '🐙', label: 'GitHub', group: code }]
       : []),
     // Toujours présent : le hook ne sonde que l'onglet ouvert, donc `local.data`
     // est nul tant qu'on n'a pas cliqué. La page explique elle-même son absence
     // de configuration, ce qu'un onglet manquant ne saurait pas faire.
-    {
-      id: 'local',
-      icon: '💻',
-      label: 'Local',
-      badge: local.todo,
-      badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
-      group: code,
-    },
+    ...(on.local
+      ? [
+          {
+            id: 'local' as TabId,
+            icon: '💻',
+            label: 'Local',
+            badge: local.todo,
+            badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
+            group: code,
+          },
+        ]
+      : []),
     // Dès que l'appli Basecamp est renseignée : connecté ou pas, l'onglet dit quoi faire.
-    ...(bc.data?.configured
+    ...(on.basecamp && bc.data?.configured
       ? [
           {
             id: 'basecamp' as TabId,
@@ -1525,6 +1544,7 @@ export default function App() {
           onClear={events.clear}
           inApp={inApp}
           onClose={goBack}
+          off={eventsOff}
         />
       ) : view === 'basecamp' ? (
         <BasecampView

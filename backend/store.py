@@ -121,6 +121,15 @@ def backup_config():
         pass          # premier démarrage, ou config déjà cassée : rien à sauver
 
 # ── Validation de config.json ─────────────────────────────────────────────────
+# Fonctionnalités qu'on peut couper (Réglages → Fonctionnalités) : `features` de
+# config.json, clé absente = active. Coupée, elle disparaît de la page et le
+# serveur cesse de lire le service qu'elle suit.
+FEATURES = ("github", "basecamp", "local")
+
+def feature_on(cfg, name):
+    features = (cfg or {}).get("features")
+    return not (isinstance(features, dict) and features.get(name) is False)
+
 def validate_config(cfg):
     """Garde-fou avant écriture : l'UI peut envoyer n'importe quoi, et ce fichier
     est la seule source de vérité de la page. Retourne un message ou None."""
@@ -176,6 +185,13 @@ def validate_config(cfg):
             for i, item in enumerate(items):
                 if not isinstance(item, dict) or not isinstance(item.get("name"), str) or not item["name"].strip():
                     return f"repos.items[{i}].name manquant"
+    features = cfg.get("features")
+    if features is not None:
+        if not isinstance(features, dict):
+            return '"features" doit être un objet'
+        for name, on in features.items():
+            if not isinstance(on, bool):
+                return f"features.{name} doit être vrai ou faux"
     ui = cfg.get("ui")
     if ui is not None and not isinstance(ui, dict):
         return '"ui" doit être un objet'

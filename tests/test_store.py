@@ -33,6 +33,21 @@ class BasecampConfigTest(unittest.TestCase):
         self.assertIsNotNone(store.validate_config({**base, "basecamp": []}))
 
 
+class FeaturesTest(unittest.TestCase):
+    """Réglages → Fonctionnalités : clé absente = active, sinon des booléens."""
+
+    def test_absent_means_on(self):
+        for cfg in ({}, {"features": {}}, {"features": {"basecamp": False}}, None):
+            self.assertTrue(store.feature_on(cfg, "github"))
+        self.assertFalse(store.feature_on({"features": {"github": False}}, "github"))
+
+    def test_features_must_be_booleans(self):
+        base = {"groups": []}
+        self.assertIsNone(store.validate_config({**base, "features": {"github": False, "local": True}}))
+        self.assertIsNotNone(store.validate_config({**base, "features": {"github": "non"}}))
+        self.assertIsNotNone(store.validate_config({**base, "features": ["github"]}))
+
+
 class WriteTest(unittest.TestCase):
 
     def tearDown(self):

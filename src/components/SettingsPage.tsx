@@ -18,7 +18,7 @@ import {
 import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
 import { EDIT_TAB_EVENT, NEW_TAB_EVENT, SECTION_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
 import { hostOf } from '../lib/customTabs'
-import { repoTabs, type Config, type CustomTab, type RepoItem, type RepoTab } from '../types'
+import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
@@ -55,6 +55,7 @@ const ACCOUNT_SECTIONS: string[] = ['set-account', 'set-repos', 'set-ghtab']
  * groupe sous un intertitre et affiche l'une ou l'autre.
  */
 const SECTIONS = [
+  { id: 'set-features', icon: '🧩', label: 'Fonctionnalités', group: 'Général' },
   { id: 'set-account', icon: '🔑', label: 'Compte & équipe', group: 'GitHub' },
   { id: 'set-repos', icon: '📦', label: 'Repos suivis', group: 'GitHub' },
   { id: 'set-ghtab', icon: '🐙', label: 'Onglet GitHub', group: 'GitHub' },
@@ -64,6 +65,22 @@ const SECTIONS = [
   { id: 'set-display', icon: '🎛', label: 'Affichage & notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
 ] as const
+
+/** Parties qui ne servent qu'à une fonctionnalité : coupée, elles quittent le menu. */
+const SECTION_FEATURE: Record<string, Feature> = {
+  'set-account': 'github',
+  'set-repos': 'github',
+  'set-ghtab': 'github',
+  'set-local': 'local',
+  'set-basecamp': 'basecamp',
+}
+
+/** Réglages → Fonctionnalités : ce que chacune ajoute à la page. */
+const FEATURE_LIST: { id: Feature; icon: string; label: string; hint: string }[] = [
+  { id: 'github', icon: '🐙', label: 'GitHub', hint: 'onglet GitHub (branches, PRs, CI, Renovate), carte Repos de l’accueil, recherche dans les repos' },
+  { id: 'local', icon: '💻', label: 'Local', hint: 'onglet Local : les dépôts de ton disque et leurs branches à nettoyer' },
+  { id: 'basecamp', icon: '🏕', label: 'Basecamp', hint: 'onglet Basecamp (tes tâches), ses non-lus dans la cloche, recherche dans Basecamp' },
+]
 
 /** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
 const limitOf = (key: string) => SIZE_LIMITS.find(([k]) => k === key)
@@ -228,7 +245,9 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
       .then((u) => setHasPerf((u.files ?? 0) > 0))
       .catch(() => undefined)
   }, [])
-  const nav = [...SECTIONS, NEWS, GUIDE, ERRORS, ...(hasPerf ? [PERF] : [])]
+  // Une fonctionnalité décochée quitte le menu tout de suite (brouillon compris).
+  const shown = (id: string) => !SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id])
+  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), NEWS, GUIDE, ERRORS, ...(hasPerf ? [PERF] : [])]
   const [guidePart, setGuidePart] = useState<string | null>(() => {
     try {
       return localStorage.getItem(GUIDE_PART_KEY)
@@ -270,6 +289,11 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     window.addEventListener(SECTION_EVENT, go)
     return () => window.removeEventListener(SECTION_EVENT, go)
   }, [])
+  // Partie mémorisée d'une fonctionnalité coupée : on revient aux Fonctionnalités.
+  useEffect(() => {
+    if (!shown(active)) setActive('set-features')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [active, draft])
   const help = guide?.find((p) => p.id === guidePart) ?? guide?.[0]
   // ＋ de la barre de gauche ou « Modifier… », Réglages déjà ouvert : Onglets perso
   // (SetTabs crée l'onglet, ou ouvre son éditeur).
@@ -577,6 +601,34 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         ) : null}
 
         <div className="set-cards">
+        {active === 'set-features' ? (
+        <Card id="set-features" icon="🧩" title="Fonctionnalités">
+          <p className="set-hint">
+            Décoche ce dont tu ne te sers pas : l'onglet disparaît, et homedash cesse de lire le service. Les
+            réglages et connexions sont gardés : recoche pour tout retrouver.
+          </p>
+          <div className="set-toggles">
+            {FEATURE_LIST.map(({ id, icon, label, hint }) => (
+              <label className="set-toggle" key={id} title={hint}>
+                <input
+                  type="checkbox"
+                  checked={featureOn(draft, id)}
+                  onChange={(e) => {
+                    const features = { ...(draft.features ?? {}) }
+                    // Cochée = clé retirée : le défaut (active) s'applique.
+                    if (e.target.checked) delete features[id]
+                    else features[id] = false
+                    const { features: _old, ...rest } = draft
+                    setDraft(Object.keys(features).length ? { ...rest, features } : rest)
+                  }}
+                />
+                {icon} {label} <em>{hint}</em>
+              </label>
+            ))}
+          </div>
+        </Card>
+        ) : null}
+
         {active === 'set-account' ? (
         <Card id="set-account" icon="🔑" title={`Compte & équipe · ${labelOf(gh)}`}>
           <div className="set-grid">

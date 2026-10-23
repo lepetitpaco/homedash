@@ -209,6 +209,22 @@ class RoutingTest(unittest.TestCase):
         self.assertIs(accounts.get("n'existe pas"), accounts.get("boulot"))
         self.assertEqual([m.ACCOUNT["id"] for m in accounts.all_mods()], ["boulot", "perso"])
 
+    def test_github_switched_off_reads_nothing(self):
+        accounts.configure({"features": {"github": False}, "github_accounts": [
+            {"id": "boulot", "me": "moi", "repos": ["mon-org/api"]}]})
+        mod = accounts.get("boulot")
+        self.assertFalse(mod.enabled())
+        self.assertFalse(accounts.enabled())
+        self.assertEqual(mod.payload(mod.token()), {"enabled": False})
+        self.assertEqual(accounts.bc_issues(), {"issues": [], "repos": []})
+        with mock.patch.object(mod, "kickoff") as kick:
+            accounts.kickoff_all()
+        kick.assert_not_called()
+        # Rallumé : le compte reprend, réglages et jeton intacts.
+        accounts.configure({"github_accounts": [{"id": "boulot", "me": "moi", "repos": ["mon-org/api"]}]})
+        self.assertTrue(accounts.get("boulot").enabled())
+        self.assertEqual(accounts.get("boulot").token(), "t1")
+
     def test_removed_account_is_forgotten(self):
         accounts.configure({"github_accounts": [{"id": "boulot", "me": "moi"}]})
         self.assertEqual([m.ACCOUNT["id"] for m in accounts.all_mods()], ["boulot"])

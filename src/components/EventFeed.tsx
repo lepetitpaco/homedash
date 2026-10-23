@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { dayOf, hhmm, type HdEvent, type InApp } from '../lib/events'
+import { dayOf, hhmm, type EventSource, type HdEvent, type InApp } from '../lib/events'
 import { confirmDialog } from './ConfirmHost'
 
 type Filter = 'all' | 'github' | 'basecamp' | 'local' | 'bad'
@@ -27,6 +27,7 @@ export default function EventFeed({
   onClear,
   inApp,
   onClose,
+  off = [],
 }: {
   events: HdEvent[]
   error: string | null
@@ -36,6 +37,8 @@ export default function EventFeed({
   inApp: InApp
   /** Retour à l'onglet d'où l'on vient : l'historique n'a pas d'onglet à lui. */
   onClose: () => void
+  /** Sources des fonctionnalités coupées : pas de filtre pour elles. */
+  off?: EventSource[]
 }) {
   // Le compte n'est affiché que s'il y en a plusieurs : sinon c'est du bruit.
   const multiAccount = new Set(events.map((ev) => ev.account).filter(Boolean)).size > 1
@@ -76,7 +79,7 @@ export default function EventFeed({
           <span className="group-count">{events.length}</span>
           {fresh > 0 ? <span className="ev-fresh-count">{fresh} nouveau{fresh > 1 ? 'x' : ''}</span> : null}
           <div className="ev-filters">
-            {FILTERS.map((f) => (
+            {FILTERS.filter((f) => !off.includes(f.id as EventSource)).map((f) => (
               <button
                 key={f.id}
                 className={`ev-chip${filter === f.id ? ' is-on' : ''}`}

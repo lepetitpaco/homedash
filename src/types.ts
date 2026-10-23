@@ -219,6 +219,12 @@ export type TabSession = {
 /** Ordre des blocs. Jetons réservés : "infos" | "repos" | "notes" | "groups". */
 export type LayoutEntry = string
 
+/** Ce qu'on peut couper : l'onglet disparaît, et le serveur ne lit plus le service. */
+export type Feature = 'github' | 'basecamp' | 'local'
+
+export const featureOn = (cfg: Pick<Config, 'features'> | null | undefined, f: Feature): boolean =>
+  cfg?.features?.[f] !== false
+
 export type Config = {
   title?: string
   subtitle?: string
@@ -245,6 +251,8 @@ export type Config = {
   tabFolders?: TabFolder[]
   /** Comptes de connexion des onglets perso (appli de bureau). Absent = aucun. */
   tabSessions?: TabSession[]
+  /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
+  features?: Partial<Record<Feature, boolean>>
   /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
   basecamp?: {
     /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */

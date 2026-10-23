@@ -773,7 +773,7 @@ def payload():
     if not enabled():
         return {"enabled": False,
                 "error": None if CFG.get("enabled", True)
-                         else "onglet désactivé dans config.json",
+                         else "onglet Local désactivé — Réglages → Fonctionnalités",
                 "hint": "aucun dossier de dépôts — Réglages → Dépôts locaux"}
     with _state["lock"]:
         _state["seen"] = time.time()          # quelqu'un regarde : la surveillance vit
