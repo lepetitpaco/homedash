@@ -69,7 +69,17 @@ export default function Pick({
   }, [open, close])
 
   return (
-    <span className="pick">
+    <span
+      className="pick"
+      // Échap ferme le menu, pas la fenêtre qui le contient (l'événement remonte
+      // jusqu'à elle, portail compris)
+      onKeyDown={(e) => {
+        if (open && e.key === 'Escape') {
+          e.stopPropagation()
+          close()
+        }
+      }}
+    >
       <button
         ref={btn}
         type="button"

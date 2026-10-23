@@ -237,21 +237,23 @@ _etags      = OrderedDict()   # url -> (etag, payload)
 _etags_lock = threading.Lock()
 STATS       = {"calls": 0, "hits": 0, "errors": 0}
 
-def gh(path, token, params=None, cache=True):
+def gh(path, token, params=None, cache=True, accept="application/vnd.github+json"):
     url = "https://api.github.com" + path
     if params:
         url += "?" + urllib.parse.urlencode(params)
+    # même adresse, autre format (`full+json` : le HTML en plus) = autre entrée du cache
+    key = url if accept == "application/vnd.github+json" else f"{url} {accept}"
 
     cached = None
     if cache:
         with _etags_lock:
-            cached = _etags.get(url)
+            cached = _etags.get(key)
             if cached:
-                _etags.move_to_end(url)
+                _etags.move_to_end(key)
 
     headers = {
         "Authorization": f"Bearer {token}",
-        "Accept": "application/vnd.github+json",
+        "Accept": accept,
         "X-GitHub-Api-Version": "2022-11-28",
         "User-Agent": "homedash/1.0",
     }
@@ -264,8 +266,8 @@ def gh(path, token, params=None, cache=True):
             etag    = r.headers.get("ETag")
             if cache and etag:
                 with _etags_lock:
-                    _etags[url] = (etag, payload)
-                    _etags.move_to_end(url)
+                    _etags[key] = (etag, payload)
+                    _etags.move_to_end(key)
                     while len(_etags) > ETAG_MAX:
                         _etags.popitem(last=False)
             with _etags_lock:
@@ -569,6 +571,109 @@ def fetch_merged(token, user):
     out.sort(key=lambda p: p["merged_at_raw"], reverse=True)
     return out[:count]
 
+# ── Issues liées à Basecamp ───────────────────────────────────────────────────
+# Une issue créée depuis l'onglet Basecamp porte `<!-- homedash:bc <adresse de la
+# tâche> -->` ; le rapport à reporter sur la tâche est un commentaire qui commence
+# par `<!-- homedash:bc-report -->`. Ici on les lit ; la création (`create_issue`)
+# et la publication du rapport (`basecamp.publish_report`) se font au clic.
+BC_LINK   = re.compile(r"<!--\s*homedash:bc\s+(https?://\S+?)\s*-->")
+BC_REPORT = re.compile(r"\A\s*<!--\s*homedash:bc-report\s*-->\s*")
+# issues relues par repo, les plus récemment modifiées (PRs comprises : l'API les
+# mêle aux issues). Fermer une issue la remet en tête : son rapport reste visible.
+BC_ISSUES_SCAN = 100
+
+def bc_report(comments):
+    """Dernier commentaire-rapport d'une issue, marqueur retiré ; None s'il n'y en a pas."""
+    for c in reversed(comments or []):
+        body = c.get("body") or ""
+        if BC_REPORT.match(body):
+            return {
+                "id": c.get("id"), "url": c.get("html_url") or "",
+                "body": BC_REPORT.sub("", body).strip(),
+                # HTML rendu par GitHub : ce qui part sur Basecamp, jamais affiché ici
+                "html": re.sub(r"<!--.*?-->", "", c.get("body_html") or "", flags=re.S).strip(),
+                "author": (c.get("user") or {}).get("login") or "",
+                "ts": c.get("updated_at") or c.get("created_at") or "",
+            }
+    return None
+
+def fetch_bc_issues(token):
+    def repo_issues(repo):
+        items = gh(f"/repos/{owner(repo)}/{repo}/issues", token,
+                   {"state": "all", "sort": "updated", "direction": "desc",
+                    "per_page": BC_ISSUES_SCAN})
+        out = []
+        for it in items if isinstance(items, list) else []:
+            m = BC_LINK.search(it.get("body") or "")
+            if m and not it.get("pull_request"):
+                out.append((repo, it, m.group(1)))
+        return out
+
+    def enrich(item):
+        repo, it, bc_url = item
+        report = None
+        n = it.get("comments") or 0
+        if n:
+            # le rapport arrive en dernier : la dernière page suffit
+            comments = gh(f"/repos/{owner(repo)}/{repo}/issues/{it['number']}/comments", token,
+                          {"per_page": 100, "page": (n - 1) // 100 + 1},
+                          accept="application/vnd.github.full+json")
+            report = bc_report(comments if isinstance(comments, list) else [])
+        return {
+            "repo": f"{owner(repo)}/{repo}", "number": it["number"], "title": it.get("title") or "",
+            "url": it.get("html_url") or "", "state": it.get("state") or "open",
+            "bc_url": bc_url, "updated_at": it.get("updated_at") or "", "report": report,
+        }
+
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        tasks = [i for sub in ex.map(repo_issues, CFG.get("repos", [])) for i in sub]
+    if not tasks:
+        return []
+    with ThreadPoolExecutor(max_workers=MAX_WORKERS) as ex:
+        out = list(ex.map(enrich, tasks))
+    out.sort(key=lambda i: i["updated_at"], reverse=True)
+    return out
+
+class CannotWrite(Exception):
+    """GitHub refuse la création : jeton en lecture seule, ou repo sans issues."""
+
+def create_issue(repo, title, body):
+    """Seule écriture de homedash vers GitHub : une issue, à la demande (onglet
+    Basecamp). `repo` = `propriétaire/repo`, forcément un repo suivi par ce compte."""
+    own, _, name = (repo or "").rpartition("/")
+    if not own or name not in CFG.get("repos", []) or owner(name) != own:
+        raise ValueError("repo non suivi par ce compte")
+    if not _TOKEN:
+        raise CannotWrite("compte GitHub non connecté")
+    req = urllib.request.Request(
+        f"https://api.github.com/repos/{own}/{name}/issues", method="POST",
+        data=json.dumps({"title": title, "body": body}).encode("utf-8"),
+        headers={"Authorization": f"Bearer {_TOKEN}", "Accept": "application/vnd.github+json",
+                 "X-GitHub-Api-Version": "2022-11-28", "User-Agent": "homedash/1.0",
+                 "Content-Type": "application/json"})
+    try:
+        with urllib.request.urlopen(req, timeout=15) as r:
+            it = json.loads(r.read())
+    except urllib.error.HTTPError as e:
+        # 403 / 404 : pas le droit d'écrire (fine-grained en lecture seule) ; 410 : issues coupées
+        if e.code in (403, 404, 410):
+            raise CannotWrite(f"HTTP {e.code}") from e
+        raise
+    m = BC_LINK.search(body or "")
+    if m:
+        # visible tout de suite sur sa tâche, sans attendre la prochaine relecture
+        _data["issues"] = [{
+            "repo": repo, "number": it.get("number"), "title": it.get("title") or title,
+            "url": it.get("html_url") or "", "state": "open", "bc_url": m.group(1),
+            "updated_at": it.get("updated_at") or "", "report": None,
+        }] + [i for i in _data["issues"] if (i["repo"], i["number"]) != (repo, it.get("number"))]
+    return {"number": it.get("number"), "url": it.get("html_url") or ""}
+
+def bc_issues():
+    """Issues liées à Basecamp et repos où en créer, pour l'onglet Basecamp."""
+    return {"issues": _data["issues"],
+            "repos": [f"{owner(r)}/{r}" for r in CFG.get("repos", []) if owner(r)]}
+
 # ── Renovate ──────────────────────────────────────────────────────────────────
 def fetch_renovate(token):
     author   = CFG.get("renovate_author", "renovate[bot]")
@@ -834,10 +939,23 @@ def _diff(before, after, todo):
                         f"⛔ {up}{v} KO sur {pr['repo']}",
                         "CI en échec après merge : ne pas propager.",
                         pr["repo"], pr["url"], f"rmci:{_pr_key(pr)}", sticky=True))
+
+    # Rapport posté sur une issue liée : il attend d'être publié sur Basecamp.
+    if "issues" in todo:
+        old = {(i["repo"], i["number"]): i.get("report") for i in before.get("issues") or []}
+        for i in after.get("issues") or []:
+            rep = i.get("report")
+            was = old.get((i["repo"], i["number"]))
+            if rep and (not was or was.get("id") != rep.get("id")):
+                out.append(events.event(
+                    "bc-report", "ok", "basecamp",
+                    f"📤 Rapport prêt — {i['repo']} #{i['number']}",
+                    f"{i['title']} · à publier sur la tâche Basecamp",
+                    i["repo"], i["url"], f"bcrep:{i['repo']}#{i['number']}", sticky=True))
     return out
 
 # ── État partagé + rafraîchissement ──────────────────────────────────────────
-_data  = {"branches": [], "prs": [], "renovate": [], "renovate_merged": [], "merged": []}
+_data  = {"branches": [], "prs": [], "renovate": [], "renovate_merged": [], "merged": [], "issues": []}
 _state = {"ts": 0.0, "building": False, "lock": threading.Lock(), "user": None, "error": None}
 
 def current_user():
@@ -856,7 +974,7 @@ def invalidate():
     with _state["lock"]:
         _state["ts"] = 0.0
 
-SECTIONS = ("branches", "prs", "renovate", "merged")
+SECTIONS = ("branches", "prs", "renovate", "merged", "issues")
 
 def rebuild(token, sections=None):
     """Rafraîchit tout, ou seulement les sections demandées (bouton ↻ d'une carte)."""
@@ -872,6 +990,7 @@ def rebuild(token, sections=None):
             "prs":      lambda: fetch_prs(token, user),
             "renovate": lambda: fetch_renovate(token),
             "merged":   lambda: fetch_merged(token, user),
+            "issues":   lambda: fetch_bc_issues(token),
         }
         with ThreadPoolExecutor(max_workers=len(todo)) as ex:
             futures = {name: ex.submit(jobs[name]) for name in todo}

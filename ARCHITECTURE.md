@@ -8,7 +8,8 @@ backend/                  Python stdlib, aucune dépendance
   store.py                JSON dans data/ : écriture atomique, validation, secrets en 600
   accounts.py             comptes GitHub : un module github.py chargé par compte, migration de config
   github.py               données GitHub d'un compte (cache ETag)
-  basecamp.py             Basecamp en lecture seule : OAuth, mes tâches, mes notifications
+  basecamp.py             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
+                          publié en commentaire (seule écriture)
   localfile.py            onglets perso : un fichier du dossier personnel servi en lecture seule
   favicons.py             icônes des onglets perso relayées (la page les recadre), en cache
   perflog.py              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
@@ -53,6 +54,9 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/github/{auth,owners,repos/{owner},members/{org},users/{login}}` | GET | Pour Réglages |
 | `/api/basecamp`, `/api/basecamp/refresh` | GET, POST | Tâches et notifs non lues, relecture |
 | `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
+| `/api/basecamp/task?url=` | GET | Description, étapes et échanges d'une tâche (pré-remplir une issue) |
+| `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
+| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp (repos suivis) |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
 | `/api/perf` | GET, POST, DELETE | Journal de performance : état et place prise, mesure de l'appli / action de la page, vider |
 | `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est un onglet perso) |

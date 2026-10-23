@@ -15,7 +15,7 @@
  *  · les non-lus dans le titre et l'icône de l'onglet, qui ne dépendent pas des
  *    notifications système (en sourdine par défaut).
  */
-import type { HdEvent } from './events'
+import type { HdEvent, InApp } from './events'
 import { shown } from './errors'
 
 // Sourdine par défaut : la cloche de la barre du haut est le canal principal, une
@@ -176,6 +176,7 @@ const GROUP_TITLE: Record<string, (n: number) => [string, string]> = {
   'rm-new': (n) => [`✅ ${n} PRs Renovate mergées`, ''],
   'rm-pass': (n) => [`🟢 ${n} projets validés`, 'CI verte : tu peux merger les autres.'],
   'rm-fail': (n) => [`⛔ ${n} projets KO après merge`, 'Ne pas propager.'],
+  'bc-report': (n) => [`📤 ${n} rapports prêts à publier sur Basecamp`, ''],
   'local-cleanup': (n) => [
     `🧹 ${n} branches locales sont mergées`,
     'Leurs copies locales ne servent plus à rien.',
@@ -189,16 +190,16 @@ function groupTitle(kind: string, n: number): [string, string] {
 /**
  * Affiche un lot d'événements fraîchement apparus dans le journal.
  *
- * `openLocal` est la destination des événements locaux : ils ne pointent vers
- * aucune page GitHub utile, ce qu'on veut c'est revenir dans l'onglet Local avec
- * les commandes à copier.
+ * `inApp` ramène dans homedash les événements qui n'ont rien d'utile dehors :
+ * ménage local (l'onglet Local et ses commandes à copier), rapport prêt (la vue
+ * Issues de Basecamp, d'où on le publie).
  */
-export function notifyEvents(list: HdEvent[], openLocal?: () => void): void {
+export function notifyEvents(list: HdEvent[], inApp?: InApp): void {
   const groups = new Map<string, HdEvent[]>()
   for (const e of list) groups.set(e.kind, [...(groups.get(e.kind) ?? []), e])
 
   for (const [kind, items] of groups) {
-    const target = (e: HdEvent) => (e.source === 'local' ? openLocal : undefined)
+    const target = (e: HdEvent) => inApp?.(e)
     if (items.length < GROUP_MIN) {
       for (const e of items) send(e.title, e.body, e.tag, e.url, e.sticky, target(e))
       continue

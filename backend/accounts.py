@@ -260,6 +260,23 @@ def start_loop():
     threading.Thread(target=_slow_loop, daemon=True, name="github-slow").start()
 
 
+def bc_issues(fresh=False):
+    """Issues liées à Basecamp de tous les comptes, et les repos où en créer.
+    `fresh` (onglet Basecamp affiché) : relit GitHub au rythme de l'onglet GitHub,
+    sinon on s'en tient à ce que les autres lectures ont rapporté."""
+    issues, repos = [], []
+    for mod in all_mods():
+        if not (mod.token() and mod.enabled()):
+            continue
+        if fresh and mod.age() >= (mod.CFG.get("auto_refresh") or 15):
+            mod.kickoff(mod.token())
+        acc = mod.ACCOUNT["id"]
+        got = mod.bc_issues()
+        issues += [dict(i, account=acc) for i in got["issues"]]
+        repos += [{"account": acc, "repo": r} for r in got["repos"]]
+    return {"issues": issues, "repos": repos}
+
+
 def invalidate_all():
     for mod in all_mods():
         mod.invalidate()

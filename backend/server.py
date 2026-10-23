@@ -339,7 +339,17 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/github/accounts":
             return self._json({"accounts": accounts.listing()})
         if path == "/api/basecamp":
-            return self._json(basecamp.payload())
+            # + les issues GitHub liées aux tâches (lues par les comptes GitHub)
+            return self._json({**basecamp.payload(),
+                               "github": accounts.bc_issues(fresh=bool(self._query("fresh")))})
+        if path == "/api/basecamp/task":
+            # Contenu d'une tâche, pour pré-remplir une issue (GET vers Basecamp seulement)
+            try:
+                return self._json({"text": basecamp.task_text(self._query("url"))})
+            except ValueError as e:
+                return self._err(422, str(e))
+            except RuntimeError as e:
+                return self._err(502, str(e))
         if path == "/api/basecamp/auth":
             return self._json(basecamp.status())
         if path == "/api/basecamp/callback":
@@ -518,6 +528,26 @@ class Handler(BaseHTTPRequestHandler):
                 basecamp.kickoff()
                 return self._json(basecamp.status())
 
+            if path in ("/api/basecamp/report", "/api/basecamp/dismiss"):
+                # Rapport d'une issue liée → commentaire sur sa tâche (seule écriture vers Basecamp),
+                # ou issue écartée sans publication (rien n'est envoyé). La page ne donne que
+                # l'issue : texte et tâche viennent de ce que le serveur a lu.
+                body = self._body() or {}
+                mod  = accounts.get(body.get("account"))
+                found = next((i for i in (mod.bc_issues()["issues"] if mod else [])
+                              if i["repo"] == body.get("repo") and i["number"] == body.get("number")), None)
+                if path.endswith("/dismiss"):
+                    if not found:
+                        return self._err(404, "Issue introuvable : relis GitHub puis réessaie.")
+                    return self._json({"posted": basecamp.dismiss(found, undo=bool(body.get("undo")))})
+                if not found or not found.get("report"):
+                    return self._err(404, "Pas de rapport pour cette issue : relis GitHub puis réessaie.")
+                try:
+                    return self._json(basecamp.publish_report(found))
+                except RuntimeError as e:
+                    errlog.record("serveur", "rapport non publié sur Basecamp", str(e), "POST /api/basecamp/report")
+                    return self._json({"error": str(e)}, 502)
+
             if path == "/api/basecamp/refresh":
                 return self._json({"ok": True, "started": basecamp.kickoff()})
 
@@ -571,6 +601,26 @@ class Handler(BaseHTTPRequestHandler):
                 if not isinstance(link_id, str) or not link_id:
                     return self._err(422, "id manquant")
                 return self._json(store.bump_usage(link_id, int(time.time() * 1000)))
+
+            if path == "/api/github/issue":
+                # Issue créée depuis une tâche Basecamp (seule écriture vers GitHub)
+                body  = self._body() or {}
+                mod   = self._acc(body.get("account"))
+                title = str(body.get("title") or "").strip()[:256]
+                if not mod:
+                    return self._err(404, "compte inconnu")
+                if not title:
+                    return self._err(422, "Il faut un titre.")
+                try:
+                    made = mod.create_issue(body.get("repo"), title, str(body.get("body") or "")[:60000])
+                except ValueError:
+                    return self._err(422, "Ce repo n'est pas suivi par ce compte GitHub.")
+                except mod.CannotWrite as e:
+                    errlog.record("serveur", "création d'issue refusée", str(e), "POST /api/github/issue")
+                    return self._json({"error": "GitHub refuse : la connexion de ce compte est en lecture "
+                                                "seule pour les issues. Ouvre plutôt le formulaire."}, 422)
+                mod.kickoff(mod.token(), ["issues"])   # l'issue apparaît dans l'onglet Basecamp
+                return self._json(made)
 
             if path == "/api/github/refresh":
                 body    = self._body() if self.headers.get("Content-Length") else {}

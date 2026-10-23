@@ -4,6 +4,21 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.24.0 — 2026-10-22
+
+- **Basecamp → issue GitHub → rapport** : **🐙＋** au survol d'une tâche (ou clic droit). Le besoin est
+  repris de la tâche (description, étapes, échanges) et l'issue est créée sur GitHub avec le lien vers
+  la tâche, sans être connecté à github.com (ou formulaire GitHub pré-rempli, au choix). Le repo choisi
+  est retenu par projet Basecamp, et une issue déjà ouverte sur la tâche est signalée.
+- **Claude Code en un collage** : à la création, la commande qui le lance dans ton clone du repo, l'issue
+  confiée, est copiée (le prompt seul si le repo n'est pas cloné).
+- **Le rapport revient sur Basecamp** : quand Claude Code a posté son rapport sur l'issue, la cloche
+  sonne (*📤 Rapport prêt*) et **📤 publier sur BC** apparaît à côté de la tâche ; un clic (et une confirmation) le publie en
+  commentaire de la tâche, à ton nom. ✕ écarte une issue sans rien publier ; fermée sans rapport,
+  elle l'est d'office. Nouveau menu **🐙 Issues GitHub** dans l'onglet Basecamp.
+- Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only*), et les écrire pour les créer
+  d'ici (*Read and write* ; un jeton classic `repo` le peut déjà).
+
 ## 1.23.5 — 2026-10-22
 
 - **Onglet Local : `git pull` quand ta branche est en retard** sur sa version en ligne, main/master

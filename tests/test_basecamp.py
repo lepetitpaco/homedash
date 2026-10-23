@@ -83,6 +83,15 @@ class Fake:
             body = {"id": 55, "parent": {"url": f"{HREF}/card_tables/77.json"}}
         elif url.endswith("/card_tables/77.json"):
             body = BOARD
+        elif url.endswith("/buckets/9/todos/2.json"):
+            body = {"id": 2, "title": "Tâche 2", "comments_count": 1,
+                    "description": "<div>Refaire la <strong>page</strong> :<ul><li>logo</li><li>"
+                                   "<a href=\"https://x.fr\">lien</a></li></ul></div>"}
+        elif req.get_method() == "POST" and url.endswith("/buckets/9/recordings/5/comments.json"):
+            body = {"id": 900, "app_url": "https://3.basecamp.com/123/buckets/9/card_tables/cards/5#__recording_900"}
+        elif url.endswith("/buckets/9/recordings/2/comments.json"):
+            body = [{"creator": {"name": "Flo"}, "created_at": "2026-10-22T09:00:00Z",
+                     "content": "<div>Pour vendredi&nbsp;!</div>"}]
         else:
             raise AssertionError(f"URL inattendue : {url}")
         resp = mock.MagicMock()
@@ -140,6 +149,72 @@ class BasecampTest(unittest.TestCase):
         src = Path(basecamp.__file__).read_text(encoding="utf-8")
         for verb in ('"PUT"', '"DELETE"', '"PATCH"', "/my/unreads", "/my/priorities", "completion"):
             self.assertNotIn(verb, src)
+
+    # ── contenu d'une tâche (pré-remplissage d'une issue) ────────────────────
+    def test_task_text_reads_description_and_comments_with_get_only(self):
+        self.connect()
+        before = len(self.net.requests)
+        text = basecamp.task_text("https://3.basecamp.com/123/buckets/9/todos/2")
+        self.assertIn("Refaire la **page** :", text)
+        self.assertIn("- logo", text)
+        self.assertIn("- [lien](https://x.fr)", text)
+        self.assertIn("**Flo** (2026-10-22) :\nPour vendredi\xa0!", text)
+        done = self.net.requests[before:]
+        self.assertEqual({m for m, _, _ in done}, {"GET"})
+        self.assertTrue(all(u.startswith(HREF) for _, u, _ in done))
+
+    def test_task_text_refuses_anything_but_a_task_address(self):
+        self.connect()
+        before = len(self.net.requests)
+        for url in ("https://evil.example/x", "", "https://3.basecamp.com/123/buckets/9/messages/2"):
+            with self.assertRaises(ValueError):
+                basecamp.task_text(url)
+        self.assertEqual(len(self.net.requests), before)
+
+    # ── rapport d'une issue publié sur la tâche (seule écriture) ─────────────
+    ISSUE = {"repo": "org/api", "number": 7, "url": "https://github.com/org/api/issues/7",
+             "bc_url": "https://3.basecamp.com/123/buckets/9/card_tables/cards/5",
+             "report": {"id": 41, "body": "**Fait**",
+                        "html": '<p class="x"><strong>Fait</strong> <a href="javascript:alert(1)">pi\u00e8ge</a>'
+                                '<a href="https://ok.fr">lien</a></p><script>alert(1)</script>'
+                                '<h2 onclick="x()">Suite</h2><pre><code>a &lt; b</code></pre>'}}
+
+    def setUp_post(self):
+        store.write(store.BC_POSTED, {})
+        self.addCleanup(store.write, store.BC_POSTED, {})
+        self.connect()
+        return len(self.net.requests)
+
+    def test_report_is_posted_once_on_the_task_comments(self):
+        before = self.setUp_post()
+        got = basecamp.publish_report(self.ISSUE)
+        again = basecamp.publish_report(self.ISSUE)
+        self.assertEqual(got, again)
+        self.assertIn("#__recording_900", got["url"])
+        [(method, url, data)] = self.net.requests[before:]
+        self.assertEqual((method, url), ("POST", f"{HREF}/buckets/9/recordings/5/comments.json"))
+        content = json.loads(data)["content"]
+        self.assertTrue(content.startswith('<div><strong>Fait</strong> pi\u00e8ge<a href="https://ok.fr">lien</a></div>'))
+        for bad in ("script", "javascript", "onclick", "class=", "alert"):
+            self.assertNotIn(bad, content)
+        # une ligne vide entre deux blocs, pas dans un bloc
+        self.assertIn("lien</a></div><div><br></div><h1>Suite</h1><div><br></div><pre>a &lt; b</pre>", content)
+        self.assertIn('<a href="https://github.com/org/api/issues/7">org/api #7</a>', content)
+        self.assertEqual(basecamp.payload()["posted"]["41"]["url"], got["url"])
+
+    def test_dismiss_sends_nothing_and_can_be_undone(self):
+        before = self.setUp_post()
+        self.assertEqual(basecamp.dismiss(self.ISSUE)["org/api#7"]["dismissed"], True)
+        self.assertNotIn("org/api#7", basecamp.dismiss(self.ISSUE, undo=True))
+        self.assertEqual(len(self.net.requests), before)
+
+    def test_report_needs_a_task_address_and_a_report(self):
+        before = self.setUp_post()
+        with self.assertRaises(ValueError):
+            basecamp.publish_report({**self.ISSUE, "bc_url": "https://evil.example/x"})
+        with self.assertRaises(ValueError):
+            basecamp.publish_report({**self.ISSUE, "report": None})
+        self.assertEqual(len(self.net.requests), before)
 
     # ── kanban ───────────────────────────────────────────────────────────────
     def test_cards_get_their_board_and_columns_in_board_order(self):
