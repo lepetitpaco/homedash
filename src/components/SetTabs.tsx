@@ -36,6 +36,9 @@ type Props = {
   /** Liens de homedash dans l'appli (Réglages → `ui.openLinks`). */
   openLinks: 'app' | 'browser'
   onOpenLinks: (v: 'app' | 'browser') => void
+  /** Onglets ouverts par un lien : gardés à la relance (Réglages → `ui.linkTabsKept`). */
+  linkTabsKept: boolean
+  onLinkTabsKept: (v: boolean) => void
 }
 
 /** Délais proposés en un clic à côté du champ de mise en veille. */
@@ -60,6 +63,8 @@ export default function SetTabs({
   onSleepMinutes,
   openLinks,
   onOpenLinks,
+  linkTabsKept,
+  onLinkTabsKept,
 }: Props) {
   const [open, setOpen] = useState<string | null>(null)
   const editing = useRef<{ id: string | null; label: string }>({ id: null, label: '' })
@@ -768,8 +773,38 @@ export default function SetTabs({
             </button>
           </span>
           <em className="xs-note">
-            Dans homedash : l'onglet du site s'il y en a un, sinon un onglet éphémère. {keys('clic')} : toujours le
-            navigateur.
+            Dans homedash : en onglet en haut, là où tu es (le dash, ou l'onglet perso d'où vient le lien), connecté
+            avec le compte de l'onglet du site s'il en a un. {keys('clic')} : toujours le navigateur.
+          </em>
+        </div>
+      ) : null}
+
+      {desktop ? (
+        <div className="xs-sleep">
+          <span>◫ Onglets ouverts par un lien</span>
+          <span className="xs-seg" role="radiogroup">
+            <button
+              type="button"
+              role="radio"
+              aria-checked={!linkTabsKept}
+              className={!linkTabsKept ? 'is-on' : ''}
+              onClick={() => onLinkTabsKept(false)}
+            >
+              Éphémères
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={linkTabsKept}
+              className={linkTabsKept ? 'is-on' : ''}
+              onClick={() => onLinkTabsKept(true)}
+            >
+              Gardés
+            </button>
+          </span>
+          <em className="xs-note">
+            Éphémères : fermés à la relance de l'appli. Gardés : rouverts à la relance. Un onglet à la fois : clic
+            droit → Garder ouvert, ou Ne plus garder.
           </em>
         </div>
       ) : null}

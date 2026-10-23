@@ -4,6 +4,18 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.27.0 — 2026-10-23
+
+- **Un lien s'ouvre en onglet, là où tu es** (appli de bureau) : cliqué dans le dash, il s'ouvre en
+  onglet à côté de *Raccourcis*, *GitHub*, *Basecamp* ; cliqué dans un site (X, Chat…), en onglet en haut
+  de ce site. Fini les allers-retours dans la barre de gauche. Connecté avec le compte de l'onglet perso
+  du site s'il en a un ; le titre de la page sert de nom ; ✕ ou clic molette pour fermer.
+- **⚡ ramène au dash là où tu l'avais laissé**, onglet ouvert par un lien compris.
+- **Garder ces onglets** : clic droit → *Garder ouvert* (rouvert à la relance), ou tous d'office dans
+  *Réglages → Onglets perso → Onglets ouverts par un lien*.
+- **Basecamp → 🐙 Issues GitHub** : chaque issue dit où elle en est (*rapport publié sur Basecamp*,
+  *écartée*, *fermée sans rapport*…) ; une issue déjà publiée n'affiche plus « rapport prêt ».
+
 ## 1.26.0 — 2026-10-23
 
 - **La recherche fouille aussi Basecamp** (`/` ou `⌘K`) : tes tâches tout de suite, puis tout Basecamp

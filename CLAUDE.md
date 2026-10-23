@@ -169,6 +169,9 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
 - Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
   son titre (les pastilles).
+- Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un onglet perso (`x:<id>`),
+  noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
+  barre de gauche = onglets perso et éphémères **sans** espace. Espace disparu = éphémère seul.
 
 **Performance** (revue du 2026-10-20)
 - Chaque site chargé dans l'appli = un processus de 100 à 400 Mo : montés au démarrage seulement si

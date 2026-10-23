@@ -190,8 +190,9 @@ def validate_config(cfg):
             for field in ("id", "label", "url"):
                 if not isinstance(tab.get(field), str) or not tab[field].strip():
                     return f"tabs[{i}].{field} manquant"
-            if tab.get("session") is not None and not isinstance(tab["session"], str):
-                return f"tabs[{i}].session doit être un texte"
+            for field in ("session", "parent"):
+                if tab.get(field) is not None and not isinstance(tab[field], str):
+                    return f"tabs[{i}].{field} doit être un texte"
             for flag in ("sleep", "kept", "embed", "capture", "preload", "notify"):
                 if tab.get(flag) is not None and not isinstance(tab[flag], bool):
                     return f"tabs[{i}].{flag} doit être vrai ou faux"

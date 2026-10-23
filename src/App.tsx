@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import ConfirmHost from './components/ConfirmHost'
 import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
@@ -74,6 +74,11 @@ const TAB_COUNTS_KEY = 'homedash:tab-counts'
 /** Éphémère, simple ou gardé : rangé en bas, son adresse suit la navigation. */
 const isTemp = (t: CustomTab) => !!t.kept || t.id.startsWith('tmp-')
 
+/** Le dash (⚡ et ses onglets natifs), comme espace d'origine d'un onglet ouvert par un lien. */
+const DASH = 'links'
+/** Barre d'onglets du haut (mesurée : voir `--strip-h`). */
+const STRIP_ID = 'app-tabs'
+
 /** `https://x.com/elonmusk/status/1…` → `x.com/elonmusk/status/1…` (titre du clic droit). */
 function shortLink(url: string): string {
   try {
@@ -104,6 +109,23 @@ export default function App() {
   const keptTabs = useMemo(() => customTabs.filter((t) => t.kept), [customTabs])
   const allTemps = useMemo(() => [...keptTabs, ...temps], [keptTabs, temps])
   const allTabs = useMemo(() => [...regularTabs, ...allTemps], [regularTabs, allTemps])
+  // Onglets ouverts par un lien, rangés dans l'espace d'où il vient : le dash ou un
+  // onglet perso, en onglets en haut de celui-ci. Espace disparu = éphémère seul.
+  const parentOf = useCallback(
+    (t: CustomTab): string | null =>
+      t.parent === DASH || (t.parent && regularTabs.some((r) => tabKey(r) === t.parent)) ? (t.parent ?? null) : null,
+    [regularTabs],
+  )
+  /** Espace d'un onglet : le dash, un onglet perso (lui ou un de ses onglets), ou aucun (éphémère seul, Réglages). */
+  const spaceOf = (key: string): string | null => {
+    if (!key.startsWith('x:')) return key === 'settings' ? null : DASH
+    const t = allTabs.find((x) => tabKey(x) === key)
+    if (!t) return null
+    return isTemp(t) ? parentOf(t) : key
+  }
+  const childrenOf = (space: string) => allTemps.filter((t) => parentOf(t) === space)
+  // Titre de la page de chaque onglet d'espace : son nom dans la barre (en mémoire seulement).
+  const [childTitles, setChildTitles] = useState<Record<string, string>>({})
   // Adresse où est chaque onglet éphémère (gardé ou non), suivie pendant la navigation.
   const tempUrl = useRef(new Map<string, string>())
   // Lien à ouvrir dans un onglet perso, pas encore pris par lui (voir openInTab).
@@ -273,6 +295,9 @@ export default function App() {
   const lastNative = useRef<TabId>('links')
   // (Réglages n'en est pas un : il a son ⚙ dans la barre, et ⚡ doit en faire sortir.)
   if (!tab.startsWith('x:') && tab !== 'events' && tab !== 'settings') lastNative.current = tab
+  // Dernière vue du dash, ses onglets ouverts par un lien compris : ⚡ y ramène.
+  const lastDash = useRef<TabId>('links')
+  if (spaceOf(tab) === DASH && tab !== 'events') lastDash.current = tab
   const [railMode, setRailMode] = useState<RailMode>(() => {
     try {
       const v = localStorage.getItem(RAIL_KEY)
@@ -563,6 +588,13 @@ export default function App() {
   // --- rendu ---------------------------------------------------------------
   // Réglages pas chargés : serveur qui redémarre (réessai seul), fichier abîmé
   // (proposer la dernière sauvegarde), ou autre — jamais de jargon (LoadTrouble).
+  // Hauteur de la barre d'onglets du haut : un site affiché en dessous prend le reste.
+  useLayoutEffect(() => {
+    const el = document.getElementById(STRIP_ID)
+    const h = el ? el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || '0') : 0
+    document.documentElement.style.setProperty('--strip-h', `${h}px`)
+  })
+
   if (error && !cfg) return <LoadTrouble error={error} onRetry={retryLoad} />
 
   if (!cfg) {
@@ -794,13 +826,39 @@ export default function App() {
     search.setQuery('')
     selectTab(`x:${id}`)
   }
+  /**
+   * Compte d'un onglet ouvert par un lien dans `space` : celui de l'onglet perso du
+   * site s'il en a un (on y est connecté), sinon celui de l'onglet d'origine.
+   */
+  const sessionFor = (space: string, url: string, from?: CustomTab) =>
+    linkTarget(url, regularTabs, from)?.session ??
+    (from ?? (space === DASH ? undefined : allTabs.find((x) => tabKey(x) === space)))?.session
+  /**
+   * Lien ouvert « ici » : un onglet en haut de l'espace `space` (le dash ou un onglet
+   * perso), plutôt qu'ailleurs dans la barre de gauche. Éphémère, ou gardé (survit à
+   * la relance) si Réglages → Onglets perso le dit.
+   */
+  const openChild = (space: string, url: string, session?: string) => {
+    const label = hostOf(url).replace(/^www\./, '') || 'Onglet'
+    perfEvent('temp-open', { host: hostOf(url), space: space === DASH ? 'dash' : 'onglet' })
+    search.setQuery('')
+    if (ui.linkTabsKept) {
+      const id = newTabId(allTabs.map((t) => t.id))
+      saveTabs([...customTabs, { id, label, url, embed: true, session, parent: space, kept: true }])
+      selectTab(`x:${id}`)
+      return
+    }
+    const id = `tmp-${newTabId(allTabs.map((t) => t.id)).slice(2)}`
+    setTemps((ts) => [...ts, { id, label, url, embed: true, session, parent: space }])
+    selectTab(`x:${id}`)
+  }
   inAppRef.current = (url) => {
     if (!desktop || ui.openLinks === 'browser') return false
     // homedash lui-même (une autre page servie par le container) : le navigateur.
     if (new URL(url, window.location.href).host === window.location.host) return false
-    const target = linkTarget(url, regularTabs)
-    if (target) openInTab(target, url)
-    else openTemp(url)
+    // en onglet là où l'on est : le dash, ou l'onglet perso d'où l'on cherche
+    const space = spaceOf(tab) ?? DASH
+    openChild(space, url, sessionFor(space, url))
     return true
   }
   openTempRef.current = (url) => openTemp(url)
@@ -857,7 +915,13 @@ export default function App() {
     perfEvent('temp-close', { host: hostOf(t.url), kept: !!t.kept })
     if (t.kept) saveTabs(customTabs.filter((x) => x.id !== t.id))
     else setTemps((ts) => ts.filter((x) => x.id !== t.id))
-    if (tab === tabKey(t)) selectTab(lastNative.current)
+    if (tab !== tabKey(t)) return
+    // onglet d'un espace : son voisin, sinon l'espace lui-même (comme un navigateur)
+    const space = parentOf(t)
+    const sibs = space ? childrenOf(space) : []
+    const i = sibs.findIndex((x) => x.id === t.id)
+    const next = sibs[i + 1] ?? sibs[i - 1]
+    selectTab(next ? tabKey(next) : space && space !== DASH ? (space as TabId) : lastNative.current)
   }
   /** Éphémère → un autre statut, sur la page où il est : gardé, ou onglet perso. */
   const promoteTemp = (t: CustomTab, kept: boolean) => {
@@ -869,7 +933,8 @@ export default function App() {
       return
     }
     const id = newTabId(allTabs.map((x) => x.id))
-    saveTabs([...customTabs, { ...t, id, url, label, ...(kept ? { kept: true } : {}) }])
+    // gardé : reste dans son espace ; ajouté à mes onglets : un onglet perso à part entière
+    saveTabs([...customTabs, { ...t, id, url, label, parent: kept ? t.parent : undefined, ...(kept ? { kept: true } : {}) }])
     setTemps((ts) => ts.filter((x) => x.id !== t.id))
     if (tab === tabKey(t)) selectTab(`x:${id}`)
   }
@@ -968,6 +1033,14 @@ export default function App() {
   /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
   const route = (url: string, fromId: number): boolean => {
     const from = fromGuest(fromId)
+    // En onglet dans l'espace d'origine (l'onglet perso, ou le dash) : on ne quitte
+    // pas ce qu'on faisait, même pour un site qui a son propre onglet perso.
+    const space = from ? spaceOf(tabKey(from)) : null
+    if (space) {
+      openChild(space, url, sessionFor(space, url, from))
+      return true
+    }
+    // Éphémère seul (barre de gauche) : comme avant.
     const target = linkTarget(url, regularTabs, from)
     if (!target) return false
     // Un site qui demande un nouvel onglet vers lui-même (Telegram « Open in new
@@ -979,7 +1052,11 @@ export default function App() {
   }
   /** Comment ouvrir `url` : les onglets de ce site (avec leur compte), un éphémère (par compte), le navigateur. */
   const openChoices = (url: string): MenuItem[] => {
-    const items: MenuItem[] = regularTabs
+    const here = spaceOf(tab)
+    const items: MenuItem[] = here
+      ? [{ icon: '◫', label: 'En onglet ici', onSelect: () => openChild(here, url, sessionFor(here, url)) }]
+      : []
+    items.push(...regularTabs
       .filter((x) => capturesLink(x, url))
       .map((t) => {
         const s = sessionOf(t, tabSessions)
@@ -989,7 +1066,7 @@ export default function App() {
           ...(s ? { dot: s.color, hint: s.name } : {}),
           onSelect: () => openInTab(t, url),
         }
-      })
+      }))
     // Onglet éphémère : une pastille par compte, sur une ligne.
     items.push(
       hasSessions && tabSessions.length
@@ -1123,7 +1200,14 @@ export default function App() {
       items.push({
         icon: '⌕',
         label: `Rechercher « ${q.length > 24 ? q.slice(0, 24) + '…' : q} »`,
-        onSelect: () => openTemp(`https://www.google.com/search?q=${encodeURIComponent(q)}`),
+        onSelect: () => {
+          // en onglet dans l'espace du site (éphémère seul : comme avant)
+          const url = `https://www.google.com/search?q=${encodeURIComponent(q)}`
+          const from = fromGuest(m.id)
+          const here = from ? spaceOf(tabKey(from)) : null
+          if (here) openChild(here, url, sessionFor(here, url, from))
+          else openTemp(url)
+        },
       })
     }
     if (!items.length) {
@@ -1174,35 +1258,55 @@ export default function App() {
           },
         ]
       : []),
-    // Onglets perso : dans la barre de gauche, ou ici quand elle est cachée.
-    ...(railOn ? [] : allTabs).map(
-      (t): Tab => ({
-        id: tabKey(t),
-        icon: iconOf[t.id],
-        label: t.label,
-        title: t.url,
-        ...(t.embed ? {} : { href: srcOf(t.url) }),
-        badge: t.embed && t.notify !== false ? tabCounts[tabKey(t)] : 0,
-        badgeTitle: `${tabCounts[tabKey(t)] ?? 0} non lu(s) d'après la page`,
-        badgeAlert: true,
-        session: t.embed ? sessionOf(t, tabSessions) : undefined,
-        // Comme son icône dans la barre de gauche : clic droit, ✕ des éphémères, glisser.
-        ...(isTemp(t)
-          ? { onContext: (e: React.MouseEvent) => tempMenu(e, t), onClose: () => closeTemp(t) }
-          : { onContext: (e: React.MouseEvent) => tabMenu(e, t), movable: true }),
-        asleep: asleep.includes(tabKey(t)),
-        // 🔊 qui joue / 🔇 coupé, cliquable comme dans un navigateur
-        ...(audible[tabKey(t)] || muted[tabKey(t)]
-          ? { audio: muted[tabKey(t)] ? ('muted' as const) : ('on' as const), onToggleMute: () => toggleMute(t) }
-          : {}),
-      }),
-    ),
-    // Avec la barre de gauche, Réglages est en bas de celle-ci (comme Discord).
-    ...(railOn ? [] : [{ id: 'settings' as TabId, icon: '⚙', label: 'Réglages' }]),
   ]
+  /** Un onglet perso (ou éphémère) dans une barre d'onglets. */
+  const entry = (t: CustomTab): Tab => ({
+    id: tabKey(t),
+    icon: iconOf[t.id],
+    // onglet d'un espace : le titre de sa page, comme un navigateur
+    label: parentOf(t) && childTitles[t.id] ? childTitles[t.id] : t.label,
+    title: t.url,
+    ...(t.embed ? {} : { href: srcOf(t.url) }),
+    badge: t.embed && t.notify !== false ? tabCounts[tabKey(t)] : 0,
+    badgeTitle: `${tabCounts[tabKey(t)] ?? 0} non lu(s) d'après la page`,
+    badgeAlert: true,
+    session: t.embed ? sessionOf(t, tabSessions) : undefined,
+    // Comme son icône dans la barre de gauche : clic droit, ✕ des éphémères, glisser.
+    ...(isTemp(t)
+      ? { onContext: (e: React.MouseEvent) => tempMenu(e, t), onClose: () => closeTemp(t) }
+      : { onContext: (e: React.MouseEvent) => tabMenu(e, t), movable: true }),
+    asleep: asleep.includes(tabKey(t)),
+    // 🔊 qui joue / 🔇 coupé, cliquable comme dans un navigateur
+    ...(audible[tabKey(t)] || muted[tabKey(t)]
+      ? { audio: muted[tabKey(t)] ? ('muted' as const) : ('on' as const), onToggleMute: () => toggleMute(t) }
+      : {}),
+  })
+  const childEntries = (space: string) => childrenOf(space).map(entry)
   // Onglet perso supprimé (ou mémorisé d'une autre config) : retour aux raccourcis.
   const openCustom = allTabs.find((t) => tabKey(t) === tab && t.embed)
   const shown: TabId = tab.startsWith('x:') && !openCustom ? 'links' : tab
+  /**
+   * Barre d'onglets du haut. Avec la barre de gauche : le dash et ses onglets ouverts
+   * par un lien, ou l'onglet perso affiché et les siens (rien s'il n'en a pas : une
+   * rangée de moins). Sans elle : tout, chaque onglet ouvert par un lien après son espace.
+   */
+  const space = spaceOf(shown)
+  const parentTab = space && space !== DASH ? regularTabs.find((t) => tabKey(t) === space) : undefined
+  const strip: Tab[] | null = !railOn
+    ? [
+        ...tabs,
+        ...childEntries(DASH),
+        ...regularTabs.flatMap((t) => [entry(t), ...childEntries(tabKey(t))]),
+        ...allTemps.filter((t) => !parentOf(t)).map(entry),
+        { id: 'settings' as TabId, icon: '⚙', label: 'Réglages' },
+      ]
+    : space === DASH
+      ? [...tabs, ...childEntries(DASH)]
+      : parentTab && childrenOf(space!).length
+        ? [entry(parentTab), ...childEntries(space!)]
+        : null
+  // Barre de gauche : l'icône de l'espace affiché (⚡ pour le dash) est la sélection.
+  const railActive = shown === 'settings' ? 'settings' : space === DASH ? null : (space ?? (shown.startsWith('x:') ? shown : null))
   // La recherche court-circuite les onglets : ses résultats valent partout.
   const view: TabId | 'search' = searching ? 'search' : shown
   /** Réglages → Onglets perso ; avec un id, l'éditeur de cet onglet déplié. */
@@ -1214,7 +1318,10 @@ export default function App() {
   }
 
   return (
-    <div className={`app${railOn && shown.startsWith('x:') ? ' is-site' : ''}`} style={layoutVars(ui)}>
+    <div
+      className={`app${railOn && shown.startsWith('x:') ? ' is-site' : ''}${railOn && strip ? ' has-strip' : ''}`}
+      style={layoutVars(ui)}
+    >
       <TopBar
         site={railOn && view.startsWith('x:')}
         query={search.query}
@@ -1257,7 +1364,7 @@ export default function App() {
       {railOn ? (
         <Rail
           tabs={regularTabs}
-          temps={allTemps}
+          temps={allTemps.filter((t) => !parentOf(t))}
           asleep={asleep}
           audible={audible}
           muted={muted}
@@ -1266,13 +1373,15 @@ export default function App() {
           onTempClose={closeTemp}
           folders={tabFolders}
           sessions={tabSessions}
-          active={shown.startsWith('x:') || shown === 'settings' ? shown : null}
+          active={railActive}
           mode={railMode}
           icons={iconOf}
           counts={tabCounts}
           onHome={() => {
             search.setQuery('')
-            selectTab(lastNative.current)
+            // la dernière vue du dash (un onglet ouvert depuis lui compris), s'il existe encore
+            const last = lastDash.current
+            selectTab(!last.startsWith('x:') || allTabs.some((t) => tabKey(t) === last) ? last : lastNative.current)
           }}
           onSettings={() => {
             search.setQuery('')
@@ -1301,9 +1410,10 @@ export default function App() {
 
       {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
           serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}
-      {railOn && (shown.startsWith('x:') || shown === 'settings') ? null : (
+      {!strip ? null : (
         <Tabs
-          tabs={tabs}
+          id={STRIP_ID}
+          tabs={strip}
           active={shown}
           onSelect={selectTab}
           onAdd={railOn ? undefined : () => openTabSettings()}
@@ -1350,7 +1460,14 @@ export default function App() {
                   }
                 : undefined
             }
-            onVisit={(url, title) => recordVisit(url, t.label, title)}
+            onVisit={(url, title) => {
+              recordVisit(url, t.label, title)
+              // onglet d'un espace : son nom suit le titre de la page
+              if (title && parentOf(t)) {
+                const name = title.length > 32 ? `${title.slice(0, 31)}…` : title
+                setChildTitles((m) => (m[t.id] === name ? m : { ...m, [t.id]: name }))
+              }
+            }}
             onCount={(n) => setCount(tabKey(t), n)}
             onLoaded={(ms) => perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })}
             muted={!!muted[tabKey(t)]}

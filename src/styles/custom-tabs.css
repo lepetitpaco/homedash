@@ -601,6 +601,10 @@
 .app.is-site .xtab-frame {
   height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 30px);
 }
+/* …avec ses onglets ouverts par un lien en haut : la hauteur de leur barre en moins. */
+.app.is-site.has-strip .xtab-frame {
+  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 30px - var(--strip-h, 0px));
+}
 .topbar-site {
   display: flex;
   flex: 0 1 auto;
