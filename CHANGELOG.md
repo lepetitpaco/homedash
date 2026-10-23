@@ -4,6 +4,21 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.31.0 — 2026-10-23
+
+- **Recherche : choisis où chercher.** Clic sur la loupe, à gauche de la barre : *Partout* (comme
+  avant), *Raccourcis*, *Mes sites*, *GitHub & Local*, *Basecamp* ou *Le web*. La loupe s'allume tant
+  que la recherche est limitée.
+- **Une recherche faite depuis un site s'ouvre à part**, en onglet éphémère dans la barre de gauche, et
+  non plus en onglet de ce site.
+- **Cloche plus claire** : une seule liste, filtres *Tout* · *GitHub & Local* · *Basecamp*. Les notifs
+  Basecamp non lues sont en tête ; celles déjà lues **restent** dans la liste, pour y revenir.
+- **Branche mergée annoncée une seule fois**, même après une mise à jour, et en une ligne quand elle
+  est dans plusieurs dépôts.
+- **Réglages → GitHub** : *Compte & équipe*, *Repos suivis* et *Onglet GitHub* réunis en une page, en
+  blocs (connexion, repos suivis, équipe, ce que montre l'onglet), pour le compte choisi en haut.
+- La fenêtre d'ajout d'un site s'appelle *Ajouter un site*.
+
 ## 1.30.0 — 2026-10-23
 
 Appli de bureau : 1.5.6
