@@ -59,8 +59,8 @@ const sectionOf = (id: string) => MERGED[id] ?? id
  */
 const SECTIONS = [
   { id: 'set-features', icon: '🧩', label: 'Fonctionnalités', group: 'Général' },
-  { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'Code' },
-  { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'Code' },
+  { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'GitHub' },
+  { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
   { id: 'set-links', icon: '🔗', label: 'Liens & onglets', group: 'La page' },
