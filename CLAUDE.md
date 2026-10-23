@@ -209,7 +209,8 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - Barre du haut et pied de page ont un `backdrop-filter` : tout `position: fixed` déclenché depuis eux
   (modale) passe par `createPortal(…, document.body)`, sinon il se cale sur la barre et non sur l'écran.
 - Recherche : une nouvelle source = un `kind` dans `Hit`, son `rank()` dans `useSearch`, sa ligne dans
-  `SearchResults` et sa carte dans `SearchPreview`. Un dépôt local homonyme d'un repo suivi est montré
+  `SearchResults`, sa carte dans `SearchPreview` et sa portée dans `SEARCH_SCOPES` (sinon elle n'apparaît
+  que dans « Partout »). Un dépôt local homonyme d'un repo suivi est montré
   dans la carte du repo, pas en doublon.
 - Panneau Infos : groupes et infos désignés par **index** (`InfoRef`), donc `normalizeInfos()` garde les
   groupes vides — en filtrer décalerait les index et l'édition viserait la mauvaise ligne.

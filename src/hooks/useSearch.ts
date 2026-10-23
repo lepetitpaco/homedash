@@ -10,6 +10,18 @@ import { rank } from '../lib/search'
 import { asUrl, ENGINES, visits } from '../lib/visits'
 import type { CustomTab, FlatLink } from '../types'
 
+/** Où chercher : partout (défaut) ou dans une seule partie de homedash (issue #38). */
+export type SearchScope = 'all' | 'links' | 'sites' | 'code' | 'basecamp' | 'web'
+type ScopeDef = { id: SearchScope; icon: string; label: string; kinds: Hit['kind'][] }
+export const SEARCH_SCOPES: ScopeDef[] = [
+  { id: 'all', icon: '⌕', label: 'Partout', kinds: [] },
+  { id: 'links', icon: '⚡', label: 'Raccourcis', kinds: ['link', 'info', 'note'] },
+  { id: 'sites', icon: '🗂', label: 'Mes sites', kinds: ['tab', 'page', 'go'] },
+  { id: 'code', icon: '🐙', label: 'GitHub & Local', kinds: ['repo', 'local', 'pr', 'branch'] },
+  { id: 'basecamp', icon: '🏕', label: 'Basecamp', kinds: ['bc'] },
+  { id: 'web', icon: '🔎', label: 'Le web', kinds: ['web', 'go'] },
+]
+
 type Options = {
   cfg: Normalized | null
   links: FlatLink[]
@@ -58,8 +70,10 @@ export function useSearch({
   commands,
 }: Options) {
   const [query, setQuery] = useState('')
+  const [scope, setScope] = useState<SearchScope>('all')
   const [activeIndex, setActiveIndex] = useState(0)
-  const bcFound = useBcSearch(query, bcSearch).items
+  // Recherche dans tout Basecamp (réseau) : seulement si Basecamp est dans la portée.
+  const bcFound = useBcSearch(query, bcSearch && (scope === 'all' || scope === 'basecamp')).items
 
   const infoItems = useMemo(() => {
     if (!cfg?.infos) return []
@@ -211,7 +225,8 @@ export function useSearch({
       icon: e.icon,
     })
     const bangHits: Hit[] = engine ? [web(engine, rest.join(' '))] : []
-    const googleHits: Hit[] = engine || url ? [] : [web(ENGINES[0], q)]
+    // Portée « Le web » : Google même pour une adresse (on a dit où chercher).
+    const googleHits: Hit[] = engine || (url && scope !== 'web') ? [] : [web(ENGINES[0], q)]
 
     const tabHits: Hit[] = rank(
       tabs,
@@ -244,6 +259,7 @@ export function useSearch({
       8,
     ).map((visit) => ({ kind: 'page', key: `page:${visit.url}`, visit }))
 
+    const kinds = SEARCH_SCOPES.find((x) => x.id === scope)?.kinds ?? []
     return [
       ...goHits,
       ...bangHits,
@@ -261,10 +277,10 @@ export function useSearch({
       ...bcHits,
       ...pageHits,
       ...googleHits,
-    ]
-  }, [query, links, repoItems, local, gh, bcTasks, bcFound, infoItems, notes, tabs, commands])
+    ].filter((h) => !kinds.length || kinds.includes(h.kind))
+  }, [query, scope, links, repoItems, local, gh, bcTasks, bcFound, infoItems, notes, tabs, commands])
 
-  useEffect(() => setActiveIndex(0), [query])
+  useEffect(() => setActiveIndex(0), [query, scope])
 
   const activate = useCallback(
     (hit: Hit) => {
@@ -355,5 +371,5 @@ export function useSearch({
     return () => window.removeEventListener('keydown', onKey)
   }, [hits, activeIndex, activate, track, paused, searchRef, open])
 
-  return { query, setQuery, hits, activeIndex, setActiveIndex, activate }
+  return { query, setQuery, scope, setScope, hits, activeIndex, setActiveIndex, activate }
 }
