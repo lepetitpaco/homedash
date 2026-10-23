@@ -23,6 +23,7 @@ import time
 import urllib.error
 import urllib.parse
 import urllib.request
+from collections import OrderedDict
 from datetime import datetime
 from html import escape as html_escape
 from html.parser import HTMLParser
@@ -86,6 +87,10 @@ def _reset():
         _data["boards"] = {}
         _state.update(ts=0.0, error=None, retry_at=0.0)
         _seeded.clear()
+    with _search_lock:
+        _searches.clear()
+    with _files_lock:
+        _files.clear()
 
 
 # ── HTTP ─────────────────────────────────────────────────────────────────────
@@ -134,10 +139,10 @@ def _get(url, token, cache=True):
     except urllib.error.URLError as e:
         return 0, {"message": str(e.reason)}, {}
 
-def _api_get(path, token, href):
+def _api_get(path, token, href, cache=True):
     """Lecture dans le compte Basecamp. Ne fait que des GET, et seulement
     vers l'adresse du compte : c'est ce qui garantit la lecture seule."""
-    return _get(href.rstrip("/") + path, token)
+    return _get(href.rstrip("/") + path, token, cache)
 
 
 # ── OAuth ────────────────────────────────────────────────────────────────────
@@ -499,11 +504,65 @@ def payload():
         "posted": posted(),
     }
 
+# ── Recherche dans tout Basecamp ────────────────────────────────────────────
+# Pour la barre de recherche de homedash : un GET `/search.json`, au fil de la
+# frappe (la page attend une pause). Pas de cache ETag (une entrée par requête
+# tapée), mais les réponses récentes sont gardées une minute.
+SEARCH_MAX = 20             # résultats gardés (Basecamp en rend 50 par page)
+SEARCH_TTL = 60             # secondes
+_searches = {}              # requête (minuscules) → (horodatage, résultats)
+_search_lock = threading.Lock()
+
+def _found(x):
+    """Résultat de recherche Basecamp → ce que la page affiche."""
+    bucket, parent = x.get("bucket") or {}, x.get("parent") or {}
+    text = re.sub(r"\s+", " ", x.get("plain_text_content") or x.get("plain_text_description") or "").strip()
+    title = x.get("title") or ""
+    return {
+        "id": x.get("id"), "type": x.get("type") or "", "title": title,
+        "url": x.get("app_url") or "", "project": bucket.get("name") or "",
+        "parent": parent.get("title") or "", "status": x.get("status") or "",
+        "completed": bool(x.get("completed")), "due_on": x.get("due_on"),
+        "updated_at": x.get("updated_at") or "",
+        "creator": (x.get("creator") or {}).get("name") or "",
+        # extrait, sauf s'il ne fait que répéter le titre (to-do sans description)
+        "excerpt": "" if text == title else text[:300],
+    }
+
+def search(q):
+    """Tout Basecamp (tâches, cartes, messages, commentaires…) pour `q`,
+    dans l'ordre de pertinence de Basecamp. [] si non connecté."""
+    q = re.sub(r"\s+", " ", q or "").strip()[:100]
+    s = _secret()
+    if len(q) < 2 or not (s.get("access_token") and s.get("href")):
+        return []
+    key, now = q.lower(), time.time()
+    with _search_lock:
+        hit = _searches.get(key)
+        if hit and now - hit[0] < SEARCH_TTL:
+            return hit[1]
+    status, body, _ = _api_get("/search.json?" + urllib.parse.urlencode({"q": q}),
+                               s["access_token"], s["href"], cache=False)
+    if status != 200 or not isinstance(body, list):
+        raise RuntimeError(f"recherche Basecamp impossible (HTTP {status})")
+    # archivé ou à la corbeille : écarté (on cherche pour agir, pas pour fouiller) ;
+    # terminé : après le reste, dans l'ordre de Basecamp
+    items = [_found(x) for x in body
+             if isinstance(x, dict) and x.get("app_url") and (x.get("status") or "active") == "active"]
+    items.sort(key=lambda i: i["completed"])
+    items = items[:SEARCH_MAX]
+    with _search_lock:
+        for k in [k for k, (ts, _) in _searches.items() if now - ts >= SEARCH_TTL]:
+            del _searches[k]
+        _searches[key] = (now, items)
+    return items
+
 # ── Contenu d'une tâche, à la demande ───────────────────────────────────────
 # Pour pré-remplir une issue GitHub : description et échanges d'une tâche,
 # lus au moment où on en fait une issue. Deux GET, rien de plus.
 _TASK_URL = re.compile(r"/buckets/(\d+)/(todos|card_tables/cards)/(\d+)")
-TASK_COMMENTS = 20          # derniers échanges repris
+TASK_COMMENTS = 200         # échanges proposés au plus (les plus récents)
+TASK_PAGES = 10             # pages de commentaires lues au plus
 
 class _Text(HTMLParser):
     """HTML de Basecamp (éditeur Trix) → texte Markdown simple."""
@@ -511,7 +570,7 @@ class _Text(HTMLParser):
 
     def __init__(self):
         super().__init__(convert_charrefs=True)
-        self.out, self.href, self.list = [], None, []
+        self.out, self.href, self.list, self.files = [], None, [], []
 
     def handle_starttag(self, tag, attrs):
         a = dict(attrs)
@@ -535,6 +594,8 @@ class _Text(HTMLParser):
             name = a.get("filename") or a.get("caption") or "pièce jointe"
             icon = "🖼" if (a.get("content-type") or "").startswith("image/") else "📎"
             link = a.get("href") or a.get("url")
+            if link and a.get("sgid"):
+                self.files.append((a["sgid"], link, a.get("content-type") or ""))
             label = f"{icon} {name.replace('[', '(').replace(']', ')')}"
             self.out.append(f"\n[{label}](<{link}>) (sur Basecamp)\n" if link
                             else f"\n{label} (sur Basecamp)\n")
@@ -556,14 +617,20 @@ class _Text(HTMLParser):
         self.out.append(data)
 
 def html_text(raw):
+    return html_parts(raw)[0]
+
+def html_parts(raw):
+    """Texte Markdown, et les pièces jointes rencontrées : [(sgid, lien, type)]."""
     p = _Text()
     p.feed(raw or "")
     p.close()
     text = re.sub(r"[ \t]+\n", "\n", "".join(p.out))
-    return re.sub(r"\n{3,}", "\n\n", text).strip()
+    return re.sub(r"\n{3,}", "\n\n", text).strip(), p.files
 
 def task_text(url):
-    """Description et derniers échanges d'une tâche (to-do ou carte), en Markdown.
+    """Contenu d'une tâche (to-do ou carte) pour en faire une issue :
+    `text` = description et étapes, en Markdown ; `comments` = tous ses échanges,
+    du plus ancien au plus récent, que la page propose de retenir un par un.
     `url` : adresse web de la tâche ; seuls ses numéros servent à lire l'API."""
     m = _TASK_URL.search(url or "")
     if not m:
@@ -576,24 +643,84 @@ def task_text(url):
     if status != 200 or not isinstance(body, dict):
         raise RuntimeError(f"lecture de la tâche impossible (HTTP {status})")
     # to-do : `description` ; carte : `content` (le titre étant `title`)
-    desc = html_text(body.get("description") if kind == "todos" else body.get("content"))
+    desc, files = html_parts(body.get("description") if kind == "todos" else body.get("content"))
+    # sgid d'une pièce jointe → son adresse de téléchargement (API), pour afficher les images
+    downloads = {x.get("sgid"): x.get("download_url") for x in body.get("description_attachments") or []}
     parts = [desc] if desc else []
     steps = [st for st in body.get("steps") or [] if st.get("title")]
     if steps:
         parts.append("### Étapes\n\n" + "\n".join(
             f"- [{'x' if st.get('completed') else ' '}] {st['title'].strip()}" for st in steps))
+    comments = []
     if body.get("comments_count"):
-        status, comments, _ = _api_get(f"/buckets/{bucket}/recordings/{rid}/comments.json",
-                                       s["access_token"], s["href"])
-        rows = []
-        for c in (comments if status == 200 and isinstance(comments, list) else [])[-TASK_COMMENTS:]:
-            who = (c.get("creator") or {}).get("name") or "?"
-            text = html_text(c.get("content"))
+        for c in _all_comments(bucket, rid, s):
+            text, more = html_parts(c.get("content"))
+            files += more
+            downloads.update({x.get("sgid"): x.get("download_url") for x in c.get("content_attachments") or []})
             if text:
-                rows.append(f"**{who}** ({(c.get('created_at') or '')[:10]}) :\n{text}")
-        if rows:
-            parts.append("### Échanges sur Basecamp\n\n" + "\n\n".join(rows))
-    return "\n\n".join(parts)
+                comments.append({"id": c.get("id"), "who": (c.get("creator") or {}).get("name") or "?",
+                                 "date": (c.get("created_at") or "")[:10], "text": text})
+    # Images, pour la fiche de la page : lien du texte → adresse à passer à `attachment()`
+    images = {link: downloads[sgid] for sgid, link, ctype in files
+              if ctype.startswith("image/") and downloads.get(sgid)}
+    return {"text": "\n\n".join(parts), "comments": comments[-TASK_COMMENTS:], "images": images}
+
+# ── Image jointe, relayée pour la fiche d'une tâche ─────────────────────────
+# La page ne peut pas afficher une image de Basecamp (il faut y être connecté,
+# et le navigateur n'envoie pas la session pour une image d'un autre site) : le
+# serveur la lit avec le jeton. Seulement une adresse `…/blobs/…` du compte, et
+# seulement une image d'un format sûr (pas de SVG : il peut porter du script).
+ATTACH_MAX = 15 * 1024 * 1024
+IMAGE_TYPES = {"image/png", "image/jpeg", "image/gif", "image/webp", "image/avif", "image/bmp"}
+_files = OrderedDict()          # adresse → (type, octets), les plus récentes
+_files_lock = threading.Lock()
+
+def attachment(url):
+    """(type, octets) d'une image jointe, par son adresse de téléchargement (API)."""
+    s = _secret()
+    if not (s.get("access_token") and s.get("href")):
+        raise RuntimeError("Basecamp non connecté")
+    if not (url or "").startswith(s["href"].rstrip("/") + "/blobs/"):
+        raise ValueError("pièce jointe Basecamp attendue")
+    with _files_lock:
+        if url in _files:
+            _files.move_to_end(url)
+            return _files[url]
+    req = urllib.request.Request(url, headers={"Accept": "image/*", "User-Agent": USER_AGENT})
+    # Basecamp redirige vers un lien de stockage signé : le jeton ne doit pas l'y
+    # suivre (refusé là-bas, et il n'a rien à y faire)
+    req.add_unredirected_header("Authorization", f"Bearer {s['access_token']}")
+    try:
+        with _open(req) as r:
+            ctype = (r.headers.get("Content-Type") or "").split(";")[0].strip().lower()
+            body = r.read(ATTACH_MAX + 1)
+    except urllib.error.HTTPError as e:
+        raise RuntimeError(f"pièce jointe illisible (HTTP {e.code})") from None
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Basecamp injoignable : {e.reason}") from None
+    if ctype not in IMAGE_TYPES or len(body) > ATTACH_MAX:
+        raise ValueError("pas une image affichable")
+    with _files_lock:
+        _files[url] = (ctype, body)
+        while len(_files) > 40:
+            _files.popitem(last=False)
+    return ctype, body
+
+def _all_comments(bucket, rid, s):
+    """Tous les commentaires d'un enregistrement, page après page (en-tête `Link`),
+    sans jamais suivre une adresse hors du compte."""
+    status, page, headers = _api_get(f"/buckets/{bucket}/recordings/{rid}/comments.json",
+                                     s["access_token"], s["href"])
+    out = []
+    for _ in range(TASK_PAGES):
+        if status != 200 or not isinstance(page, list):
+            break
+        out += page
+        nxt = re.search(r'<([^>]+)>;\s*rel="next"', (headers or {}).get("Link") or "")
+        if not nxt or not nxt.group(1).startswith(s["href"].rstrip("/") + "/"):
+            break
+        status, page, headers = _get(nxt.group(1), s["access_token"])
+    return out
 
 # ── Rapport d'une issue → commentaire sur la tâche ──────────────────────────
 # La seule écriture vers Basecamp, au clic sur « publier » : le rapport d'une

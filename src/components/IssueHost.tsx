@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import type { BcIssue } from '../lib/basecamp'
 import {
   bcKey,
+  commentsMarkdown,
+  RECENT_COMMENTS,
   claudeCommand,
   claudePrompt,
   createIssue,
@@ -10,6 +12,7 @@ import {
   rememberRepo,
   rememberedRepo,
   taskText,
+  type BcComment,
   type IssueRepo,
   type IssueTask,
 } from '../lib/bcIssues'
@@ -31,6 +34,8 @@ export type IssueRequest = {
   task: IssueTask
   /** Issues déjà liées à cette tâche : signalées, pour ne pas en créer une deuxième. */
   existing: BcIssue[]
+  /** Issue sur un échange précis (id du commentaire) : il devient le besoin, la tâche le contexte. */
+  comment?: number
   /** Clone local d'un repo (`~/dev/api`), pour lancer Claude Code dedans ; null s'il n'y en a pas. */
   cloneOf: (repo: string) => string | null
   /** Ouvre une adresse comme un lien de la page (formulaire, issue créée) : dans l'appli de bureau, un onglet. */
@@ -60,6 +65,9 @@ export default function IssueHost() {
   const [copied, setCopied] = useState('')
   /** Lecture de la tâche dans Basecamp en cours (pour pré-remplir le besoin). */
   const [reading, setReading] = useState(false)
+  /** Échanges de la tâche, et ceux retenus pour l'issue (ids). */
+  const [comments, setComments] = useState<BcComment[]>([])
+  const [picked, setPicked] = useState<Set<number>>(new Set())
   const input = useRef<HTMLInputElement>(null)
   const asked = useRef(0)
 
@@ -73,12 +81,27 @@ export default function IssueHost() {
       setError('')
       setMade(null)
       setCopied('')
+      setComments([])
+      setPicked(new Set())
       // Besoin pré-rempli avec le contenu de la tâche ; ce qui a déjà été tapé est gardé.
       const n = ++asked.current
       if (!bcKey(r.task.url)) return setReading(false)
       setReading(true)
       taskText(r.task.url)
-        .then((text) => n === asked.current && setNeed((cur) => cur || text))
+        .then(({ text, comments: all }) => {
+          if (n !== asked.current) return
+          setComments(all)
+          const from = r.comment ? all.find((c) => c.id === r.comment) : undefined
+          if (from) {
+            // l'échange est la demande ; la tâche reste en contexte, les autres échanges à cocher
+            const ask = `**Demande de ${from.who} (${from.date}) sur Basecamp** :\n\n${from.text}`
+            setNeed((cur) => cur || [ask, text ? `### Contexte : la tâche\n\n${text}` : ''].filter(Boolean).join('\n\n'))
+            setPicked(new Set())
+          } else {
+            setNeed((cur) => cur || text)
+            setPicked(new Set(all.slice(-RECENT_COMMENTS).map((c) => c.id)))
+          }
+        })
         .catch((e) => n === asked.current && shown('Lecture de la tâche Basecamp', e))
         .finally(() => n === asked.current && setReading(false))
     }
@@ -93,7 +116,14 @@ export default function IssueHost() {
 
   if (!req || !repo) return null
   const close = () => setReq(null)
-  const body = () => issueBody(req.task, need)
+  const retained = comments.filter((c) => picked.has(c.id))
+  const body = () => issueBody(req.task, [need.trim(), commentsMarkdown(retained)].filter(Boolean).join('\n\n'))
+  const toggle = (id: number) =>
+    setPicked((cur) => {
+      const next = new Set(cur)
+      if (!next.delete(id)) next.add(id)
+      return next
+    })
   // Pour Claude Code : le prompt, et la commande qui le lance dans le clone local s'il y en a un.
   const prompt = made ? claudePrompt(made.repo, made.number) : ''
   const clone = made ? req.cloneOf(made.repo) : null
@@ -156,7 +186,7 @@ export default function IssueHost() {
         onKeyDown={(e) => e.key === 'Escape' && close()}
       >
         <div className="modal-head" id="issue-title">
-          {made ? `Issue #${made.number} créée` : 'Nouvelle issue GitHub'}
+          {made ? `Issue #${made.number} créée` : req.comment ? 'Nouvelle issue GitHub, sur un échange' : 'Nouvelle issue GitHub'}
         </div>
         {made ? (
           <div className="modal-body issue-body">
@@ -222,9 +252,36 @@ export default function IssueHost() {
                 onChange={(e) => setNeed(e.target.value)}
               />
             </label>
+            {comments.length ? (
+              <div className="issue-label">
+                <span className="issue-comments-head">
+                  Échanges à reprendre · {retained.length} sur {comments.length}
+                  <span className="set-spacer" />
+                  <button className="bell-link" onClick={() => setPicked(new Set(comments.map((c) => c.id)))}>
+                    tout
+                  </button>
+                  <button className="bell-link" onClick={() => setPicked(new Set())}>
+                    aucun
+                  </button>
+                </span>
+                <div className="issue-comments">
+                  {/* le plus récent en haut : c'est lui qui compte le plus souvent */}
+                  {[...comments].reverse().map((c) => (
+                    <label key={c.id} className={`issue-comment${picked.has(c.id) ? ' is-on' : ''}`}>
+                      <input type="checkbox" checked={picked.has(c.id)} onChange={() => toggle(c.id)} />
+                      <span>
+                        <strong>{c.who}</strong> · {new Date(c.date).toLocaleDateString('fr-FR')}
+                        <span className="issue-comment-text">{c.text}</span>
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            ) : null}
             <p className="set-hint">
-              Repris de la tâche (description, étapes, échanges) : à compléter ou raccourcir. Le lien vers la tâche
-              et la consigne de rapport sont ajoutés en bas. ⌘ Entrée pour créer.
+              Repris de la tâche (description, étapes) : à compléter ou raccourcir. Coche les échanges utiles, les
+              {` ${RECENT_COMMENTS}`} plus récents le sont déjà. Le lien vers la tâche et la consigne de rapport sont
+              ajoutés en bas. ⌘ Entrée pour créer.
             </p>
             {error ? <p className="issue-error">{error}</p> : null}
           </div>

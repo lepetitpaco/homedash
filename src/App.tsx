@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmHost from './components/ConfirmHost'
 import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
-import BasecampView, { showBcIssues } from './components/BasecampView'
+import BasecampView, { showBcIssues, showBcTask } from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
@@ -32,9 +32,10 @@ import { useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
 import { useEvents, type HdEvent } from './lib/events'
-import { lateCount, useBasecamp, type BcTask } from './lib/basecamp'
+import { lateCount, useBasecamp, type BcFound, type BcTask } from './lib/basecamp'
 import { bcKey, issuesByTask, whereOf, type IssueTask } from './lib/bcIssues'
 import IssueHost, { askIssue } from './components/IssueHost'
+import TaskHost, { showTask } from './components/TaskHost'
 import {
   capturesLink,
   folderOf,
@@ -531,12 +532,19 @@ export default function App() {
     ],
     [selectTab, switchTheme, effectiveTheme, bc.data?.configured, newGroup],
   )
+  // Basecamp dans la recherche : mes tâches (déjà là) ; tout Basecamp, useSearch le cherche
+  const bcTasks = useMemo(
+    () => (bc.data?.enabled ? [...(bc.data.tasks?.priorities ?? []), ...(bc.data.tasks?.others ?? [])] : []),
+    [bc.data],
+  )
   const search = useSearch({
     cfg,
     links,
     notes,
     gh: gh.data?.enabled ? gh.data : null,
     local: local.data,
+    bcTasks,
+    bcSearch: !!bc.data?.enabled && !!bc.data.loaded,
     searchRef,
     paused: !!menus.draft,
     track,
@@ -1012,19 +1020,22 @@ export default function App() {
       ],
     })
   /** Fenêtre « nouvelle issue » d'une tâche (repo, titre, besoin) ; faux si aucun repo suivi. */
-  const newIssue = (task: IssueTask): boolean => {
+  /** Clone local d'un repo (`~/dev/api`) d'après l'onglet Local : Claude Code s'y lance. */
+  const cloneOf = (repo: string): string | null => {
+    const [own, name] = repo.toLowerCase().split('/')
+    const r = local.data?.repos?.find((x) => x.org?.toLowerCase() === own && x.repo?.toLowerCase() === name)
+    return r?.display ?? null
+  }
+  const newIssue = (task: IssueTask, comment?: number): boolean => {
     const repos = bc.data?.github?.repos ?? []
     if (!repos.length) return false
     const key = bcKey(task.url)
     askIssue({
       repos,
       task,
+      comment,
       existing: (key && issuesByTask(bc.data?.github?.issues ?? []).get(key)) || [],
-      cloneOf: (repo) => {
-        const [own, name] = repo.toLowerCase().split('/')
-        const r = local.data?.repos?.find((x) => x.org?.toLowerCase() === own && x.repo?.toLowerCase() === name)
-        return r?.display ?? null
-      },
+      cloneOf,
       onOpen: openLink,
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: bc.reload,
@@ -1032,6 +1043,30 @@ export default function App() {
     return true
   }
   const bcTaskOf = (t: BcTask): IssueTask => ({ url: t.url, title: t.title, where: whereOf(t), project: t.project })
+  /** Fiche d'une tâche (description, échanges), ouverte sur un échange s'il est donné. */
+  const viewTask = (task: IssueTask, comment?: number) => {
+    const key = bcKey(task.url)
+    showTask({
+      task,
+      comment,
+      issues: (key && issuesByTask(bc.data?.github?.issues ?? []).get(key)) || [],
+      onOpen: openLink,
+      onIssue: bc.data?.github?.repos?.length ? (c) => void newIssue(task, c) : undefined,
+    })
+  }
+  /** Résultat de recherche Basecamp → sa tâche (un commentaire mène à la sienne) et l'échange visé. */
+  const foundTask = (item: BcFound): [IssueTask, number | undefined] => {
+    const comment = /#__recording_(\d+)/.exec(item.url)
+    return [
+      {
+        url: item.url.split('#')[0],
+        title: item.type === 'Comment' ? item.title.replace(/^Re:\s*/, '') : item.title,
+        where: [item.project, item.parent].filter(Boolean).join(' › '),
+        project: item.project,
+      },
+      comment ? Number(comment[1]) : undefined,
+    ]
+  }
   /** « Créer une issue GitHub… » dans un menu, s'il y a un repo où la créer. */
   const issueItems = (task: IssueTask): MenuItem[] =>
     bc.data?.github?.repos?.length
@@ -1042,6 +1077,7 @@ export default function App() {
     e.preventDefault()
     const issue = issueItems(bcTaskOf(t))
     const items: MenuItem[] = desktop ? [{ heading: 'Ouvrir' }, ...openChoices(t.url), { sep: true }] : []
+    items.push({ icon: '💬', label: 'Voir la tâche et ses échanges', onSelect: () => viewTask(bcTaskOf(t)) })
     items.push({ icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${t.url}`, t.url) })
     if (issue.length) items.push({ sep: true }, ...issue)
     menus.openMenu({ x: e.clientX, y: e.clientY, title: t.title, items })
@@ -1346,6 +1382,23 @@ export default function App() {
           copy={copy}
           onActivate={search.activate}
           onHover={search.setActiveIndex}
+          onBcIssue={
+            bc.data?.github?.repos?.length
+              ? (item) => {
+                  search.setQuery('')
+                  void newIssue(...foundTask(item))
+                }
+              : undefined
+          }
+          onBcView={(item) => {
+            search.setQuery('')
+            viewTask(...foundTask(item))
+          }}
+          onBcShow={(item) => {
+            search.setQuery('')
+            showBcTask(item.url)
+            selectTab('basecamp')
+          }}
         />
       ) : view === 'events' ? (
         <EventFeed
@@ -1365,6 +1418,8 @@ export default function App() {
           onRefresh={bc.refresh}
           onTaskMenu={bcTaskMenu}
           onNewIssue={bc.data?.github?.repos?.length ? (t) => void newIssue(bcTaskOf(t)) : undefined}
+          onShowTask={(t) => viewTask(bcTaskOf(t))}
+          cloneOf={cloneOf}
           onSettings={() => {
             presetSettingsSection('set-basecamp')
             selectTab('settings')
@@ -1452,6 +1507,7 @@ export default function App() {
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
       <NameColorHost />
+      <TaskHost />
       <IssueHost />
       {adding ? (
         <AddTabDialog

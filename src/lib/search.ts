@@ -29,11 +29,43 @@ function scoreText(haystack: string, needle: string): number {
   let gaps = 0
   for (const ch of n) {
     const found = h.indexOf(ch, hi)
-    if (found === -1) return -1
+    if (found === -1) return wordsScore(h, n)
     gaps += found - hi
     hi = found + 1
   }
   return 200 - Math.min(gaps, 150)
+}
+
+/**
+ * Dernier recours : chaque mot tapé retrouvé dans un mot du texte, dans
+ * n'importe quel ordre, avec une faute de frappe par mot de 4 lettres ou plus.
+ * « shopping diag » → « Assistant Shoping interne (Diag) ». Classé après tout le reste.
+ */
+function wordsScore(h: string, n: string): number {
+  const words = h.split(/[^a-z0-9]+/).filter(Boolean)
+  let typos = 0
+  for (const w of n.split(/[^a-z0-9]+/).filter(Boolean)) {
+    if (words.some((x) => x.includes(w))) continue
+    if (w.length >= 4 && words.some((x) => oneEditAway(x, w) || oneEditAway(x.slice(0, w.length), w))) {
+      typos++
+      continue
+    }
+    return -1
+  }
+  return typos || n.trim().includes(' ') ? 120 - typos * 20 : -1
+}
+
+/** Une lettre en plus, en moins, changée ou deux lettres inversées. */
+function oneEditAway(a: string, b: string): boolean {
+  if (a === b) return true
+  if (Math.abs(a.length - b.length) > 1) return false
+  let i = 0
+  while (i < a.length && i < b.length && a[i] === b[i]) i++
+  if (a.length === b.length) {
+    if (a.slice(i + 1) === b.slice(i + 1)) return true // une lettre changée
+    return a[i] === b[i + 1] && a[i + 1] === b[i] && a.slice(i + 2) === b.slice(i + 2) // inversion
+  }
+  return a.length > b.length ? a.slice(i + 1) === b.slice(i) : a.slice(i) === b.slice(i + 1)
 }
 
 /** Meilleur score pondéré sur l'ensemble des champs d'un item. */

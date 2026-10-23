@@ -342,10 +342,25 @@ class Handler(BaseHTTPRequestHandler):
             # + les issues GitHub liées aux tâches (lues par les comptes GitHub)
             return self._json({**basecamp.payload(),
                                "github": accounts.bc_issues(fresh=bool(self._query("fresh")))})
+        if path == "/api/basecamp/search":
+            # Barre de recherche : tout Basecamp (GET vers Basecamp seulement)
+            try:
+                return self._json({"items": basecamp.search(self._query("q"))})
+            except RuntimeError as e:
+                return self._err(502, str(e))
+        if path == "/api/basecamp/file":
+            # Image jointe à une tâche, relayée pour la fiche (GET vers Basecamp seulement)
+            try:
+                ctype, body = basecamp.attachment(self._query("url"))
+            except ValueError as e:
+                return self._err(422, str(e))
+            except RuntimeError as e:
+                return self._err(502, str(e))
+            return self._send(200, body, ctype, cache="private, max-age=3600")
         if path == "/api/basecamp/task":
             # Contenu d'une tâche, pour pré-remplir une issue (GET vers Basecamp seulement)
             try:
-                return self._json({"text": basecamp.task_text(self._query("url"))})
+                return self._json(basecamp.task_text(self._query("url")))
             except ValueError as e:
                 return self._err(422, str(e))
             except RuntimeError as e:

@@ -168,12 +168,34 @@ export function claudeCommand(dir: string, prompt: string): string {
   return `cd ${at} && claude '${prompt.replace(/'/g, '’')}'`
 }
 
-/** Description et échanges de la tâche, en Markdown (lus dans Basecamp à la demande). */
-export async function taskText(url: string): Promise<string> {
+/** Un échange (commentaire) de la tâche, en Markdown. */
+export type BcComment = { id: number; who: string; date: string; text: string }
+
+/** Échanges retenus par défaut : les plus récents (un projet au long cours en a déjà réglé beaucoup). */
+export const RECENT_COMMENTS = 5
+
+/**
+ * Contenu de la tâche, lu dans Basecamp à la demande : description et étapes
+ * (`text`), et ses échanges à part (`comments`, du plus ancien au plus récent),
+ * pour n'en retenir que ceux qui servent.
+ */
+export async function taskText(
+  url: string,
+): Promise<{ text: string; comments: BcComment[]; images: Record<string, string> }> {
   const res = await fetch(`api/basecamp/task?${new URLSearchParams({ url })}`, { cache: 'no-store' })
-  const out = (await res.json().catch(() => null)) as { text?: string; error?: string } | null
+  const out = (await res.json().catch(() => null)) as
+    | { text?: string; comments?: BcComment[]; images?: Record<string, string>; error?: string }
+    | null
   if (!res.ok) throw new Error(out?.error ?? `HTTP ${res.status}`)
-  return out?.text ?? ''
+  return { text: out?.text ?? '', comments: out?.comments ?? [], images: out?.images ?? {} }
+}
+
+/** Échanges retenus, en fin de Besoin (ordre chronologique). */
+export function commentsMarkdown(list: BcComment[]): string {
+  if (!list.length) return ''
+  return ['### Échanges retenus (Basecamp)', '', ...list.map((c) => `**${c.who}** (${c.date}) :\n${c.text}\n`)]
+    .join('\n')
+    .trim()
 }
 
 /** Création directe, avec le jeton du compte GitHub de homedash. */

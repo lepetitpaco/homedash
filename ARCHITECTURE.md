@@ -56,7 +56,9 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/github/{auth,owners,repos/{owner},members/{org},users/{login}}` | GET | Pour Réglages |
 | `/api/basecamp`, `/api/basecamp/refresh` | GET, POST | Tâches et notifs non lues, relecture |
 | `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
-| `/api/basecamp/task?url=` | GET | Description, étapes et échanges d'une tâche (pré-remplir une issue) |
+| `/api/basecamp/search?q=` | GET | Recherche dans tout Basecamp (barre de recherche), réponses gardées 1 min |
+| `/api/basecamp/task?url=` | GET | Description et étapes d'une tâche (`text`), ses échanges à part (`comments`), ses images (`images`) : fiche et issue |
+| `/api/basecamp/file?url=` | GET | Image jointe à une tâche, lue avec le jeton (adresse `…/blobs/…` du compte, formats d'image sûrs, sans SVG) |
 | `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
 | `/api/basecamp/dismiss` | POST | Écarter une issue liée sans publier son rapport (`undo` : la rétablir) ; rien n'est envoyé |
 | `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp (repos suivis) |
