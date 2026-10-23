@@ -500,6 +500,11 @@
 .modal-confirm.issue-modal {
   width: min(560px, 100%);
 }
+/* Appli de bureau : jusqu'à quatre boutons (formulaire dans l'appli / le navigateur) */
+.issue-modal .modal-foot {
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
 .issue-body {
   display: flex;
   flex-direction: column;

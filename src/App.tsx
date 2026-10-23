@@ -1026,6 +1026,7 @@ export default function App() {
         return r?.display ?? null
       },
       onOpen: openLink,
+      onOpenOutside: desktop ? openOutside : undefined,
       onMade: bc.reload,
     })
     return true

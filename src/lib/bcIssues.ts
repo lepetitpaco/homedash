@@ -83,9 +83,14 @@ export const REPORT_TEMPLATE = [
   '**Version** : X.Y.Z (si le projet a des versions ; sinon retirer la ligne)',
 ].join('\n')
 
-/** Règles du travail confié à Claude Code, communes à l'issue et au prompt. */
+/**
+ * Règles du travail confié à Claude Code, communes à l'issue et au prompt. Une
+ * tâche Basecamp est souvent une conversation décousue : avant de coder, en
+ * dégager le vrai besoin et la solution retenue, en termes techniques.
+ */
 export function claudeRules(close: string): string[] {
   return [
+    "Lis le besoin et tous les échanges : sur Basecamp, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques** (problème, cause probable, solution retenue, ce qui sera touché). Ne modifie pas le corps de l'issue : il porte le lien vers la tâche, et sa section Besoin est la demande d'origine (reprise telle quelle de Basecamp) : en cas de doute, c'est elle qui fait foi, pas ta reformulation. Les captures (🖼) restent sur Basecamp, hors de ta portée : si l'une est indispensable, demande ce qu'elle montre.",
     'Fais le travail en suivant les règles du repo (CLAUDE.md).',
     `Une fois livré, poste **un seul** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la tâche Basecamp.`,
     `Puis ferme l'issue : ${close}.`,
@@ -129,8 +134,11 @@ export function newIssueUrl(repo: string, title: string, body: string): string {
  */
 export function claudePrompt(repo: string, number: number): string {
   return (
-    `Occupe-toi de l’issue ${repo}#${number} : lis-la avec \`gh issue view ${number} -R ${repo} --comments\`, ` +
-    `puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).`
+    `Occupe-toi de l’issue ${repo}#${number} : lis-la avec \`gh issue view ${number} -R ${repo} --comments\`. ` +
+    `Elle vient d’une tâche Basecamp, souvent une conversation décousue : commence par en tirer le vrai besoin et ` +
+    `la meilleure solution, reformulés en termes techniques (en commentaire de l’issue si ce n’est pas limpide), ` +
+    `sans toucher au corps de l’issue ; en cas de doute, reviens à la demande d’origine (section Besoin). ` +
+    `Puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).`
   )
 }
 
