@@ -221,10 +221,14 @@ export default function App() {
   }
   // Liens de homedash dans l'appli (Réglages → `ui.openLinks`) : l'onglet perso du
   // site, sinon un éphémère. Renvoie `false` → le navigateur. `flip` (⌘clic) :
-  // l'inverse du réglage (issue #32). Défini plus bas.
-  const inAppRef = useRef<(url: string, flip?: boolean) => boolean>(() => false)
+  // l'inverse du réglage (issue #32). `searched` : venu de la recherche, pas du
+  // site affiché (voir plus bas). Défini plus bas.
+  const inAppRef = useRef<(url: string, flip?: boolean, searched?: boolean) => boolean>(() => false)
   const openLink = useCallback((url: string) => {
     if (!inAppRef.current(url)) window.open(url, '_blank', 'noopener')
+  }, [])
+  const openSearched = useCallback((url: string) => {
+    if (!inAppRef.current(url, false, true)) window.open(url, '_blank', 'noopener')
   }, [])
   useEffect(() => {
     if (!desktop) return
@@ -235,7 +239,8 @@ export default function App() {
       if (e.defaultPrevented || e.button !== 0 || e.altKey) return
       const a = (e.target as Element | null)?.closest?.('a[href]') as HTMLAnchorElement | null
       if (!a || a.target !== '_blank' || a.hasAttribute('data-outside') || !/^https?:/i.test(a.href)) return
-      if (inAppRef.current(a.href, e.metaKey || e.ctrlKey || e.shiftKey)) e.preventDefault()
+      const searched = !!a.closest('.search-layout')
+      if (inAppRef.current(a.href, e.metaKey || e.ctrlKey || e.shiftKey, searched)) e.preventDefault()
     }
     window.addEventListener('click', onClick)
     return () => window.removeEventListener('click', onClick)
@@ -599,7 +604,7 @@ export default function App() {
     copy,
     openNote: setOpenNoteId,
     openLocal,
-    open: openLink,
+    open: openSearched,
     tabs: searchTabs,
     onTab: (t) => {
       search.setQuery('')
@@ -901,12 +906,18 @@ export default function App() {
     setTemps((ts) => [...ts, { id, label, url, embed: true, session, parent: space }])
     selectTab(`x:${id}`)
   }
-  inAppRef.current = (url, flip = false) => {
+  inAppRef.current = (url, flip = false, searched = false) => {
     if (!desktop || (ui.openLinks === 'browser') !== flip) return false
     // homedash lui-même (une autre page servie par le container) : le navigateur.
     if (new URL(url, window.location.href).host === window.location.host) return false
-    // en onglet là où l'on est : le dash, ou l'onglet perso d'où l'on cherche
     const space = spaceOf(tab) ?? DASH
+    // Cherché depuis un site : une nouvelle navigation, pas un lien de ce site.
+    // Un éphémère à part dans la barre de gauche, avec le compte du site visé.
+    if (searched && space !== DASH) {
+      openTemp(url, linkTarget(url, regularTabs)?.session)
+      return true
+    }
+    // en onglet là où l'on est : le dash, ou l'onglet perso d'où vient le lien
     openChild(space, url, sessionFor(space, url))
     return true
   }
