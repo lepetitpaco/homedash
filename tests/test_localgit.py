@@ -309,13 +309,15 @@ class CleanupEventsTest(unittest.TestCase):
 
     def setUp(self):
         self.recorded = []
-        self._record = localgit.events.record
+        self._record, self._tags = localgit.events.record, localgit.events.tags_since
         localgit.events.record = lambda items: self.recorded.extend(items)
+        # le journal du test : ce qui vient d'être noté
+        localgit.events.tags_since = lambda ts: {k for e in self.recorded for k in [e["tag"], *e.get("keys", [])]}
         localgit._prev_removable, localgit._prev_repos = set(), set()
         localgit._seed["done"] = True
 
     def tearDown(self):
-        localgit.events.record = self._record
+        localgit.events.record, localgit.events.tags_since = self._record, self._tags
 
     @staticmethod
     def repo(name, *branches):
@@ -339,6 +341,25 @@ class CleanupEventsTest(unittest.TestCase):
         self.assertEqual(len(titles), 2, titles)
         self.assertTrue(any("fix/hier" in t for t in titles))
         self.assertTrue(any("supprimee" in t for t in titles))
+
+    def test_already_announced_before_a_restart_is_silent(self):
+        recent = ("fix/hier", {"merged_at": self.iso(3600), "url": ""})
+        localgit._record_cleanup([self.repo("api")])
+        localgit._record_cleanup([self.repo("api", recent)])
+        self.assertEqual(len(self.recorded), 1)
+        # redémarrage : la mémoire du module repart à zéro, le journal reste
+        localgit._prev_removable, localgit._prev_repos = set(), set()
+        localgit._record_cleanup([self.repo("api")])
+        localgit._record_cleanup([self.repo("api", recent)])
+        self.assertEqual(len(self.recorded), 1, [e["title"] for e in self.recorded])
+
+    def test_same_branch_in_several_repos_is_one_line(self):
+        b = ("fix/hier", {"merged_at": self.iso(3600), "url": ""})
+        localgit._record_cleanup([self.repo("api"), self.repo("web"), self.repo("app")])
+        localgit._record_cleanup([self.repo("api", b), self.repo("web", b), self.repo("app")])
+        self.assertEqual(len(self.recorded), 1)
+        self.assertIn("2 dépôts", self.recorded[0]["title"])
+        self.assertEqual(sorted(self.recorded[0]["keys"]), ["local:api/fix/hier", "local:web/fix/hier"])
 
     def test_repo_seen_for_the_first_time_produces_nothing(self):
         localgit._record_cleanup([self.repo("api")])

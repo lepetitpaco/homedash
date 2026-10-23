@@ -659,17 +659,29 @@ def _record_cleanup(repos):
 
     fresh = [current[k] for k in current if k not in _prev_removable]
     _prev_removable = set(current)
-    out = []
+    # Déjà annoncée (avant un redémarrage) : le journal s'en souvient, pas nous.
+    told = events.tags_since(time.time() - RECENT_MERGE)
+    # Une même branche dans plusieurs dépôts (mergée partout d'un coup) : une ligne.
+    groups = {}
     for repo, b in fresh:
         pr = b.get("pr") or {}
-        if repo["name"] not in seen_repos or _old_merge(pr):
+        key = f"local:{repo['name']}/{b['name']}"
+        if repo["name"] not in seen_repos or _old_merge(pr) or key in told:
             continue
+        groups.setdefault((b["name"], bool(pr.get("merged_at"))), []).append((repo, pr, key))
+    out = []
+    for (name, merged), items in groups.items():
+        names = [r["name"] for r, _, _ in items]
+        what = "est mergée" if merged else "n'existe plus sur GitHub"
+        where = names[0] if len(names) == 1 else f"{len(names)} dépôts"
+        body = ("Ta copie locale peut être supprimée" if len(names) == 1
+                else f"Copies locales à supprimer : {', '.join(names)}") + " (commande dans l'onglet Local)."
+        keys = [k for _, _, k in items]
+        repo, pr, _ = items[0]
         out.append(events.event(
-            "local-cleanup", "warn", "local",
-            f"🧹 {repo['name']} — {b['name']} est mergée",
-            b["action"].get("detail") or "Sa copie locale ne sert plus à rien.",
+            "local-cleanup", "warn", "local", f"🧹 {name} {what} · {where}", body,
             repo["name"], pr.get("url") or repo.get("url") or "",
-            f"local:{repo['name']}/{b['name']}"))
+            keys[0] if len(keys) == 1 else f"local:{name}", keys=keys))
     events.record(out)
 
 # ── État partagé ──────────────────────────────────────────────────────────────

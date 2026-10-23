@@ -49,17 +49,21 @@ def _load():
             _journal = {"seq": 0, "events": []}
     return _journal
 
-def event(kind, level, source, title, body="", repo="", url="", tag="", sticky=False):
+def event(kind, level, source, title, body="", repo="", url="", tag="", sticky=False, keys=None):
     """Construit un événement sans l'enregistrer — l'appelant en pousse un lot.
 
     `tag` est repris tel quel par la notification : deux onglets homedash ouverts
-    remplacent la même notification au lieu d'en empiler deux.
+    remplacent la même notification au lieu d'en empiler deux. `keys` : ce que
+    l'événement annonce quand il en regroupe plusieurs (voir `tags_since`).
     """
-    return {
+    ev = {
         "kind": kind, "level": level, "source": source,
         "title": title, "body": body, "repo": repo, "url": url,
         "tag": tag or f"{kind}:{repo}", "sticky": bool(sticky),
     }
+    if keys:
+        ev["keys"] = list(keys)
+    return ev
 
 def record(items):
     """Ajoute un lot en tête. Retourne le nombre effectivement enregistré."""
@@ -86,6 +90,18 @@ def record(items):
     print(f"📓 Journal : +{len(fresh)} ({fresh[-1]['title']})" if len(fresh) == 1
           else f"📓 Journal : +{len(fresh)} événements → seq {seq}", flush=True)
     return len(fresh)
+
+def tags_since(ts):
+    """Tags (et `keys`) des événements notés depuis `ts`. Le journal survit au
+    redémarrage, la mémoire d'un module non : c'est lui qui dit « déjà annoncé »
+    (une branche mergée réannoncée à chaque mise à jour, issue #40)."""
+    with _lock:
+        out = set()
+        for e in _load()["events"]:
+            if (e.get("ts") or 0) >= ts:
+                out.add(e.get("tag"))
+                out.update(e.get("keys") or [])
+        return out
 
 def payload(since=None, limit=MAX):
     """`since` = dernier `seq` connu du client, pour ne renvoyer que la suite."""
