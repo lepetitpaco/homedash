@@ -234,6 +234,13 @@
 .set-spacer {
   flex: 1;
 }
+/* Choix d'un dossier : d'où partir (dossier personnel, disque). */
+.set-browser-starts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  padding: 0.4rem 0.55rem 0;
+}
 .set-browser > .set-hint {
   padding: 0.3rem 0.55rem 0;
 }

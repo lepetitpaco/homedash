@@ -36,6 +36,8 @@ export type Browse = {
   /** Seulement avec `browse(path, true)`. */
   files?: { name: string; path: string }[]
   repos: { count: number; partial: boolean }
+  /** Points de départ (dossier personnel, disque) ; absent avec `files`. */
+  starts?: { label: string; path: string }[]
   error?: string
 }
 

@@ -6,7 +6,11 @@ Les branches sont construites à la main, avec les mêmes clés que
 """
 
 import itertools
+import os
+import shutil
+import tempfile
 import unittest
+from unittest import mock
 
 from tests import _path  # noqa: F401  (DATA_DIR temporaire, backend/ dans sys.path)
 
@@ -344,3 +348,62 @@ class CleanupEventsTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+
+class DiskTest(unittest.TestCase):
+    """Dossiers hors du dossier personnel (#31) : le disque monté en lecture seule."""
+
+    def setUp(self):
+        root = tempfile.mkdtemp(prefix="hd-disk-")
+        self.addCleanup(shutil.rmtree, root, ignore_errors=True)
+        self.home = os.path.join(root, "host")
+        self.disk = os.path.join(root, "hostdisk")
+        for d in ("dev/api/.git", "Library"):
+            os.makedirs(os.path.join(self.home, d))
+        for d in ("projets/site/.git", "Windows", "$Recycle.Bin", "Users"):
+            os.makedirs(os.path.join(self.disk, d))
+        open(os.path.join(self.home, "notes.md"), "w").close()
+        # lien vers le conteneur (comme /Volumes/Macintosh HD → /) : jamais suivi
+        os.symlink("/", os.path.join(self.disk, "Macintosh HD"))
+        for name, value in (("HOST_MOUNT", self.home), ("DISK_MOUNT", self.disk)):
+            p = mock.patch.object(localgit, name, value)
+            p.start()
+            self.addCleanup(p.stop)
+        self.env({"HOST_HOME": "C:\\Users\\moi", "HOST_DISK": "C:"})
+
+    def env(self, values):
+        p = mock.patch.dict(os.environ, values)
+        p.start()
+        self.addCleanup(p.stop)
+
+    def test_windows_paths_round_trip(self):
+        self.assertEqual(localgit.resolve("C:/projets/site"), self.disk + "/projets/site")
+        self.assertEqual(localgit.resolve("c:\\projets\\site"), self.disk + "/projets/site")
+        self.assertEqual(localgit.display(self.disk + "/projets/site"), "C:/projets/site")
+        self.assertEqual(localgit.resolve("~/dev"), self.home + "/dev")
+        # le dossier personnel vu depuis le disque reste `~` : pas de doublon
+        self.assertEqual(localgit.display(self.disk + "/Users/moi/dev"), "~/dev")
+
+    def test_mac_volumes(self):
+        self.env({"HOST_HOME": "/Users/moi", "HOST_DISK": "/Volumes"})
+        self.assertEqual(localgit.resolve("/Volumes/projets"), self.disk + "/projets")
+        self.assertEqual(localgit.display(self.disk + "/projets"), "/Volumes/projets")
+
+    def test_browse_reaches_the_disk_but_not_beyond(self):
+        top = localgit.browse("C:")
+        self.assertEqual([d["name"] for d in top["dirs"]], ["projets", "Users"])   # système, $, lien : cachés
+        self.assertIsNone(top["parent"])
+        self.assertEqual([s["path"] for s in top["starts"]], ["~", "C:"])
+        self.assertEqual(localgit.browse("C:/projets")["repos"]["count"], 1)
+        self.assertIn("error", localgit.browse("C:/Macintosh HD"))           # lien vers le conteneur
+        self.assertIn("error", localgit.browse("/etc"))
+
+    def test_file_picker_stays_in_home(self):
+        self.assertIn("error", localgit.browse("C:/projets", files=True))
+        self.assertEqual([f["name"] for f in localgit.browse("~", files=True)["files"]], ["notes.md"])
+
+    def test_without_disk_mount_nothing_changes(self):
+        localgit.DISK_MOUNT = "/nexiste/pas"
+        self.assertEqual(localgit.resolve("C:/projets"), "C:/projets")
+        self.assertEqual([s["path"] for s in localgit.browse("~")["starts"]], ["~"])
