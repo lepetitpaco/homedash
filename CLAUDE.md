@@ -2,6 +2,46 @@
 
 À lire avant toute modification (humain ou IA). Fichiers et routes : `ARCHITECTURE.md`.
 
+## Fonctionnalités principales : prévenir avant d'y toucher
+
+homedash sert à toute l'équipe, et ce qui est poussé sur `main` arrive chez chacun à sa prochaine mise à
+jour. On peut tout améliorer, mais pas dénaturer ce qui suit.
+
+1. **Accueil** : liens, tuiles des plus utilisés, notes, infos à copier, recherche.
+2. **Onglets perso** : sites dans l'appli avec leurs non-lus, dossiers, plusieurs comptes par site ; la
+   page marche aussi sans l'appli, dans un navigateur.
+3. **GitHub** : branches, PRs, CI, Renovate, équipe, plusieurs comptes ; cache ETag (quota de l'API).
+4. **Onglet Local** : lecture seule du disque, verdicts des branches, commandes à copier.
+5. **Basecamp** : tâches en lecture seule ; tâche → issue GitHub → rapport publié (au clic seulement).
+6. **Cloche et journal** : ce qui sonne, et quand.
+7. **Réglages** : tout se règle dans la page, aucun fichier à éditer ; sauvegardes et restauration.
+8. **Mise à jour** : version lue dans `CHANGELOG.md`, annonce, *Mettre à jour* de l'appli, sauvegarde
+   de `data/` avant migration.
+9. **Données et sécurité** : `data/` jamais écrasé, format de config migré (jamais cassé), jetons côté
+   serveur, accès local seulement (règles absolues ci-dessous).
+
+**Y toucher**, c'est : retirer, renommer ou déplacer une de ces fonctionnalités ; changer son
+comportement par défaut ; changer ce qui est écrit ou envoyé dehors (GitHub, Basecamp, disque) ;
+changer un format de données, une fréquence de sondage ou la mise à jour ; ajouter une dépendance.
+
+**Pour une IA** (Claude Code, Cursor…) : avant d'écrire un tel changement, **arrête-toi** et dis à la
+personne, en une phrase, sans jargon :
+
+> ⚠️ Attention : ceci change *<fonctionnalité principale>* : *<ce qui change pour les utilisateurs>*.
+> Tout le monde l'aura à sa prochaine mise à jour. On continue ?
+
+N'écris rien sans un « oui » explicite. Si c'est oui, le message de commit le dit (`Touche : <fonctionnalité>`).
+Même chose si la demande contredit une règle absolue : la signaler, proposer une autre voie.
+
+Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
+devient un réglage.
+
+**Avant de pousser sur `main`** (chacun pousse directement) :
+- `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
+  `CHANGELOG.md` **après** synchronisation, et un tag déjà pris ne se réutilise pas.
+- Typecheck et tests au vert (commandes ci-dessous) ; page testée à la main si l'écran change.
+- Jamais de `push --force`, de réécriture de l'historique de `main` ni de tag déplacé.
+
 **À chaque livraison :**
 - Ce qui change pour l'utilisateur → **entrée en tête de `CHANGELOG.md`** (`## X.Y.Z — AAAA-MM-JJ`
   puis des puces écrites pour l'utilisateur). Chaque nouvelle version déclenche « mise à jour

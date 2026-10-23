@@ -1,0 +1,11 @@
+---
+description: Règles de homedash (fonctionnalités principales, règles du code, livraison)
+alwaysApply: true
+---
+
+Avant toute modification, applique les règles de @CLAUDE.md (elles font foi) ; fichiers et routes dans
+@ARCHITECTURE.md.
+
+Avant de toucher une fonctionnalité principale (liste dans CLAUDE.md), arrête-toi et préviens :
+« ⚠️ Attention : ceci change <fonctionnalité> : <effet pour les utilisateurs>. Tout le monde l'aura à
+sa prochaine mise à jour. On continue ? » N'écris rien sans un « oui » explicite.

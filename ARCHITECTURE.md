@@ -34,6 +34,8 @@ desktop/                  appli de bureau facultative (Electron) : fenêtre sur 
 scripts/perf-report.py    résumé du journal de performance en texte (même calcul que la page :
                           backend/perfreport.py)
 tests/                    unittest stdlib
+CLAUDE.md                 règles du code et fonctionnalités principales (fait foi, pour humains et IA)
+AGENTS.md, .cursor/rules/ les mêmes règles pour Cursor et les autres IA (renvoient à CLAUDE.md)
 CHANGELOG.md              une entrée par version ; la première = version installée
 GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
 docs/screenshots/         captures (instance de démo) : README, GUIDE, et servies sous /guide/
@@ -56,6 +58,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/basecamp/{auth,app,authorize,code,token}` | GET, PUT, POST, DELETE | Réglages : appli Launchpad, connexion, déconnexion |
 | `/api/basecamp/task?url=` | GET | Description, étapes et échanges d'une tâche (pré-remplir une issue) |
 | `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
+| `/api/basecamp/dismiss` | POST | Écarter une issue liée sans publier son rapport (`undo` : la rétablir) ; rien n'est envoyé |
 | `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp (repos suivis) |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
 | `/api/perf` | GET, POST, DELETE | Journal de performance : état et place prise, mesure de l'appli / action de la page, vider |
