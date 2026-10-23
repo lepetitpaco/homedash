@@ -33,8 +33,10 @@ export type IssueRequest = {
   existing: BcIssue[]
   /** Clone local d'un repo (`~/dev/api`), pour lancer Claude Code dedans ; null s'il n'y en a pas. */
   cloneOf: (repo: string) => string | null
-  /** Ouvre une adresse comme un lien de la page (formulaire, issue créée). */
+  /** Ouvre une adresse comme un lien de la page (formulaire, issue créée) : dans l'appli de bureau, un onglet. */
   onOpen: (url: string) => void
+  /** Appli de bureau : l'ouvrir plutôt dans le navigateur (connecté à GitHub, lui). */
+  onOpenOutside?: (url: string) => void
   /** Issue créée : relire l'onglet Basecamp pour l'afficher sur la tâche. */
   onMade?: () => void
 }
@@ -121,11 +123,20 @@ export default function IssueHost() {
       setBusy(false)
     }
   }
-  const openForm = () => {
+  const openForm = (outside: boolean) => {
     rememberRepo(repo, req.task.project)
-    req.onOpen(newIssueUrl(repo.repo, title.trim(), body()))
+    const url = newIssueUrl(repo.repo, title.trim(), body())
+    if (outside && req.onOpenOutside) req.onOpenOutside(url)
+    else req.onOpen(url)
     close()
   }
+  /** « Dans le navigateur », à côté d'un bouton qui ouvre dans l'appli (appli de bureau seulement). */
+  const outside = (go: () => void) =>
+    req.onOpenOutside ? (
+      <button className="btn" onClick={go} title="Ouvrir dans le navigateur (où tu es connecté à GitHub)">
+        ↗ navigateur
+      </button>
+    ) : null
   // ⌘/Ctrl + Entrée : créer, depuis n'importe quel champ
   const submitKey = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
@@ -224,6 +235,7 @@ export default function IssueHost() {
               <button className="btn" onClick={() => req.onOpen(made.url)}>
                 Voir sur GitHub
               </button>
+              {outside(() => req.onOpenOutside?.(made.url))}
               {navigator.clipboard && command ? (
                 <button className="btn" onClick={() => void copy('command', command)}>
                   {copied === 'command' ? '✓ Commande copiée' : 'Copier la commande'}
@@ -243,9 +255,14 @@ export default function IssueHost() {
               <button className="btn" onClick={close}>
                 Annuler
               </button>
-              <button className="btn" onClick={openForm} title="Formulaire GitHub pré-rempli (il faut y être connecté)">
+              <button
+                className="btn"
+                onClick={() => openForm(false)}
+                title="Formulaire GitHub pré-rempli (il faut y être connecté)"
+              >
                 Ouvrir le formulaire
               </button>
+              {outside(() => openForm(true))}
               <button className="btn btn-primary" onClick={() => void create()} disabled={!title.trim() || busy}>
                 {busy ? 'Création…' : 'Créer sur GitHub'}
               </button>

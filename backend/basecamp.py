@@ -529,8 +529,15 @@ class _Text(HTMLParser):
             self.href = a.get("href")
             self.out.append("[")
         elif tag == "bc-attachment":
+            # Pièce jointe : lien vers Basecamp (l'adresse est dans `url` ; `href`
+            # pour un fichier). Ouvrable seulement connecté à Basecamp : ni GitHub
+            # ni Claude Code ne la voient, d'où la mention.
             name = a.get("filename") or a.get("caption") or "pièce jointe"
-            self.out.append(f"\n[{name}]({a['href']})\n" if a.get("href") else f"\n({name})\n")
+            icon = "🖼" if (a.get("content-type") or "").startswith("image/") else "📎"
+            link = a.get("href") or a.get("url")
+            label = f"{icon} {name.replace('[', '(').replace(']', ')')}"
+            self.out.append(f"\n[{label}](<{link}>) (sur Basecamp)\n" if link
+                            else f"\n{label} (sur Basecamp)\n")
 
     def handle_endtag(self, tag):
         if tag in ("ul", "ol") and self.list:

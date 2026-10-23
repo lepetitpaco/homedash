@@ -163,6 +163,16 @@ class BasecampTest(unittest.TestCase):
         self.assertEqual({m for m, _, _ in done}, {"GET"})
         self.assertTrue(all(u.startswith(HREF) for _, u, _ in done))
 
+    def test_attachments_become_basecamp_links(self):
+        # Basecamp met l'adresse d'une capture dans `url` (pas `href`) : elle était perdue
+        text = basecamp.html_text(
+            '<div><bc-attachment url="https://preview.3.basecamp.com/1/blobs/k/previews/full" '
+            'content-type="image/png" filename="Capture [1].png"></bc-attachment>'
+            '<bc-attachment filename="devis.pdf"></bc-attachment></div>')
+        self.assertIn("[🖼 Capture (1).png](<https://preview.3.basecamp.com/1/blobs/k/previews/full>) "
+                      "(sur Basecamp)", text)
+        self.assertIn("📎 devis.pdf (sur Basecamp)", text)
+
     def test_task_text_refuses_anything_but_a_task_address(self):
         self.connect()
         before = len(self.net.requests)

@@ -161,13 +161,17 @@ que tu publies) :
    la fois suivante, il est déjà sélectionné. Si la tâche a déjà une issue ouverte, la fenêtre le
    signale. **Créer sur GitHub** (ou ⌘ Entrée) la crée aussitôt avec le compte GitHub de homedash (pas
    besoin d'être connecté à github.com), et elle apparaît tout de suite sur la tâche ; **Ouvrir le
-   formulaire** ouvre plutôt celui de GitHub, pré-rempli. Le *Besoin* reprend la description, les
-   étapes et les échanges de la tâche ; le lien vers la tâche est ajouté tout seul. Marche aussi au
+   formulaire** ouvre plutôt celui de GitHub, pré-rempli (dans l'appli de bureau, **↗ navigateur**
+   l'ouvre dans ton navigateur, où tu es connecté à GitHub). Le *Besoin* reprend la description, les
+   étapes et les échanges de la tâche (une capture y devient un lien 🖼 vers Basecamp, ouvrable
+   seulement connecté à Basecamp) ; le lien vers la tâche est ajouté tout seul. Marche aussi au
    clic droit sur un lien de tâche dans le site Basecamp de l'appli.
 2. **Donne l'issue à Claude Code** : à la création, une commande est copiée toute seule, par exemple
    `cd ~/dev/api && claude '…'` ; colle-la dans un terminal, Claude Code démarre dans le repo avec
    l'issue. (Si le repo n'est pas cloné dans un dossier de l'onglet Local, c'est le prompt seul qui
-   est copié, à coller dans Claude Code.) La consigne est dans l'issue : faire le travail, poster un
+   est copié, à coller dans Claude Code.) La consigne est dans l'issue : tirer de la conversation
+   Basecamp le vrai besoin et la solution, reformulés en termes techniques (en commentaire de l'issue
+   si ce n'est pas limpide), faire le travail, poster un
    commentaire de rapport qui commence par `<!-- homedash:bc-report -->`, puis fermer l'issue.
 3. **La cloche sonne quand le rapport est prêt** (*📤 Rapport prêt*) ; un clic ouvre **🐙 Issues
    GitHub**. **📤 publier sur BC** apparaît aussi à côté de la tâche (et dans **🐙 Issues GitHub**, à gauche, avec le

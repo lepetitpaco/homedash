@@ -4,6 +4,16 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.24.1 — 2026-10-23
+
+- **Les captures d'une tâche ne disparaissent plus de l'issue** : chacune devient un lien vers Basecamp
+  (🖼 *nom de la capture*), au lieu de son seul nom entre parenthèses.
+- **Claude Code commence par traduire le besoin en technique** : une tâche Basecamp est souvent une
+  conversation décousue ; il en tire le vrai besoin et la solution retenue, en commentaire de l'issue
+  si ce n'est pas limpide, avant de coder.
+- **Formulaire GitHub et issue créée s'ouvrent aussi dans le navigateur** depuis l'appli de bureau
+  (**↗ navigateur**, à côté d'*Ouvrir le formulaire* et de *Voir sur GitHub*).
+
 ## 1.24.0 — 2026-10-22
 
 - **Basecamp → issue GitHub → rapport** : **🐙＋** au survol d'une tâche (ou clic droit). Le besoin est
