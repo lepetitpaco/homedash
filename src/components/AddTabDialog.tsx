@@ -73,7 +73,7 @@ export default function AddTabDialog({
         }}
       >
         <div className="modal-head" id="add-tab-title">
-          Nouvel onglet
+          Ajouter un site
         </div>
         <div className="modal-body add-tab-body">
           <label className="add-tab-field">
