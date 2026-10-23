@@ -52,8 +52,9 @@ Docker Desktop, coche *Start Docker Desktop when you sign in* : homedash redéma
 Tout se fait dans **⚙ Réglages**, aucun fichier à éditer :
 
 1. **Compte & équipe** : colle un jeton GitHub. Crée-le dans *GitHub → Settings → Developer settings →
-   Fine-grained tokens*, en lecture seule : *Contents*, *Pull requests*, *Checks*, *Metadata* (+
-   *Members* sur l'organisation pour voir l'équipe).
+   Fine-grained tokens*, en lecture seule : *Contents*, *Pull requests*, *Checks*, *Metadata*, *Issues*
+   (+ *Members* sur l'organisation pour voir l'équipe). Pour créer des issues depuis l'onglet Basecamp :
+   *Issues* en *Read and write*. Un jeton classic `repo` fait tout cela.
 2. **Repos suivis** : ＋ sur tes repos.
 3. **Dépôts locaux** : le dossier de tes clones (`~/dev`…).
 4. **Onglets perso** : tes sites, ou ＋ en bas de la barre de gauche.
@@ -83,9 +84,29 @@ Tes données sont sauvegardées automatiquement avant chaque mise à jour.
 - **Un souci ?** *Réglages → Aide* (guide, *En cas de souci*, journal d'erreurs), puis une
   [issue](https://github.com/davidgennaoui/homedash/issues/new).
 
+## Contribuer
+
+homedash sert à toute l'équipe : ce que tu pousses sur `main` arrive chez tout le monde à sa prochaine
+mise à jour. Améliore tout ce que tu veux, sans dénaturer l'existant.
+
+- **Avant de coder** : lis **[CLAUDE.md](CLAUDE.md)** (règles du code, et la liste des **fonctionnalités
+  principales** à ne pas changer sans prévenir) et **[ARCHITECTURE.md](ARCHITECTURE.md)** (fichiers,
+  API). Ton IA les lit aussi : `CLAUDE.md` pour Claude Code, `AGENTS.md` et `.cursor/rules/` pour
+  Cursor et les autres. Elle te prévient avant de toucher une fonctionnalité principale.
+- **Tester** (Node n'est pas requis, tout passe par Docker) :
+
+  ```bash
+  docker compose up -d --build                                              # redéployer, puis tester la page
+  docker run --rm -v "$PWD":/app -w /app node:22-alpine npx tsc --noEmit    # typecheck
+  python3 -m unittest discover -s tests -t .                                # tests (~10 s)
+  ```
+
+- **Livrer** : tu pousses directement sur `main`, après `git pull --rebase` et `git fetch --tags`. Un
+  changement visible = une entrée en tête du `CHANGELOG.md` avec la version suivante, un tag `vX.Y.Z`,
+  le `GUIDE.md` à jour et une issue qui le documente. Le détail est dans `CLAUDE.md`. Jamais de
+  `push --force`.
+
 ## Aller plus loin
 
 - **[GUIDE.md](GUIDE.md)** : le mode d'emploi, aussi dans *Réglages → Aide*.
 - **[CHANGELOG.md](CHANGELOG.md)** : les nouveautés de chaque version.
-- **[CLAUDE.md](CLAUDE.md)** (règles du code) et **[ARCHITECTURE.md](ARCHITECTURE.md)** (fichiers,
-  API) : à lire avant de contribuer. Tests : `python3 -m unittest discover -s tests -t .`
