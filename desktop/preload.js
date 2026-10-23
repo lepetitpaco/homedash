@@ -12,7 +12,7 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
   appVersion: ipcRenderer.sendSync('homedash:app-version'),
   platform: process.platform,
   /** Ce que cette version de l'appli sait faire (absent = appli 1.0.0). */
-  features: ['sessions', 'reload-tab', 'links', 'audio', 'update', 'menu', 'notif-settings', 'clear-data'],
+  features: ['sessions', 'reload-tab', 'links', 'audio', 'update', 'menu', 'notif-settings', 'clear-data', 'link-flip'],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
   /**

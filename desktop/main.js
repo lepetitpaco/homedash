@@ -156,12 +156,13 @@ const guests = new Set()
  * défaut. La page décide (elle connaît les onglets) ; une page ancienne sans
  * `__homedashRoute` → navigateur, comme avant.
  */
-async function route(url, fromId) {
+// `flip` : ⌘clic / Ctrl+clic / ⇧clic, l'inverse du réglage des liens de la page (issue #32).
+async function route(url, fromId, flip = false) {
   if (!win) return
   let handled = false
   try {
     handled = await win.webContents.executeJavaScript(
-      `window.__homedashRoute ? window.__homedashRoute(${JSON.stringify(url)}, ${Number(fromId)}) : false`,
+      `window.__homedashRoute ? window.__homedashRoute(${JSON.stringify(url)}, ${Number(fromId)}, ${!!flip}) : false`,
       true,
     )
   } catch {
@@ -279,7 +280,7 @@ function createWindow() {
     if (!isWeb(params.src || '')) e.preventDefault()
   })
   wc.on('did-attach-webview', (_e, guest) => {
-    guest.setWindowOpenHandler(({ url: raw, disposition }) => {
+    guest.setWindowOpenHandler(({ url: raw, disposition, features }) => {
       const url = unwrap(raw)
       // Fenêtre surgissante de connexion Google (window.open, « Se connecter
       // avec Google », Meet…) : dans l'appli, pour garder la session, et la page
@@ -305,7 +306,10 @@ function createWindow() {
       }
       // Un autre site : un onglet perso de ce site s'il y en a un (la page
       // décide), sinon le navigateur par défaut.
-      if (isWeb(url)) void route(url, guest.id)
+      // ⌘clic / Ctrl+clic = onglet en arrière-plan ; ⇧clic = fenêtre sans
+      // dimensions (un window.open du site, lui, en donne souvent).
+      const flip = disposition === 'background-tab' || (disposition === 'new-window' && !features)
+      if (isWeb(url)) void route(url, guest.id, flip)
       return { action: 'deny' }
     })
     guests.add(guest.id)

@@ -68,6 +68,9 @@ export const RELOAD_TAB = 'homedash:reload-tab'
 /** L'appli sait-elle donner sa propre connexion à un onglet ? (appli ≥ 1.1.0) */
 export const hasSessions = !!desktop?.features?.includes('sessions')
 
+/** L'appli dit-elle si un lien de site a été ⌘cliqué (⇧cliqué) ? (appli ≥ 1.5.6) */
+export const hasLinkFlip = !!desktop?.features?.includes('link-flip')
+
 /** `Pro Été` → `persist:homedash-tabs-pro-ete` ; vide = la session commune. */
 export function partitionOf(name: string | undefined): string {
   const slug = (name ?? '')

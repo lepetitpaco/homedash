@@ -208,9 +208,108 @@
   font-size: 0.7rem;
   color: var(--text-faint);
 }
-#set-display .set-toggles {
+/* Affichage, Notifications : une partie = un bloc (icône, titre, à quoi il sert),
+   des textes lisibles (pas tout en gris pâle à 0,7 rem). */
+.set-block {
+  display: flex;
   flex-direction: column;
+  gap: 0.75rem;
+  padding: 0.85rem 0.95rem 0.95rem;
+  border: 1px solid var(--border);
+  border-radius: 0.6rem;
+  background: color-mix(in srgb, var(--panel-2) 55%, transparent);
+}
+.set-body:has(> .set-block) {
+  gap: 0.9rem;
+}
+.set-block > header {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+.set-block-icon {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.5rem;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  font-size: 1rem;
+}
+.set-block h3 {
+  margin: 0;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.set-block > header p {
+  margin: 0.15rem 0 0;
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--text-dim);
+}
+.set-block .set-hint {
+  font-size: 0.76rem;
+  line-height: 1.45;
+  color: var(--text-dim);
+}
+.set-block .set-toggles {
+  flex-direction: column;
+  gap: 0.2rem;
+}
+.set-block .set-toggle {
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.45rem 0.55rem;
+  border-radius: 0.45rem;
+  font-size: 0.84rem;
+  color: var(--text);
+}
+.set-block .set-toggle:hover {
+  background: var(--panel-2);
+}
+.set-block .set-toggle input {
+  margin-top: 0.2rem;
+}
+.set-block .set-toggle em {
+  display: block;
+  margin-top: 0.1rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.set-block .set-field {
   gap: 0.35rem;
+  padding: 0.6rem 0.65rem;
+  border-radius: 0.45rem;
+  border: 1px solid var(--border-soft);
+  background: var(--panel);
+  font-size: 0.84rem;
+  color: var(--text);
+}
+.set-block .set-field em {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.set-block .set-field input {
+  font-size: 0.86rem;
+  padding: 0.4rem 0.5rem;
+}
+.set-block .set-preset strong {
+  font-size: 0.86rem;
+}
+.set-block .set-preset span {
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.set-state {
+  margin: 0;
+  font-size: 0.84rem;
+  color: var(--text-dim);
+}
+.set-state strong {
+  color: var(--text);
 }
 .set-presets {
   display: grid;

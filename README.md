@@ -15,7 +15,7 @@ Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (démo, 
 ## Ce que ça fait
 
 - **Raccourcis** : liens, tuiles des plus utilisés, notes, infos à copier (Wi-Fi, IP…).
-- **Onglets perso** : Gmail, Chat, WhatsApp, Claude… à côté de homedash, avec la pastille de leurs
+- **Mes sites** : Gmail, Chat, WhatsApp, Claude… à côté de homedash, avec la pastille de leurs
   non-lus, des dossiers et plusieurs comptes par site.
 - **GitHub et Local** : tes branches, PRs et CI, et les branches mergées qui traînent sur ton disque.
 - **Basecamp** : tes tâches en retard ou à venir ; une tâche devient une issue GitHub, et son rapport
@@ -57,7 +57,7 @@ Tout se fait dans **⚙ Réglages**, aucun fichier à éditer :
    *Issues* en *Read and write*. Un jeton classic `repo` fait tout cela.
 2. **Repos suivis** : ＋ sur tes repos.
 3. **Dépôts locaux** : le dossier de tes clones (`~/dev`…).
-4. **Onglets perso** : tes sites, ou ＋ en bas de la barre de gauche.
+4. **Mes sites** : tes sites, ou ＋ en bas de la barre de gauche.
 
 ## Mettre à jour
 

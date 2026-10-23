@@ -222,7 +222,7 @@ export default function Tabs({
         ),
       )}
       {onAdd ? (
-        <button className="tab tab-add" onClick={onAdd} title="Ajouter un onglet : un site ou un fichier du disque">
+        <button className="tab tab-add" onClick={onAdd} title="Ajouter un site ou un fichier du disque">
           ＋
         </button>
       ) : null}
