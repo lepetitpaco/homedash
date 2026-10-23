@@ -1,5 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
-import { dayOf, hhmm, type HdEvent } from '../lib/events'
+import { dayOf, hhmm, type HdEvent, type InApp } from '../lib/events'
 import { confirmDialog } from './ConfirmHost'
 
 type Filter = 'all' | 'github' | 'basecamp' | 'local' | 'bad'
@@ -25,7 +25,7 @@ export default function EventFeed({
   error,
   seen,
   onClear,
-  onOpenLocal,
+  inApp,
   onClose,
 }: {
   events: HdEvent[]
@@ -33,7 +33,7 @@ export default function EventFeed({
   /** `seq` du dernier événement lu, pour marquer la ligne de flottaison. */
   seen: number
   onClear: () => void
-  onOpenLocal: () => void
+  inApp: InApp
   /** Retour à l'onglet d'où l'on vient : l'historique n'a pas d'onglet à lui. */
   onClose: () => void
 }) {
@@ -135,7 +135,7 @@ export default function EventFeed({
                 event={e}
                 fresh={e.seq > mark.current}
                 showAccount={multiAccount}
-                onOpenLocal={onOpenLocal}
+                inApp={inApp}
               />
             ))}
           </div>
@@ -150,14 +150,14 @@ export function EventRow({
   fresh,
   showAccount,
   showDay = false,
-  onOpenLocal,
+  inApp,
 }: {
   event: HdEvent
   fresh: boolean
   showAccount: boolean
   /** Sans séparateurs de jour (panneau de la cloche), l'heure dit aussi le jour. */
   showDay?: boolean
-  onOpenLocal: () => void
+  inApp: InApp
 }) {
   const day = showDay ? dayOf(e.ts).label : null
   const cls = `ev-row is-${e.level}${fresh ? ' is-fresh' : ''}`
@@ -178,10 +178,11 @@ export function EventRow({
   )
 
   // Un événement local ne pointe vers rien d'utile sur GitHub : ce qu'on veut,
-  // c'est l'onglet Local et sa commande à copier.
-  if (e.source === 'local') {
+  // c'est l'onglet Local et sa commande à copier (ou la vue d'où publier un rapport).
+  const here = inApp(e)
+  if (here) {
     return (
-      <button className={cls} onClick={onOpenLocal} title="Ouvrir l'onglet Local">
+      <button className={cls} onClick={here} title={e.source === 'local' ? "Ouvrir l'onglet Local" : 'Ouvrir dans homedash'}>
         {inner}
       </button>
     )

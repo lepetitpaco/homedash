@@ -18,7 +18,8 @@ Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (démo, 
 - **Onglets perso** : Gmail, Chat, WhatsApp, Claude… à côté de homedash, avec la pastille de leurs
   non-lus, des dossiers et plusieurs comptes par site.
 - **GitHub et Local** : tes branches, PRs et CI, et les branches mergées qui traînent sur ton disque.
-- **Basecamp** : tes tâches en retard ou à venir, en lecture seule.
+- **Basecamp** : tes tâches en retard ou à venir ; une tâche devient une issue GitHub, et son rapport
+  revient en commentaire.
 - **La cloche** : CI cassée ou réparée, PR mergée, nouvelle version…
 
 ## Installer

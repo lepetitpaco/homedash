@@ -62,6 +62,30 @@ export type BcData = {
   boards: Record<string, BcBoard>
   /** Faux tant que la première lecture n'a pas abouti. */
   loaded: boolean
+  /** Issues GitHub liées aux tâches, et repos où en créer (tous comptes GitHub). */
+  github?: { issues: BcIssue[]; repos: { account: string; repo: string }[] }
+  /** Rapports déjà publiés sur Basecamp : id du commentaire GitHub → commentaire Basecamp. */
+  posted?: Record<string, BcPosted>
+}
+
+/** Rapport publié (`url` du commentaire), ou issue écartée sans publication (`dismissed`). */
+export type BcPosted = { url?: string; ts: number; dismissed?: boolean }
+
+/** Rapport à reporter sur la tâche : commentaire `<!-- homedash:bc-report -->` de l'issue. */
+export type BcReport = { id: number; url: string; body: string; html: string; author: string; ts: string }
+
+/** Issue créée depuis une tâche : son corps porte `<!-- homedash:bc <adresse> -->`. */
+export type BcIssue = {
+  account: string
+  /** `propriétaire/repo` */
+  repo: string
+  number: number
+  title: string
+  url: string
+  state: 'open' | 'closed'
+  bc_url: string
+  updated_at: string
+  report: BcReport | null
 }
 
 export type BcStatus = {
@@ -90,9 +114,10 @@ export function useBasecamp(foreground: boolean) {
   const visible = usePageVisible()
   const lastText = useRef('')
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (fresh: boolean) => {
     try {
-      const res = await fetch('api/basecamp', { cache: 'no-store' })
+      // `fresh` : onglet affiché, le serveur relit aussi les issues GitHub liées
+      const res = await fetch(fresh ? 'api/basecamp?fresh=1' : 'api/basecamp', { cache: 'no-store' })
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
       const next = (await res.json()) as BcData
       setError(null)
@@ -107,7 +132,7 @@ export function useBasecamp(foreground: boolean) {
   useEffect(() => {
     let alive = true
     const tick = async () => {
-      const next = await load()
+      const next = await load(foreground && visible)
       if (!alive) return
       // page cachée : toutes les 5 min (la pastille du Dock passe par le journal)
       const every =
@@ -129,7 +154,10 @@ export function useBasecamp(foreground: boolean) {
       .finally(() => setPulse((p) => p + 1))
   }, [])
 
-  return { data, error, refresh }
+  /** Relit ce que le serveur sait déjà (issue tout juste créée), sans relire Basecamp. */
+  const reload = useCallback(() => setPulse((p) => p + 1), [])
+
+  return { data, error, refresh, reload }
 }
 
 // ── Réglages ────────────────────────────────────────────────────────────────

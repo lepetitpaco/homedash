@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
 import type { BcData } from '../lib/basecamp'
-import type { HdEvent } from '../lib/events'
+import type { HdEvent, InApp } from '../lib/events'
 import { agoShort } from '../lib/local'
 import { notifState, toggleNotifications, type NotifState } from '../lib/notifications'
 import { confirmDialog } from './ConfirmHost'
@@ -53,7 +53,7 @@ export default function EventBell({
   onOpen,
   onShowAll,
   onClear,
-  onOpenLocal,
+  inApp,
   basecamp,
   onOpenBasecamp,
 }: {
@@ -69,7 +69,7 @@ export default function EventBell({
   onOpen: () => void
   onShowAll: () => void
   onClear: () => void
-  onOpenLocal: () => void
+  inApp: InApp
 }) {
   const [open, setOpen] = useState(false)
   const [mark, setMark] = useState(seen)
@@ -225,7 +225,10 @@ export default function EventBell({
                 fresh={e.seq > mark}
                 showAccount={multiAccount}
                 showDay
-                onOpenLocal={go(onOpenLocal)}
+                inApp={(ev) => {
+                  const here = inApp(ev)
+                  return here && go(here)
+                }}
               />
             ))}
           </div>

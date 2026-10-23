@@ -19,6 +19,8 @@ CONFIG_PREV = "config.prev.json"
 NOTES       = "notes.json"
 USAGE       = "usage.json"
 EVENTS      = "events.json"
+# Rapports d'issues déjà publiés sur Basecamp (id du commentaire GitHub → lien)
+BC_POSTED   = "bc_posted.json"
 # Le jeton GitHub saisi dans Réglages. Fichier à part, en 600, et jamais servi
 # au navigateur ni inclus dans les sauvegardes : config.json, lui, transite
 # entier par GET /api/config.

@@ -47,8 +47,12 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
    commande git (même `git status` écrit). Les commandes affichées sont du texte à copier.
 3. **« 🗑 à supprimer » exige `safety.level` dans `SAFE_LEVELS`** (contenu présent ailleurs). Jamais de
    suppression sur la branche courante ni une protégée. `_commands()` filtre sur `delete`. Testé.
-4. **Basecamp est en lecture seule.** `basecamp.py` ne fait que des GET vers l'API (`_api_get`) ; seul
-   l'échange de jeton POSTe, vers Launchpad. Jamais de tâche cochée, notif marquée lue, commentaire. Testé.
+4. **Basecamp est en lecture seule, à une exception.** `basecamp.py` lit par GET (`_api_get`) ; l'échange
+   de jeton POSTe vers Launchpad ; seule écriture : `publish_report()`, le rapport d'une issue liée en
+   commentaire de sa tâche, au clic, une fois par rapport, texte et tâche lus par le serveur (jamais
+   fournis par la page). Jamais de tâche cochée ni de notif marquée lue. Testé.
+   GitHub : seule écriture, `github.create_issue()` (onglet Basecamp, à la demande, repos suivis
+   seulement). Testé.
 5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier au
    navigateur, inclus dans les sauvegardes), ni dans une réponse d'API.
 6. **Toute requête passe par `Handler._refused()`** (Host local, pas d'écriture intersite, corps JSON).

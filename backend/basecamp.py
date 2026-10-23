@@ -1,10 +1,10 @@
 """Basecamp — mes tâches et mes notifications, en lecture seule.
 
-Ce module ne fait QUE lire Basecamp. Toute requête vers l'API passe par
-`_api_get()`, qui ne sait faire que des GET ; les seuls POST partent vers
-Launchpad (`TOKEN_URL`), pour obtenir ou renouveler le jeton. Rien ici ne
-coche une tâche, ne marque une notification lue ni ne poste quoi que ce soit :
-la page n'affiche que des liens vers Basecamp. Testé dans `test_basecamp`.
+Ce module lit Basecamp. Toute lecture passe par `_api_get()`, qui ne sait faire
+que des GET ; les POST partent vers Launchpad (`TOKEN_URL`), pour obtenir ou
+renouveler le jeton, et UNE exception : `publish_report()` poste un commentaire
+sur une tâche, quand on clique « publier » sur le rapport d'une issue liée. Rien
+ici ne coche une tâche ni ne marque une notification lue. Testé dans `test_basecamp`.
 
 Connexion par OAuth 2 (Basecamp n'a pas de jeton personnel documenté) :
 l'utilisateur déclare une appli sur launchpad.37signals.com/integrations,
@@ -24,6 +24,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from datetime import datetime
+from html import escape as html_escape
+from html.parser import HTMLParser
 
 import events
 import perflog
@@ -494,7 +496,233 @@ def payload():
         "unreads": unreads or [],
         "boards": boards or {},
         "loaded": tasks is not None,
+        "posted": posted(),
     }
+
+# ── Contenu d'une tâche, à la demande ───────────────────────────────────────
+# Pour pré-remplir une issue GitHub : description et échanges d'une tâche,
+# lus au moment où on en fait une issue. Deux GET, rien de plus.
+_TASK_URL = re.compile(r"/buckets/(\d+)/(todos|card_tables/cards)/(\d+)")
+TASK_COMMENTS = 20          # derniers échanges repris
+
+class _Text(HTMLParser):
+    """HTML de Basecamp (éditeur Trix) → texte Markdown simple."""
+    BLOCK = {"p", "div", "h1", "h2", "h3", "blockquote", "pre", "ul", "ol"}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.out, self.href, self.list = [], None, []
+
+    def handle_starttag(self, tag, attrs):
+        a = dict(attrs)
+        if tag == "br" or tag in self.BLOCK:
+            self.out.append("\n")
+        if tag in ("ul", "ol"):
+            self.list.append(tag)
+        elif tag == "li":
+            self.out.append("\n" + "  " * (len(self.list) - 1) + ("1. " if self.list[-1:] == ["ol"] else "- "))
+        elif tag in ("strong", "b"):
+            self.out.append("**")
+        elif tag in ("em", "i"):
+            self.out.append("*")
+        elif tag == "a":
+            self.href = a.get("href")
+            self.out.append("[")
+        elif tag == "bc-attachment":
+            name = a.get("filename") or a.get("caption") or "pièce jointe"
+            self.out.append(f"\n[{name}]({a['href']})\n" if a.get("href") else f"\n({name})\n")
+
+    def handle_endtag(self, tag):
+        if tag in ("ul", "ol") and self.list:
+            self.list.pop()
+        if tag in self.BLOCK:
+            self.out.append("\n")
+        elif tag in ("strong", "b"):
+            self.out.append("**")
+        elif tag in ("em", "i"):
+            self.out.append("*")
+        elif tag == "a":
+            self.out.append(f"]({self.href})" if self.href else "]")
+            self.href = None
+
+    def handle_data(self, data):
+        self.out.append(data)
+
+def html_text(raw):
+    p = _Text()
+    p.feed(raw or "")
+    p.close()
+    text = re.sub(r"[ \t]+\n", "\n", "".join(p.out))
+    return re.sub(r"\n{3,}", "\n\n", text).strip()
+
+def task_text(url):
+    """Description et derniers échanges d'une tâche (to-do ou carte), en Markdown.
+    `url` : adresse web de la tâche ; seuls ses numéros servent à lire l'API."""
+    m = _TASK_URL.search(url or "")
+    if not m:
+        raise ValueError("adresse de tâche Basecamp attendue")
+    s = _secret()
+    if not (s.get("access_token") and s.get("href")):
+        raise RuntimeError("Basecamp non connecté")
+    bucket, kind, rid = m.groups()
+    status, body, _ = _api_get(f"/buckets/{bucket}/{kind}/{rid}.json", s["access_token"], s["href"])
+    if status != 200 or not isinstance(body, dict):
+        raise RuntimeError(f"lecture de la tâche impossible (HTTP {status})")
+    # to-do : `description` ; carte : `content` (le titre étant `title`)
+    desc = html_text(body.get("description") if kind == "todos" else body.get("content"))
+    parts = [desc] if desc else []
+    steps = [st for st in body.get("steps") or [] if st.get("title")]
+    if steps:
+        parts.append("### Étapes\n\n" + "\n".join(
+            f"- [{'x' if st.get('completed') else ' '}] {st['title'].strip()}" for st in steps))
+    if body.get("comments_count"):
+        status, comments, _ = _api_get(f"/buckets/{bucket}/recordings/{rid}/comments.json",
+                                       s["access_token"], s["href"])
+        rows = []
+        for c in (comments if status == 200 and isinstance(comments, list) else [])[-TASK_COMMENTS:]:
+            who = (c.get("creator") or {}).get("name") or "?"
+            text = html_text(c.get("content"))
+            if text:
+                rows.append(f"**{who}** ({(c.get('created_at') or '')[:10]}) :\n{text}")
+        if rows:
+            parts.append("### Échanges sur Basecamp\n\n" + "\n\n".join(rows))
+    return "\n\n".join(parts)
+
+# ── Rapport d'une issue → commentaire sur la tâche ──────────────────────────
+# La seule écriture vers Basecamp, au clic sur « publier » : le rapport d'une
+# issue liée (`github.bc_issues`), sur la tâche de cette issue, une fois.
+COMMENTS = "/buckets/{}/recordings/{}/comments.json"
+_post_lock = threading.Lock()
+
+class _Rich(HTMLParser):
+    """HTML rendu par GitHub → ce que l'éditeur de Basecamp accepte. Le reste
+    (classes, code, tableaux, images) est réduit à son texte."""
+    KEEP = {"strong", "em", "ul", "ol", "li", "blockquote", "pre", "div", "h1"}
+    BLOCK = {"ul", "ol", "blockquote", "pre", "div", "h1"}
+    # Ligne vide entre deux blocs, comme l'écrit l'éditeur de Basecamp : sans
+    # elle, paragraphes et listes s'y collent.
+    GAP = "<div><br></div>"
+    MAP  = {"p": "div", "b": "strong", "i": "em", "h2": "h1", "h3": "h1", "h4": "strong",
+            "h5": "strong", "h6": "strong", "code": None, "tt": None}
+
+    def __init__(self):
+        super().__init__(convert_charrefs=True)
+        self.out, self.stack, self.seen = [], [], False
+
+    def handle_starttag(self, tag, attrs):
+        if tag == "br":
+            return self.out.append("<br>")
+        if tag == "a":
+            href = dict(attrs).get("href") or ""
+            ok = href.startswith(("https://", "http://"))
+            self.stack.append("a" if ok else None)
+            if ok:
+                self.out.append(f'<a href="{html_escape(href, quote=True)}">')
+            return
+        if tag in ("script", "style", "template"):
+            return self.stack.append("-")        # contenu jeté avec la balise
+        t = self.MAP.get(tag, tag if tag in self.KEEP else None)
+        top = not any(x and x != "-" for x in self.stack)
+        self.stack.append(t)
+        if t:
+            if top and t in self.BLOCK and self.seen:
+                self.out.append(self.GAP)
+            if top and t in self.BLOCK:
+                self.seen = True
+            self.out.append(f"<{t}>")
+
+    def handle_endtag(self, tag):
+        if tag == "br" or not self.stack:
+            return
+        t = self.stack.pop()
+        if t and t != "-":
+            self.out.append(f"</{t}>")
+
+    def handle_data(self, data):
+        # retours à la ligne du HTML de GitHub entre deux blocs : sans valeur ici
+        if "-" in self.stack:
+            return
+        if any(self.stack) or data.strip():
+            self.out.append(html_escape(data, quote=False))
+
+def rich_html(raw):
+    p = _Rich()
+    p.feed(raw or "")
+    p.close()
+    return "".join(p.out).strip()
+
+def posted():
+    """Issues traitées : id du commentaire-rapport publié → {url, ts} ; issue
+    écartée sans publication (`propriétaire/repo#n`) → {ts, dismissed}."""
+    try:
+        v = store.read(store.BC_POSTED, {})
+    except store.Broken:
+        v = {}
+    return v if isinstance(v, dict) else {}
+
+def _post_comment(task_url, content):
+    m = _TASK_URL.search(task_url or "")
+    if not m:
+        raise ValueError("adresse de tâche Basecamp attendue")
+    s = _secret()
+    if not (s.get("access_token") and s.get("href")):
+        raise RuntimeError("Basecamp n'est pas connecté.")
+    if (s.get("expires_at") or 0) - time.time() < REFRESH_AHEAD:
+        s = _refresh_token(s)
+    bucket, _, rid = m.groups()
+    for attempt in (1, 2):
+        req = urllib.request.Request(
+            s["href"].rstrip("/") + COMMENTS.format(bucket, rid), method="POST",
+            data=json.dumps({"content": content}).encode("utf-8"),
+            headers={"Authorization": f"Bearer {s['access_token']}", "User-Agent": USER_AGENT,
+                     "Content-Type": "application/json", "Accept": "application/json"})
+        try:
+            with _open(req) as r:
+                body = json.loads(r.read() or b"null")
+            return (body or {}).get("app_url") or task_url
+        except urllib.error.HTTPError as e:
+            if e.code == 401 and attempt == 1:
+                s = _refresh_token(s)
+                continue
+            if e.code in (403, 404):
+                raise RuntimeError("Basecamp refuse le commentaire : la tâche n'est plus accessible "
+                                   "avec ce compte.") from None
+            raise RuntimeError(f"Basecamp n'a pas pris le commentaire (HTTP {e.code}).") from None
+        except urllib.error.URLError as e:
+            raise RuntimeError(f"Basecamp injoignable : {e.reason}") from None
+
+def dismiss(issue, undo=False):
+    """Écarte une issue liée sans publier son rapport (ou la rétablit). Rien
+    n'est envoyé à Basecamp : seulement noté ici."""
+    key = f"{issue['repo']}#{issue['number']}"
+    with _post_lock:
+        done = posted()
+        if undo:
+            done.pop(key, None)
+        else:
+            done[key] = {"ts": time.time(), "dismissed": True}
+        store.write(store.BC_POSTED, done)
+    return done
+
+def publish_report(issue):
+    """Publie le rapport d'une issue liée en commentaire de sa tâche, une seule
+    fois par rapport. Retourne {url, ts} (celui d'avant si déjà publié)."""
+    rep = issue.get("report") or {}
+    if not rep.get("id"):
+        raise ValueError("pas de rapport pour cette issue")
+    key = str(rep["id"])
+    with _post_lock:
+        done = posted()
+        if key in done:
+            return done[key]
+        link = (f'<a href="{html_escape(issue.get("url") or "", quote=True)}">'
+                f'{html_escape(issue.get("repo") or "")} #{issue.get("number")}</a>')
+        content = ((rich_html(rep.get("html")) or f"<div>{html_escape(rep.get('body') or '')}</div>")
+                   + _Rich.GAP + f"<div><em>🤖 Rapport de l'issue GitHub {link}</em></div>")
+        url = _post_comment(issue.get("bc_url"), content)
+        done[key] = {"url": url, "ts": time.time()}
+        store.write(store.BC_POSTED, done)
+        return done[key]
 
 def _loop():
     # Le serveur lit Basecamp en continu, page ouverte ou non : c'est ce qui

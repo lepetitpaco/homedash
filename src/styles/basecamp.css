@@ -266,7 +266,8 @@
 /* To-do : une ligne, titre tronqué, extras et échéance à droite. */
 .bc-task {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  /* titre, issues liées, extras, échéance */
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
   align-items: center;
   gap: 0.6rem;
   padding: 0.28rem 0.5rem;
@@ -406,4 +407,158 @@
 }
 .set-field > .set-affix {
   margin-top: auto;
+}
+
+/* Issues GitHub liées à une tâche, et leur rapport à reporter sur Basecamp. */
+.bc-issues {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+.bc-issue {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+/* 🐙＋ : créer une issue, visible au survol de la tâche (sa place est gardée : rien ne bouge). */
+.bc-new-issue {
+  padding: 0 0.25rem;
+  border: 1px solid var(--border);
+  border-radius: 0.3rem;
+  background: none;
+  font: inherit;
+  font-size: 0.68rem;
+  white-space: nowrap;
+  cursor: pointer;
+  visibility: hidden;
+}
+.bc-task:hover .bc-new-issue,
+.bc-card:hover .bc-new-issue,
+.bc-new-issue:focus-visible {
+  visibility: visible;
+}
+.bc-new-issue:hover {
+  border-color: var(--sig-info);
+}
+.issue-existing {
+  padding: 0.4rem 0.6rem;
+  border-left: 3px solid var(--sig-warn);
+  background: color-mix(in srgb, var(--sig-warn) 10%, transparent);
+  font-size: 0.8rem;
+}
+.bc-issue-link {
+  font-size: 0.7rem;
+  color: var(--sig-ok);
+  white-space: nowrap;
+  text-decoration: none;
+}
+.bc-issue-link.is-closed {
+  color: var(--sig-branch);
+}
+.bc-issue-link:hover {
+  text-decoration: underline;
+}
+.bc-send {
+  padding: 0.05rem 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--sig-warn) 60%, transparent);
+  border-radius: 0.3rem;
+  background: color-mix(in srgb, var(--sig-warn) 14%, transparent);
+  color: var(--text);
+  font: inherit;
+  font-size: 0.7rem;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.bc-send.is-done {
+  border-color: var(--border);
+  background: none;
+  color: var(--text-faint);
+}
+.bc-send:hover {
+  color: var(--text);
+  border-color: var(--sig-warn);
+}
+.bc-issue-row {
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--border);
+}
+.bc-issue-row .bc-task {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.bc-report {
+  margin: 0.2rem 0.5rem 0;
+  padding: 0.4rem 0.7rem;
+  border-left: 3px solid color-mix(in srgb, var(--sig-warn) 60%, transparent);
+  font-size: 0.8rem;
+}
+.bc-notice {
+  font-size: 0.75rem;
+  color: var(--sig-info);
+}
+
+/* Fenêtre « nouvelle issue » d'une tâche (IssueHost). */
+.modal-confirm.issue-modal {
+  width: min(560px, 100%);
+}
+.issue-body {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+}
+.issue-label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  color: var(--text-dim);
+}
+.issue-need {
+  background: var(--panel-2);
+  border: 2px solid var(--border);
+  border-radius: 0.45rem;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  padding: 0.45rem 0.6rem;
+  resize: vertical;
+}
+.issue-need:focus {
+  outline: none;
+  border-color: var(--sig-info);
+}
+.issue-error {
+  color: var(--sig-bad) !important;
+}
+.issue-prompt {
+  padding: 0.45rem 0.6rem;
+  border-radius: 0.4rem;
+  background: var(--panel-2);
+  font-size: 0.8rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: all;
+}
+.bc-done-toggle {
+  margin: 0.5rem 0.5rem 0;
+}
+.bc-issue-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.bc-dismiss {
+  padding: 0 0.3rem;
+  border: 0;
+  background: none;
+  color: var(--text-faint);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.bc-dismiss:hover {
+  color: var(--sig-bad);
+}
+.bc-issue-row.is-done {
+  opacity: 0.6;
 }

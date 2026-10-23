@@ -26,6 +26,12 @@ export type HdEvent = {
 
 type Payload = { events: HdEvent[]; seq: number; total: number }
 
+/**
+ * Où mène un événement DANS homedash (onglet Local, vue Issues de Basecamp) ;
+ * `undefined` = son `url`, dehors.
+ */
+export type InApp = (e: HdEvent) => (() => void) | undefined
+
 const SEEN_KEY = 'homedash:events-seen'
 const POLL = 15_000
 
@@ -54,7 +60,7 @@ function readSeen(): number {
  * Le sondage ne s'arrête PAS quand l'onglet est caché, pour la même raison que
  * celui de GitHub : c'est là que les notifications servent.
  */
-export function useEvents(openLocal: () => void): {
+export function useEvents(inApp: InApp): {
   events: HdEvent[]
   error: string | null
   /** Nombre d'événements plus récents que ce qui a été lu. Pastille de l'onglet. */
@@ -73,10 +79,10 @@ export function useEvents(openLocal: () => void): {
 
   const seenRef = useRef(seen)
   const baseline = useRef<number | null>(null)
-  // `openLocal` sert de destination au clic sur une notification de ménage ;
-  // passer par une ref évite de relancer la boucle à chaque rendu du parent.
-  const act = useRef(openLocal)
-  act.current = openLocal
+  // `inApp` sert de destination au clic sur une notification (ménage local,
+  // rapport prêt) ; passer par une ref évite de relancer la boucle à chaque rendu.
+  const act = useRef(inApp)
+  act.current = inApp
 
   const setSeen = useCallback((value: number) => {
     seenRef.current = value

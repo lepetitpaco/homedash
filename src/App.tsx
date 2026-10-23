@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import ConfirmHost from './components/ConfirmHost'
 import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
-import BasecampView from './components/BasecampView'
+import BasecampView, { showBcIssues } from './components/BasecampView'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
@@ -31,8 +31,10 @@ import { usePrefs } from './hooks/usePrefs'
 import { useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
-import { useEvents } from './lib/events'
-import { lateCount, useBasecamp } from './lib/basecamp'
+import { useEvents, type HdEvent } from './lib/events'
+import { lateCount, useBasecamp, type BcTask } from './lib/basecamp'
+import { bcKey, issuesByTask, whereOf, type IssueTask } from './lib/bcIssues'
+import IssueHost, { askIssue } from './components/IssueHost'
 import {
   capturesLink,
   folderOf,
@@ -338,7 +340,16 @@ export default function App() {
   const local = useLocal(tab === 'local')
   const bc = useBasecamp(tab === 'basecamp')
   const changelog = useChangelog()
-  const events = useEvents(openLocal)
+  // « rapport prêt » : la vue Issues de l'onglet Basecamp, d'où on le publie
+  const openBcIssues = useCallback(() => {
+    showBcIssues()
+    selectTab('basecamp')
+  }, [selectTab])
+  const inApp = useCallback(
+    (e: HdEvent) => (e.source === 'local' ? openLocal : e.kind === 'bc-report' ? openBcIssues : undefined),
+    [openLocal, openBcIssues],
+  )
+  const events = useEvents(inApp)
   const { collapsed, toggleGroup, effectiveTheme, switchTheme } = usePrefs(cfg?.ui.theme)
   const { copiedKey, copy } = useCopy()
 
@@ -1000,6 +1011,40 @@ export default function App() {
         { icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${url}`, url) },
       ],
     })
+  /** Fenêtre « nouvelle issue » d'une tâche (repo, titre, besoin) ; faux si aucun repo suivi. */
+  const newIssue = (task: IssueTask): boolean => {
+    const repos = bc.data?.github?.repos ?? []
+    if (!repos.length) return false
+    const key = bcKey(task.url)
+    askIssue({
+      repos,
+      task,
+      existing: (key && issuesByTask(bc.data?.github?.issues ?? []).get(key)) || [],
+      cloneOf: (repo) => {
+        const [own, name] = repo.toLowerCase().split('/')
+        const r = local.data?.repos?.find((x) => x.org?.toLowerCase() === own && x.repo?.toLowerCase() === name)
+        return r?.display ?? null
+      },
+      onOpen: openLink,
+      onMade: bc.reload,
+    })
+    return true
+  }
+  const bcTaskOf = (t: BcTask): IssueTask => ({ url: t.url, title: t.title, where: whereOf(t), project: t.project })
+  /** « Créer une issue GitHub… » dans un menu, s'il y a un repo où la créer. */
+  const issueItems = (task: IssueTask): MenuItem[] =>
+    bc.data?.github?.repos?.length
+      ? [{ icon: '🐙', label: 'Créer une issue GitHub…', onSelect: () => void newIssue(task) }]
+      : []
+  /** Clic droit sur une tâche de l'onglet Basecamp. */
+  const bcTaskMenu = (e: React.MouseEvent, t: BcTask) => {
+    e.preventDefault()
+    const issue = issueItems(bcTaskOf(t))
+    const items: MenuItem[] = desktop ? [{ heading: 'Ouvrir' }, ...openChoices(t.url), { sep: true }] : []
+    items.push({ icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${t.url}`, t.url) })
+    if (issue.length) items.push({ sep: true }, ...issue)
+    menus.openMenu({ x: e.clientX, y: e.clientY, title: t.title, items })
+  }
   /** Clic droit dans un site (main.js) : le menu de homedash, selon ce qui est sous la souris. */
   const guestMenu = (m: GuestMenu): boolean => {
     const act = desktop?.guestAction
@@ -1014,6 +1059,14 @@ export default function App() {
       items.push(...openChoices(m.link))
       items.push({ sep: true })
       items.push({ icon: '⧉', label: 'Copier le lien', onSelect: () => act(m.id, 'copyText', { text: m.link }) })
+      // Lien vers une tâche Basecamp (dans le site Basecamp) : en faire une issue.
+      const key = bcKey(m.link)
+      if (key) {
+        const url = m.link.split(/[?#]/)[0]
+        const t = [...(bc.data?.tasks.priorities ?? []), ...(bc.data?.tasks.others ?? [])].find((x) => bcKey(x.url) === key)
+        const issue = issueItems(t ? { ...bcTaskOf(t), url } : { url, title: m.text.trim().slice(0, 200) })
+        if (issue.length) items.push({ sep: true }, ...issue)
+      }
     }
     if (m.image) {
       section('Image')
@@ -1156,7 +1209,7 @@ export default function App() {
                 selectTab('events')
               }}
               onClear={events.clear}
-              onOpenLocal={openLocal}
+              inApp={inApp}
               basecamp={bc.data}
               onOpenBasecamp={() => selectTab('basecamp')}
             />
@@ -1299,7 +1352,7 @@ export default function App() {
           error={events.error}
           seen={events.seen}
           onClear={events.clear}
-          onOpenLocal={openLocal}
+          inApp={inApp}
           onClose={goBack}
         />
       ) : view === 'basecamp' ? (
@@ -1309,6 +1362,8 @@ export default function App() {
           hidden={bcHidden}
           onHidden={(hidden) => raw && persist({ ...raw, basecamp: { ...raw.basecamp, hidden } })}
           onRefresh={bc.refresh}
+          onTaskMenu={bcTaskMenu}
+          onNewIssue={bc.data?.github?.repos?.length ? (t) => void newIssue(bcTaskOf(t)) : undefined}
           onSettings={() => {
             presetSettingsSection('set-basecamp')
             selectTab('settings')
@@ -1396,6 +1451,7 @@ export default function App() {
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
       <NameColorHost />
+      <IssueHost />
       {adding ? (
         <AddTabDialog
           folders={tabFolders}

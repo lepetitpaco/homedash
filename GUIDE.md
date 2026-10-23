@@ -143,7 +143,8 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
 ## 🏕 Basecamp
 
-Tes tâches Basecamp sans ouvrir Basecamp. **Lecture seule** : homedash ne coche ni ne poste rien.
+Tes tâches Basecamp sans ouvrir Basecamp. **Lecture seule** : homedash ne coche rien et ne poste que
+les rapports d'issues que tu publies (ci-dessous).
 
 ![L'onglet Basecamp](docs/screenshots/13-basecamp.jpg)
 
@@ -151,6 +152,34 @@ Tes tâches Basecamp sans ouvrir Basecamp. **Lecture seule** : homedash ne coche
 - **Un projet** (à gauche) : ses tableaux et ses to-dos. Les pastilles du haut masquent un projet.
 - **Se connecter** (une fois, pas besoin d'être admin) : le pas-à-pas est dans *Réglages → Basecamp*.
   Le jeton se renouvelle ensuite tout seul.
+
+**D'une tâche à une issue GitHub, et retour** (homedash n'écrit que l'issue que tu crées, et le rapport
+que tu publies) :
+
+1. **🐙＋ au survol d'une tâche** (ou clic droit → *Créer une issue GitHub…*) : une fenêtre propose le
+   repo, le titre de la tâche et un champ *Besoin*. Le repo choisi est retenu pour le projet Basecamp :
+   la fois suivante, il est déjà sélectionné. Si la tâche a déjà une issue ouverte, la fenêtre le
+   signale. **Créer sur GitHub** (ou ⌘ Entrée) la crée aussitôt avec le compte GitHub de homedash (pas
+   besoin d'être connecté à github.com), et elle apparaît tout de suite sur la tâche ; **Ouvrir le
+   formulaire** ouvre plutôt celui de GitHub, pré-rempli. Le *Besoin* reprend la description, les
+   étapes et les échanges de la tâche ; le lien vers la tâche est ajouté tout seul. Marche aussi au
+   clic droit sur un lien de tâche dans le site Basecamp de l'appli.
+2. **Donne l'issue à Claude Code** : à la création, une commande est copiée toute seule, par exemple
+   `cd ~/dev/api && claude '…'` ; colle-la dans un terminal, Claude Code démarre dans le repo avec
+   l'issue. (Si le repo n'est pas cloné dans un dossier de l'onglet Local, c'est le prompt seul qui
+   est copié, à coller dans Claude Code.) La consigne est dans l'issue : faire le travail, poster un
+   commentaire de rapport qui commence par `<!-- homedash:bc-report -->`, puis fermer l'issue.
+3. **La cloche sonne quand le rapport est prêt** (*📤 Rapport prêt*) ; un clic ouvre **🐙 Issues
+   GitHub**. **📤 publier sur BC** apparaît aussi à côté de la tâche (et dans **🐙 Issues GitHub**, à gauche, avec le
+   rapport à relire) : un clic, une confirmation, et le rapport est posté en commentaire de la tâche, à
+   ton nom (ceux qui la suivent sont notifiés). Le bouton devient *✓ publié*, lien vers le commentaire.
+   Un rapport ne part qu'une fois ; publié, l'issue disparaît de la tâche et de la liste.
+4. **Pas de rapport à publier ?** ✕ écarte l'issue sans rien envoyer. Une issue **fermée sans rapport**
+   est écartée d'office (abandonnée). Les terminées se retrouvent avec *afficher les terminées*, en bas
+   de **🐙 Issues GitHub** ; *rétablir* y remet une issue écartée.
+
+Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton fine-grained), et les
+écrire pour *Créer sur GitHub* (*Issues : Read and write* ; un jeton classic `repo` le fait déjà).
 
 ## 🔎 Recherche
 

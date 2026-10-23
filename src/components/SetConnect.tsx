@@ -125,7 +125,8 @@ export default function SetConnect({ account, auth, onChange }: Props) {
               </li>
               <li>
                 Permissions, toutes en <strong>Read-only</strong> : Contents, Metadata, Pull
-                requests, Checks, Commit statuses — et, côté org, Members (pour proposer l'équipe).
+                requests, Issues, Checks, Commit statuses — et, côté org, Members (pour proposer l'équipe).
+                Issues en <strong>Read and write</strong> pour créer une issue depuis une tâche Basecamp.
               </li>
               <li>
                 Plus rapide mais plus large :{' '}
