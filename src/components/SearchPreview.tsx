@@ -2,10 +2,12 @@ import { useEffect, useState } from 'react'
 import { template } from '../lib/config'
 import type { CiState, GithubData } from '../lib/ghboard'
 import type { LocalData, LocalRepo } from '../lib/local'
+import type { BcFound } from '../lib/basecamp'
+import { bcKey } from '../lib/bcIssues'
 import { noteTitle } from '../lib/notes'
 import type { Health, ReposConfig } from '../types'
 import Favicon from './Favicon'
-import { plainHit, type Hit } from './SearchResults'
+import { BC_TYPES, plainHit, type Hit } from './SearchResults'
 
 type Props = {
   hit: Hit
@@ -24,6 +26,9 @@ type Props = {
   noteIcon: string
   copy: (key: string, value: string) => Promise<void>
   onActivate: (hit: Hit) => void
+  onBcIssue?: (item: BcFound) => void
+  onBcShow?: (item: BcFound) => void
+  onBcView?: (item: BcFound) => void
 }
 
 const HEALTH: Record<Health, string> = {
@@ -279,7 +284,7 @@ function NotePreview({
 }
 
 /** Adresse, recherche web, onglet, page de l'historique, action : une carte simple. */
-function PlainPreview({ hit, onActivate }: Props) {
+function PlainPreview({ hit, onActivate, onBcIssue, onBcShow, onBcView }: Props) {
   const p = plainHit(hit)
   if (!p) return null
   const when = hit.kind === 'page' ? new Date(hit.visit.ts) : null
@@ -293,6 +298,7 @@ function PlainPreview({ hit, onActivate }: Props) {
         </div>
       </div>
       {p.sub ? <code className="sp-url">{p.sub}</code> : null}
+      {hit.kind === 'bc' ? <BcFacts hit={hit} /> : null}
       {hit.kind === 'page' && when ? (
         <div className="sp-facts">
           <span>vue {hit.visit.n} fois</span>
@@ -303,8 +309,43 @@ function PlainPreview({ hit, onActivate }: Props) {
         <button className="btn btn-primary" onClick={() => onActivate(hit)}>
           {p.action} ⏎
         </button>
+        {/* Une tâche Basecamp : la retrouver dans le dash, ou en faire une issue tout de suite */}
+        {hit.kind === 'bc' && bcKey(hit.item.url) && onBcView ? (
+          <button className="btn" onClick={() => onBcView(hit.item)}>
+            💬 {hit.item.type === 'Comment' ? 'Voir l’échange' : 'Voir la tâche'}
+          </button>
+        ) : null}
+        {hit.kind === 'bc' && hit.item.mine && onBcShow ? (
+          <button className="btn" onClick={() => onBcShow(hit.item)}>
+            Voir dans le dash
+          </button>
+        ) : null}
+        {hit.kind === 'bc' && bcKey(hit.item.url) && onBcIssue ? (
+          <button className="btn" onClick={() => onBcIssue(hit.item)}>
+            🐙 {hit.item.type === 'Comment' ? 'Issue sur cet échange' : 'Créer une issue'}
+          </button>
+        ) : null}
       </div>
     </div>
+  )
+}
+
+/** Basecamp : extrait, puis ce qu'on sait (type, échéance, état, auteur, date). */
+function BcFacts({ hit }: { hit: Extract<Hit, { kind: 'bc' }> }) {
+  const { item } = hit
+  const day = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return (
+    <>
+      {item.excerpt ? <p className="sp-note">{item.excerpt}</p> : null}
+      <div className="sp-facts">
+        <span>{item.mine ? '👤 assignée à toi' : (BC_TYPES[item.type]?.[1] ?? item.type)}</span>
+        {item.due_on ? <span>📅 échéance le {day(item.due_on)}</span> : null}
+        {item.completed ? <span>✓ terminée</span> : null}
+        {item.status && item.status !== 'active' ? <span>{item.status === 'archived' ? '🗄 archivée' : '🗑 à la corbeille'}</span> : null}
+        {item.creator ? <span>par {item.creator}</span> : null}
+        {item.updated_at ? <span>modifié le {day(item.updated_at)}</span> : null}
+      </div>
+    </>
   )
 }
 

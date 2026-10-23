@@ -153,6 +153,11 @@ les rapports d'issues que tu publies (ci-dessous).
 - **Se connecter** (une fois, pas besoin d'être admin) : le pas-à-pas est dans *Réglages → Basecamp*.
   Le jeton se renouvelle ensuite tout seul.
 
+**Lire une tâche sans ouvrir Basecamp** : 💬 au survol (ou clic droit → *Voir la tâche et ses
+échanges*) ouvre sa fiche : description, étapes, issues liées, et tous les échanges, le plus récent en
+haut, captures affichées. **🐙 issue sur cet échange** en fait une issue : le commentaire devient la demande, la tâche le
+contexte. La recherche y mène aussi (**💬 Voir la tâche**, ou l'échange trouvé).
+
 **D'une tâche à une issue GitHub, et retour** (homedash n'écrit que l'issue que tu crées, et le rapport
 que tu publies) :
 
@@ -163,8 +168,10 @@ que tu publies) :
    besoin d'être connecté à github.com), et elle apparaît tout de suite sur la tâche ; **Ouvrir le
    formulaire** ouvre plutôt celui de GitHub, pré-rempli (dans l'appli de bureau, **↗ navigateur**
    l'ouvre dans ton navigateur, où tu es connecté à GitHub). Le *Besoin* reprend la description, les
-   étapes et les échanges de la tâche (une capture y devient un lien 🖼 vers Basecamp, ouvrable
-   seulement connecté à Basecamp) ; le lien vers la tâche est ajouté tout seul. Marche aussi au
+   étapes de la tâche (une capture y devient un lien 🖼 vers Basecamp, ouvrable seulement connecté à
+   Basecamp) ; dessous, **ses échanges, une case chacun** : seuls ceux cochés vont dans l'issue (les 5
+   plus récents le sont d'office, *tout* / *aucun* pour aller vite). Le lien vers la tâche est ajouté
+   tout seul. Marche aussi au
    clic droit sur un lien de tâche dans le site Basecamp de l'appli.
 2. **Donne l'issue à Claude Code** : à la création, une commande est copiée toute seule, par exemple
    `cd ~/dev/api && claude '…'` ; colle-la dans un terminal, Claude Code démarre dans le repo avec
@@ -178,6 +185,8 @@ que tu publies) :
    rapport à relire) : un clic, une confirmation, et le rapport est posté en commentaire de la tâche, à
    ton nom (ceux qui la suivent sont notifiés). Le bouton devient *✓ publié*, lien vers le commentaire.
    Un rapport ne part qu'une fois ; publié, l'issue disparaît de la tâche et de la liste.
+   **▶ prompt de départ** (sur chaque issue ouverte de **🐙 Issues GitHub**) recopie ce qui a été copié
+   à la création, si tu ne l'as pas collé tout de suite.
    **📝 rapport final** (sur chaque issue de **🐙 Issues GitHub**, terminées comprises) : tes précisions
    (facultatives : « insiste sur… », « ne parle pas de… »), puis **Copier le prompt** ; colle-le dans la
    session Claude Code qui a fait le travail : il vérifie tout, poste le rapport final et ferme l'issue. Le dernier
@@ -194,6 +203,15 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 `/` ou `⌘K` : tout retrouver, et ouvrir une adresse.
 
 - **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
+- **Basecamp** (s'il est connecté) : tes tâches tout de suite, puis, un instant après ta frappe, tout
+  Basecamp : to-dos, cartes, messages, commentaires, documents (sans les archivés). La carte à droite
+  montre un extrait, l'échéance, l'auteur ; Entrée ouvre l'élément dans Basecamp. Pour une tâche ou
+  un de ses commentaires : **💬 Voir la tâche** (sa fiche, ouverte sur l'échange trouvé), **🐙 Créer une
+  issue** (ou *Issue sur cet échange*), et **Voir dans le dash** si elle t'est assignée (son tableau
+  dans l'onglet Basecamp, la tâche mise en évidence).
+- **Fautes de frappe** : les mots se cherchent dans n'importe quel ordre, une faute par mot tolérée
+  (« shopping diag » trouve « Assistant Shoping interne (Diag) »). La recherche dans tout Basecamp,
+  elle, ne les tolère pas.
 - **Une adresse** (`exemple.com`, `localhost:3000`) : Entrée l'ouvre.
 - **Un raccourci** en premier mot : `g` Google, `gh` GitHub, `yt` YouTube, `w` Wikipédia, `maps`, `tr`
   traduction, `mdn`.

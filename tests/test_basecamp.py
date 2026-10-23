@@ -63,10 +63,22 @@ class Fake:
         self.assignments = {"priorities": [task(1)], "non_priorities": [task(2)]}
         self.readings = {"unreads": [notif(10)], "reads": []}
         self.status = {}
+        self.links = {}           # adresse → en-tête Link (pagination)
+        self.extra = {}           # adresse → corps JSON en plus
+        self.files = {}           # adresse → (type, octets) : pièces jointes
+        self.raw = []             # requêtes telles quelles
 
     def __call__(self, req):
         url = req.full_url
         self.requests.append((req.get_method(), url, req.data))
+        self.raw.append(req)
+        if url in self.files:
+            ctype, data = self.files[url]
+            resp = mock.MagicMock()
+            resp.__enter__.return_value = resp
+            resp.read.return_value = data
+            resp.headers = {"Content-Type": ctype}
+            return resp
         code = self.status.get(urllib.parse.urlsplit(url).path)
         if code:
             raise urllib.error.HTTPError(url, code, "x", {}, io.BytesIO(b""))
@@ -83,21 +95,38 @@ class Fake:
             body = {"id": 55, "parent": {"url": f"{HREF}/card_tables/77.json"}}
         elif url.endswith("/card_tables/77.json"):
             body = BOARD
+        elif url in self.extra:
+            body = self.extra[url]
+        elif "/search.json?" in url:
+            body = [
+                {"id": 3, "type": "Todo", "title": "Bug congés", "plain_text_content": "Bug congés",
+                 "app_url": "https://3.basecamp.com/123/buckets/9/todos/3", "status": "active",
+                 "bucket": {"name": "IT"}, "parent": {"title": "Demandes"}, "due_on": "2026-11-02"},
+                {"id": 4, "type": "Comment", "title": "Re: Bug congés", "status": "active",
+                 "plain_text_content": "Corrigé  dans\nla 2.3", "creator": {"name": "Flo"},
+                 "app_url": "https://3.basecamp.com/123/buckets/9/todos/3#__recording_4"},
+                {"id": 5, "type": "Todo", "title": "sans adresse"},
+                {"id": 6, "type": "Todo", "title": "Vieux bug congés", "status": "archived",
+                 "app_url": "https://3.basecamp.com/123/buckets/9/todos/6"},
+            ]
         elif url.endswith("/buckets/9/todos/2.json"):
             body = {"id": 2, "title": "Tâche 2", "comments_count": 1,
                     "description": "<div>Refaire la <strong>page</strong> :<ul><li>logo</li><li>"
                                    "<a href=\"https://x.fr\">lien</a></li></ul></div>"}
         elif req.get_method() == "POST" and url.endswith("/buckets/9/recordings/5/comments.json"):
             body = {"id": 900, "app_url": "https://3.basecamp.com/123/buckets/9/card_tables/cards/5#__recording_900"}
+        elif url.endswith("/buckets/9/recordings/2/comments.json?page=2"):
+            body = [{"id": 32, "creator": {"name": "Max"}, "created_at": "2026-10-23T09:00:00Z",
+                     "content": "<div>Fait.</div>"}]
         elif url.endswith("/buckets/9/recordings/2/comments.json"):
-            body = [{"creator": {"name": "Flo"}, "created_at": "2026-10-22T09:00:00Z",
+            body = [{"id": 31, "creator": {"name": "Flo"}, "created_at": "2026-10-22T09:00:00Z",
                      "content": "<div>Pour vendredi&nbsp;!</div>"}]
         else:
             raise AssertionError(f"URL inattendue : {url}")
         resp = mock.MagicMock()
         resp.__enter__.return_value = resp
         resp.read.return_value = json.dumps(body).encode()
-        resp.headers = {}
+        resp.headers = {"Link": self.links[url]} if url in self.links else {}
         return resp
 
 
@@ -154,11 +183,15 @@ class BasecampTest(unittest.TestCase):
     def test_task_text_reads_description_and_comments_with_get_only(self):
         self.connect()
         before = len(self.net.requests)
-        text = basecamp.task_text("https://3.basecamp.com/123/buckets/9/todos/2")
+        got = basecamp.task_text("https://3.basecamp.com/123/buckets/9/todos/2")
+        text = got["text"]
         self.assertIn("Refaire la **page** :", text)
         self.assertIn("- logo", text)
         self.assertIn("- [lien](https://x.fr)", text)
-        self.assertIn("**Flo** (2026-10-22) :\nPour vendredi\xa0!", text)
+        # les échanges à part : la page propose de les retenir un par un
+        self.assertNotIn("Flo", text)
+        self.assertEqual(got["comments"], [{"id": 31, "who": "Flo", "date": "2026-10-22",
+                                            "text": "Pour vendredi\xa0!"}])
         done = self.net.requests[before:]
         self.assertEqual({m for m, _, _ in done}, {"GET"})
         self.assertTrue(all(u.startswith(HREF) for _, u, _ in done))
@@ -172,6 +205,72 @@ class BasecampTest(unittest.TestCase):
         self.assertIn("[🖼 Capture (1).png](<https://preview.3.basecamp.com/1/blobs/k/previews/full>) "
                       "(sur Basecamp)", text)
         self.assertIn("📎 devis.pdf (sur Basecamp)", text)
+
+    # ── recherche dans tout Basecamp (barre de recherche) ────────────────────
+    def test_search_reads_with_get_and_keeps_what_the_page_shows(self):
+        self.connect()
+        before = len(self.net.requests)
+        got = basecamp.search("  bug   congés ")
+        self.assertEqual([i["id"] for i in got], [3, 4])          # l'archivé est écarté
+        todo, comment = got
+        self.assertEqual((todo["project"], todo["parent"], todo["due_on"], todo["excerpt"]),
+                         ("IT", "Demandes", "2026-11-02", ""))     # extrait = titre : retiré
+        self.assertEqual((comment["excerpt"], comment["creator"]), ("Corrigé dans la 2.3", "Flo"))
+        [(method, url, data)] = self.net.requests[before:]
+        self.assertEqual((method, data), ("GET", None))
+        self.assertEqual(urllib.parse.parse_qs(urllib.parse.urlsplit(url).query), {"q": ["bug congés"]})
+        # la même requête dans la minute : pas de nouvel appel
+        basecamp.search("Bug Congés")
+        self.assertEqual(len(self.net.requests), before + 1)
+
+    def test_search_needs_two_characters_and_a_connection(self):
+        self.assertEqual(basecamp.search("bug"), [])          # pas connecté
+        self.connect()
+        before = len(self.net.requests)
+        self.assertEqual(basecamp.search(" b "), [])
+        self.assertEqual(len(self.net.requests), before)
+
+    def test_task_comments_follow_pages_but_never_leave_the_account(self):
+        self.connect()
+        first = f"{HREF}/buckets/9/recordings/2/comments.json"
+        self.net.links[first] = f'<{first}?page=2>; rel="next"'
+        got = basecamp.task_text("https://3.basecamp.com/123/buckets/9/todos/2")
+        self.assertEqual([c["who"] for c in got["comments"]], ["Flo", "Max"])
+        self.net.links[first] = '<https://evil.example/comments.json?page=2>; rel="next"'
+        before = len(self.net.requests)
+        got = basecamp.task_text("https://3.basecamp.com/123/buckets/9/todos/2")
+        self.assertEqual([c["who"] for c in got["comments"]], ["Flo"])
+        self.assertFalse(any("evil" in u for _, u, _ in self.net.requests[before:]))
+
+    # ── images jointes, relayées pour la fiche d'une tâche ──────────────────
+    def test_task_text_maps_images_to_their_download_address(self):
+        self.connect()
+        self.net.extra = {f"{HREF}/buckets/9/todos/7.json": {
+            "id": 7, "description": '<div><bc-attachment sgid="S1" url="https://preview.3.basecamp.com/b/1" '
+                                    'content-type="image/png" filename="a.png"></bc-attachment>'
+                                    '<bc-attachment sgid="S2" url="https://preview.3.basecamp.com/b/2" '
+                                    'content-type="application/pdf" filename="d.pdf"></bc-attachment></div>',
+            "description_attachments": [{"sgid": "S1", "download_url": f"{HREF}/blobs/k1/download/a.png"},
+                                        {"sgid": "S2", "download_url": f"{HREF}/blobs/k2/download/d.pdf"}]}}
+        got = basecamp.task_text("https://3.basecamp.com/123/buckets/9/todos/7")
+        self.assertEqual(got["images"], {"https://preview.3.basecamp.com/b/1": f"{HREF}/blobs/k1/download/a.png"})
+
+    def test_attachment_only_from_the_account_and_only_images(self):
+        self.connect()
+        before = len(self.net.requests)
+        for url in ("https://evil.example/blobs/x", f"{HREF}/buckets/9/todos/2.json", ""):
+            with self.assertRaises(ValueError):
+                basecamp.attachment(url)
+        self.assertEqual(len(self.net.requests), before)
+        ok = f"{HREF}/blobs/k1/download/a.png"
+        self.net.files = {ok: ("image/png", b"PNG"), f"{HREF}/blobs/k3/download/x.svg": ("image/svg+xml", b"<svg/>")}
+        self.assertEqual(basecamp.attachment(ok), ("image/png", b"PNG"))
+        with self.assertRaises(ValueError):
+            basecamp.attachment(f"{HREF}/blobs/k3/download/x.svg")
+        # le jeton n'est pas envoyé au-delà d'une redirection
+        [req] = [r for r in self.net.raw if r.full_url == ok]
+        self.assertIn("Authorization", req.unredirected_hdrs)
+        self.assertNotIn("Authorization", req.headers)
 
     def test_task_text_refuses_anything_but_a_task_address(self):
         self.connect()

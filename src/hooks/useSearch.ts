@@ -1,5 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react'
 import type { Command, Hit } from '../components/SearchResults'
+import { useBcSearch, type BcFound, type BcTask } from '../lib/basecamp'
+import { bcKey } from '../lib/bcIssues'
 import type { Normalized } from '../lib/config'
 import type { GithubData } from '../lib/ghboard'
 import type { LocalData } from '../lib/local'
@@ -15,6 +17,10 @@ type Options = {
   /** Compte GitHub affiché : ses PRs et branches sont cherchables. */
   gh: GithubData | null
   local: LocalData | null
+  /** Mes tâches Basecamp (déjà chargées) : cherchées tout de suite. */
+  bcTasks: BcTask[]
+  /** Basecamp connecté : chercher aussi dans tout Basecamp (après une pause de frappe). */
+  bcSearch: boolean
   searchRef: RefObject<HTMLInputElement | null>
   /** Une modale est ouverte : le clavier lui appartient. */
   paused: boolean
@@ -31,13 +37,15 @@ type Options = {
   commands: Command[]
 }
 
-/** Recherche unifiée (liens, repos, PRs, branches, dépôts locaux, infos, notes) et ses raccourcis clavier. */
+/** Recherche unifiée (liens, repos, PRs, branches, dépôts locaux, Basecamp, infos, notes) et ses raccourcis clavier. */
 export function useSearch({
   cfg,
   links,
   notes,
   gh,
   local,
+  bcTasks,
+  bcSearch,
   searchRef,
   paused,
   track,
@@ -51,6 +59,7 @@ export function useSearch({
 }: Options) {
   const [query, setQuery] = useState('')
   const [activeIndex, setActiveIndex] = useState(0)
+  const bcFound = useBcSearch(query, bcSearch).items
 
   const infoItems = useMemo(() => {
     if (!cfg?.infos) return []
@@ -135,6 +144,40 @@ export function useSearch({
       8,
     ).map((branch) => ({ kind: 'branch', key: `branch:${branch.repo}/${branch.name}`, branch }))
 
+    // Basecamp : mes tâches d'abord (tout de suite), puis le reste de Basecamp
+    // (sa recherche plein texte, dans son ordre), sans redire une de mes tâches.
+    const mine: BcFound[] = bcTasks.map((t) => ({
+      id: t.id,
+      type: t.kind === 'card' ? 'Kanban::Card' : 'Todo',
+      title: t.title,
+      url: t.url,
+      project: t.project,
+      parent: t.list,
+      status: 'active',
+      completed: false,
+      due_on: t.due_on,
+      updated_at: '',
+      creator: '',
+      excerpt: '',
+      mine: true,
+    }))
+    const bcMineHits: Hit[] = rank(
+      mine,
+      (t) => [
+        [t.title, 1],
+        [t.project, 0.5],
+        [t.parent, 0.5],
+      ],
+      q,
+      6,
+    ).map((item) => ({ kind: 'bc', key: `bc:${item.url}`, item }))
+    const sameTask = (url: string) => bcKey(url) ?? url
+    const shownBc = new Set(bcMineHits.map((h) => (h.kind === 'bc' ? sameTask(h.item.url) : '')))
+    const bcHits: Hit[] = bcFound
+      .filter((item) => !shownBc.has(sameTask(item.url)))
+      .slice(0, 10)
+      .map((item) => ({ kind: 'bc', key: `bc:${item.url}`, item }))
+
     const infoHits: Hit[] = rank(
       infoItems,
       ({ group, item }) => [
@@ -211,12 +254,15 @@ export function useSearch({
       ...localHits,
       ...prHits,
       ...branchHits,
+      ...bcMineHits,
       ...infoHits,
       ...noteHits,
+      // en dernier : ils arrivent après les autres, la liste au-dessus ne bouge pas
+      ...bcHits,
       ...pageHits,
       ...googleHits,
     ]
-  }, [query, links, repoItems, local, gh, infoItems, notes, tabs, commands])
+  }, [query, links, repoItems, local, gh, bcTasks, bcFound, infoItems, notes, tabs, commands])
 
   useEffect(() => setActiveIndex(0), [query])
 
@@ -240,9 +286,9 @@ export function useSearch({
         void copy(hit.key, hit.item.value)
         return
       }
-      if (hit.kind === 'go' || hit.kind === 'web' || hit.kind === 'page') {
+      if (hit.kind === 'go' || hit.kind === 'web' || hit.kind === 'page' || hit.kind === 'bc') {
         setQuery('')
-        open(hit.kind === 'page' ? hit.visit.url : hit.url)
+        open(hit.kind === 'page' ? hit.visit.url : hit.kind === 'bc' ? hit.item.url : hit.url)
         return
       }
       if (hit.kind === 'tab') {

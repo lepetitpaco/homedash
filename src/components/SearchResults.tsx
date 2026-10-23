@@ -3,6 +3,7 @@ import type { Branch, GithubData, Pr } from '../lib/ghboard'
 import type { LocalData, LocalRepo } from '../lib/local'
 import type { CustomTab, FlatLink, Health, InfoGroup, InfoItem, RepoItem, ReposConfig } from '../types'
 import type { Visit } from '../lib/visits'
+import type { BcFound } from '../lib/basecamp'
 import Favicon from './Favicon'
 import SearchPreview from './SearchPreview'
 
@@ -24,6 +25,22 @@ export type Hit =
   | { kind: 'page'; key: string; visit: Visit }
   /** Action de homedash : aller sur un onglet, réglages, thème… */
   | { kind: 'cmd'; key: string; cmd: Command }
+  /** Basecamp : une de mes tâches, ou un résultat de la recherche dans tout Basecamp. */
+  | { kind: 'bc'; key: string; item: BcFound }
+
+/** Type Basecamp → icône et nom, pour la ligne et la carte. */
+export const BC_TYPES: Record<string, [string, string]> = {
+  Todo: ['✅', 'to-do'],
+  'Kanban::Card': ['🗂', 'carte'],
+  Comment: ['💬', 'commentaire'],
+  Message: ['📣', 'message'],
+  Document: ['📄', 'document'],
+  Upload: ['📎', 'fichier'],
+  'Question::Answer': ['🙋', 'réponse'],
+  'Schedule::Entry': ['📅', 'événement'],
+  Todolist: ['📋', 'liste'],
+}
+export const BC_COLOR = '#2da562'
 
 export type Command = {
   id: string
@@ -55,6 +72,17 @@ export function plainHit(hit: Hit): {
       return { icon: '🕘', name: hit.visit.title || hit.visit.url, sub: hit.visit.url, chip: hit.visit.tab || 'historique', color: '#94a3b8', action: 'Ouvrir' }
     case 'cmd':
       return { icon: hit.cmd.icon, name: hit.cmd.label, sub: hit.cmd.hint ?? '', chip: 'action', color: '#f59e0b', action: 'Lancer' }
+    case 'bc': {
+      const [icon, label] = BC_TYPES[hit.item.type] ?? ['🏕', 'Basecamp']
+      return {
+        icon,
+        name: hit.item.title,
+        sub: [hit.item.project, hit.item.parent].filter(Boolean).join(' › '),
+        chip: hit.item.mine ? 'ma tâche' : `Basecamp · ${label}`,
+        color: BC_COLOR,
+        action: 'Ouvrir dans Basecamp',
+      }
+    }
     default:
       return null
   }
@@ -80,6 +108,12 @@ type Props = {
   copy: (key: string, value: string) => Promise<void>
   onActivate: (hit: Hit) => void
   onHover: (index: number) => void
+  /** Basecamp : en faire une issue (absent : aucun repo où la créer). */
+  onBcIssue?: (item: BcFound) => void
+  /** Basecamp : une de mes tâches, montrée dans l'onglet Basecamp. */
+  onBcShow?: (item: BcFound) => void
+  /** Basecamp : la fiche de la tâche (ses échanges), ouverte sur le commentaire trouvé. */
+  onBcView?: (item: BcFound) => void
 }
 
 export default function SearchResults({
@@ -102,6 +136,9 @@ export default function SearchResults({
   copy,
   onActivate,
   onHover,
+  onBcIssue,
+  onBcShow,
+  onBcView,
 }: Props) {
   if (hits.length === 0) {
     return (
@@ -311,6 +348,9 @@ export default function SearchResults({
         noteIcon={noteIcon}
         copy={copy}
         onActivate={onActivate}
+        onBcIssue={onBcIssue}
+        onBcShow={onBcShow}
+        onBcView={onBcView}
       />
     </div>
   )

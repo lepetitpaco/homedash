@@ -160,6 +160,67 @@ export function useBasecamp(foreground: boolean) {
   return { data, error, refresh, reload }
 }
 
+// ── Recherche dans tout Basecamp ────────────────────────────────────────────
+/** Résultat de la recherche Basecamp (`GET /api/basecamp/search`), ou une de mes tâches. */
+export type BcFound = {
+  id: number
+  /** `Todo`, `Kanban::Card`, `Comment`, `Message`, `Document`… ; `mine` : une de mes tâches. */
+  type: string
+  title: string
+  url: string
+  project: string
+  parent: string
+  status: string
+  completed: boolean
+  due_on: string | null
+  updated_at: string
+  creator: string
+  excerpt: string
+  /** Tâche qui m'est assignée (déjà chargée par l'onglet Basecamp). */
+  mine?: boolean
+}
+
+/** Attente après la dernière frappe avant d'interroger Basecamp (50 requêtes / 10 s au plus). */
+const SEARCH_PAUSE = 350
+
+/**
+ * Recherche dans tout Basecamp au fil de la frappe : après une pause, à partir
+ * de 2 caractères. Une réponse arrivée après une frappe plus récente est jetée.
+ */
+export function useBcSearch(query: string, enabled: boolean): { items: BcFound[]; busy: boolean } {
+  const [items, setItems] = useState<BcFound[]>([])
+  const [busy, setBusy] = useState(false)
+  const q = query.trim()
+  useEffect(() => {
+    if (!enabled || q.length < 2) {
+      setItems([])
+      setBusy(false)
+      return
+    }
+    let alive = true
+    setBusy(true)
+    const timer = window.setTimeout(() => {
+      fetch(`api/basecamp/search?${new URLSearchParams({ q })}`, { cache: 'no-store' })
+        .then(async (res) => {
+          const out = (await res.json().catch(() => null)) as { items?: BcFound[]; error?: string } | null
+          if (!res.ok) throw new Error(out?.error ?? `HTTP ${res.status}`)
+          if (alive) setItems(out?.items ?? [])
+        })
+        .catch((e) => {
+          if (!alive) return
+          setItems([])
+          shown('Recherche Basecamp', e) // au journal d'erreurs ; la recherche locale reste
+        })
+        .finally(() => alive && setBusy(false))
+    }, SEARCH_PAUSE)
+    return () => {
+      alive = false
+      window.clearTimeout(timer)
+    }
+  }, [q, enabled])
+  return { items, busy }
+}
+
 // ── Réglages ────────────────────────────────────────────────────────────────
 async function call<T>(url: string, init?: RequestInit): Promise<T> {
   const res = await fetch(url, { cache: 'no-store', ...init })

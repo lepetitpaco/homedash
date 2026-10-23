@@ -4,6 +4,28 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.26.0 — 2026-10-23
+
+- **La recherche fouille aussi Basecamp** (`/` ou `⌘K`) : tes tâches tout de suite, puis tout Basecamp
+  un instant après ta frappe (to-dos, cartes, messages, commentaires, documents ; sans les archivés).
+  Extrait, échéance et auteur dans la carte à droite ; Entrée l'ouvre dans Basecamp.
+- **Depuis un résultat Basecamp** : **🐙 Créer une issue** tout de suite, et **Voir dans le dash** pour
+  une de tes tâches (son tableau dans l'onglet Basecamp, la tâche mise en évidence).
+- **▶ prompt de départ** sur chaque issue ouverte (Basecamp → 🐙 Issues GitHub) : recopie ce qui est
+  copié à la création (la commande qui lance Claude Code dans ton clone, sinon le prompt), si tu ne l'as
+  pas collé tout de suite.
+- **Fiche d'une tâche Basecamp, sans quitter homedash** : description, étapes, issues liées et tous les
+  échanges, **captures comprises, affichées dans la fiche**. 💬 au survol d'une tâche (ou clic droit),
+  ou **💬 Voir la tâche** depuis la recherche, y compris sur un commentaire trouvé (la fiche s'ouvre
+  dessus).
+- **Une issue sur un échange précis** : 🐙 sur un commentaire (fiche ou recherche) ; il devient la
+  demande de l'issue, la tâche son contexte.
+- **Tu choisis les échanges repris dans l'issue** : une case par commentaire, les 5 plus récents cochés
+  (les sujets réglés depuis longtemps n'encombrent plus l'issue). Tous les échanges sont lus, plus
+  seulement les 20 derniers.
+- **La recherche tolère les fautes de frappe** : mots dans n'importe quel ordre, une faute par mot
+  (« shopping diag » trouve « Assistant Shoping interne (Diag) »).
+
 ## 1.25.0 — 2026-10-23
 
 - **📝 rapport final** sur chaque issue en cours (Basecamp → 🐙 Issues GitHub) : tes précisions

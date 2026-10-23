@@ -2,7 +2,15 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { GhEmpty } from './GhCard'
 import { ago } from '../lib/ghboard'
 import { dueOf, projectKey, type BcBoard, type BcData, type BcIssue, type BcPosted, type BcTask } from '../lib/basecamp'
-import { bcKey, dismissIssue, issuesByTask, publishReport, reportPrompt } from '../lib/bcIssues'
+import {
+  bcKey,
+  claudeCommand,
+  claudePrompt,
+  dismissIssue,
+  issuesByTask,
+  publishReport,
+  reportPrompt,
+} from '../lib/bcIssues'
 import { confirmDialog } from './ConfirmHost'
 import { shown as errorText } from '../lib/errors'
 import { Markdown } from '../lib/markdown'
@@ -134,6 +142,12 @@ type Issues = {
   onTaskMenu?: (e: React.MouseEvent, t: BcTask) => void
   /** 🐙 au survol d'une tâche : en faire une issue (absent : aucun repo où la créer). */
   onNewIssue?: (t: BcTask) => void
+  /** Tâche montrée depuis la recherche (`bcKey`) : mise en évidence quelques secondes. */
+  focus?: string | null
+  /** 💬 au survol : la fiche de la tâche (description, échanges). */
+  onShowTask?: (t: BcTask) => void
+  /** Clone local d'un repo, pour la commande qui lance Claude Code dedans. */
+  cloneOf?: (repo: string) => string | null
 }
 const IssuesCtx = createContext<Issues>({
   byTask: new Map(),
@@ -210,10 +224,10 @@ function SendReport({ i }: { i: BcIssue }) {
  * en a un ; puis 🐙, au survol, pour en créer une.
  */
 function TaskIssues({ t }: { t: BcTask }) {
-  const { byTask, posted, onNewIssue } = useContext(IssuesCtx)
+  const { byTask, posted, onNewIssue, onShowTask } = useContext(IssuesCtx)
   const key = bcKey(t.url)
   const issues = (key ? byTask.get(key) : undefined)?.filter((i) => !doneOf(i, posted)) ?? []
-  if (!issues.length && !onNewIssue) return null
+  if (!issues.length && !onNewIssue && !onShowTask) return null
   return (
     <span className="bc-issues">
       {issues.map((i) => (
@@ -230,12 +244,51 @@ function TaskIssues({ t }: { t: BcTask }) {
           {i.report ? <SendReport i={i} /> : null}
         </span>
       ))}
+      {onShowTask ? (
+        <button className="bc-new-issue" title="Voir la tâche et ses échanges" onClick={() => onShowTask(t)}>
+          💬
+        </button>
+      ) : null}
       {onNewIssue ? (
         <button className="bc-new-issue" title="Créer une issue GitHub pour cette tâche" onClick={() => onNewIssue(t)}>
           🐙＋
         </button>
       ) : null}
     </span>
+  )
+}
+
+/**
+ * « ▶ prompt de départ » : ce qui est copié à la création de l'issue (commande
+ * qui lance Claude Code dans le clone local, sinon le prompt), à recopier si on
+ * ne l'a pas collé tout de suite.
+ */
+function StartPrompt({ i }: { i: BcIssue }) {
+  const { cloneOf } = useContext(IssuesCtx)
+  const [copied, setCopied] = useState(false)
+  if (!navigator.clipboard) return null
+  const prompt = claudePrompt(i.repo, i.number)
+  const dir = cloneOf?.(i.repo)
+  const copy = () =>
+    void navigator.clipboard.writeText(dir ? claudeCommand(dir, prompt) : prompt).then(
+      () => {
+        setCopied(true)
+        window.setTimeout(() => setCopied(false), 2500)
+      },
+      () => undefined,
+    )
+  return (
+    <button
+      className="bc-send is-done"
+      title={
+        dir
+          ? `Copier la commande qui lance Claude Code dans ${dir} avec cette issue`
+          : 'Copier le prompt qui confie cette issue à Claude Code'
+      }
+      onClick={copy}
+    >
+      {copied ? '✓ copié' : '▶ prompt de départ'}
+    </button>
   )
 }
 
@@ -318,6 +371,7 @@ function IssueList({ issues }: { issues: BcIssue[] }) {
               </a>
             </div>
             <span className="bc-issue-actions">
+              {i.state === 'open' ? <StartPrompt i={i} /> : null}
               {/* aussi sur une terminée : un rapport corrigé repart sur Basecamp */}
               <button
                 className="bc-send is-done"
@@ -367,9 +421,17 @@ function Title({ t }: { t: Prio }) {
   )
 }
 
+/** Repère d'une tâche dans la page (`data-bc`) et sa mise en évidence (« Voir dans le dash »). */
+function useFocus(t: BcTask): { 'data-bc'?: string; on: string } {
+  const { focus } = useContext(IssuesCtx)
+  const key = bcKey(t.url) ?? undefined
+  return { 'data-bc': key, on: focus && focus === key ? ' is-focus' : '' }
+}
+
 function TaskLine({ t }: { t: Prio }) {
+  const { on, ...mark } = useFocus(t)
   return (
-    <div className={`bc-task${dueOf(t.due_on)?.rank === 0 ? ' is-late' : ''}`}>
+    <div className={`bc-task${dueOf(t.due_on)?.rank === 0 ? ' is-late' : ''}${on}`} {...mark}>
       <Title t={t} />
       <TaskIssues t={t} />
       <Extras t={t} />
@@ -379,8 +441,9 @@ function TaskLine({ t }: { t: Prio }) {
 }
 
 function KanbanCard({ t }: { t: Prio }) {
+  const { on, ...mark } = useFocus(t)
   return (
-    <div className={`bc-card${dueOf(t.due_on)?.rank === 0 ? ' is-late' : ''}`}>
+    <div className={`bc-card${dueOf(t.due_on)?.rank === 0 ? ' is-late' : ''}${on}`} {...mark}>
       <Title t={t} />
       <div className="bc-card-foot">
         <TaskIssues t={t} />
@@ -403,6 +466,16 @@ let goto: ((key: string) => void) | null = null
 export function showBcIssues() {
   saveView(ISSUES)
   goto?.(ISSUES)
+}
+
+/** Tâche à montrer (`bcKey`), prise en charge dès que l'onglet est affiché et ses tâches lues. */
+let pendingTask: string | null = null
+let wakeFocus: (() => void) | null = null
+
+/** « Voir dans le dash » (recherche) : son tableau ou sa liste, la tâche mise en évidence. */
+export function showBcTask(url: string) {
+  pendingTask = bcKey(url)
+  wakeFocus?.()
 }
 /** « À traiter » : en retard, ou dû dans les 7 jours. */
 const SOON_DAYS = 7
@@ -637,6 +710,8 @@ export default function BasecampView({
   onSettings,
   onTaskMenu,
   onNewIssue,
+  onShowTask,
+  cloneOf,
 }: {
   data: BcData | null
   error: string | null
@@ -648,6 +723,8 @@ export default function BasecampView({
   /** Clic droit sur une tâche : ouvrir, créer une issue… */
   onTaskMenu?: (e: React.MouseEvent, t: BcTask) => void
   onNewIssue?: (t: BcTask) => void
+  onShowTask?: (t: BcTask) => void
+  cloneOf?: (repo: string) => string | null
 }) {
   const projects = useMemo(() => (data ? group(data) : []), [data])
   const [picked, setPicked] = useState(readView)
@@ -723,6 +800,39 @@ export default function BasecampView({
     saveView(key)
   }
 
+  // « Voir dans le dash » : la vue où vit la tâche, puis la faire défiler jusqu'à elle.
+  const [focus, setFocus] = useState<string | null>(null)
+  const [wake, setWake] = useState(0)
+  useEffect(() => {
+    wakeFocus = () => setWake((n) => n + 1)
+    return () => {
+      wakeFocus = null
+    }
+  }, [])
+  useEffect(() => {
+    if (!pendingTask || !data?.loaded) return
+    const it = located.find((x) => bcKey(x.t.url) === pendingTask)
+    pendingTask = null
+    if (!it) {
+      setNotice('Cette tâche est dans un projet masqué : clique sur sa pastille, en haut, pour l’afficher.')
+      return
+    }
+    pick(it.open)
+    setFocus(bcKey(it.t.url))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [located, wake, data?.loaded])
+  useEffect(() => {
+    if (!focus) return
+    const frame = requestAnimationFrame(() =>
+      document.querySelector(`[data-bc="${focus}"]`)?.scrollIntoView({ block: 'center', behavior: 'smooth' }),
+    )
+    const done = window.setTimeout(() => setFocus(null), 4000)
+    return () => {
+      cancelAnimationFrame(frame)
+      window.clearTimeout(done)
+    }
+  }, [focus])
+
   if (!data) {
     return <div className="gh-bar">{error ? `⚠ ${error}` : 'chargement…'}</div>
   }
@@ -757,6 +867,9 @@ export default function BasecampView({
         onDismiss: (i, undo) => void onDismiss(i, undo),
         onTaskMenu,
         onNewIssue,
+        focus,
+        onShowTask,
+        cloneOf,
       }}>
       <div className="gh-bar">
         <span className="gh-bar-user">
