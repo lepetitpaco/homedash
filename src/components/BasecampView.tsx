@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { GhEmpty } from './GhCard'
 import { ago } from '../lib/ghboard'
 import { dueOf, projectKey, type BcBoard, type BcData, type BcIssue, type BcPosted, type BcTask } from '../lib/basecamp'
-import { bcKey, dismissIssue, issuesByTask, publishReport } from '../lib/bcIssues'
+import { bcKey, dismissIssue, issuesByTask, publishReport, reportPrompt } from '../lib/bcIssues'
 import { confirmDialog } from './ConfirmHost'
 import { shown as errorText } from '../lib/errors'
 import { Markdown } from '../lib/markdown'
@@ -239,10 +239,59 @@ function TaskIssues({ t }: { t: BcTask }) {
   )
 }
 
+/**
+ * « 📝 rapport final » : précisions facultatives, puis le prompt qui demande à
+ * Claude Code de tout vérifier et de poster le rapport final (copié).
+ */
+function AskReport({ i, onClose }: { i: BcIssue; onClose: () => void }) {
+  const [notes, setNotes] = useState('')
+  const [copied, setCopied] = useState(false)
+  const prompt = reportPrompt(i.repo, i.number, notes)
+  const copy = () =>
+    void navigator.clipboard?.writeText(prompt).then(
+      () => setCopied(true),
+      () => undefined,
+    )
+  return (
+    <div className="bc-ask-report">
+      <textarea
+        className="issue-need"
+        rows={3}
+        value={notes}
+        autoFocus
+        placeholder="Précisions pour le rapport (facultatif) : insiste sur…, ajoute…, ne parle pas de…"
+        onChange={(e) => {
+          setNotes(e.target.value)
+          setCopied(false)
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) copy()
+          if (e.key === 'Escape') onClose()
+        }}
+      />
+      {navigator.clipboard ? (
+        <span className="bc-ask-foot">
+          <span className="set-hint">À coller dans la session Claude Code qui a fait le travail.</span>
+          <button className="btn" onClick={onClose}>
+            Fermer
+          </button>
+          <button className="btn btn-primary" onClick={copy}>
+            {copied ? '✓ Copié' : 'Copier le prompt'}
+          </button>
+        </span>
+      ) : (
+        <pre className="issue-prompt">{prompt}</pre>
+      )}
+    </div>
+  )
+}
+
 /** Issues liées en cours (rapport à publier d'abord) ; les terminées, sur demande. */
 function IssueList({ issues }: { issues: BcIssue[] }) {
   const { posted } = useContext(IssuesCtx)
   const [showDone, setShowDone] = useState(false)
+  /** Issue dont on prépare le prompt « rapport final » (`issueKey`). */
+  const [asking, setAsking] = useState<string | null>(null)
   if (!issues.length)
     return (
       <GhEmpty>
@@ -269,9 +318,18 @@ function IssueList({ issues }: { issues: BcIssue[] }) {
               </a>
             </div>
             <span className="bc-issue-actions">
+              {/* aussi sur une terminée : un rapport corrigé repart sur Basecamp */}
+              <button
+                className="bc-send is-done"
+                title="Demander à Claude Code de tout vérifier et de poster le rapport final (avec tes précisions)"
+                onClick={() => setAsking(asking === issueKey(i) ? null : issueKey(i))}
+              >
+                📝 rapport final
+              </button>
               <SendReport i={i} />
             </span>
           </div>
+          {asking === issueKey(i) ? <AskReport i={i} onClose={() => setAsking(null)} /> : null}
           {i.report && !doneOf(i, posted) ? (
             <div className="bc-report">
               <Markdown text={i.report.body} />

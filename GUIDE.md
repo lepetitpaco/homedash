@@ -171,13 +171,17 @@ que tu publies) :
    l'issue. (Si le repo n'est pas cloné dans un dossier de l'onglet Local, c'est le prompt seul qui
    est copié, à coller dans Claude Code.) La consigne est dans l'issue : tirer de la conversation
    Basecamp le vrai besoin et la solution, reformulés en termes techniques (en commentaire de l'issue
-   si ce n'est pas limpide), faire le travail, poster un
+   si ce n'est pas limpide), lui donner ses étiquettes (parmi celles du repo), faire le travail, poster un
    commentaire de rapport qui commence par `<!-- homedash:bc-report -->`, puis fermer l'issue.
 3. **La cloche sonne quand le rapport est prêt** (*📤 Rapport prêt*) ; un clic ouvre **🐙 Issues
    GitHub**. **📤 publier sur BC** apparaît aussi à côté de la tâche (et dans **🐙 Issues GitHub**, à gauche, avec le
    rapport à relire) : un clic, une confirmation, et le rapport est posté en commentaire de la tâche, à
    ton nom (ceux qui la suivent sont notifiés). Le bouton devient *✓ publié*, lien vers le commentaire.
    Un rapport ne part qu'une fois ; publié, l'issue disparaît de la tâche et de la liste.
+   **📝 rapport final** (sur chaque issue de **🐙 Issues GitHub**, terminées comprises) : tes précisions
+   (facultatives : « insiste sur… », « ne parle pas de… »), puis **Copier le prompt** ; colle-le dans la
+   session Claude Code qui a fait le travail : il vérifie tout, poste le rapport final et ferme l'issue. Le dernier
+   rapport posté fait foi : il remplace le précédent et redevient publiable, même si l'ancien l'a été.
 4. **Pas de rapport à publier ?** ✕ écarte l'issue sans rien envoyer. Une issue **fermée sans rapport**
    est écartée d'office (abandonnée). Les terminées se retrouvent avec *afficher les terminées*, en bas
    de **🐙 Issues GitHub** ; *rétablir* y remet une issue écartée.

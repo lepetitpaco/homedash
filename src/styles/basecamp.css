@@ -544,6 +544,22 @@
   overflow-wrap: anywhere;
   user-select: all;
 }
+/* « 📝 rapport final » : précisions, puis le prompt copié. */
+.bc-ask-report {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin: 0.3rem 0.5rem 0;
+}
+.bc-ask-foot {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.bc-ask-foot .set-hint {
+  margin-right: auto;
+}
 .bc-done-toggle {
   margin: 0.5rem 0.5rem 0;
 }
