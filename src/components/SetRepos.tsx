@@ -145,7 +145,6 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
 
   return (
     <>
-      <h3 className="set-sub">Repos suivis</h3>
       <p className="set-hint">
         Un repo suivi alimente les cartes de l'onglet GitHub, la carte Repos et l'onglet Local. Chaque
         pastille s'allume ou s'éteint d'un clic — survole-la pour voir l'effet. <b>GitHub</b> et{' '}

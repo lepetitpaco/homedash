@@ -79,7 +79,6 @@ export default function SetTeam({ account, orgs, users, me, connected, login, on
 
   return (
     <>
-      <h3 className="set-sub">Équipe</h3>
       <p className="set-hint">
         Les personnes dont l'onglet GitHub montre branches et PRs (sélecteur en haut de l'onglet).
         <strong>★</strong> = celle affichée à l'ouverture — clique une étoile pour changer. Ce ne sont pas

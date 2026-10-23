@@ -51,11 +51,11 @@ Docker Desktop, coche *Start Docker Desktop when you sign in* : homedash redéma
 
 Tout se fait dans **⚙ Réglages**, aucun fichier à éditer :
 
-1. **Compte & équipe** : colle un jeton GitHub. Crée-le dans *GitHub → Settings → Developer settings →
+1. **GitHub → Connexion** : colle un jeton GitHub. Crée-le dans *GitHub → Settings → Developer settings →
    Fine-grained tokens*, en lecture seule : *Contents*, *Pull requests*, *Checks*, *Metadata*, *Issues*
    (+ *Members* sur l'organisation pour voir l'équipe). Pour créer des issues depuis l'onglet Basecamp :
    *Issues* en *Read and write*. Un jeton classic `repo` fait tout cela.
-2. **Repos suivis** : ＋ sur tes repos.
+2. **GitHub → Repos suivis** : ＋ sur tes repos.
 3. **Dépôts locaux** : le dossier de tes clones (`~/dev`…).
 4. **Mes sites** : tes sites, ou ＋ en bas de la barre de gauche.
 

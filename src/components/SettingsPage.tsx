@@ -48,7 +48,10 @@ const NOTIF_LABEL: Record<NotifState, string> = {
 }
 
 /** Parties qui règlent un compte GitHub : la barre de choix du compte s'affiche au-dessus. */
-const ACCOUNT_SECTIONS: string[] = ['set-account', 'set-repos', 'set-ghtab']
+const ACCOUNT_SECTIONS: string[] = ['set-github']
+/** Anciennes parties (avant 1.31) réunies dans « GitHub » : un lien ou une partie mémorisée y mène. */
+const MERGED: Record<string, string> = { 'set-account': 'set-github', 'set-repos': 'set-github', 'set-ghtab': 'set-github' }
+const sectionOf = (id: string) => MERGED[id] ?? id
 
 /**
  * Parties de la page, dans l'ordre, rangées par thème : le menu de gauche les
@@ -56,10 +59,8 @@ const ACCOUNT_SECTIONS: string[] = ['set-account', 'set-repos', 'set-ghtab']
  */
 const SECTIONS = [
   { id: 'set-features', icon: '🧩', label: 'Fonctionnalités', group: 'Général' },
-  { id: 'set-account', icon: '🔑', label: 'Compte & équipe', group: 'GitHub' },
-  { id: 'set-repos', icon: '📦', label: 'Repos suivis', group: 'GitHub' },
-  { id: 'set-ghtab', icon: '🐙', label: 'Onglet GitHub', group: 'GitHub' },
-  { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
+  { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'Code' },
+  { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'Code' },
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
   { id: 'set-links', icon: '🔗', label: 'Liens & onglets', group: 'La page' },
@@ -70,9 +71,7 @@ const SECTIONS = [
 
 /** Parties qui ne servent qu'à une fonctionnalité : coupée, elles quittent le menu. */
 const SECTION_FEATURE: Record<string, Feature> = {
-  'set-account': 'github',
-  'set-repos': 'github',
-  'set-ghtab': 'github',
+  'set-github': 'github',
   'set-local': 'local',
   'set-basecamp': 'basecamp',
 }
@@ -296,7 +295,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   // Mémorisée : on revient là où on réglait.
   const [active, setActive] = useState<string>(() => {
     try {
-      const saved = localStorage.getItem(SECTION_KEY)
+      const raw = localStorage.getItem(SECTION_KEY)
+      const saved = raw && sectionOf(raw)
       // `help-…` : une page de l'Aide (le guide arrive après, son menu aussi).
       if (saved && (SECTIONS.some((sec) => sec.id === saved) || saved.startsWith('help-'))) return saved
     } catch {
@@ -311,7 +311,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     setActive(GUIDE.id)
   }, [active, guide])
   useEffect(() => {
-    const go = (e: Event) => setActive((e as CustomEvent<string>).detail)
+    const go = (e: Event) => setActive(sectionOf((e as CustomEvent<string>).detail))
     window.addEventListener(SECTION_EVENT, go)
     return () => window.removeEventListener(SECTION_EVENT, go)
   }, [])
@@ -620,7 +620,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             </span>
           )}
           <span className="set-hint set-accounts-hint">
-            Ce que tu règles ici concerne ce compte. Chaque compte a son jeton et est suivi en
+            Toute la page concerne le compte choisi ici. Chaque compte a son jeton et est suivi en
             parallèle ; l'onglet GitHub choisit lequel il affiche.
           </span>
         </div>
@@ -655,33 +655,91 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
 
-        {active === 'set-account' ? (
-        <Card id="set-account" icon="🔑" title={`Compte & équipe · ${labelOf(gh)}`}>
-          <div className="set-grid">
-            <label className="set-field">
-              <span>
-                Nom du compte <em>affiché dans le sélecteur</em>
-              </span>
-              <input
-                value={gh.label ?? ''}
-                placeholder={infoOf(selId)?.login ?? 'Boulot, Perso…'}
-                onChange={(e) => patchGh({ label: e.target.value })}
-                autoComplete="off"
-                data-1p-ignore
-              />
-            </label>
-          </div>
-          <SetConnect account={selId} auth={auth} onChange={onAuth} />
-          <SetTeam
-            account={selId}
-            orgs={accounts.filter((o) => o.type === 'Organization').map((o) => o.login)}
-            users={asList(gh.users)}
-            me={gh.me ?? ''}
-            connected={connected}
-            login={auth?.login}
-            onUsers={(users) => patchGh({ users })}
-            onMe={(me) => patchGh({ me })}
-          />
+        {active === 'set-github' ? (
+        <Card id="set-github" icon="🐙" title={`GitHub · ${labelOf(gh)}`}>
+          <Block icon="🔑" title="Connexion" hint="Le jeton qui permet à homedash de lire ce compte GitHub.">
+            <div className="set-grid">
+              <label className="set-field">
+                <span>
+                  Nom du compte <em>affiché dans le sélecteur</em>
+                </span>
+                <input
+                  value={gh.label ?? ''}
+                  placeholder={infoOf(selId)?.login ?? 'Boulot, Perso…'}
+                  onChange={(e) => patchGh({ label: e.target.value })}
+                  autoComplete="off"
+                  data-1p-ignore
+                />
+              </label>
+            </div>
+            <SetConnect account={selId} auth={auth} onChange={onAuth} />
+          </Block>
+          <Block
+            icon="📦"
+            title="Repos suivis"
+            hint="Les repos que homedash suit, et où chacun apparaît (onglet GitHub, Accueil, Local)."
+          >
+            <SetRepos
+              account={selId}
+              owners={accounts}
+              uses={uses}
+              connected={connected}
+              onTrack={track}
+              onToggle={toggleUse}
+              onRemove={untrack}
+            />
+          </Block>
+          <Block icon="👥" title="Équipe" hint="Qui tu es, et les personnes dont l'onglet GitHub montre le travail.">
+            <SetTeam
+              account={selId}
+              orgs={accounts.filter((o) => o.type === 'Organization').map((o) => o.login)}
+              users={asList(gh.users)}
+              me={gh.me ?? ''}
+              connected={connected}
+              login={auth?.login}
+              onUsers={(users) => patchGh({ users })}
+              onMe={(me) => patchGh({ me })}
+            />
+          </Block>
+          <Block icon="🐙" title="Ce que montre l'onglet" hint="PRs mergées, rythme de lecture de GitHub, Renovate.">
+            <div className="set-grid">
+              <label className="set-field">
+                <span>
+                  PRs mergées affichées <em>carte « PRs mergées »</em>
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={50}
+                  value={gh.merged_count ?? 10}
+                  onChange={(e) => patchGh({ merged_count: num(e.target.value, 10) })}
+                />
+              </label>
+              <label className="set-field">
+                <span>
+                  Rafraîchissement <em>secondes entre deux lectures de GitHub, 0 = manuel</em>
+                </span>
+                <input
+                  type="number"
+                  min={0}
+                  max={3600}
+                  value={gh.auto_refresh ?? 15}
+                  onChange={(e) => patchGh({ auto_refresh: num(e.target.value, 15) })}
+                />
+              </label>
+            </div>
+            <SetRenovate
+              shown={layout.includes('gh:renovate')}
+              upstream={gh.upstream_repo ?? 'base-site'}
+              author={gh.renovate_author ?? 'renovate[bot]'}
+              tracked={tracked}
+              watched={fullList(gh.base_site_repos)}
+              onShown={setRenovateShown}
+              onUpstream={(upstream_repo) => patchGh({ upstream_repo })}
+              onAuthor={(renovate_author) => patchGh({ renovate_author })}
+              onWatched={(base_site_repos) => patchGh({ base_site_repos })}
+            />
+          </Block>
           {accList.length > 1 ? (
             <div className="set-add">
               <button className="set-danger-link" onClick={deleteAccount}>
@@ -689,62 +747,6 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </button>
             </div>
           ) : null}
-        </Card>
-        ) : null}
-
-        {active === 'set-repos' ? (
-        <Card id="set-repos" icon="📦" title={`Repos suivis · ${labelOf(gh)}`}>
-          <SetRepos
-            account={selId}
-            owners={accounts}
-            uses={uses}
-            connected={connected}
-            onTrack={track}
-            onToggle={toggleUse}
-            onRemove={untrack}
-          />
-        </Card>
-        ) : null}
-
-        {active === 'set-ghtab' ? (
-        <Card id="set-ghtab" icon="🐙" title={`Onglet GitHub · ${labelOf(gh)}`}>
-          <div className="set-grid">
-            <label className="set-field">
-              <span>
-                PRs mergées affichées <em>carte « PRs mergées »</em>
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={50}
-                value={gh.merged_count ?? 10}
-                onChange={(e) => patchGh({ merged_count: num(e.target.value, 10) })}
-              />
-            </label>
-            <label className="set-field">
-              <span>
-                Rafraîchissement <em>secondes entre deux lectures de GitHub, 0 = manuel</em>
-              </span>
-              <input
-                type="number"
-                min={0}
-                max={3600}
-                value={gh.auto_refresh ?? 15}
-                onChange={(e) => patchGh({ auto_refresh: num(e.target.value, 15) })}
-              />
-            </label>
-          </div>
-          <SetRenovate
-            shown={layout.includes('gh:renovate')}
-            upstream={gh.upstream_repo ?? 'base-site'}
-            author={gh.renovate_author ?? 'renovate[bot]'}
-            tracked={tracked}
-            watched={fullList(gh.base_site_repos)}
-            onShown={setRenovateShown}
-            onUpstream={(upstream_repo) => patchGh({ upstream_repo })}
-            onAuthor={(renovate_author) => patchGh({ renovate_author })}
-            onWatched={(base_site_repos) => patchGh({ base_site_repos })}
-          />
         </Card>
         ) : null}
 

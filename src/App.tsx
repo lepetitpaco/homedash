@@ -470,7 +470,7 @@ export default function App() {
     (sum, t) => sum + (t.embed && t.notify !== false ? (tabCounts[tabKey(t)] ?? 0) : 0),
     0,
   )
-  // Ce qu'elle compte se règle dans Réglages → Affichage (issue #4).
+  // Ce qu'elle compte se règle dans Réglages → Notifications (issue #4).
   const dockCount = (cfg?.ui.badgeTabs !== false ? tabUnread : 0) + (cfg?.ui.badgeBell !== false ? events.unseen : 0)
   useEffect(() => desktop?.setBadge(dockCount), [dockCount])
   useEffect(() => {
@@ -1635,7 +1635,7 @@ export default function App() {
         <GithubView
           ctx={ctx}
           onSettings={() => {
-            presetSettingsSection('set-account')
+            presetSettingsSection('set-github')
             selectTab('settings')
           }}
         />
