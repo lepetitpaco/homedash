@@ -76,7 +76,7 @@ Tes données sont sauvegardées automatiquement avant chaque mise à jour.
   dans *Réglages → Sauvegardes*.
 - **Les jetons** restent côté serveur (`data/secrets.json`) : jamais envoyés au navigateur, ni mis dans
   les sauvegardes.
-- **L'onglet Local ne touche à rien** : ton dossier personnel est lu, jamais modifié, et aucune commande
+- **L'onglet Local ne touche à rien** : tes dossiers sont lus, jamais modifiés, et aucune commande
   git n'est lancée.
 - **Accessible depuis ta machine seulement** (`127.0.0.1`). Pour l'ouvrir au réseau : remplace
   `127.0.0.1:${HOMEDASH_PORT:-7777}:80` par `${HOMEDASH_PORT:-7777}:80` dans `docker-compose.yml`, et

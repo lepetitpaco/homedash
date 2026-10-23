@@ -67,7 +67,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est un onglet perso) |
 | `/api/file?path=` | GET | Fichier / dossier d'un onglet perso (dossier personnel, sans caché ni `data/`) |
 | `/api/local`, `/api/local/refresh` | GET, POST | Dépôts du disque, relecture |
-| `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (limité au dossier personnel ; `&files=1` liste aussi les fichiers) |
+| `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (dossier personnel et disque monté ; `&files=1` liste aussi les fichiers, dossier personnel seulement) |
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |
 | `/api/backups[/{nom}[/restore]]` | GET, POST, DELETE | Instantanés |
 | `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |

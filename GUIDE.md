@@ -142,6 +142,10 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
 #### Bon à savoir
 
+- **Tes clones peuvent être n'importe où** : *Réglages → Dépôts locaux → + ajouter un dossier*, puis
+  🏠 dossier personnel ou 💽 le disque (`C:` sous Windows, `/Volumes` sur Mac pour les disques externes).
+  Tout est lu en lecture seule. Sur Mac, un dossier hors de `/Users` et `/Volumes` doit d'abord être
+  partagé dans Docker Desktop (Réglages → Resources → File sharing).
 - **Rien n'est exécuté** : les commandes proposées (`git branch -d …`) sont à copier et lancer toi-même.
 - **Branche courante pas à jour** : en retard sur sa version en ligne → `git pull` ; sur une autre
   branche que main/master, main a avancé → `git fetch origin && git merge origin/main`. Les deux à la
@@ -271,7 +275,7 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
 | Pas d'onglet GitHub | Aucun jeton : *Réglages → Compte & équipe* |
 | Un repo n'est pas proposé | Le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
-| Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dans ton dossier personnel) |
+| Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dossier personnel, ou 💽 ailleurs sur le disque) |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
 | Des lettres au lieu des icônes | *Réglages → Affichage → Favicons* doit être coché |
 | Un site boude (captcha refusé, page qui tourne en boucle) | Clic droit sur son icône → *Effacer les données de ce site*, puis reconnecte-toi. Sinon ↗ l'ouvre dans ton navigateur |

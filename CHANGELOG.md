@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.29.0 — 2026-10-23
+
+- **Onglet Local : tes clones peuvent être n'importe où**, plus seulement dans ton dossier personnel.
+  *Réglages → Dépôts locaux → + ajouter un dossier* propose 🏠 ton dossier personnel et 💽 le disque
+  (`C:` sous Windows, les disques externes sur Mac). Toujours en lecture seule.
+
 ## 1.28.0 — 2026-10-23
 
 - **Couper ce dont tu ne te sers pas** : *Réglages → 🧩 Fonctionnalités*. GitHub, Local ou Basecamp

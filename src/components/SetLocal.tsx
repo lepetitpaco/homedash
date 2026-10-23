@@ -101,7 +101,7 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
               </span>
             ) : null}
             <span className="set-spacer" />
-            {view && view.path !== '~' ? (
+            {view && !view.starts?.some((st) => st.path === view.path) ? (
               <button onClick={() => add(view.path)} disabled={!!covered(view.path)}>
                 ✓ lire ce dossier
               </button>
@@ -109,6 +109,19 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
             <button onClick={() => setOpen(false)}>fermer</button>
           </div>
           {error ? <p className="set-hint set-bad">✗ {error}</p> : null}
+          {(view?.starts?.length ?? 0) > 1 ? (
+            <div className="set-browser-starts">
+              {view!.starts!.map((st) => (
+                <button
+                  key={st.path}
+                  className={`xs-btn${view!.path === st.path || view!.path.startsWith(st.path + '/') ? ' is-on' : ''}`}
+                  onClick={() => go(st.path)}
+                >
+                  {st.path === '~' ? '🏠' : '💽'} {st.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <ul className="set-dirs">
             {view?.parent ? (
               <li>
@@ -148,8 +161,9 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
       </div>
       <p className="set-hint">
         Choisis le dossier qui <em>contient</em> tes clones (boulot, perso…) : chacun est parcouru sur{' '}
-        {maxDepth} niveaux à la recherche de <code>.git</code>. 📦 = dépôt git. Lecture seule : le
-        dossier personnel est monté <code>:ro</code>, aucune commande git n'est lancée.
+        {maxDepth} niveaux à la recherche de <code>.git</code>, où qu'il soit : dossier personnel ou ailleurs
+        sur le disque (💽). 📦 = dépôt git. Lecture seule : tout est monté <code>:ro</code>, aucune
+        commande git n'est lancée.
       </p>
     </>
   )

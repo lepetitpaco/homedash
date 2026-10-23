@@ -133,8 +133,10 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - `gitread` gère les deltas `ofs` **et** `ref` (un clone frais met tout en packs).
 - Surveillance par `stat` toutes les 2 s (pas de scan complet) ; `.git/index` temporisé ; en veille si la
   page n'a rien demandé depuis `watch_idle`.
-- Dossiers stockés en `~/…`, traduits par `localgit.resolve()` ; `browse()` limité au dossier personnel
-  après `realpath`.
+- Dossiers stockés en `~/…` (ou chemin de l'hôte : `C:/…`, `/Volumes/…`), traduits par
+  `localgit.resolve()`. Le disque est monté `:ro` sur `/hostdisk` (`HOST_DISK`) : `browse()` limité au
+  dossier personnel et à ce disque après `realpath` (un lien vers le conteneur est refusé) ; choix de
+  fichier (`files`, onglets perso) : dossier personnel seulement, comme `localfile`.
 
 **Journal et cloche**
 - `events.py` est le **seul** endroit qui décide ce qui est un événement ; le front affiche.

@@ -72,10 +72,18 @@ def configure(local_cfg):
 # page s'écrivent `~/…` : ils restent valables hors Docker (backend lancé sur
 # l'hôte, où `~` est le vrai dossier personnel) comme dans le conteneur.
 HOST_MOUNT = os.environ.get("HOST_MOUNT", "/host")
+# Chacun range ses projets où il veut : le disque est monté aussi, en lecture
+# seule, sur /hostdisk (`C:` sous Windows, `/Volumes` sur Mac : ce que Docker
+# Desktop partage d'office), et HOST_DISK dit ce qu'il vaut côté hôte. Seul
+# l'onglet Local s'en sert ; les onglets perso restent au dossier personnel.
+DISK_MOUNT = os.environ.get("DISK_MOUNT", "/hostdisk")
 # Dossiers du dossier personnel qui ne contiennent jamais de clones : les
 # masquer rend l'explorateur lisible, et évite d'y lancer un comptage.
 BROWSE_SKIP = {"Library", "Applications", "Movies", "Music", "Pictures", "Public",
                "OrbStack", "go", "snap"}
+# Même chose à la racine du disque (Windows : système, corbeille…).
+DISK_SKIP = {"Windows", "Program Files", "Program Files (x86)", "ProgramData", "Recovery",
+             "PerfLogs", "System Volume Information", "Config.Msi"}
 
 def home_base():
     """Le dossier personnel tel que ce process le voit."""
@@ -84,15 +92,31 @@ def home_base():
 def home_display():
     return (os.environ.get("HOST_HOME") or str(Path.home())).rstrip("/")
 
+def disk_base():
+    """Le disque monté, ou rien (backend lancé hors Docker, montage absent)."""
+    return DISK_MOUNT if os.path.isdir(DISK_MOUNT) else None
+
+def disk_display():
+    """Le disque côté hôte : `C:` (Windows) ou `/Volumes` (Mac)."""
+    return (os.environ.get("HOST_DISK") or "").replace("\\", "/").rstrip("/")
+
+def _under(path, prefix, fold=False):
+    a, b = (path.lower(), prefix.lower()) if fold else (path, prefix)
+    return a == b or a.startswith(b + "/")
+
 def resolve(path):
     """Chemin affiché (`~/dev`, ou absolu côté hôte) → chemin lisible ici."""
-    path = (path or "").rstrip("/") or "/"
+    path = (path or "").replace("\\", "/").rstrip("/") or "/"
     base = home_base()
     if path == "~" or path.startswith("~/"):
         return base + path[1:]
-    home = home_display()
-    if base != home and (path == home or path.startswith(home + "/")):
+    home = home_display().replace("\\", "/")
+    if base != home and _under(path, home):
         return base + path[len(home):]
+    disk, shown = disk_base(), disk_display()
+    # `C:` : la lettre du lecteur s'écrit en majuscule ou non
+    if disk and shown and _under(path, shown, fold=shown.endswith(":")):
+        return disk + path[len(shown):]
     return path
 
 def display(path):
@@ -100,7 +124,24 @@ def display(path):
     base = home_base().rstrip("/")
     if path == base or path.startswith(base + "/"):
         return "~" + path[len(base):]
+    disk, shown = disk_base(), disk_display()
+    if disk and shown and _under(path, disk):
+        host = shown + path[len(disk):]
+        # Windows : le dossier personnel est aussi sur le disque ; vu par là, il
+        # reste `~/…`, sinon un même clone serait lu deux fois sous deux noms.
+        home = home_display().replace("\\", "/")
+        if home and _under(host, home, fold=shown.endswith(":")):
+            return "~" + host[len(home):]
+        return host
     return path
+
+def browse_starts():
+    """Points de départ du choix d'un dossier de clones : le dossier personnel, et le disque."""
+    out = [{"label": "Dossier personnel", "path": "~"}]
+    if disk_base() and disk_display():
+        out.append({"label": disk_display() + ("/" if disk_display().endswith(":") else ""),
+                    "path": disk_display()})
+    return out
 
 def _roots():
     out, seen = [], set()
@@ -132,12 +173,17 @@ def root_status():
 
 def browse(path="~", files=False):
     """Sous-dossiers de `path` (lecture seule) : de quoi choisir un dossier de
-    clones dans la page. Limité au dossier personnel — rien au-dessus.
-    `files` : ses fichiers aussi (choix d'un fichier pour un onglet perso)."""
-    base = os.path.realpath(home_base())
+    clones dans la page. Limité au dossier personnel et au disque monté, après
+    `realpath` (un lien vers le conteneur est refusé), rien au-dessus.
+    `files` : ses fichiers aussi (choix d'un fichier pour un onglet perso) :
+    dossier personnel seulement, c'est tout ce que `localfile` sert."""
+    bases = [os.path.realpath(home_base())]
+    if not files and disk_base():
+        bases.append(os.path.realpath(disk_base()))
     target = os.path.realpath(resolve(path or "~"))
-    if target != base and not target.startswith(base + "/"):
-        return {"error": "hors du dossier personnel"}
+    base = next((b for b in bases if target == b or target.startswith(b + "/")), None)
+    if base is None:
+        return {"error": "hors du dossier personnel" if files else "hors des dossiers lisibles"}
     if not os.path.isdir(target):
         return {"error": f"{path} introuvable"}
     ignore = set(CFG.get("ignore") or [])
@@ -149,7 +195,9 @@ def browse(path="~", files=False):
     for e in entries:
         if e.name.startswith(".") or e.name in ignore:
             continue
-        if not files and target == base and e.name in BROWSE_SKIP:
+        if not files and target == base and e.name in (DISK_SKIP if base != bases[0] else BROWSE_SKIP):
+            continue
+        if e.name.startswith("$"):              # $Recycle.Bin, $WinREAgent…
             continue
         try:
             if not e.is_dir(follow_symlinks=False):
@@ -166,7 +214,7 @@ def browse(path="~", files=False):
         # pas de comptage de dépôts : on choisit un fichier, pas un dossier de clones
         return {"path": shown, "parent": parent, "dirs": dirs, "files": found,
                 "repos": {"count": 0, "partial": False}}
-    return {"path": shown, "parent": parent, "dirs": dirs,
+    return {"path": shown, "parent": parent, "dirs": dirs, "starts": browse_starts(),
             "repos": _count_repos(target, ignore, int(CFG.get("max_depth", 3)))}
 
 def _count_repos(root, ignore, max_depth, budget=3000):
@@ -186,7 +234,8 @@ def _count_repos(root, ignore, max_depth, budget=3000):
             if e.name == ".git":
                 found += 1
             elif depth < max_depth and not e.name.startswith(".") and e.name not in ignore \
-                    and not (depth == 0 and path == home_base() and e.name in BROWSE_SKIP):
+                    and not (depth == 0 and path == home_base() and e.name in BROWSE_SKIP) \
+                    and not (depth == 0 and path == disk_base() and (e.name in DISK_SKIP or e.name.startswith("$"))):
                 try:
                     if e.is_dir(follow_symlinks=False):
                         stack.append((e.path, depth + 1))

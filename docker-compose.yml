@@ -26,6 +26,8 @@ services:
       # les vrais chemins, et à comprendre un chemin absolu de l'hôte.
       # Windows n'a souvent pas de HOME : son dossier personnel est USERPROFILE.
       - HOST_HOME=${HOME:-${USERPROFILE:-}}
+      # Ce que vaut /hostdisk côté hôte (même valeur que le montage plus bas).
+      - HOST_DISK=${HOMEDASH_DISK:-${SystemDrive:-/Volumes}}
     volumes:
       # le répertoire entier, pas fichier par fichier : permet l'écriture atomique
       - ${HOMEDASH_DATA:-./data}:/app/data
@@ -35,3 +37,8 @@ services:
       # ne sait de toute façon que lire (backend/gitread.py relit les fichiers
       # .git lui-même, aucune commande git n'est lancée).
       - ${HOME:-${USERPROFILE:-}}:/host:ro
+      # Onglet Local : le disque aussi, en LECTURE SEULE, pour des clones rangés
+      # hors du dossier personnel. Windows : le lecteur système (`C:`) ; Mac : les
+      # volumes (`/Volumes`, disques externes), ce que Docker Desktop partage
+      # d'office. Autre endroit : HOMEDASH_DISK=/chemin (partagé dans Docker Desktop).
+      - ${HOMEDASH_DISK:-${SystemDrive:-/Volumes}}/:/hostdisk:ro
