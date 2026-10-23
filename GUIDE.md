@@ -222,6 +222,9 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 `/` ou `⌘K` : tout retrouver, et ouvrir une adresse.
 
 - **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
+- **Chercher à un seul endroit** : clic sur la loupe, à gauche de la barre → *Raccourcis*, *Mes sites*,
+  *GitHub & Local*, *Basecamp* ou *Le web*. La loupe s'allume tant que la recherche est limitée ;
+  *Partout* revient à la recherche complète (elle l'est aussi à chaque rechargement).
 - **Basecamp** (s'il est connecté) : tes tâches tout de suite, puis, un instant après ta frappe, tout
   Basecamp : to-dos, cartes, messages, commentaires, documents (sans les archivés). La carte à droite
   montre un extrait, l'échéance, l'auteur ; Entrée ouvre l'élément dans Basecamp. Pour une tâche ou

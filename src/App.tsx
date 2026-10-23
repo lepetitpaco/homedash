@@ -28,7 +28,7 @@ import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
 import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
-import { useSearch } from './hooks/useSearch'
+import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
 import { useEvents, type HdEvent } from './lib/events'
@@ -581,6 +581,10 @@ export default function App() {
     () => (bc.data?.enabled ? [...(bc.data.tasks?.priorities ?? []), ...(bc.data.tasks?.others ?? [])] : []),
     [bc.data],
   )
+  // Portées de la recherche : celles des fonctionnalités coupées (ou Basecamp non connecté) n'y sont pas.
+  const searchScopes = SEARCH_SCOPES.filter((x) =>
+    x.id === 'code' ? on.github || on.local : x.id === 'basecamp' ? on.basecamp && !!bc.data?.enabled : true,
+  )
   const search = useSearch({
     cfg,
     links,
@@ -602,6 +606,11 @@ export default function App() {
       selectTab(tabKey(t))
     },
     commands,
+  })
+  const currentScope = searchScopes.find((x) => x.id === search.scope) ?? SEARCH_SCOPES[0]
+  // Portée devenue indisponible (fonctionnalité coupée) : on cherche partout.
+  useEffect(() => {
+    if (!searchScopes.some((x) => x.id === search.scope)) search.setScope('all')
   })
 
   // --- rendu ---------------------------------------------------------------
@@ -1396,6 +1405,27 @@ export default function App() {
         onTheme={switchTheme}
         searchRef={searchRef}
         resultCount={searching ? search.hits.length : null}
+        scope={{
+          icon: currentScope.icon,
+          label: search.scope === 'all' ? null : currentScope.label,
+          onPick: (e) => {
+            const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+            menus.openMenu({
+              x: r.left,
+              y: r.bottom + 6,
+              title: 'Chercher dans',
+              items: searchScopes.map((x) => ({
+                icon: x.icon,
+                label: x.label,
+                hint: x.id === search.scope ? '✓' : undefined,
+                onSelect: () => {
+                  search.setScope(x.id)
+                  searchRef.current?.focus()
+                },
+              })),
+            })
+          },
+        }}
         onRefresh={refreshAll}
         refreshing={syncing}
         version={

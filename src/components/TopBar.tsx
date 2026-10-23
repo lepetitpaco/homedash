@@ -9,6 +9,8 @@ type Props = {
   onTheme: () => void
   searchRef: React.RefObject<HTMLInputElement | null>
   resultCount: number | null
+  /** Où cherche la barre (issue #38) : son icône, son nom, `null` = partout ; clic = le menu des portées. */
+  scope?: { icon: string; label: string | null; onPick: (e: React.MouseEvent) => void }
   /** « Tout actualiser » : GitHub, Basecamp, Local, la cloche, les non-lus des sites. */
   onRefresh: () => void
   /** Actualisation en cours : la flèche tourne. */
@@ -43,6 +45,7 @@ export default function TopBar({
   onTheme,
   searchRef,
   resultCount,
+  scope,
   onRefresh,
   refreshing = false,
   bell,
@@ -79,15 +82,27 @@ export default function TopBar({
       {site ? <div className="topbar-site" id={TOPBAR_SITE_SLOT} /> : null}
 
       <div className="search-wrap">
-        <span className="search-icon" aria-hidden="true">
-          ⌕
-        </span>
+        {scope ? (
+          <button
+            type="button"
+            className={`search-scope${scope.label ? ' is-on' : ''}`}
+            onClick={scope.onPick}
+            title={scope.label ? `Recherche limitée à ${scope.label} : clic pour changer` : 'Chercher partout : clic pour limiter'}
+            aria-label={scope.label ? `Recherche limitée à ${scope.label}` : 'Où chercher'}
+          >
+            {scope.icon}
+          </button>
+        ) : (
+          <span className="search-icon" aria-hidden="true">
+            ⌕
+          </span>
+        )}
         <input
           ref={searchRef}
           className="search"
           type="search"
           value={query}
-          placeholder={placeholder}
+          placeholder={scope?.label ? `Rechercher dans ${scope.label}…` : placeholder}
           autoComplete="off"
           spellCheck={false}
           aria-label="Rechercher"
