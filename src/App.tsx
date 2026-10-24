@@ -329,8 +329,9 @@ export default function App() {
       /* stockage indisponible */
     }
   }, [])
-  // La barre n'existe que s'il y a des onglets perso à y mettre.
-  const railOn = customTabs.length > 0 && railMode !== 'hidden'
+  // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
+  // commencer (issue #45). Vide, elle invitait à rien et se cachait.
+  const railOn = railMode !== 'hidden'
   useEffect(() => {
     const w = !railOn ? '0px' : RAIL_WIDTH[railMode]
     document.documentElement.style.setProperty('--rail-w', w)
@@ -1503,7 +1504,7 @@ export default function App() {
           onTabMenu={tabMenu}
           onFolderMenu={folderMenu}
         />
-      ) : customTabs.length ? (
+      ) : (
         <button
           className={`rail-reopen${tabUnread ? ' has-unread' : ''}`}
           onClick={() => changeRail('icons')}
@@ -1511,7 +1512,7 @@ export default function App() {
         >
           »{tabUnread ? <span className="rail-reopen-badge">{tabUnread > 99 ? '99+' : tabUnread}</span> : null}
         </button>
-      ) : null}
+      )}
 
       {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
           serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}

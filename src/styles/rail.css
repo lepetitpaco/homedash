@@ -541,3 +541,13 @@ body {
 .rail-audio:hover {
   border-color: #60a5fa;
 }
+
+/* Barre sans aucun site (issue #45) : le premier à ajouter, bien visible. */
+.rail-first .rail-icon {
+  background: none;
+  border: 1.5px dashed color-mix(in srgb, #60a5fa 70%, transparent);
+  color: var(--sig-info);
+}
+.rail-first .rail-btn:hover .rail-icon {
+  background: color-mix(in srgb, #60a5fa 14%, transparent);
+}

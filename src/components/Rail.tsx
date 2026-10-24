@@ -263,6 +263,16 @@ export default function Rail({
       <div className="rail-sep" />
 
       <div className="rail-list">
+        {/* Aucun site encore : le premier à ajouter, en évidence sous ⚡. */}
+        {!tabs.length && !temps.length ? (
+          <div className="rail-item rail-first">
+            <span className="rail-pill" aria-hidden="true" />
+            <button className="rail-btn" onClick={onAdd} title="Ajouter ton premier site : Gmail, Chat, Claude…">
+              <span className="rail-icon">＋</span>
+              {wide ? <span className="rail-label">Ajouter un site</span> : null}
+            </button>
+          </div>
+        ) : null}
         {loose.map(item)}
 
         {folders.map((f) => {
