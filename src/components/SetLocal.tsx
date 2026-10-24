@@ -73,7 +73,7 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
             <li key={s}>
               <code>{s}</code>
               {ok(s) === false ? (
-                <span className="set-bad" title="Ni montée dans le conteneur, ni présente sur ce disque">
+                <span className="set-bad" title="Ce dossier est introuvable sur ce disque">
                   {' '}
                   ✗ introuvable
                 </span>
@@ -160,10 +160,9 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
         </label>
       </div>
       <p className="set-hint">
-        Choisis le dossier qui <em>contient</em> tes clones (boulot, perso…) : chacun est parcouru sur{' '}
-        {maxDepth} niveaux à la recherche de <code>.git</code>, où qu'il soit : dossier personnel ou ailleurs
-        sur le disque (💽). 📦 = dépôt git. Lecture seule : tout est monté <code>:ro</code>, aucune
-        commande git n'est lancée.
+        Choisis le dossier qui <em>contient</em> tes projets git (boulot, perso…) : homedash les cherche sur{' '}
+        {maxDepth} niveaux de sous-dossiers, dans ton dossier personnel ou ailleurs sur le disque (💽).
+        📦 = projet git trouvé. homedash ne fait que lire : il ne modifie jamais rien.
       </p>
     </>
   )

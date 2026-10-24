@@ -3,8 +3,8 @@ import type { Branch, GithubData, Pr } from '../lib/ghboard'
 import { BranchGroup, GhCard, GhEmpty, GhRow, groupByBranch } from './GhCard'
 
 const ROLE_LABEL: Record<string, [string, string]> = {
-  'creator:pr': ['créée', 'Auteur de la PR de cette branche'],
-  'creator:commit': ['créée', 'Auteur du premier commit propre à la branche'],
+  // Créée par soi : le cas normal de la liste, pas d'étiquette (« créée » sur
+  // chaque ligne n'apprenait rien, issue #44).
   'creator:tip': ['dernier commit', 'Branche mergée sans PR retrouvée — auteur du commit de tête'],
   contributor: ['participé', "Commits sur la branche, mais créée par quelqu'un d'autre"],
 }
@@ -27,8 +27,8 @@ function Row({ b, me, openPr, grouped }: { b: Branch; me: string; openPr?: Pr; g
       right={
         <>
           <span className="gh-date">{b.date.slice(5, 16)}</span>
-          {b.last_author ? (
-            <span className="gh-sub">par {b.last_author === me ? 'moi' : b.last_author}</span>
+          {b.last_author && b.last_author !== me ? (
+            <span className="gh-sub" title="Auteur du dernier commit">par {b.last_author}</span>
           ) : null}
         </>
       }

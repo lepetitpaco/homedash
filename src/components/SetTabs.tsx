@@ -500,7 +500,7 @@ export default function SetTabs({
             </span>
             {t.capture !== false ? (
               <em className="xs-note">
-                Captés : {domainsOf(t).join(', ')}.{' '}
+                Liens qui ouvrent ce site : {domainsOf(t).join(', ')}.{' '}
                 {desktop ? '' : "(Dans l'appli de bureau seulement.)"}
               </em>
             ) : null}
@@ -766,7 +766,7 @@ export default function SetTabs({
                   {isWeb(t) && t.embed
                     ? opt(
                         t.capture !== false,
-                        t.capture !== false ? '🔗 liens ici' : '🔗 liens dehors',
+                        t.capture !== false ? '🔗 ses liens ici' : '🔗 ses liens au navigateur',
                         t.capture !== false
                           ? `Les liens vers ${domainsOf(t).join(', ')} s’ouvrent ici : clic pour les envoyer au navigateur`
                           : 'Les liens vers ce site s’ouvrent dans le navigateur : clic pour les ouvrir ici',
@@ -855,7 +855,7 @@ export default function SetTabs({
             </button>
           </header>
           <p className="set-hint">
-            Comme les conteneurs de Firefox : une connexion à part par compte (« pro », « perso »…).{' '}
+            Pour être connecté à deux comptes d'un même site (pro et perso) : chaque compte a sa propre connexion.{' '}
             {desktop
               ? hasSessions
                 ? null

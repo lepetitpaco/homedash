@@ -419,3 +419,16 @@
   color: var(--text);
   font-size: 1.15rem;
 }
+
+/* « Mettre à jour à la main » : la commande terminal, repliée (issue #44). */
+.cl-manual {
+  margin-top: 6px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+.cl-manual summary {
+  cursor: pointer;
+}
+.cl-manual .cl-cmd {
+  margin-top: 6px;
+}

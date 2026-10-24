@@ -53,7 +53,7 @@ export default function SetPerf({ enabled, onEnabled }: { enabled: boolean; onEn
       ) : null}
       {enabled ? (
         <p className="set-hint">
-          Pense à <strong>Enregistrer</strong> pour l'activer. Pour le résumé : <code>python3 scripts/perf-report.py</code>.
+          Pense à <strong>Enregistrer</strong> pour l'activer. Le résumé est dans Réglages → Aide → Journal de performance.
         </p>
       ) : null}
     </>
