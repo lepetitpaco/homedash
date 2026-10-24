@@ -623,7 +623,7 @@ export default function SetTabs({
             ))}
           </span>
           <em className="xs-note">
-            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site dans Mes sites (💤).
+            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site ci-dessus (▾).
           </em>
         </label>
       </div>
