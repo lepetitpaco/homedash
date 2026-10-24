@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.31.1 — 2026-10-24
+
+- **Le dépôt a déménagé** : il est maintenant sur `lepetitpaco/homedash` (toujours privé, ton accès est
+  conservé). La vérification des mises à jour et les liens « ouvrir une issue » y pointent. Facultatif,
+  l'ancienne adresse redirige : `git remote set-url origin https://github.com/lepetitpaco/homedash.git`
+  (#48).
+
 ## 1.31.0 — 2026-10-23
 
 - **Recherche : choisis où chercher.** Clic sur la loupe, à gauche de la barre : *Partout* (comme
