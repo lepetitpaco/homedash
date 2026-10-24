@@ -899,6 +899,17 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                   </span>
                 </label>
               ))}
+              <label className="set-toggle">
+                <input
+                  type="checkbox"
+                  checked={draft.ui?.setupHidden !== true}
+                  onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), setupHidden: !e.target.checked } })}
+                />
+                <span>
+                  Pour commencer
+                  <em>étapes de prise en main en haut de Raccourcis, tant qu'il en reste à faire</em>
+                </span>
+              </label>
             </div>
           </Block>
           <Block icon="🖥" title="Taille de l'écran" hint="Un clic règle toutes les tailles ci-dessous d'un coup ; ajuste ensuite si besoin.">
@@ -1045,7 +1056,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           <span className="set-actions-note">
             {dirty
               ? '● Modifications non enregistrées'
-              : 'Connexion et sauvegardes s’appliquent tout de suite ; le reste attend « Enregistrer ».'}
+              : '✓ Tout est enregistré. Les connexions (GitHub, Basecamp) et les sauvegardes s’appliquent dès le clic ; le reste attend « Enregistrer ».'}
           </span>
           <button className="set-cancel" onClick={() => setDraft(config)} disabled={saving || !dirty}>
             Annuler
