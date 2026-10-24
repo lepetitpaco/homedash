@@ -697,7 +697,7 @@ def invalidate():
         _state["ts"] = 0.0
 
 def rebuild(trigger=None):
-    started = time.time()
+    started = time.monotonic()
     gh_version = github.remote_version()
     try:
         roots  = _roots()
@@ -738,7 +738,7 @@ def rebuild(trigger=None):
             _sigs[r["path"]] = gitread.signature(r["path"])
         with _state["lock"]:
             _state["ts"], _state["error"] = time.time(), None
-            _state["took"] = time.time() - started
+            _state["took"] = time.monotonic() - started
             _state["gh"] = gh_version
             _state["trigger"] = trigger
         print(f"✅ Local : {len(repos)} dépôts lus en {_state['took']:.2f}s", flush=True)

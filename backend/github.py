@@ -982,7 +982,7 @@ SECTIONS = ("branches", "prs", "renovate", "merged", "issues")
 
 def rebuild(token, sections=None):
     """Rafraîchit tout, ou seulement les sections demandées (bouton ↻ d'une carte)."""
-    started_at = time.time()
+    started_at = time.monotonic()
     user = current_user()
     todo = tuple(s for s in (sections or SECTIONS) if s in SECTIONS) or SECTIONS
     label = "tout" if len(todo) == len(SECTIONS) else ", ".join(todo)
@@ -1024,7 +1024,7 @@ def rebuild(token, sections=None):
         with _state["lock"]:
             _state["ts"], _state["error"] = time.time(), None
         print(f"✅ GitHub à jour — {STATS['calls']} appels, {STATS['hits']} 304", flush=True)
-        perflog.timed("github", time.time() - started_at, account=ACCOUNT.get("id"))
+        perflog.timed("github", time.monotonic() - started_at, account=ACCOUNT.get("id"))
     except Exception as e:
         with _state["lock"]:
             _state["error"] = str(e)

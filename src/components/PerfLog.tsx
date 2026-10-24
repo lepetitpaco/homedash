@@ -15,6 +15,7 @@ type Day = {
     local_scans: number
     ops: { op: string; n: number; avg_s: number; max_s: number }[]
     slow: { at: string; op: string; took_s: number }[]
+    asleep?: { at: string; op: string; took_s: number }[]
   }
   app: { samples: number; mem_mb: number; mem_peak_mb: number; cpu: number; cpu_peak: number; tabs: Tab[]; spikes: Spike[] }
 }
@@ -171,6 +172,12 @@ export default function PerfLog() {
             ))}
           </ul>
         </>
+      ) : null}
+      {d.server.asleep?.length ? (
+        <p className="set-hint">
+          Mis à part : {d.server.asleep.map((s) => `${OPS[s.op] ?? s.op} à ${s.at}`).join(', ')}. La machine
+          était sans doute en veille pendant l'opération ; ce n'est pas compté comme une lenteur.
+        </p>
       ) : null}
     </div>
   )

@@ -43,6 +43,9 @@ _timed    = {}           # opération -> [nombre, durée totale, pire durée] de
 # Au-delà, une opération a sa propre ligne « slow » (en plus du cumul) : c'est
 # elle qu'on cherchera en relisant le journal.
 SLOW = {"github": 20.0, "local": 3.0, "basecamp": 10.0, "config": 3.0}
+# Au-delà, ce n'est pas une lenteur mais la machine mise en veille pendant
+# l'opération : ligne « asleep », hors du cumul (elle fausserait pire et moyenne).
+ASLEEP = 300.0
 
 
 def perf_dir():
@@ -100,6 +103,13 @@ def usage():
 def timed(op, took, **detail):
     """Une opération lourde vient de finir en `took` secondes (cycle GitHub,
     scan Local, lecture Basecamp, écriture de config)."""
+    if took >= ASLEEP:
+        if _enabled:
+            try:
+                append("server", {"kind": "asleep", "op": op, "took_s": round(took, 1), **detail})
+            except Exception:
+                pass
+        return
     with _lock:
         n, total, worst = _timed.get(op, (0, 0.0, 0.0))
         _timed[op] = (n + 1, total + took, max(worst, took))
