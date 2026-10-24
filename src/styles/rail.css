@@ -564,7 +564,7 @@ body {
 }
 
 /* Onglets ouverts en haut de cet espace (issue #60) : discret, en haut à droite. */
-.rail-kids {
+.rail-open {
   position: absolute;
   left: -5px;
   bottom: -5px;
@@ -581,7 +581,7 @@ body {
   box-sizing: content-box;
   pointer-events: none;
 }
-.rail.is-mini .rail-kids {
+.rail.is-mini .rail-open {
   left: -3px;
   bottom: -3px;
   font-size: 9px;
