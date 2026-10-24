@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { template } from '../lib/config'
 import type { GithubData } from '../lib/ghboard'
 import type { ReposConfig } from '../types'
@@ -31,6 +31,21 @@ const shown = (action: { highlight?: boolean }, i: number) => i < 2 || !!action.
 export default function RepoCard({ repos, onOpen, gh }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
   const actions = repos.actions ?? []
+  // Un clic ailleurs ou Échap referme la liste ⋯, comme un menu.
+  useEffect(() => {
+    const close = (e: Event) => {
+      if (e instanceof KeyboardEvent && e.key !== 'Escape') return
+      document.querySelectorAll('details.repo-more[open]').forEach((d) => {
+        if (!(e.target instanceof Node && d.contains(e.target))) d.removeAttribute('open')
+      })
+    }
+    document.addEventListener('mousedown', close)
+    document.addEventListener('keydown', close)
+    return () => {
+      document.removeEventListener('mousedown', close)
+      document.removeEventListener('keydown', close)
+    }
+  }, [])
 
   const copyClone = async (owner: string, name: string) => {
     if (!repos.cloneTemplate) return
