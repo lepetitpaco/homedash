@@ -821,3 +821,38 @@
   color: var(--text);
   text-decoration: underline;
 }
+
+/* « ⋯ » au survol d'un lien, d'une tuile, d'une icône de la barre (issue #60). */
+.more-btn {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 0 6px;
+  border-radius: 6px;
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 20px;
+  opacity: 0;
+  cursor: pointer;
+  transition: opacity 0.12s;
+}
+.more-btn:hover {
+  background: var(--border);
+  color: var(--text);
+}
+.link-row:hover .more-btn,
+.tile:hover .more-btn,
+.group-head:hover .more-btn,
+.more-btn:focus-visible {
+  opacity: 1;
+}
+.group-head {
+  display: flex;
+  align-items: center;
+}
+.group-head > .group-toggle {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.group-head > .more-btn {
+  margin: 0 6px;
+}
