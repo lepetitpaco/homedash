@@ -62,7 +62,7 @@ export default function ErrorLog({ repo }: { repo?: string }) {
       <p className="set-hint">
         Ce qui n'a pas marché, côté serveur comme dans la page : le message affiché et son détail technique. Gardé{' '}
         {days} jours. Pour signaler un problème, copie le journal et colle-le dans{' '}
-        <a href={`https://github.com/${repo || 'davidgennaoui/homedash'}/issues/new`} target="_blank" rel="noreferrer" data-outside>
+        <a href={`https://github.com/${repo || 'lepetitpaco/homedash'}/issues/new`} target="_blank" rel="noreferrer" data-outside>
           une issue
         </a>
         .
