@@ -4,6 +4,15 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.34.1 — 2026-10-24
+
+- **Carte Repos allégée** : *PRs*, *Branches* et *mes PRs* à vue, les autres liens (Actions, Issues,
+  Commits…) derrière ⋯. Avant : sept boutons par repo.
+- **Réglages → Mes sites plus lisible** : sur chaque ligne, seuls les réglages inhabituels apparaissent
+  (dossier, compte, veille, site ouvert dans le navigateur…) ; ▾ pour tout régler.
+- **« Liens & onglets » rejoint Mes sites** : la partie « Liens, onglets et veille » est en bas de la page,
+  une entrée de menu en moins.
+
 ## 1.34.0 — 2026-10-24
 
 - **Tu sais où sont tes onglets** : un chiffre bleu sur l'icône d'un site (et sur ⚡) compte les onglets
