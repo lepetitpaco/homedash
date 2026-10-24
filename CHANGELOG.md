@@ -4,6 +4,16 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.31.2 — 2026-10-24
+
+- **La barre de gauche est toujours là**, même sans aucun site : son **＋** ajoute le premier (#45).
+- **Journal d'erreurs : plus de fausses erreurs quand homedash redémarre** (mise à jour, redéploiement).
+  Pendant la coupure, la page dit « homedash ne répond pas pour le moment » au lieu de « homedash a
+  rencontré un problème » (#42).
+- **Journal de performance : une mise en veille de l'ordinateur ne passe plus pour une lenteur.**
+  Une opération de plus de 5 minutes est mise à part (« machine en veille ? ») au lieu de fausser le
+  pire et la moyenne (#43).
+
 ## 1.31.1 — 2026-10-24
 
 - **Le dépôt a déménagé** : il est maintenant sur `lepetitpaco/homedash` (toujours privé, ton accès est
