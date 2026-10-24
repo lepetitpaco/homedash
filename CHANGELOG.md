@@ -4,6 +4,23 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.32.0 — 2026-10-24
+
+- **Pour commencer** : au premier lancement, une carte en haut de Raccourcis liste ce qu'il reste à
+  brancher (tes sites, GitHub, tes dossiers de code, Basecamp, la taille de ton écran). Chaque bouton
+  mène au bon réglage ; une étape faite se coche toute seule, et la carte disparaît quand tout est fait
+  (ou avec *Masquer* ; *Réglages → Affichage* la remet) (#44).
+- **Connecter GitHub et Basecamp, pas à pas** : l'aide pour créer le jeton GitHub est ouverte d'office,
+  en étapes qui reprennent les mots de la page GitHub. Celle de Basecamp passe avant les champs à
+  remplir et explique la page vide après l'autorisation (#44).
+- **Repos partagés avec toi** : *Réglages → GitHub → Repos suivis* propose aussi les repos d'un collègue
+  où tu es collaborateur, dans l'onglet *Partagés avec toi* (#51).
+- **Plus de réglages perdus** : quitter Réglages sans enregistrer te propose d'enregistrer ; *Plus tard*
+  garde tes modifications en brouillon, retrouvées au retour (#49).
+- **Cloche** : une erreur passagère de GitHub ne fait plus annoncer comme nouvelles des PRs mergées la
+  veille (#50).
+- Onglet Local sans dossier : « Choisis tes dossiers de code », au lieu d'un message rouge d'erreur.
+
 ## 1.31.2 — 2026-10-24
 
 - **La barre de gauche est toujours là**, même sans aucun site : son **＋** ajoute le premier (#45).
