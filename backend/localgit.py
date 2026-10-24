@@ -292,58 +292,54 @@ def _verdict(b, default_branch):
 
     if b["protected"]:
         if b["behind_default"]:
-            return "behind", f"{b['behind_default']} commit(s) de retard sur origin/{default_branch}", None
+            return "behind", f"{b['behind_default']} commit(s) de retard sur {default_branch} (GitHub)", None
         return "protected", "branche de référence", None
 
     if merged and not on_gh:
         state, advice, flag = ("gone-merged",
-                               f"mergée dans origin/{default_branch} puis supprimée sur "
-                               "GitHub — il ne reste rien de propre à cette branche", "-d")
+                               f"intégrée à {default_branch} puis supprimée sur GitHub : "
+                               "plus rien à garder ici", "-d")
     elif merged:
         state, advice, flag = ("merged",
-                               f"déjà entièrement dans origin/{default_branch} ; "
-                               "la branche distante existe encore", "-d")
+                               f"déjà entièrement intégrée à {default_branch} "
+                               "(elle existe encore sur GitHub)", "-d")
     elif not on_gh and pr.get("merged"):
         state, advice, flag = ("squashed",
-                               f"PR #{pr['number']} mergée puis branche supprimée — les "
-                               f"{ahead} commit(s) d'ici sont dans origin/{default_branch}, "
-                               "sous un autre sha ou pas encore fetchés", "-D")
+                               f"PR #{pr['number']} mergée puis branche supprimée : son contenu "
+                               f"est dans {default_branch}, sous une autre forme", "-D")
     elif not on_gh and pr:
         state, advice, flag = ("closed-pr",
-                               f"PR #{pr['number']} fermée sans merge, branche absente du "
-                               f"distant — {ahead} commit(s) qui n'existent plus qu'ici", None)
+                               f"PR #{pr['number']} fermée sans être mergée, branche supprimée "
+                               f"sur GitHub : {ahead} commit(s) n'existent plus que sur ce disque", None)
     elif not on_gh and pushed_once:
         # `remote_ref` disparaît au premier `fetch --prune`, mais
         # `branch.<x>.merge` reste dans .git/config : c'est lui qui garde la
         # trace d'un `push -u` une fois le ref distant nettoyé.
-        how = "son ref distant existe encore ici" if b["remote_ref"] else \
-              f"origin/{name} est toujours configurée comme amont"
         state, advice, flag = ("gone",
-                               f"poussée par le passé ({how}) puis supprimée sur GitHub, "
-                               f"et {ahead} commit(s) ne sont pas dans "
-                               f"origin/{default_branch} — vérifier avant de jeter", "-D")
+                               f"envoyée sur GitHub puis supprimée là-bas, et {ahead} commit(s) "
+                               f"ne sont pas dans {default_branch} : vérifier avant de jeter", "-D")
     elif not on_gh:
         state, advice, flag = ("local-only",
-                               f"jamais poussée : ni ref distant, ni amont configuré, ni PR "
-                               f"— {ahead} commit(s) de travail en cours, sur ce disque seul",
+                               f"jamais envoyée sur GitHub : {ahead} commit(s) de travail en "
+                               f"cours, sur ce disque seulement",
                                None)
     elif b["push_ahead"] is None:
         # GitHub la connaît, mais aucun origin/<b> sur ce disque (jamais fetchée,
         # ou poussée vers un autre remote) : rien pour comparer. « À jour » serait
         # une affirmation sans fondement.
         state, advice, flag = ("unknown",
-                               f"existe sur GitHub mais pas d'origin/{name} local : "
-                               f"`git fetch` pour comparer", None)
+                               f"existe sur GitHub, mais ce disque n'en a pas la copie : "
+                               f"une synchro (git fetch) permettra de comparer", None)
     elif b["push_ahead"] and b["push_behind"]:
         state, advice, flag = ("diverged",
-                               f"divergée de origin/{name} : {b['push_ahead']} devant, "
-                               f"{b['push_behind']} derrière", None)
+                               f"différente de GitHub : {b['push_ahead']} commit(s) ici seulement, "
+                               f"{b['push_behind']} sur GitHub seulement", None)
     elif b["push_ahead"]:
-        state, advice, flag = "unpushed", f"{b['push_ahead']} commit(s) à pousser", None
+        state, advice, flag = "unpushed", f"{b['push_ahead']} commit(s) pas encore envoyé(s) sur GitHub", None
     elif b["push_behind"]:
-        state, advice, flag = "behind", f"{b['push_behind']} commit(s) à tirer", None
+        state, advice, flag = "behind", f"{b['push_behind']} commit(s) à récupérer de GitHub", None
     else:
-        state, advice, flag = "ok", f"à jour avec origin/{name}", None
+        state, advice, flag = "ok", "à jour avec GitHub", None
 
     if b["current"] and flag:
         # On ne supprime pas la branche sur laquelle on est — et git non plus.
@@ -363,30 +359,29 @@ def _safety(b, default_branch):
 
     if ahead == 0:
         return {"level": "merged", "label": "✓ sauvegardée",
-                "detail": f"chacun de ses commits est déjà dans origin/{default_branch}"}
+                "detail": f"chacun de ses commits est déjà dans {default_branch} sur GitHub"}
     if pr.get("merged"):
         return {"level": "squash", "label": "✓ PR mergée",
-                "detail": f"PR #{pr['number']} mergée : le contenu est dans "
-                          f"origin/{default_branch}. Git ne le voit pas d'ici, soit "
-                          "parce que le merge a squashé/rebasé les commits, soit parce "
-                          f"que ton origin/{default_branch} local n'a pas encore fetché"}
+                "detail": f"PR #{pr['number']} mergée : son contenu est dans {default_branch} "
+                          "sur GitHub, sous une autre forme (commits regroupés au merge), "
+                          "ou ce disque n'est pas encore synchronisé"}
     if on_gh and b["push_ahead"] == 0:
         return {"level": "pushed", "label": "↑ sur GitHub",
-                "detail": f"pas encore mergée, mais origin/{b['name']} a les mêmes "
-                          f"{ahead} commit(s) : rien n'existe uniquement ici"}
+                "detail": f"pas encore mergée, mais GitHub a les mêmes {ahead} commit(s) : "
+                          "rien n'existe uniquement ici"}
     if on_gh and b["push_ahead"] is None:
         return {"level": "partial", "label": "? non comparée",
-                "detail": f"origin/{b['name']} existe sur GitHub mais pas sur ce disque : "
-                          "impossible de dire ce qui n'y est pas — `git fetch` d'abord"}
+                "detail": "la branche existe sur GitHub mais ce disque n'en a pas la copie : "
+                          "impossible de comparer avant une synchro (git fetch)"}
     if on_gh:
         n = b["push_ahead"] or 0
-        return {"level": "partial", "label": f"⚠ {n} non poussé{'s' if n > 1 else ''}",
-                "detail": f"origin/{b['name']} existe mais {n} commit(s) n'y sont pas encore"}
+        return {"level": "partial", "label": f"⚠ {n} pas sur GitHub",
+                "detail": f"la branche est sur GitHub, mais {n} commit(s) d'ici n'y sont pas encore"}
     if b["remote_ref"] or b["upstream"] or pr:
-        return {"level": "local", "label": "⚠ effacée du distant",
+        return {"level": "local", "label": "⚠ effacée de GitHub",
                 "detail": f"poussée par le passé puis supprimée sur GitHub : les {ahead} "
                           "commit(s) n'ont plus de copie en ligne"}
-    return {"level": "local", "label": "⚠ jamais poussée",
+    return {"level": "local", "label": "⚠ jamais envoyée",
             "detail": f"travail en cours : {ahead} commit(s) qui n'ont jamais quitté "
                       "ce disque, aucune copie nulle part"}
 

@@ -84,7 +84,7 @@ class VerdictTest(unittest.TestCase):
         self.assertEqual(b["state"], "gone")
         self.assertEqual(b["delete"], "-D")
         self.assertEqual(b["safety"]["level"], "local")
-        self.assertEqual(b["safety"]["label"], "⚠ effacée du distant")
+        self.assertEqual(b["safety"]["label"], "⚠ effacée de GitHub")
         self.assertEqual(b["action"]["kind"], "check")
 
     def test_upstream_alone_proves_a_past_push(self):
@@ -92,7 +92,7 @@ class VerdictTest(unittest.TestCase):
         b = judge(branch(ahead_default=2, on_github=None, remote_ref=False,
                          upstream="origin/feature/x"))
         self.assertEqual(b["state"], "gone")
-        self.assertEqual(b["safety"]["label"], "⚠ effacée du distant")
+        self.assertEqual(b["safety"]["label"], "⚠ effacée de GitHub")
 
     def test_pr_alone_proves_a_past_push(self):
         b = judge(branch(ahead_default=2, on_github=False,
@@ -105,7 +105,7 @@ class VerdictTest(unittest.TestCase):
         b = judge(branch(ahead_default=2, on_github=False))
         self.assertEqual(b["state"], "local-only")
         self.assertIsNone(b["delete"])
-        self.assertEqual(b["safety"]["label"], "⚠ jamais poussée")
+        self.assertEqual(b["safety"]["label"], "⚠ jamais envoyée")
         self.assertEqual(b["action"]["kind"], "keep")
 
     # -- poussée, en cours -----------------------------------------------------
