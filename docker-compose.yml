@@ -18,7 +18,7 @@ services:
       - HOMEDASH_HOSTS=${HOMEDASH_HOSTS:-}
       # Dépôt dont le CHANGELOG.md sert à détecter une mise à jour (lu avec le jeton
       # d'un compte connecté, qui doit y avoir accès).
-      - HOMEDASH_REPO=${HOMEDASH_REPO:-davidgennaoui/homedash}
+      - HOMEDASH_REPO=${HOMEDASH_REPO:-lepetitpaco/homedash}
       # Dossier du projet sur la machine (celui d'où l'on lance compose) : la
       # commande de mise à jour affichée dans la page commence par un `cd` dedans.
       - HOMEDASH_DIR=${PWD:-}

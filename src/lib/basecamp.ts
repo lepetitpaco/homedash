@@ -253,7 +253,7 @@ export const bcDisconnect = () => call<BcStatus>('api/basecamp/token', { method:
  */
 export const DEFAULT_CALLBACK_SITE = 'example.com'
 export const CALLBACK_PATH = '/oauth'
-export const ABOUT_URL = 'https://github.com/davidgennaoui/homedash'
+export const ABOUT_URL = 'https://github.com/lepetitpaco/homedash'
 
 export function redirectFor(site: string): string {
   return `https://${site}${CALLBACK_PATH}`

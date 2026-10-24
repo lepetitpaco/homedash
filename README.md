@@ -30,7 +30,7 @@ terminal, depuis le dossier où tu ranges tes projets.
 **Mac** (Terminal) :
 
 ```bash
-git clone https://github.com/davidgennaoui/homedash.git && cd homedash
+git clone https://github.com/lepetitpaco/homedash.git && cd homedash
 docker compose up -d --build              # le serveur (2-3 min la première fois)
 sh desktop/build-local.sh --install       # l'appli, dans Applications (1 min)
 open -a homedash
@@ -39,7 +39,7 @@ open -a homedash
 **Windows** (PowerShell) :
 
 ```powershell
-git clone https://github.com/davidgennaoui/homedash.git; cd homedash
+git clone https://github.com/lepetitpaco/homedash.git; cd homedash
 docker compose up -d --build              # le serveur (2-3 min la première fois)
 powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (1-2 min)
 ```
@@ -82,7 +82,7 @@ Tes données sont sauvegardées automatiquement avant chaque mise à jour.
   `127.0.0.1:${HOMEDASH_PORT:-7777}:80` par `${HOMEDASH_PORT:-7777}:80` dans `docker-compose.yml`, et
   lance avec `HOMEDASH_HOSTS=<nom-ou-ip>`.
 - **Un souci ?** *Réglages → Aide* (guide, *En cas de souci*, journal d'erreurs), puis une
-  [issue](https://github.com/davidgennaoui/homedash/issues/new).
+  [issue](https://github.com/lepetitpaco/homedash/issues/new).
 
 ## Contribuer
 
