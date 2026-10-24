@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { getRepos, type GhRepo, type Owner } from '../lib/admin'
+import { getRepos, SHARED_OWNER, type GhRepo, type Owner } from '../lib/admin'
 import { shown } from '../lib/errors'
 
 export type Use = 'prs' | 'branches' | 'github' | 'home'
@@ -137,6 +137,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
   }
 
   const avatar = (login: string) => owners.find((o) => o.login === login)?.avatar
+  const tabLabel = owners.find((o) => o.login === tab)?.label ?? tab
   const visible = all || filter ? candidates : candidates.slice(0, SHOWN)
   const countOf = (login: string) => {
     const l = lists[login]
@@ -210,7 +211,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
                   }}
                 >
                   {o.avatar ? <img src={o.avatar} alt="" /> : null}
-                  {o.login}
+                  {o.label ?? o.login}
                   <span>{n ?? '…'}</span>
                 </button>
               )
@@ -219,7 +220,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
           <input
             className="set-filter"
             value={filter}
-            placeholder={`filtrer les repos de ${tab}…`}
+            placeholder={`filtrer les repos de ${tabLabel}…`}
             onChange={(e) => setFilter(e.target.value)}
             autoComplete="off"
             data-1p-ignore
@@ -227,10 +228,10 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
           {typeof current === 'string' ? (
             <p className="set-hint set-bad">✗ {current}</p>
           ) : current === undefined ? (
-            <p className="set-hint">chargement des repos de {tab}…</p>
+            <p className="set-hint">chargement des repos de {tabLabel}…</p>
           ) : candidates.length === 0 ? (
             <p className="set-hint">
-              {filter ? 'Aucun repo ne correspond.' : `Tous les repos visibles de ${tab} sont suivis.`}
+              {filter ? 'Aucun repo ne correspond.' : `Tous les repos visibles de ${tabLabel} sont suivis.`}
             </p>
           ) : (
             <ul className="set-pick-list">
@@ -239,7 +240,8 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
                   <button onClick={() => track(r.full_name)} title={`Suivre ${r.full_name}`}>
                     ＋
                   </button>
-                  <span className="set-repo">{r.name}</span>
+                  {/* Partagés : plusieurs propriétaires, le nom seul serait ambigu. */}
+                  <span className="set-repo">{tab === SHARED_OWNER ? r.full_name : r.name}</span>
                   {r.private ? <span className="set-tag">privé</span> : null}
                   <em>{r.description ?? ''}</em>
                   <time>{r.pushed_at?.slice(0, 10)}</time>

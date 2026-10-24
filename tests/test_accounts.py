@@ -252,5 +252,56 @@ class RemoteVersionTest(unittest.TestCase):
             m._repo_branch_facts(("api", "t"))
             self.assertEqual(m.remote_version(), v1 + 1, "un nouveau commit : nouvelle version")
 
+
+class SharedReposTest(unittest.TestCase):
+    """Réglages → Repos suivis : « Partagés avec toi » liste les repos d'autres
+    comptes perso où l'on est collaborateur (privés compris), sans ceux des orgs."""
+
+    def test_shared_lists_collaborator_repos_of_users_only(self):
+        m = accounts._load_module("shared-test")
+        asked = []
+
+        def paged(path, token, params, limit=None):
+            asked.append((path, params.get("affiliation")))
+            return [
+                {"name": "homedash", "full_name": "lepetitpaco/homedash", "private": True,
+                 "owner": {"login": "lepetitpaco", "type": "User"}, "pushed_at": "2026-10-24"},
+                {"name": "api", "full_name": "Org/api", "private": True,
+                 "owner": {"login": "Org", "type": "Organization"}, "pushed_at": "2026-10-23"},
+            ]
+
+        with mock.patch.object(m, "_paged", paged), \
+             mock.patch.object(m, "whoami", lambda *a, **k: {"ok": True, "login": "moi"}):
+            out = m.repos_of(m.SHARED)
+        self.assertEqual(asked, [("/user/repos", "collaborator")])
+        self.assertEqual([r["full_name"] for r in out["repos"]], ["lepetitpaco/homedash"])
+
+
+class FlakyGithubTest(unittest.TestCase):
+    """Cloche : une réponse manquée de GitHub (504) ne doit pas faire annoncer
+    des PRs mergées la veille quand elles « réapparaissent »."""
+
+    def test_old_merge_reappearing_is_not_news(self):
+        m = accounts._load_module("flaky-test")
+        old = {"repo": "admin", "number": 1, "title": "t", "url": "u", "branch": "b",
+               "merged_at_raw": "2026-10-23T07:44:34Z"}
+        new = {**old, "number": 2, "merged_at_raw": "2026-10-24T01:45:00Z"}
+        found = m._diff({"merged": []}, {"merged": [old, new]}, ("merged",), "2026-10-24T01:35:00Z")
+        self.assertEqual([e["title"] for e in found], ["🎉 PR mergée — admin #2"])
+
+    def test_server_error_keeps_last_known_answer(self):
+        import io
+        import urllib.error
+        m = accounts._load_module("stale-test")
+        url = "https://api.github.com/repos/o/r/pulls"
+        m._etags[url] = ("etag", [{"number": 1}])
+        err = urllib.error.HTTPError(url, 504, "Gateway Timeout", {}, io.BytesIO(b""))
+        with mock.patch.object(m.urllib.request, "urlopen", side_effect=err):
+            self.assertEqual(m.gh("/repos/o/r/pulls", "t"), [{"number": 1}])
+        err404 = urllib.error.HTTPError(url, 404, "Not Found", {}, io.BytesIO(b""))
+        with mock.patch.object(m.urllib.request, "urlopen", side_effect=err404):
+            self.assertIsNone(m.gh("/repos/o/r/pulls", "t"), "404 : vraiment absent")
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -206,10 +206,19 @@ def owners():
                                                      "avatar": o.get("avatar_url")})
     return [v for v in seen.values() if v["login"]]
 
+# Pseudo-compte des Réglages : les repos d'autres comptes perso où le jeton est
+# collaborateur (`/users/x/repos` n'en montrerait que les publics).
+SHARED = "@partages"
+
 def repos_of(account):
     """Repos visibles de `account`, les plus actifs d'abord."""
     me = whoami()
-    if me.get("ok") and account.lower() == me["login"].lower():
+    if account == SHARED:
+        data = _paged("/user/repos", _TOKEN, {"affiliation": "collaborator", "sort": "pushed"})
+        # Ceux des orgs ont déjà leur onglet.
+        if isinstance(data, list):
+            data = [r for r in data if (r.get("owner") or {}).get("type") != "Organization"]
+    elif me.get("ok") and account.lower() == me["login"].lower():
         data = _paged("/user/repos", _TOKEN, {"affiliation": "owner", "sort": "pushed"})
     else:
         data = _paged(f"/orgs/{account}/repos", _TOKEN, {"type": "all", "sort": "pushed"})
@@ -285,12 +294,15 @@ def gh(path, token, params=None, cache=True, accept="application/vnd.github+json
         with _etags_lock:
             STATS["errors"] += 1
         print(f"    ✗ {path}: HTTP {e.code}", file=sys.stderr)
-        return None
+        # GitHub indisponible un instant (5xx) : la dernière réponse connue plutôt
+        # qu'un vide. Sinon une liste disparaît un cycle puis « réapparaît », et
+        # ses PRs passent pour nouvelles (cloche : « PR mergée » d'hier).
+        return cached[1] if cached and e.code >= 500 else None
     except Exception as e:
         with _etags_lock:
             STATS["errors"] += 1
         print(f"    ✗ {path}: {e}", file=sys.stderr)
-        return None
+        return cached[1] if cached else None
 
 # ── Utilitaires ───────────────────────────────────────────────────────────────
 def fmt_dt(iso_str):
@@ -848,11 +860,13 @@ def _by_key(items):
 def _ci_state(p):
     return (p.get("ci") or {}).get("state")
 
-def _diff(before, after, todo):
+def _diff(before, after, todo, since=None):
     """Événements du cycle, pour les seules sections `todo` déjà amorcées.
 
     Une section jamais vue ne produit rien : au premier fetch tout est « nouveau »
     et le journal se remplirait de l'état courant au lieu de ses changements.
+    `since` (ISO UTC) : début du cycle précédent, moins une marge ; une PR mergée
+    avant n'est pas annoncée.
     """
     out = []
     up  = CFG.get("upstream_repo") or "upstream"
@@ -881,6 +895,10 @@ def _diff(before, after, todo):
         old = _by_key(before.get("merged"))
         for pr in after.get("merged") or []:
             if _pr_key(pr) in old:
+                continue
+            # Absente du cycle d'avant mais mergée bien avant (liste tronquée,
+            # réponse manquée) : ce n'est pas une nouvelle.
+            if since and (pr.get("merged_at_raw") or "") < since:
                 continue
             just_merged.add((pr["repo"], pr.get("branch")))
             out.append(events.event(
@@ -1014,7 +1032,11 @@ def rebuild(token, sections=None):
         known = tuple(s for s in todo if s in _seeded["sections"])
         _seeded["sections"].update(todo)
         if known:
-            found = _diff(before, _data, known)
+            # Marge : l'horloge de GitHub et la nôtre ne sont pas réglées à la seconde.
+            last = _state["ts"]
+            since = (datetime.fromtimestamp(last - 600, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+                     if last else None)
+            found = _diff(before, _data, known, since)
             for ev in found:
                 # plusieurs comptes : le journal dit lequel, et deux comptes ne
                 # se remplacent pas la même notification
