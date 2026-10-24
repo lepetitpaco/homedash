@@ -38,6 +38,7 @@ export const DEFAULT_UI: UiConfig = {
   openLinks: 'app',
   linkTabsKept: false,
   perfLog: false,
+  setupHidden: false,
 }
 
 /**

@@ -14,7 +14,11 @@ export type Auth = {
   error?: string | null
 }
 
-export type Owner = { login: string; type: string; avatar?: string | null }
+/** `label` : nom affiché à la place du login (pseudo-compte « Partagés avec toi »). */
+export type Owner = { login: string; type: string; avatar?: string | null; label?: string }
+
+/** Repos d'autres comptes perso où l'on est collaborateur (backend : `github.SHARED`). */
+export const SHARED_OWNER = '@partages'
 
 export type GhRepo = {
   name: string

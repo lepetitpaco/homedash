@@ -5,6 +5,7 @@ import {
   getOwners,
   listAccounts,
   removeAccount,
+  SHARED_OWNER,
   type AccountInfo,
   type Auth,
   type Owner,
@@ -16,7 +17,16 @@ import {
   type NotifState,
 } from '../lib/notifications'
 import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
-import { EDIT_TAB_EVENT, NEW_TAB_EVENT, SECTION_EVENT, SECTION_KEY, presetSettingsSection } from '../lib/settingsNav'
+import {
+  EDIT_TAB_EVENT,
+  NEW_TAB_EVENT,
+  SECTION_EVENT,
+  SECTION_KEY,
+  cacheDraft,
+  cachedDraft,
+  presetSettingsSection,
+  setDraftSaver,
+} from '../lib/settingsNav'
 import { hostOf } from '../lib/customTabs'
 import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -194,7 +204,7 @@ const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typ
 
 export default function SettingsPage({ config, onSave, onReload, saving, changelog }: Props) {
   // Brouillon local : rien n'est écrit avant « Enregistrer ».
-  const [draft, setDraft] = useState<Config | null>(config)
+  const [draft, setDraft] = useState<Config | null>(() => (config && cachedDraft(config)) ?? config)
   const [auth, setAuth] = useState<Auth | null>(null)
   const [owners, setOwners] = useState<Owner[]>([])
   const [bell, setBell] = useState<NotifState>('default')
@@ -206,7 +216,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
 
   useEffect(() => setBell(notifState()), [])
 
-  useEffect(() => setDraft(config), [config])
+  useEffect(() => setDraft((config && cachedDraft(config)) ?? config), [config])
 
   // Toujours au moins un compte : le serveur convertit les anciennes configs.
   const accList: GhCfg[] = useMemo(
@@ -258,7 +268,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
 
   // Comptes à parcourir : celui du jeton (owners[0]) et ses orgs. Les autres
   // « User » sont des collaborateurs croisés sur un repo, pas des comptes à lister.
-  const accounts = useMemo(() => owners.filter((o, i) => i === 0 || o.type === 'Organization'), [owners])
+  // Collaborateur sur le repo d'un autre compte perso : un onglet « Partagés avec
+  // toi » les regroupe tous (un onglet par compte croisé serait du bruit).
+  const accounts = useMemo(() => {
+    const mine = owners.filter((o, i) => i === 0 || o.type === 'Organization')
+    const shared = owners.some((o, i) => i > 0 && o.type === 'User')
+    return shared ? [...mine, { login: SHARED_OWNER, type: 'Shared', label: 'Partagés avec toi' }] : mine
+  }, [owners])
 
   // Aide : trois entrées (Nouveautés, Guide, Journal d'erreurs) ; les parties du
   // guide se choisissent dans sa page, sinon l'Aide dépassait les réglages.
@@ -340,6 +356,15 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }
 
   const dirty = useMemo(() => JSON.stringify(draft) !== JSON.stringify(config), [draft, config])
+
+  // Quitter la page garde le brouillon (retrouvé au retour) et permet de
+  // l'enregistrer depuis la question posée au départ (useTabs).
+  useEffect(() => {
+    if (!config) return
+    cacheDraft(config, dirty ? draft : null)
+    setDraftSaver(dirty && draft ? () => onSave(cleanedRef.current(draft)) : null)
+  }, [config, draft, dirty, onSave])
+  useEffect(() => () => setDraftSaver(null), [])
 
   // ⌘S / Ctrl+S : enregistrer sans aller chercher le bouton.
   useEffect(() => {
@@ -899,6 +924,17 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                   </span>
                 </label>
               ))}
+              <label className="set-toggle">
+                <input
+                  type="checkbox"
+                  checked={draft.ui?.setupHidden !== true}
+                  onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), setupHidden: !e.target.checked } })}
+                />
+                <span>
+                  Pour commencer
+                  <em>étapes de prise en main en haut de Raccourcis, tant qu'il en reste à faire</em>
+                </span>
+              </label>
             </div>
           </Block>
           <Block icon="🖥" title="Taille de l'écran" hint="Un clic règle toutes les tailles ci-dessous d'un coup ; ajuste ensuite si besoin.">
@@ -1045,7 +1081,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           <span className="set-actions-note">
             {dirty
               ? '● Modifications non enregistrées'
-              : 'Connexion et sauvegardes s’appliquent tout de suite ; le reste attend « Enregistrer ».'}
+              : '✓ Tout est enregistré. Les connexions (GitHub, Basecamp) et les sauvegardes s’appliquent dès le clic ; le reste attend « Enregistrer ».'}
           </span>
           <button className="set-cancel" onClick={() => setDraft(config)} disabled={saving || !dirty}>
             Annuler
