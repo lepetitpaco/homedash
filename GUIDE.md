@@ -298,6 +298,6 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | Un site boude (captcha refusé, page qui tourne en boucle) | Clic droit sur son icône → *Effacer les données de ce site*, puis reconnecte-toi. Sinon ↗ l'ouvre dans ton navigateur |
 | Rien sur l'icône du Dock | *Pastilles de l'app* désactivé dans macOS : voir *Notifications* ci-dessus |
 
-Autre chose ? Ouvre une **[issue sur GitHub](https://github.com/davidgennaoui/homedash/issues/new)** :
+Autre chose ? Ouvre une **[issue sur GitHub](https://github.com/lepetitpaco/homedash/issues/new)** :
 ce que tu faisais, ce que tu attendais, ce qui s'est passé, et ta version (en haut à droite). *Réglages
 → Aide → Journal d'erreurs → Copier pour une issue* donne le détail technique à coller dedans.
