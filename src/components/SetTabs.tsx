@@ -589,11 +589,11 @@ export default function SetTabs({
               </button>
             </span>
             <em className="xs-note">
-              Ceux du dash (raccourcis, GitHub, recherche…) et ceux d'un site qui demandent un nouvel onglet ; un
-              lien qui change simplement de page dans un site reste dans le site. Dans homedash : en onglet en haut, là
-              où tu es, connecté avec le compte du site s'il en a un. {keys('clic')} (ou ⇧clic) : l'inverse, au cas par
-              cas ; le clic droit sur un lien propose les deux.
-              {hasLinkFlip ? null : ` Dans un site, ${keys('clic')} demande l’appli de bureau à jour (Aide → Mettre à jour).`}
+              Ceux de homedash (raccourcis, GitHub, recherche…) et ceux d'un site qui demandent un nouvel onglet.
+              Dans homedash : un lien vers un de tes sites l'ouvre dans ce site (une page déjà ouverte est
+              simplement réaffichée) ; vers un autre site, un onglet temporaire en haut, là où tu es.{' '}
+              {keys('clic')} (ou ⇧clic) : l'inverse, au cas par cas ; le clic droit sur un lien propose tous les choix.
+              {hasLinkFlip ? null : ` Dans un site, ${keys('clic')} demande l’appli de bureau à jour (menu Aide → Mettre à jour maintenant).`}
             </em>
           </div>
         ) : null}
@@ -651,7 +651,7 @@ export default function SetTabs({
             ))}
           </span>
           <em className="xs-note">
-            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — 💤 sur chaque ligne pour basculer.
+            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site dans Mes sites (💤).
           </em>
         </label>
       </div>

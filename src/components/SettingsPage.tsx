@@ -908,7 +908,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                 [
                   ['showClock', 'Horloge', 'heure et date dans la barre du haut'],
                   ['showTiles', 'Tuiles', 'rangées « épinglés » et « les plus utilisés » en haut de Raccourcis (décochées : la carte « Les plus ouverts » les remplace)'],
-                  ['showFooter', 'Pied de page', 'raccourcis clavier rappelés en bas de page'],
+                  ['showFooter', 'Pied de page', 'raccourcis clavier rappelés en bas de Raccourcis'],
                   ['favicons', 'Icônes des sites', 'le petit logo du site devant chaque lien'],
                 ] as const
               ).map(([key, label, hint]) => (
