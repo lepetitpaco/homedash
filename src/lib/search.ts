@@ -49,7 +49,9 @@ function wordsScore(h: string, n: string): number {
   let typos = 0
   for (const w of n.split(/[^a-z0-9]+/).filter(Boolean)) {
     if (words.some((x) => x.includes(w))) continue
-    if (w.length >= 4 && words.some((x) => oneEditAway(x, w) || oneEditAway(x.slice(0, w.length), w))) {
+    // Même première lettre : une faute se glisse rarement là, et sans elle
+    // « gmail » trouvait « email » (issue #58).
+    if (w.length >= 4 && words.some((x) => x[0] === w[0] && (oneEditAway(x, w) || oneEditAway(x.slice(0, w.length), w)))) {
       typos++
       continue
     }
