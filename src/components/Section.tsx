@@ -114,6 +114,9 @@ export default function Section({ section, ctx }: { section: ResolvedSection; ct
     )
   }
   if (section.kind === 'stats') {
+    // Les tuiles « les plus utilisés » disent déjà la même chose : la carte ne
+    // revient que si elles sont coupées (Réglages → Affichage), issue #56.
+    if (cfg.ui.showTiles !== false) return null
     return (
       <Stats
         config={cfg.stats}

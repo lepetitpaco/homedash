@@ -303,5 +303,11 @@ class FlakyGithubTest(unittest.TestCase):
             self.assertIsNone(m.gh("/repos/o/r/pulls", "t"), "404 : vraiment absent")
 
 
+class EmojiTest(unittest.TestCase):
+    def test_github_shortcodes_become_emoji(self):
+        m = accounts._load_module("emoji-test")
+        self.assertEqual(m.emojify(":sparkles:(paie) :arrow_up: v1 :inconnu:"), "✨(paie) ⬆️ v1 :inconnu:")
+
+
 if __name__ == "__main__":
     unittest.main()

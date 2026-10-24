@@ -33,7 +33,7 @@
   top: calc(100% + 8px);
   right: 0;
   z-index: 60;
-  width: min(440px, calc(100vw - 32px));
+  width: min(500px, calc(100vw - 32px));
   max-height: min(70vh, 620px);
   display: flex;
   flex-direction: column;
@@ -146,4 +146,10 @@
 .bell-more {
   display: block;
   margin: 0.5rem auto 0.3rem;
+}
+
+/* En-tête : sur deux lignes plutôt que coupé au bord quand les filtres sont longs (issue #58). */
+.bell-head {
+  flex-wrap: wrap;
+  row-gap: 6px;
 }
