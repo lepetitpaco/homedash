@@ -2,6 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import type { TabId } from '../components/Tabs'
 import type { CustomTab } from '../types'
 import { initTitleCounter } from '../lib/notifications'
+import { draftSaver } from '../lib/settingsNav'
+import { confirmDialog } from '../components/ConfirmHost'
 
 const TAB_KEY = 'homedash:tab'
 const TABS = ['links', 'github', 'basecamp', 'local', 'settings'] as const
@@ -41,6 +43,20 @@ export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
   const past = useRef<TabId[]>([])
   const future = useRef<TabId[]>([])
   const show = useCallback((id: TabId) => {
+    // Réglages quitté avec des modifications : le brouillon est gardé (retrouvé
+    // au retour), et on propose de l'enregistrer tout de suite.
+    const save = tabNow.current === 'settings' && id !== 'settings' ? draftSaver() : null
+    if (save) {
+      void confirmDialog({
+        title: 'Enregistrer tes réglages ?',
+        body: [
+          'Tu as quitté Réglages sans enregistrer tes modifications.',
+          '« Plus tard » les garde en brouillon : elles t’attendent dans Réglages, sans être appliquées.',
+        ],
+        confirmLabel: 'Enregistrer',
+        cancelLabel: 'Plus tard',
+      }).then((ok) => ok && save())
+    }
     if (tabNow.current !== 'events') backTab.current = tabNow.current
     tabNow.current = id
     setTab(id)
