@@ -36,7 +36,7 @@ type Props = {
   /** Liens de homedash dans l'appli (Réglages → `ui.openLinks`). */
   openLinks: 'app' | 'browser'
   onOpenLinks: (v: 'app' | 'browser') => void
-  /** Quelle entrée de Réglages : Mes sites (sites, dossiers, comptes) ou Liens & onglets (comportement). */
+  /** Quelle partie de Réglages → Mes sites : les sites (dossiers, comptes), ou les liens et la veille. */
   part?: 'sites' | 'links'
 }
 
@@ -52,7 +52,7 @@ const nameFrom = (url: string) =>
  * étiquettes dossier / compte), un éditeur à la fois sous la ligne choisie, et
  * les dossiers et comptes en étiquettes. L'ordre se règle en glissant les
  * icônes dans la barre de gauche. Écrit dans config.json avec « Enregistrer ».
- * `part="links"` : Réglages → Liens & onglets, le comportement (liens, veille).
+ * `part="links"` : Réglages → Mes sites, partie « Liens, onglets et veille ».
  */
 export default function SetTabs({
   tabs,
@@ -623,7 +623,7 @@ export default function SetTabs({
             ))}
           </span>
           <em className="xs-note">
-            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site dans Mes sites (💤).
+            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site ci-dessus (▾).
           </em>
         </label>
       </div>
@@ -632,7 +632,10 @@ export default function SetTabs({
   return (
     <div className="xs">
       <div className="xs-head">
-        <p className="set-hint">Des sites ou des fichiers de ton disque, à côté des onglets de homedash.</p>
+        <p className="set-hint">
+          Des sites ou des fichiers de ton disque, à côté des onglets de homedash. Sur chaque ligne, seuls les
+          réglages inhabituels apparaissent ; ▾ pour tout régler.
+        </p>
         <button type="button" className={`xs-btn${catalog ? ' is-on' : ''}`} onClick={() => setCatalog(!catalog)}>
           ☰ Catalogue
         </button>
@@ -700,16 +703,18 @@ export default function SetTabs({
                     </span>
                   ) : null}
                 </button>
-                {/* Hors du bouton de la ligne (pas de bouton dans un bouton) : chaque réglage
-                    se lit et se bascule d'un clic, sans ouvrir l'éditeur. */}
+                {/* Hors du bouton de la ligne (pas de bouton dans un bouton). Seuls les
+                    réglages qui sortent de l'ordinaire s'affichent (issue #59) : cinq
+                    interrupteurs à leur valeur par défaut sur chaque ligne noyaient
+                    l'exception. Tous sont dans l'éditeur (▾). */}
                 <span className="xs-opts">
-                  {opt(
+                  {t.embed ? null : opt(
                     !!t.embed,
                     t.embed ? '▣ homedash' : '↗ navigateur',
                     t.embed ? 'Affiché dans homedash : clic pour l’ouvrir dans le navigateur' : 'Ouvert dans le navigateur : clic pour l’afficher dans homedash',
                     () => patch(t.id, { embed: !t.embed }),
                   )}
-                  {t.embed
+                  {t.embed && t.sleep
                     ? opt(
                         !!t.sleep,
                         `💤 ${t.sleep ? `${sleepMinutes} min` : 'jamais'}`,
@@ -717,7 +722,7 @@ export default function SetTabs({
                         () => patch(t.id, { sleep: t.sleep ? undefined : true }),
                       )
                     : null}
-                  {isWeb(t) && t.embed
+                  {isWeb(t) && t.embed && t.notify === false
                     ? opt(
                         t.notify !== false,
                         t.notify !== false ? '🔔 notifs' : '🔕 coupées',
@@ -727,7 +732,7 @@ export default function SetTabs({
                         () => patch(t.id, { notify: t.notify === false ? undefined : false }),
                       )
                     : null}
-                  {isWeb(t) && t.embed && desktop
+                  {isWeb(t) && t.embed && desktop && t.preload !== undefined && t.preload !== preloads({ ...t, preload: undefined })
                     ? opt(
                         preloads(t),
                         preloads(t) ? '⚡ au démarrage' : '⚡ au 1er clic',
@@ -735,7 +740,7 @@ export default function SetTabs({
                         () => patch(t.id, { preload: !preloads(t) }),
                       )
                     : null}
-                  {isWeb(t) && t.embed
+                  {isWeb(t) && t.embed && t.capture === false
                     ? opt(
                         t.capture !== false,
                         t.capture !== false ? '🔗 ses liens ici' : '🔗 ses liens au navigateur',
