@@ -19,6 +19,8 @@ de l'onglet Local ? Décoche-les dans *Réglages → Fonctionnalités* : leur é
 
 - **Modifier quoi que ce soit** : clic droit dessus (un lien, une catégorie, une info, une note).
 - **Nouvelle catégorie** : clic droit sur une catégorie → *Nouvelle catégorie…*
+- **Masquer une catégorie** : clic droit → *Masquer*. Un lien en bas de Raccourcis (« 2 catégories
+  masquées — afficher ») les réaffiche.
 - **Épingler un lien** : clic droit → *Épingler*. Glisse une tuile par sa poignée ⠿ pour la déplacer.
 - **Copier une info** (Wi-Fi, IP…) : un clic. Une valeur secrète se copie sans s'afficher.
 
@@ -54,9 +56,9 @@ même sans aucun site : son **＋** ajoute le premier.
 
 - La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
 - **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…*
-- **Onglet éphémère** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse.
-  Un lien cliqué dans l'appli en ouvre un en haut de l'endroit où tu es (voir *Appli de bureau*) ;
-  clic droit sur la barre → *Nouvel onglet éphémère* en ouvre un seul, dans la barre de gauche.
+- **Onglet temporaire** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse. Fermé au redémarrage ; clic droit → *Garder ouvert* pour le conserver.
+  Un lien vers un site qui n'est pas dans ta barre en ouvre un en haut de l'endroit où tu es (voir *Appli de bureau*) ;
+  clic droit sur la barre → *Nouvel onglet temporaire* en ouvre un seul, dans la barre de gauche.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -72,19 +74,19 @@ homedash.
 
 - **Tous les sites s'affichent**, Gmail et Chat compris. Tu t'y connectes une fois, c'est gardé.
 - **Non-lus** sur les icônes de la barre et sur l'icône de l'appli (Dock, barre des tâches).
-- **Un lien s'ouvre en onglet, là où tu es** : cliqué dans le dash (raccourci, PR, tâche Basecamp,
-  recherche…), il s'ouvre en onglet à côté de *Raccourcis*, *GitHub*, *Basecamp* ; cliqué dans un site
-  (X, Chat…), en onglet en haut de ce site. Tu restes où tu étais. Si le site est dans *Mes sites*, l'onglet
-  ouvert est connecté avec le même compte. ✕ ou clic molette pour fermer ; ⚡ ramène au dash, là où tu
-  l'avais laissé.
+- **Un site = un seul endroit** : un lien vers un de tes sites (Gmail, Chat, GitHub…) l'ouvre dans ce
+  site, dans la barre de gauche, avec son compte ; une page déjà ouverte est simplement réaffichée. Un lien
+  vers un autre site s'ouvre en onglet temporaire, en haut, là où tu es : à côté de *Raccourcis* depuis le
+  dash, en haut du site depuis un site. ✕ ou clic molette pour fermer ; ⚡ ramène au dash, et recliqué,
+  à *Raccourcis*.
 - **Plutôt le navigateur ?** *Réglages → Liens & onglets → Liens qui ouvrent un nouvel onglet → Dans le
   navigateur*. Valable pour les liens du dash et ceux d'un site qui ouvrent un nouvel onglet (un lien qui
   change juste de page reste dans le site). Dans les deux cas, ⌘clic (Ctrl+clic sous Windows, ou ⇧clic)
   fait l'inverse, et le clic droit propose les deux.
 - **Garder ces onglets** : ils disparaissent à la relance de l'appli, sauf *Garder ouvert* (clic droit
   sur l'onglet). Pour les garder tous d'office : *Réglages → Liens & onglets → Onglets ouverts par un lien*.
-- **Clic droit dans un site** : ouvrir le lien ailleurs (en onglet ici, dans le site de *Mes sites*,
-  éphémère dans la barre de gauche, navigateur), copier, rechercher.
+- **Clic droit sur un lien** : *Dans <ton site>*, *Nouvel onglet temporaire* (avec le compte de ton
+  choix) ou *Dans le navigateur* ; copier, rechercher.
 
 #### Installer et mettre à jour
 
@@ -249,7 +251,7 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 - **Une adresse** (`exemple.com`, `localhost:3000`) : Entrée l'ouvre.
 - **Un raccourci** en premier mot : `g` Google, `gh` GitHub, `yt` YouTube, `w` Wikipédia, `maps`, `tr`
   traduction, `mdn`.
-- **Une action** : « réglages », « thème », « nouvelle catégorie », « éphémère »…
+- **Une action** : « réglages », « thème », « nouvelle catégorie », « temporaire »…
 
 `↑` `↓` pour choisir, `↵` pour ouvrir ou copier, `Échap` pour effacer. `⌘S` enregistre les réglages.
 

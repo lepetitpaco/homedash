@@ -104,10 +104,16 @@ export default function GhToolbar({
           `à jour ${ago(data.updated_at)}`
         )}
       </span>
-      <span className="gh-bar-stats" title="Appels GitHub facturés / réponses 304 (hors quota)">
-        {data.stats.calls} appels · {data.stats.hits} × 304
-        {data.stats.errors ? ` · ${data.stats.errors} erreurs` : ''}
-      </span>
+      {/* Les compteurs d'appels (quota de l'API) au survol seulement : à l'écran,
+          « 240 appels · 1092 × 304 » ne disait rien à personne (issue #44). */}
+      {data.stats.errors ? (
+        <span
+          className="gh-bar-stats"
+          title={`${data.stats.calls} appels à GitHub, ${data.stats.hits} sans changement (gratuits)`}
+        >
+          ⚠ {data.stats.errors} lecture{data.stats.errors > 1 ? 's' : ''} en échec
+        </span>
+      ) : null}
 
       <div className="gh-bar-right">
         {data.error ? <span className="gh-bar-err">⚠ {data.error}</span> : null}

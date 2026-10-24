@@ -500,7 +500,7 @@ export default function SetTabs({
             </span>
             {t.capture !== false ? (
               <em className="xs-note">
-                Captés : {domainsOf(t).join(', ')}.{' '}
+                Liens qui ouvrent ce site : {domainsOf(t).join(', ')}.{' '}
                 {desktop ? '' : "(Dans l'appli de bureau seulement.)"}
               </em>
             ) : null}
@@ -589,11 +589,11 @@ export default function SetTabs({
               </button>
             </span>
             <em className="xs-note">
-              Ceux du dash (raccourcis, GitHub, recherche…) et ceux d'un site qui demandent un nouvel onglet ; un
-              lien qui change simplement de page dans un site reste dans le site. Dans homedash : en onglet en haut, là
-              où tu es, connecté avec le compte du site s'il en a un. {keys('clic')} (ou ⇧clic) : l'inverse, au cas par
-              cas ; le clic droit sur un lien propose les deux.
-              {hasLinkFlip ? null : ` Dans un site, ${keys('clic')} demande l’appli de bureau à jour (Aide → Mettre à jour).`}
+              Ceux de homedash (raccourcis, GitHub, recherche…) et ceux d'un site qui demandent un nouvel onglet.
+              Dans homedash : un lien vers un de tes sites l'ouvre dans ce site (une page déjà ouverte est
+              simplement réaffichée) ; vers un autre site, un onglet temporaire en haut, là où tu es.{' '}
+              {keys('clic')} (ou ⇧clic) : l'inverse, au cas par cas ; le clic droit sur un lien propose tous les choix.
+              {hasLinkFlip ? null : ` Dans un site, ${keys('clic')} demande l’appli de bureau à jour (menu Aide → Mettre à jour maintenant).`}
             </em>
           </div>
         ) : null}
@@ -609,7 +609,7 @@ export default function SetTabs({
                 className={!linkTabsKept ? 'is-on' : ''}
                 onClick={() => onLinkTabsKept(false)}
               >
-                Éphémères
+                Temporaires
               </button>
               <button
                 type="button"
@@ -622,7 +622,7 @@ export default function SetTabs({
               </button>
             </span>
             <em className="xs-note">
-              Éphémères : fermés à la relance de l'appli. Gardés : rouverts à la relance. Un onglet à la fois : clic
+              Temporaires : fermés au redémarrage de l'appli. Gardés : rouverts au redémarrage. Un onglet à la fois : clic
               droit → Garder ouvert, ou Ne plus garder.
             </em>
           </div>
@@ -651,7 +651,7 @@ export default function SetTabs({
             ))}
           </span>
           <em className="xs-note">
-            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — 💤 sur chaque ligne pour basculer.
+            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site dans Mes sites (💤).
           </em>
         </label>
       </div>
@@ -766,7 +766,7 @@ export default function SetTabs({
                   {isWeb(t) && t.embed
                     ? opt(
                         t.capture !== false,
-                        t.capture !== false ? '🔗 liens ici' : '🔗 liens dehors',
+                        t.capture !== false ? '🔗 ses liens ici' : '🔗 ses liens au navigateur',
                         t.capture !== false
                           ? `Les liens vers ${domainsOf(t).join(', ')} s’ouvrent ici : clic pour les envoyer au navigateur`
                           : 'Les liens vers ce site s’ouvrent dans le navigateur : clic pour les ouvrir ici',
@@ -798,11 +798,11 @@ export default function SetTabs({
       {kept.length ? (
         <section className="xs-group">
           <header>
-            <h3 className="set-sub">Éphémères gardés</h3>
+            <h3 className="set-sub">Onglets gardés</h3>
           </header>
           <p className="set-hint">
-            Ouverts depuis un lien ou ⧉, puis « Garder ouvert » : ils survivent au redémarrage, rangés avec les
-            éphémères, sans capter les liens des autres onglets.
+            Ouverts depuis un lien, puis clic droit → « Garder ouvert » : ils sont rouverts au redémarrage, rangés avec les
+            onglets temporaires, sans capter les liens des autres onglets.
           </p>
           <ul className="xs-kept">
             {kept.map((t) => (
@@ -855,7 +855,7 @@ export default function SetTabs({
             </button>
           </header>
           <p className="set-hint">
-            Comme les conteneurs de Firefox : une connexion à part par compte (« pro », « perso »…).{' '}
+            Pour être connecté à deux comptes d'un même site (pro et perso) : chaque compte a sa propre connexion.{' '}
             {desktop
               ? hasSessions
                 ? null

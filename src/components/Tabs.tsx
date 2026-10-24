@@ -183,7 +183,7 @@ export default function Tabs({
       >
         {button}
         {t.onClose ? (
-          <button className="tab-close" onClick={t.onClose} title="Fermer l'onglet éphémère">
+          <button className="tab-close" onClick={t.onClose} title="Fermer l'onglet">
             ✕
           </button>
         ) : null}
@@ -227,7 +227,7 @@ export default function Tabs({
         </button>
       ) : null}
       {onNewTemp ? (
-        <button className="tab tab-add" onClick={onNewTemp} title="Nouvel onglet éphémère (disparaît à la fermeture)">
+        <button className="tab tab-add" onClick={onNewTemp} title="Nouvel onglet temporaire (fermé au redémarrage)">
           ⧉
         </button>
       ) : null}

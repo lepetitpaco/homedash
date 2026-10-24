@@ -78,8 +78,7 @@ export default function SetRenovate(p: Props) {
           ))}
       </div>
       <p className="set-hint">
-        Sur un repo dérivé, seules les PRs du bot dont la branche contient <code>base-site</code> sont
-        retenues (convention codée dans <code>backend/github.py</code>, <code>fetch_renovate</code>).
+        Sur un repo dérivé, seules les PRs du bot qui portent sur <code>base-site</code> sont retenues.
       </p>
     </details>
   )

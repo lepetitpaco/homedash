@@ -24,7 +24,10 @@ function scoreText(haystack: string, needle: string): number {
   const idx = h.indexOf(n)
   if (idx >= 0) return 400 - Math.min(idx, 100)
 
-  // sous-séquence : "mpa" -> "mon-projet-api"
+  // sous-séquence : "mpa" -> "mon-projet-api". Pas sur un texte long (une adresse,
+  // un titre de PR) : « gmail » s'y retrouvait lettre à lettre dans
+  // github.com/…/david-veepee-…, et ces résultats passaient devant (issue #58).
+  if (h.length > 40) return wordsScore(h, n)
   let hi = 0
   let gaps = 0
   for (const ch of n) {
@@ -46,7 +49,9 @@ function wordsScore(h: string, n: string): number {
   let typos = 0
   for (const w of n.split(/[^a-z0-9]+/).filter(Boolean)) {
     if (words.some((x) => x.includes(w))) continue
-    if (w.length >= 4 && words.some((x) => oneEditAway(x, w) || oneEditAway(x.slice(0, w.length), w))) {
+    // Même première lettre : une faute se glisse rarement là, et sans elle
+    // « gmail » trouvait « email » (issue #58).
+    if (w.length >= 4 && words.some((x) => x[0] === w[0] && (oneEditAway(x, w) || oneEditAway(x.slice(0, w.length), w)))) {
       typos++
       continue
     }

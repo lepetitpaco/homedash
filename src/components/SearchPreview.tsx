@@ -112,7 +112,7 @@ function LinkPreview({
           Ouvrir ↗
         </a>
         <button className="btn" onClick={() => void copy(`sp:${hit.key}`, link.url)}>
-          {copiedKey === `sp:${hit.key}` ? '✓ copiée' : 'Copier l’URL'}
+          {copiedKey === `sp:${hit.key}` ? '✓ copié' : 'Copier le lien'}
         </button>
       </div>
     </div>

@@ -42,6 +42,7 @@ import {
   hostOf,
   isLocal,
   linkTarget,
+  samePage,
   preloads,
   moveTab,
   newFolderId,
@@ -66,6 +67,7 @@ import { clearVisits, recordVisit } from './lib/visits'
 import { keys } from './lib/keys'
 import { RECOUNT_TABS } from './lib/tabCount'
 import SetupCard, { type SetupStep } from './components/SetupCard'
+import { updateGroup } from './lib/mutate'
 
 const RAIL_KEY = 'homedash:rail'
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
@@ -192,7 +194,7 @@ export default function App() {
   const tabSessions = useMemo(() => raw?.tabSessions ?? [], [raw])
   const sessionsRef = useRef(tabSessions)
   sessionsRef.current = tabSessions
-  const { tab, selectTab, goBack, stepTab } = useTabs(cfg?.title, customTabs)
+  const { tab, selectTab, goBack, stepTab } = useTabs(cfg?.title, allTabs)
   // Onglet d'une fonctionnalité coupée (mémorisé, ou `?tab=`) : retour à l'accueil.
   useEffect(() => {
     if ((tab === 'github' || tab === 'basecamp' || tab === 'local') && raw && !featureOn(raw, tab)) selectTab('links')
@@ -557,7 +559,7 @@ export default function App() {
             {
               id: 'temp',
               icon: '⧉',
-              label: 'Nouvel onglet éphémère',
+              label: 'Nouvel onglet temporaire',
               keywords: 'nouvel onglet',
               run: () => openTempRef.current('https://www.google.com/'),
             },
@@ -797,7 +799,8 @@ export default function App() {
               {
                 icon: '↻',
                 label: 'Recharger',
-                hint: desktop ? keys('R', true) : undefined,
+                // ⇧⌘R recharge l'onglet affiché : le rappeler sur un autre tromperait.
+                hint: desktop && view === tabKey(t) ? keys('R', true) : undefined,
                 onSelect: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })),
               },
             ]
@@ -920,6 +923,25 @@ export default function App() {
     setTemps((ts) => [...ts, { id, label, url, embed: true, session, parent: space }])
     selectTab(`x:${id}`)
   }
+  /**
+   * Où ouvrir un lien dans homedash (issue #52) : un site = un seul endroit.
+   * Une page déjà ouverte en onglet est réaffichée ; un lien vers un site de la
+   * barre de gauche ouvre ce site (le compte de l'onglet d'origine d'abord) ;
+   * sinon un onglet temporaire là où l'on est. Avant, chaque clic rechargeait
+   * le site en double (trois Gmail pour un lien cliqué deux fois).
+   */
+  const openHere = (space: string, url: string, from?: CustomTab) => {
+    const open = allTabs.find((t) => (t.id.startsWith('tmp-') || t.parent) && samePage(t.url, url))
+    if (open) {
+      search.setQuery('')
+      selectTab(tabKey(open))
+      return
+    }
+    const target = linkTarget(url, regularTabs, from)
+    // Le site lui-même (Telegram « ouvrir dans un nouvel onglet ») : un onglet à part.
+    if (target && target.id !== from?.id) return openInTab(target, url)
+    openChild(space, url, sessionFor(space, url, from))
+  }
   inAppRef.current = (url, flip = false, searched = false) => {
     if (!desktop || (ui.openLinks === 'browser') !== flip) return false
     // homedash lui-même (une autre page servie par le container) : le navigateur.
@@ -928,11 +950,12 @@ export default function App() {
     // Cherché depuis un site : une nouvelle navigation, pas un lien de ce site.
     // Un éphémère à part dans la barre de gauche, avec le compte du site visé.
     if (searched && space !== DASH) {
-      openTemp(url, linkTarget(url, regularTabs)?.session)
+      const target = linkTarget(url, regularTabs)
+      if (target) openInTab(target, url)
+      else openTemp(url)
       return true
     }
-    // en onglet là où l'on est : le dash, ou l'onglet perso d'où vient le lien
-    openChild(space, url, sessionFor(space, url))
+    openHere(space, url)
     return true
   }
   openTempRef.current = (url) => openTemp(url)
@@ -943,7 +966,7 @@ export default function App() {
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
-      title: 'Onglet éphémère',
+      title: 'Onglet temporaire',
       items: [
         { label: 'Connexion commune', onSelect: () => openTemp(start) },
         ...tabSessions.map((s) => ({ label: `Compte ${s.name}`, onSelect: () => openTemp(start, s.id) })),
@@ -974,7 +997,7 @@ export default function App() {
       title: 'Barre de gauche',
       items: [
         { icon: '＋', label: 'Ajouter un site', onSelect: addTab },
-        { icon: '⧉', label: 'Nouvel onglet éphémère', onSelect: () => newTemp(at) },
+        { icon: '⧉', label: 'Nouvel onglet temporaire', onSelect: () => newTemp(at) },
         { sep: true },
         { heading: 'Largeur' },
         width('wide', 'Étendue (icônes et noms)'),
@@ -1084,7 +1107,7 @@ export default function App() {
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
-      title: `${t.label} · ${t.kept ? 'éphémère gardé' : 'éphémère'}`,
+      title: `${t.label} · ${t.kept ? 'onglet gardé' : 'onglet temporaire'}`,
       items: [
         { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(tempUrl.current.get(t.id) ?? t.url) },
         copyItem(t),
@@ -1110,11 +1133,11 @@ export default function App() {
     // Réglage des liens (et ⌘clic, l'inverse) : comme ceux de la page (issue #32).
     if ((ui.openLinks === 'browser') !== flip) return false
     const from = fromGuest(fromId)
-    // En onglet dans l'espace d'origine (l'onglet perso, ou le dash) : on ne quitte
-    // pas ce qu'on faisait, même pour un site qui a son propre onglet perso.
+    // Depuis un site : son site s'il est dans la barre de gauche, sinon un onglet
+    // temporaire dans l'espace d'origine (openHere).
     const space = from ? spaceOf(tabKey(from)) : null
     if (space) {
-      openChild(space, url, sessionFor(space, url, from))
+      openHere(space, url, from ?? undefined)
       return true
     }
     // Éphémère seul (barre de gauche) : comme avant.
@@ -1133,7 +1156,7 @@ export default function App() {
    * le choix du clic en tête, chacun avec sa touche (issue #32).
    */
   const openChoices = (url: string, clicks = false): MenuItem[] => {
-    const here = spaceOf(tab)
+    const here = spaceOf(tab) ?? DASH
     const outside = clicks && ui.openLinks === 'browser'
     const hint = (mine: boolean) => (clicks ? (mine ? 'clic' : keys('clic')) : undefined)
     const browser: MenuItem = {
@@ -1142,37 +1165,38 @@ export default function App() {
       hint: hint(outside),
       onSelect: () => desktop?.openExternal(url),
     }
+    // Ce que fait le clic (openHere) en tête : le site qui a cette adresse, sinon
+    // un onglet temporaire. Les autres sites du même domaine (un autre compte) suivent.
+    const sites = regularTabs.filter((x) => capturesLink(x, url))
+    const first = linkTarget(url, regularTabs)
     const items: MenuItem[] = outside ? [browser] : []
-    if (here)
-      items.push({
-        icon: '◫',
-        label: 'En onglet ici',
-        hint: hint(!outside),
-        onSelect: () => openChild(here, url, sessionFor(here, url)),
-      })
-    items.push(...regularTabs
-      .filter((x) => capturesLink(x, url))
-      .map((t) => {
-        const s = sessionOf(t, tabSessions)
-        return {
-          icon: iconOf[t.id],
-          label: `Dans ${t.label}`,
-          ...(s ? { dot: s.color, hint: s.name } : {}),
-          onSelect: () => openInTab(t, url),
-        }
-      }))
-    // Onglet éphémère : une pastille par compte, sur une ligne.
+    items.push(...[...sites].sort((a, b) => Number(b.id === first?.id) - Number(a.id === first?.id)).map((t) => {
+      const s = sessionOf(t, tabSessions)
+      return {
+        icon: iconOf[t.id],
+        label: `Dans ${t.label}`,
+        ...(s ? { dot: s.color } : {}),
+        hint: t.id === first?.id ? hint(!outside) : s?.name,
+        onSelect: () => openInTab(t, url),
+      }
+    }))
+    const temp = (session?: string) => openChild(here, url, session)
     items.push(
       hasSessions && tabSessions.length
         ? {
             icon: '◌',
-            label: 'Onglet éphémère',
+            label: 'Nouvel onglet temporaire',
             chips: [
-              { label: 'commun', onSelect: () => openTemp(url) },
-              ...tabSessions.map((s) => ({ label: s.name, color: s.color, onSelect: () => openTemp(url, s.id) })),
+              { label: 'connexion commune', onSelect: () => temp() },
+              ...tabSessions.map((s) => ({ label: s.name, color: s.color, onSelect: () => temp(s.id) })),
             ],
           }
-        : { icon: '◌', label: 'Onglet éphémère', onSelect: () => openTemp(url) },
+        : {
+            icon: '◌',
+            label: 'Nouvel onglet temporaire',
+            hint: first ? undefined : hint(!outside),
+            onSelect: () => temp(),
+          },
     )
     if (!outside) items.push(browser)
     return items
@@ -1469,6 +1493,7 @@ export default function App() {
         }]
       : []),
   ]
+  const hiddenGroups = (raw?.groups ?? []).filter((g) => g.hidden)
   const hideSetup = () => raw && persist({ ...raw, ui: { ...(raw.ui ?? {}), setupHidden: true } })
 
   /** Réglages → Onglets perso ; avec un id, l'éditeur de cet onglet déplié. */
@@ -1562,7 +1587,9 @@ export default function App() {
           counts={tabCounts}
           onHome={() => {
             search.setQuery('')
-            // la dernière vue du dash (un onglet ouvert depuis lui compris), s'il existe encore
+            // Déjà dans le dash : ⚡ ramène à Raccourcis, comme le logo d'une appli
+            // (issue #54). Sinon la dernière vue du dash, s'il existe encore.
+            if (spaceOf(tab) === DASH) return selectTab('links')
             const last = lastDash.current
             selectTab(!last.startsWith('x:') || allTabs.some((t) => tabKey(t) === last) ? last : lastNative.current)
           }}
@@ -1599,7 +1626,7 @@ export default function App() {
           tabs={strip}
           active={shown}
           onSelect={selectTab}
-          onAdd={railOn ? undefined : () => openTabSettings()}
+          onAdd={railOn ? undefined : addTab}
           onNewTemp={railOn || !desktop ? undefined : newTemp}
           onMove={(id, before) => {
             const d = customTabs.find((t) => tabKey(t) === id)
@@ -1806,10 +1833,44 @@ export default function App() {
               </button>
             )}
           </div>
+          {/* Catégories masquées (clic droit → Masquer) : sans ce rappel, elles
+              étaient perdues de vue pour de bon (issue #57). */}
+          {hiddenGroups.length ? (
+            <button
+              className="board-hidden"
+              onClick={(e) =>
+                menus.openMenu({
+                  x: e.clientX,
+                  y: e.clientY,
+                  title: 'Catégories masquées',
+                  items: [
+                    ...hiddenGroups.map((g) => ({
+                      icon: g.icon || '👁',
+                      label: `Afficher « ${g.name} »`,
+                      hint: `${g.links.length} lien${g.links.length > 1 ? 's' : ''}`,
+                      onSelect: () => raw && persist(updateGroup(raw, g.name, { hidden: undefined })),
+                    })),
+                    ...(hiddenGroups.length > 1
+                      ? [{
+                          icon: '👁',
+                          label: 'Tout afficher',
+                          onSelect: () =>
+                            raw && persist(hiddenGroups.reduce((c, g) => updateGroup(c, g.name, { hidden: undefined }), raw)),
+                        }]
+                      : []),
+                  ],
+                })
+              }
+            >
+              {hiddenGroups.length} catégorie{hiddenGroups.length > 1 ? 's' : ''} masquée{hiddenGroups.length > 1 ? 's' : ''} — afficher
+            </button>
+          ) : null}
         </>
       )}
 
-      {ui.showFooter ? <Footer count={links.length} /> : null}
+      {/* Les raccourcis qu'il rappelle (recherche, clic droit sur un lien) ne valent
+          que sur Raccourcis : sous un site ou dans Local, il trompait (issue #58). */}
+      {ui.showFooter && view === 'links' ? <Footer count={links.length} /> : null}
 
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
@@ -1821,7 +1882,13 @@ export default function App() {
           folders={tabFolders}
           sessions={desktop && hasSessions ? tabSessions : []}
           onClose={() => setAdding(false)}
-          onMore={addTabInSettings}
+          onMore={(t) => {
+            if (!t) return addTabInSettings()
+            const id = newTabId(allTabs.map((x) => x.id))
+            saveTabs([...customTabs, { ...t, id }])
+            setAdding(false)
+            openTabSettings(id)
+          }}
           onAdd={(t) => {
             const id = newTabId(allTabs.map((x) => x.id))
             saveTabs([...customTabs, { ...t, id }])
@@ -1834,7 +1901,8 @@ export default function App() {
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
       {copiedKey?.startsWith('tab:') ? <div className="toast toast-saved">⧉ Lien copié</div> : null}
       <UpdateProgress />
-      <DockHint />
+      {/* Sur l'accueil seulement : par-dessus un site, elle cachait la page (issue #44). */}
+      {view === 'links' ? <DockHint /> : null}
       {menus.draft ? (
         <EditDialog
           draft={menus.draft}
