@@ -317,6 +317,31 @@ def fmt_dt(iso_str):
 import re
 _VERSION_RE = re.compile(r"\bv?(\d+\.\d+(?:\.\d+)?(?:[-.][\w]+)*)\b")
 
+# Codes émoji de GitHub (`:sparkles:`) : convertis sur github.com, pas dans
+# l'API. Sans ça, les titres de PR s'affichaient en texte brut (issue #58).
+# Ceux de gitmoji et les plus courants ; un code inconnu reste tel quel.
+EMOJI = {
+    "art": "🎨", "zap": "⚡️", "fire": "🔥", "bug": "🐛", "ambulance": "🚑️", "sparkles": "✨",
+    "memo": "📝", "rocket": "🚀", "lipstick": "💄", "tada": "🎉", "white_check_mark": "✅", "lock": "🔒️",
+    "closed_lock_with_key": "🔐", "bookmark": "🔖", "rotating_light": "🚨", "construction": "🚧", "green_heart": "💚", "arrow_down": "⬇️",
+    "arrow_up": "⬆️", "pushpin": "📌", "construction_worker": "👷", "chart_with_upwards_trend": "📈", "recycle": "♻️", "heavy_plus_sign": "➕",
+    "heavy_minus_sign": "➖", "wrench": "🔧", "hammer": "🔨", "globe_with_meridians": "🌐", "pencil2": "✏️", "poop": "💩",
+    "rewind": "⏪️", "twisted_rightwards_arrows": "🔀", "package": "📦️", "alien": "👽️", "truck": "🚚", "page_facing_up": "📄",
+    "boom": "💥", "bento": "🍱", "wheelchair": "♿️", "bulb": "💡", "beers": "🍻", "speech_balloon": "💬",
+    "card_file_box": "🗃️", "loud_sound": "🔊", "mute": "🔇", "busts_in_silhouette": "👥", "children_crossing": "🚸", "building_construction": "🏗️",
+    "iphone": "📱", "clown_face": "🤡", "egg": "🥚", "see_no_evil": "🙈", "camera_flash": "📸", "alembic": "⚗️",
+    "mag": "🔍️", "label": "🏷️", "seedling": "🌱", "triangular_flag_on_post": "🚩", "goal_net": "🥅", "dizzy": "💫",
+    "wastebasket": "🗑️", "passport_control": "🛂", "adhesive_bandage": "🩹", "monocle_face": "🧐", "coffin": "⚰️", "test_tube": "🧪",
+    "necktie": "👔", "stethoscope": "🩺", "bricks": "🧱", "technologist": "🧑‍💻", "money_with_wings": "💸", "thread": "🧵",
+    "safety_vest": "🦺", "airplane": "✈️", "heavy_check_mark": "✔️", "x": "❌", "warning": "⚠️", "star": "⭐",
+    "gift": "🎁", "robot": "🤖", "calendar": "📆", "email": "📧", "key": "🔑", "link": "🔗",
+    "gear": "⚙️",
+}
+_EMOJI_CODE = re.compile(r":([a-z0-9_+-]+):")
+
+def emojify(text):
+    return _EMOJI_CODE.sub(lambda m: EMOJI.get(m.group(1), m.group(0)), text or "")
+
 def parse_version(title):
     m = _VERSION_RE.search(title or "")
     return m.group(1) if m else None
@@ -542,7 +567,7 @@ def fetch_prs(token, user):
     def enrich(item):
         repo, pr = item
         return {
-            "repo": repo, "number": pr["number"], "title": pr["title"],
+            "repo": repo, "number": pr["number"], "title": emojify(pr["title"]),
             "branch": pr["head"]["ref"], "url": pr["html_url"],
             "created_at": fmt_dt(pr["created_at"]),
             "ci": ci_of(pr["head"]["sha"], repo, token),
@@ -571,7 +596,7 @@ def fetch_merged(token, user):
         repo, pr = item
         sha = pr.get("merge_commit_sha") or pr["head"]["sha"]
         return {
-            "repo": repo, "number": pr["number"], "title": pr["title"],
+            "repo": repo, "number": pr["number"], "title": emojify(pr["title"]),
             # la branche sert à rapprocher la PR de sa copie locale, onglet Local
             "branch": (pr.get("head") or {}).get("ref"),
             "merged_at": fmt_dt(pr["merged_at"]), "merged_at_raw": pr["merged_at"],
@@ -715,7 +740,7 @@ def fetch_renovate(token):
             if not (pr.get("merged_at") and pr["merged_at"] >= since):
                 continue
             merged.append({
-                "repo": repo, "number": pr["number"], "title": pr["title"],
+                "repo": repo, "number": pr["number"], "title": emojify(pr["title"]),
                 "merged_at": fmt_dt(pr["merged_at"]), "merged_at_raw": pr["merged_at"],
                 "url": pr["html_url"], "merge_commit_sha": pr.get("merge_commit_sha"),
                 "upstream": is_up, "version": parse_version(pr["title"]),
@@ -725,7 +750,7 @@ def fetch_renovate(token):
     def enrich_open(args):
         repo, pr, is_up = args
         return {
-            "repo": repo, "number": pr["number"], "title": pr["title"],
+            "repo": repo, "number": pr["number"], "title": emojify(pr["title"]),
             "created_at": fmt_dt(pr["created_at"]), "url": pr["html_url"],
             "upstream": is_up, "version": parse_version(pr["title"]),
             "ci": ci_of(pr["head"]["sha"], repo, token),

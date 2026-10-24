@@ -119,6 +119,18 @@ export function capturesLink(t: CustomTab, url: string): boolean {
   return domainsOf(t).some((d) => h === d || h.endsWith('.' + d))
 }
 
+/** Même page (sans l'ancre ni la barre finale) : `#inbox` ou `/` en plus ne font pas un autre onglet. */
+export function samePage(a: string, b: string): boolean {
+  try {
+    const x = new URL(a)
+    const y = new URL(b)
+    const path = (u: URL) => u.pathname.replace(/\/+$/, '')
+    return bare(x.hostname) === bare(y.hostname) && path(x) === path(y) && x.search === y.search
+  } catch {
+    return false
+  }
+}
+
 /**
  * Onglet où ouvrir un lien : un onglet qui capte ce domaine, de préférence du
  * même compte que l'onglet d'où vient le lien (deux Claude, perso et commun).

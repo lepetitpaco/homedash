@@ -551,3 +551,13 @@ body {
 .rail-first .rail-btn:hover .rail-icon {
   background: color-mix(in srgb, #60a5fa 14%, transparent);
 }
+
+/* Onglet temporaire qui vient de s'ouvrir : un halo bref pour le repérer (issue #53). */
+@keyframes rail-fresh {
+  0%, 60% { box-shadow: 0 0 0 3px var(--sig-info); }
+  100% { box-shadow: 0 0 0 0 transparent; }
+}
+.rail-item.is-fresh .rail-btn {
+  border-radius: 14px;
+  animation: rail-fresh 1.6s ease-out;
+}

@@ -346,3 +346,11 @@
   border-color: color-mix(in srgb, #3fb950 65%, transparent);
 }
 
+
+/* Commande globale repliée (issue #44). */
+details.loc-cmds.is-global > summary {
+  cursor: pointer;
+  color: var(--text-dim);
+  font-size: 13px;
+  padding: 2px 0;
+}

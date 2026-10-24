@@ -68,7 +68,7 @@ export function useContextMenus(
           onSelect: () => persist(toggleLinkFlag(raw, ref, 'check')),
         },
         { sep: true },
-        { label: "Copier l'URL", onSelect: () => void copy(`ctx:${link.id}`, link.url) },
+        { label: "Copier le lien", onSelect: () => void copy(`ctx:${link.id}`, link.url) },
         { label: 'Dupliquer', onSelect: () => persist(duplicateLink(raw, ref)) },
         {
           label: 'Monter',
@@ -140,7 +140,7 @@ export function useContextMenus(
         },
         {
           label: 'Masquer',
-          hint: 'gardée dans tes réglages',
+          hint: 'réaffichable en bas de l’accueil',
           onSelect: () => persist(updateGroup(raw, name, { hidden: true })),
         },
         { sep: true },

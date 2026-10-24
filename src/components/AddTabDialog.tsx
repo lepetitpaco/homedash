@@ -28,7 +28,8 @@ export default function AddTabDialog({
   /** Comptes de connexion (appli de bureau seulement, sinon vide). */
   sessions: TabSession[]
   onAdd: (tab: Omit<CustomTab, 'id'>) => void
-  onMore: () => void
+  /** Avec ce qui est déjà saisi (une adresse valable), sinon rien : l'onglet est créé puis ouvert dans Réglages. */
+  onMore: (draft?: Omit<CustomTab, 'id'>) => void
   onClose: () => void
 }) {
   const [url, setUrl] = useState('')
@@ -49,6 +50,14 @@ export default function AddTabDialog({
     setLabel(s.label)
     setDomains(s.domains)
   }
+  const draft = (): Omit<CustomTab, 'id'> => ({
+    label: name,
+    url: full,
+    embed,
+    ...(domains ? { domains } : {}),
+    ...(folder ? { folder } : {}),
+    ...(session ? { session } : {}),
+  })
   const submit = () => {
     if (!ok) return
     onAdd({
@@ -164,7 +173,12 @@ export default function AddTabDialog({
           </div>
         </div>
         <div className="modal-foot">
-          <button className="btn add-tab-more" onClick={onMore} title="Réglages → Mes sites : icône, veille, liens…">
+          <button
+            className="btn add-tab-more"
+            // Ce qui est tapé n'est plus perdu : le site est ajouté, puis ouvert dans Réglages (issue #58).
+            onClick={() => onMore(ok ? draft() : undefined)}
+            title="Ajoute le site et ouvre tous ses réglages : icône, veille, liens…"
+          >
             Plus de réglages…
           </button>
           <span className="modal-hint">↵ ajouter · Échap annuler</span>

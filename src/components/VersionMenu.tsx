@@ -109,21 +109,30 @@ export function ChangelogBody({ data }: { data: Changelog }) {
 
   return (
     <>
-    {/* Toujours là : la commande à coller dans un terminal pour mettre à jour. */}
+    {/* À jour : une phrase, la commande repliée. Une version dispo : le bouton de
+        l'appli d'abord, la commande seulement s'il n'y a pas d'appli (issue #44). */}
     <div className={`cl-update${data.update ? '' : ' is-idle'}`}>
       <strong>
-        {data.update ? `⬆️ La version ${data.latest} est disponible` : 'Mettre à jour homedash'}
+        {data.update ? `⬆️ La version ${data.latest} est disponible` : '✓ Tu as la dernière version'}
       </strong>
-      <p>
-        {data.update
-          ? 'Colle cette commande dans un terminal :'
-          : 'Tu es à jour. Quand une version sortira, colle cette commande dans un terminal :'}
-      </p>
       {canUpdate && data.update ? <UpdateNow appTooOld={appTooOld} required={required} /> : null}
-      <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
-        <code>{command}</code>
-        <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
-      </button>
+      {data.update && !canUpdate ? (
+        <>
+          <p>Colle cette commande dans un terminal :</p>
+          <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
+            <code>{command}</code>
+            <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
+          </button>
+        </>
+      ) : (
+        <details className="cl-manual">
+          <summary>Mettre à jour à la main (terminal)</summary>
+          <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
+            <code>{command}</code>
+            <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
+          </button>
+        </details>
+      )}
       {appTooOld && !canUpdate ? (
         <p className="cl-warn">
           💻 Cette version demande l'<strong>appli de bureau {required}</strong> (tu as{' '}
@@ -131,7 +140,7 @@ export function ChangelogBody({ data }: { data: Changelog }) {
           se mettra ensuite à jour toute seule.
         </p>
       ) : null}
-      <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p>
+      {data.update ? <p className="cl-safe">Tes données sont sauvegardées automatiquement avant la mise à jour.</p> : null}
       {desktopCommand && !desktop?.update ? (
         <div className="cl-desktop">
           <strong>💻 Appli de bureau ({isMac ? 'Mac' : 'Windows'})</strong>
@@ -230,7 +239,8 @@ function Entry({ entry, current, fresh }: { entry: ChangelogEntry; current?: boo
       </div>
       <ul>
         {entry.items.map((item, i) => (
-          <li key={i}>{inline(item)}</li>
+          // « (#44) » : utile dans le fichier, pas pour qui lit les nouveautés.
+          <li key={i}>{inline(item.replace(/\s*\((?:#\d+(?:,\s*)?)+\)/g, ''))}</li>
         ))}
       </ul>
     </article>
