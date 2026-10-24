@@ -156,9 +156,20 @@ export default function Rail({
     },
   })
 
+  /** Compte d'un dossier : le sien, sinon celui que partagent tous ses sites. */
+  const folderSession = (id?: string) => {
+    const f = folders.find((x) => x.id === id)
+    if (!f) return undefined
+    if (f.session) return f.session
+    const inside = tabs.filter((x) => x.folder === id)
+    return inside.length && inside.every((x) => x.session === inside[0].session) ? inside[0].session : undefined
+  }
   const item = (t: CustomTab) => {
     const key = tabKey(t)
-    const session = sessionOf(t, sessions)
+    const own = sessionOf(t, sessions)
+    // Le compte de tout son dossier : pas répété sur chaque icône (issue #60),
+    // seulement l'exception. Le nom au survol le dit toujours.
+    const session = own && own.id !== folderSession(t.folder) ? own : undefined
     const zone = over?.id === t.id ? over.zone : null
     const inner = (
       <>
@@ -204,7 +215,8 @@ export default function Rail({
         ) : null}
       </>
     )
-    const title = `${t.label}${session ? ` · compte ${session.name}` : ''}${t.embed ? '' : ' ↗'}`
+    const title = `${t.label}${own ? ` · compte ${own.name}` : ''}${t.embed ? '' : ' ↗'}${
+      asleep.includes(key) ? ' · 💤 en veille, se recharge au clic' : ''}`
     return (
       <div
         key={t.id}

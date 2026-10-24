@@ -863,7 +863,7 @@ export default function App() {
                 icon: '◉',
                 label: 'Connexion',
                 chips: [
-                  { label: 'commune', on: !mine, onSelect: () => mine && setSession(undefined) },
+                  { label: 'principal', on: !mine, onSelect: () => mine && setSession(undefined) },
                   ...tabSessions.map((x) => ({
                     label: x.name,
                     color: x.color,
@@ -882,7 +882,18 @@ export default function App() {
       ],
     })
   }
-  const folderMenu = (e: React.MouseEvent, f: (typeof tabFolders)[number]) =>
+  const folderMenu = (e: React.MouseEvent, f: (typeof tabFolders)[number]) => {
+    const inside = customTabs.filter((t) => t.folder === f.id)
+    // Compte du dossier (issue #60) : appliqué à chacun de ses sites (même stockage
+    // qu'un compte choisi site par site) ; ceux ajoutés ensuite le prennent aussi.
+    const setFolderSession = (session?: string) =>
+      saveTabs(
+        customTabs.map((t) => (t.folder === f.id ? { ...t, session } : t)),
+        tabFolders.map((x) => (x.id === f.id ? { ...x, session } : x)),
+      )
+    const shared = inside.length && inside.every((t) => (t.session ?? '') === (inside[0].session ?? ''))
+      ? inside[0].session
+      : null
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
@@ -896,18 +907,46 @@ export default function App() {
             if (r) saveTabs(customTabs, tabFolders.map((x) => (x.id === f.id ? { ...x, name: r.name, color: r.color } : x)))
           },
         },
+        ...(desktop && hasSessions && tabSessions.length
+          ? [
+              {
+                icon: '◉',
+                label: 'Compte de tout le dossier',
+                chips: [
+                  { label: 'principal', on: shared === undefined, onSelect: () => setFolderSession(undefined) },
+                  ...tabSessions.map((x) => ({
+                    label: x.name,
+                    color: x.color,
+                    on: shared === x.id,
+                    onSelect: () => setFolderSession(x.id),
+                  })),
+                ],
+              } as MenuItem,
+            ]
+          : []),
+        { sep: true },
         {
           icon: '✕',
           label: 'Supprimer le dossier',
-          hint: 'ses onglets restent',
+          hint: 'ses sites restent',
+          danger: true,
           onSelect: () =>
-            saveTabs(
-              customTabs.map((t) => (t.folder === f.id ? { ...t, folder: undefined } : t)),
-              tabFolders.filter((x) => x.id !== f.id),
+            void confirmDialog({
+              title: `Supprimer le dossier « ${f.name} » ?`,
+              body: `Ses ${inside.length} site${inside.length > 1 ? 's' : ''} restent dans la barre de gauche, hors dossier.`,
+              confirmLabel: 'Supprimer le dossier',
+            }).then(
+              (ok) =>
+                ok &&
+                saveTabs(
+                  customTabs.map((t) => (t.folder === f.id ? { ...t, folder: undefined } : t)),
+                  tabFolders.filter((x) => x.id !== f.id),
+                ),
             ),
         },
       ],
     })
+  }
   // ── liens et clic droit dans les sites (appli de bureau) ─────────────────
   const fromGuest = (id: number) => allTabs.find((t) => t.id === guestTab.current.get(id))
   /**
@@ -1000,7 +1039,7 @@ export default function App() {
       y: e.clientY,
       title: 'Onglet temporaire',
       items: [
-        { label: 'Connexion commune', onSelect: () => openTemp(start) },
+        { label: 'Compte principal', onSelect: () => openTemp(start) },
         ...tabSessions.map((s) => ({ label: `Compte ${s.name}`, onSelect: () => openTemp(start, s.id) })),
       ],
     })
@@ -1120,7 +1159,7 @@ export default function App() {
       {
         icon: '🧹',
         label: 'Effacer les données de ce site',
-        hint: account ? `compte ${account.name}` : 'connexion commune',
+        hint: account ? `compte ${account.name}` : 'compte principal',
         onSelect: () =>
           void confirmDialog({
             title: `Effacer les données de ${base} ?`,
@@ -1228,7 +1267,7 @@ export default function App() {
             icon: '◌',
             label: 'Nouvel onglet temporaire',
             chips: [
-              { label: 'connexion commune', onSelect: () => temp() },
+              { label: 'compte principal', onSelect: () => temp() },
               ...tabSessions.map((s) => ({ label: s.name, color: s.color, onSelect: () => temp(s.id) })),
             ],
           }
@@ -1935,7 +1974,8 @@ export default function App() {
           }}
           onAdd={(t) => {
             const id = newTabId(allTabs.map((x) => x.id))
-            saveTabs([...customTabs, { ...t, id }])
+            const folderSession = tabFolders.find((f) => f.id === t.folder)?.session
+            saveTabs([...customTabs, { ...t, id, ...(t.session || !folderSession ? {} : { session: folderSession }) }])
             setAdding(false)
             search.setQuery('')
             if (t.embed) selectTab(`x:${id}`)

@@ -149,7 +149,7 @@ export default function AddTabDialog({
                 value={session}
                 onChange={setSession}
                 options={[
-                  { value: '', label: 'Connexion commune' },
+                  { value: '', label: 'Compte principal' },
                   ...sessions.map((s) => ({ value: s.id, label: s.name, color: s.color })),
                 ]}
               />
