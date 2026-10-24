@@ -12,6 +12,8 @@ from collections import Counter, defaultdict
 from datetime import date, datetime, timedelta
 from pathlib import Path
 
+from perflog import ASLEEP
+
 
 def _read(path):
     out = []
@@ -51,7 +53,10 @@ def _server(rows):
             ops[k][1] += o.get("avg_s", 0) * o.get("n", 0)
             ops[k][2] = max(ops[k][2], o.get("max_s", 0))
         routes.update(s.get("requests") or {})
-    slow = [r for r in rows if r.get("kind") == "slow"]
+    # Journaux d'avant la ligne « asleep » : une veille y passait pour une lenteur.
+    slow = [r for r in rows if r.get("kind") == "slow" and (r.get("took_s") or 0) < ASLEEP]
+    asleep = [r for r in rows if r.get("kind") == "asleep"
+              or (r.get("kind") == "slow" and (r.get("took_s") or 0) >= ASLEEP)]
     return {
         "samples": len(samples),
         "mem_mb": round(_avg(s.get("rss_mb") for s in samples)),
@@ -64,6 +69,7 @@ def _server(rows):
         "ops": [{"op": k, "n": n, "avg_s": round(total / n if n else 0, 2), "max_s": round(worst, 2)}
                 for k, (n, total, worst) in sorted(ops.items())],
         "slow": [{"at": _when(r.get("t")), "op": r.get("op"), "took_s": r.get("took_s")} for r in slow],
+        "asleep": [{"at": _when(r.get("t")), "op": r.get("op"), "took_s": r.get("took_s")} for r in asleep],
         "routes": [{"route": r, "n": n} for r, n in routes.most_common(6)],
     }
 
@@ -171,6 +177,9 @@ def text(days_report):
                 lines.append(f"  ⚠ lent à {o['at']} : {o['op']} {o['took_s']} s")
             if len(s["slow"]) > 10:
                 lines.append(f"  … et {len(s['slow']) - 10} autres opérations lentes")
+            if s["asleep"]:
+                lines.append("  mis à part (machine en veille ?) : "
+                             + ", ".join(f"{o['op']} à {o['at']}" for o in s["asleep"]))
             if s["routes"]:
                 lines.append("  routes les plus sondées : " + ", ".join(f"{x['route']} ×{x['n']}" for x in s["routes"]))
         else:
