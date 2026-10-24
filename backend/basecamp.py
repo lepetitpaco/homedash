@@ -36,7 +36,7 @@ AUTHORIZE_URL = "https://launchpad.37signals.com/authorization/new"
 TOKEN_URL     = "https://launchpad.37signals.com/authorization/token"
 IDENTITY_URL  = "https://launchpad.37signals.com/authorization.json"
 # Exigé par Basecamp (400 sans) : nom de l'appli et un lien pour joindre l'auteur.
-USER_AGENT    = "homedash (https://github.com/davidgennaoui/homedash)"
+USER_AGENT    = "homedash (https://github.com/lepetitpaco/homedash)"
 SECRET_KEY    = "basecamp"
 EVERY         = 60          # s entre deux lectures ; 2 appels, presque toujours des 304
 REFRESH_AHEAD = 24 * 3600   # renouvelle le jeton un jour avant son expiration

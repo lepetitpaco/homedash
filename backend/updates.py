@@ -31,7 +31,7 @@ import store
 CHANGELOG   = Path(os.environ.get("CHANGELOG", Path(__file__).resolve().parent.parent / "CHANGELOG.md"))
 # Mode d'emploi, affiché dans Réglages → Aide (copié dans l'image comme le changelog).
 GUIDE       = Path(os.environ.get("GUIDE", Path(__file__).resolve().parent.parent / "GUIDE.md"))
-REPO        = os.environ.get("HOMEDASH_REPO", "davidgennaoui/homedash")
+REPO        = os.environ.get("HOMEDASH_REPO", "lepetitpaco/homedash")
 BRANCH      = os.environ.get("HOMEDASH_BRANCH", "main")
 CHECK_EVERY = 10 * 60      # un appel à GitHub (6/h, sur un plafond de 5 000)
 VERSION     = "version.json"
