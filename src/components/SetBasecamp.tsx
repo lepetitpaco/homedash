@@ -159,6 +159,47 @@ export default function SetBasecamp() {
 
       {showApp ? (
         <>
+          {/* Avant les champs : on crée l'appli d'abord, on remplit ensuite. */}
+          <details className="set-howto" open={!st.configured}>
+            <summary>Comment faire (une fois, 3 minutes, pas besoin d'être admin)</summary>
+            <p className="set-hint">
+              Basecamp demande à chacun de déclarer sa propre « appli » pour homedash. C'est un formulaire à
+              remplir une fois ; ensuite la connexion se renouvelle toute seule.
+            </p>
+            <ol>
+              <li>
+                Ouvre{' '}
+                <a href={LAUNCHPAD} target="_blank" rel="noreferrer" data-outside>
+                  launchpad.37signals.com/integrations
+                </a>{' '}
+                (connecté à ton Basecamp habituel), puis <em>Register another application</em>.
+              </li>
+              <li>
+                Remplis : nom <code>homedash</code>, entreprise : ta boîte, <em>Your website URL</em> :{' '}
+                <code>{ABOUT_URL}</code>, <em>Products</em> : coche seulement <strong>Basecamp 4</strong>.
+              </li>
+              <li>
+                <em>Redirect URI</em> : <code>{redirect || redirectFor(DEFAULT_CALLBACK_SITE)}</code> (copie-la telle
+                quelle). Valide le formulaire.
+              </li>
+              <li>
+                Launchpad affiche un <strong>Client ID</strong> et un <strong>Client Secret</strong> : colle-les
+                ci-dessous, laisse « Mon site de callback » vide, puis <strong>Enregistrer l'appli</strong>.
+              </li>
+              <li>
+                Clique <strong>Se connecter à Basecamp</strong> et autorise. Tu arrives sur une page vide ou
+                « introuvable » : c'est normal. Copie <strong>son adresse complète</strong> dans la barre du
+                navigateur (elle contient <code>?code=…</code>), colle-la dans le champ qui apparaît ici, puis{' '}
+                <strong>Valider</strong>.
+              </li>
+            </ol>
+            <p className="set-hint">
+              Pourquoi une page vide : Basecamp refuse de renvoyer vers ton ordinateur, il renvoie donc vers
+              example.com (adresse réservée aux exemples), et tu rapportes le code à la main. Ce code ne sert
+              qu'une fois et ne vaut rien sans ton Client Secret, qui reste sur cette machine. Si tu as ton propre
+              site, tu peux le mettre comme site de callback.
+            </p>
+          </details>
           <h3 className="set-sub">Appli Launchpad</h3>
           <div className="set-grid">
             <label className="set-field">
@@ -223,46 +264,6 @@ export default function SetBasecamp() {
             </button>
             {editing ? <button onClick={() => setEditing(false)}>annuler</button> : null}
           </div>
-          <details className="set-howto" open={!st.configured}>
-            <summary>Créer l'appli (2 min, pas besoin d'être admin)</summary>
-            <ol>
-              <li>
-                Ouvre{' '}
-                <a href={LAUNCHPAD} target="_blank" rel="noreferrer" data-outside>
-                  launchpad.37signals.com/integrations
-                </a>
-                , connecté avec ton compte Basecamp habituel → <em>Register another application</em>.
-              </li>
-              <li>
-                Nom de l'appli : <code>homedash</code> · entreprise : ta boîte.
-              </li>
-              <li>
-                <em>Your website URL</em> : <code>{ABOUT_URL}</code>
-              </li>
-              <li>
-                <em>Products</em> : coche seulement <strong>Basecamp 4</strong> (ou « Basecamp » : le Basecamp actuel).
-              </li>
-              <li>
-                <em>Redirect URI</em> : <code>https://&lt;ton site&gt;{CALLBACK_PATH}</code>, exactement celle
-                affichée sous « Mon site de callback » (par défaut <code>{redirectFor(DEFAULT_CALLBACK_SITE)}</code>).
-                Launchpad refuse <code>localhost</code> et <code>127.0.0.1</code>. Si tu as un site, mets-le : le
-                code n'arrivera que chez toi (vérifie que <code>/oauth</code> ne redirige pas ailleurs). Sinon
-                example.com, domaine réservé aux exemples, géré par l'IANA.
-              </li>
-              <li>Copie le Client ID et le Client Secret ci-dessus, le même site de callback, puis{' '}
-                <strong>Enregistrer l'appli</strong>.</li>
-              <li>
-                <strong>Se connecter à Basecamp</strong> → autorise l'accès. Tu arrives sur une page de ce site
-                (vide ou introuvable, peu importe) : copie <strong>son adresse complète</strong> (avec{' '}
-                <code>?code=…</code>) et colle-la dans le champ qui apparaît ici, puis <strong>Valider</strong>.
-              </li>
-            </ol>
-            <p className="set-hint">
-              À faire une fois : le jeton se renouvelle ensuite tout seul. Le site de callback ne voit passer
-              que le code, jamais le jeton : le code expire vite, ne sert qu'une fois, et rien sans ton Client
-              Secret, qui reste sur cette machine.
-            </p>
-          </details>
         </>
       ) : (
         <div className="set-add">

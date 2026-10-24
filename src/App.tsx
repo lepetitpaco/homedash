@@ -65,6 +65,7 @@ import type { Command } from './components/SearchResults'
 import { clearVisits, recordVisit } from './lib/visits'
 import { keys } from './lib/keys'
 import { RECOUNT_TABS } from './lib/tabCount'
+import SetupCard, { type SetupStep } from './components/SetupCard'
 
 const RAIL_KEY = 'homedash:rail'
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
@@ -628,6 +629,18 @@ export default function App() {
     const h = el ? el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || '0') : 0
     document.documentElement.style.setProperty('--strip-h', `${h}px`)
   })
+
+  // « Pour commencer » (accueil) : ce qui est branché, relu à chaque retour sur
+  // l'accueil et après chaque enregistrement.
+  const setupWanted = tab === 'links' && !!raw && raw.ui?.setupHidden !== true
+  const [setupState, setSetupState] = useState<{ github: boolean; basecamp: boolean; local: boolean } | null>(null)
+  useEffect(() => {
+    if (!setupWanted) return
+    fetch('api/health', { cache: 'no-store' })
+      .then((r) => r.json() as Promise<{ github: boolean; basecamp: boolean; local: boolean }>)
+      .then(setSetupState)
+      .catch(() => undefined)
+  }, [setupWanted, raw])
 
   if (error && !cfg) return <LoadTrouble error={error} onRetry={retryLoad} />
 
@@ -1394,6 +1407,70 @@ export default function App() {
   const railActive = shown === 'settings' ? 'settings' : space === DASH ? null : (space ?? (shown.startsWith('x:') ? shown : null))
   // La recherche court-circuite les onglets : ses résultats valent partout.
   const view: TabId | 'search' = searching ? 'search' : shown
+  const setupOn = view === 'links' && setupWanted
+  const openSection = (id: string) => {
+    search.setQuery('')
+    presetSettingsSection(id)
+    selectTab('settings')
+  }
+  const setupSteps: SetupStep[] = [
+    {
+      id: 'sites',
+      icon: '🗂',
+      title: 'Ajoute tes sites',
+      hint: 'Gmail, Chat, Claude… dans la barre de gauche, avec leurs non-lus.',
+      done: customTabs.length > 0,
+      action: 'Ajouter un site',
+      run: addTab,
+    },
+    ...(on.github
+      ? [{
+          id: 'github',
+          icon: '🐙',
+          title: 'Connecte GitHub',
+          hint: 'Tes branches, PRs et CI. Il faut un jeton GitHub : la page explique comment le créer.',
+          done: setupState?.github,
+          action: 'Connecter',
+          run: () => openSection('set-github'),
+        }]
+      : []),
+    ...(on.local
+      ? [{
+          id: 'local',
+          icon: '💻',
+          title: 'Choisis tes dossiers de code',
+          hint: 'Les dossiers où sont tes clones git : homedash dit quelles branches tu peux supprimer.',
+          done: setupState?.local,
+          action: 'Choisir',
+          run: () => openSection('set-local'),
+        }]
+      : []),
+    ...(on.basecamp
+      ? [{
+          id: 'basecamp',
+          icon: '🏕',
+          title: 'Connecte Basecamp',
+          hint: 'Tes tâches et tes notifications, en lecture seule.',
+          done: setupState?.basecamp,
+          action: 'Connecter',
+          run: () => openSection('set-basecamp'),
+        }]
+      : []),
+    // Défauts = écran 49" : sur un écran plus petit, le texte paraît minuscule.
+    ...(window.innerWidth < 4000
+      ? [{
+          id: 'display',
+          icon: '🖥',
+          title: 'Adapte l’affichage à ton écran',
+          hint: 'Texte trop petit ou trop grand ? Choisis ton écran (portable, 34", 49").',
+          done: raw?.ui?.pageWidth !== undefined,
+          action: 'Choisir',
+          run: () => openSection('set-display'),
+        }]
+      : []),
+  ]
+  const hideSetup = () => raw && persist({ ...raw, ui: { ...(raw.ui ?? {}), setupHidden: true } })
+
   /** Réglages → Onglets perso ; avec un id, l'éditeur de cet onglet déplié. */
   const openTabSettings = (id?: string) => {
     search.setQuery('')
@@ -1683,6 +1760,9 @@ export default function App() {
         />
       ) : view.startsWith('x:') ? null : (
         <>
+          {setupOn ? (
+            <SetupCard steps={setupSteps} onHide={hideSetup} onFeatures={() => openSection('set-features')} />
+          ) : null}
           <QuickTiles
             title={ui.pinnedTitle}
             variant="pinned"

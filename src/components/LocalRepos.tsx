@@ -342,18 +342,18 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings, c
   }
 
   if (data && !data.enabled) {
+    // Pas encore de dossier : une étape à faire, pas une panne (rien en rouge).
     return (
-      <div className="card fatal">
-        <h1>Onglet Local indisponible</h1>
-        <p>{data.error ?? data.hint}</p>
+      <div className={`card fatal${data.error ? '' : ' is-setup'}`}>
+        <h1>{data.error ? 'Onglet Local indisponible' : '💻 Choisis tes dossiers de code'}</h1>
+        {data.error ? <p>{data.error}</p> : null}
         <p className="muted">
-          Choisis le ou les dossiers qui contiennent tes clones git (boulot, perso…). Ils sont lus
-          en lecture seule : le backend ne sait que lire, et le dossier personnel est monté{' '}
-          <code>:ro</code>.
+          Indique le ou les dossiers où sont tes clones git (boulot, perso…). homedash les lit sans
+          jamais rien modifier et te dit quelles branches tu peux supprimer, avec la commande à copier.
         </p>
         <p>
           <button className="gh-bar-btn" onClick={onSettings}>
-            ⚙ choisir les dossiers
+            ⚙ Choisir les dossiers
           </button>
         </p>
       </div>

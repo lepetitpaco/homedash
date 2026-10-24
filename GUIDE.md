@@ -7,6 +7,12 @@ Guide**, une partie par pastille.
 
 Ta page d'accueil : tes liens, des notes, des infos à copier.
 
+**Premier lancement** : la carte **👋 Pour commencer**, en haut, liste ce qu'il reste à brancher (tes sites,
+GitHub, tes dossiers de code, Basecamp, la taille de ton écran). Chaque bouton mène au bon réglage, avec
+le pas-à-pas ; une étape faite se coche toute seule. La carte disparaît quand tout est fait, ou avec
+*Masquer* (*Réglages → Affichage → Pour commencer* la remet). Tu ne te sers pas de GitHub, de Basecamp ou
+de l'onglet Local ? Décoche-les dans *Réglages → Fonctionnalités* : leur étape disparaît.
+
 ![L'onglet Raccourcis](docs/screenshots/accueil.jpg)
 
 #### Comment faire
@@ -250,7 +256,8 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 ## ⚙️ Réglages
 
 Tout ce qui se règle, rangé par thème. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale
-ce qui ne l'est pas encore.
+ce qui ne l'est pas encore. Tu quittes Réglages sans enregistrer ? homedash te le propose ; *Plus tard*
+garde tes modifications en brouillon, retrouvées au retour.
 
 ![Réglages → Mes sites](docs/screenshots/reglages-onglets.jpg)
 
@@ -291,8 +298,8 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | --- | --- |
 | « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, lance Docker Desktop |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
-| Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion* |
-| Un repo n'est pas proposé | Le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
+| Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion*, le pas-à-pas « Comment créer un jeton » y est ouvert |
+| Un repo n'est pas proposé | Repo d'un collègue où tu es collaborateur : onglet *Partagés avec toi*. Sinon le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
 | Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dossier personnel, ou 💽 ailleurs sur le disque) |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
 | Des lettres au lieu des icônes | *Réglages → Affichage → Favicons* doit être coché |

@@ -47,3 +47,29 @@ export function showSettingsSection(id: string) {
   presetSettingsSection(id)
   window.dispatchEvent(new CustomEvent(SECTION_EVENT, { detail: id }))
 }
+
+/**
+ * Brouillon de Réglages non enregistré : gardé quand on quitte la page (un autre
+ * onglet, la recherche) et retrouvé au retour, tant que la config n'a pas changé
+ * entre-temps. Avant, il était perdu sans un mot.
+ */
+let draftCache: { base: string; draft: unknown } | null = null
+
+export function cachedDraft<T>(base: T): T | null {
+  return draftCache && draftCache.base === JSON.stringify(base) ? (draftCache.draft as T) : null
+}
+
+export function cacheDraft<T>(base: T, draft: T | null) {
+  draftCache = draft === null ? null : { base: JSON.stringify(base), draft }
+}
+
+/** Enregistre le brouillon en cours ; `null` quand il n'y a rien à enregistrer. */
+let saveDraft: (() => void) | null = null
+
+export function setDraftSaver(fn: (() => void) | null) {
+  saveDraft = fn
+}
+
+export function draftSaver() {
+  return saveDraft
+}
