@@ -4,6 +4,27 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.33.0 — 2026-10-24
+
+- **Un site = un seul endroit** : un lien vers un de tes sites (Gmail, Chat, GitHub, Discord…) l'ouvre
+  dans ce site, avec son compte, au lieu de le charger une deuxième fois en onglet ; une page déjà ouverte
+  est simplement réaffichée. Fini les trois Gmail ouverts pour deux clics (#52).
+- **Tu vois où s'ouvre un onglet** : la barre de gauche défile jusqu'au nouvel onglet et le signale d'un
+  halo ; le titre de la fenêtre suit l'onglet affiché (#53).
+- **⚡ recliqué ramène à Raccourcis** (#54).
+- **Clic droit « Ouvrir » plus simple** : *Dans <ton site>*, *Nouvel onglet temporaire*, *Dans le
+  navigateur*. « Éphémère » devient « temporaire » partout (#55).
+- **Catégories masquées retrouvées** : un lien en bas de Raccourcis les réaffiche (avant, une catégorie
+  masquée était perdue de vue) (#57).
+- **Accueil allégé** : « Les plus ouverts » ne double plus les tuiles « Les plus utilisés » (#56).
+- **Plus clair pour tout le monde** : onglet Local sans jargon (commande globale repliée, « 22 de retard »
+  au lieu de « 22↓ »), onglet GitHub sans compteurs techniques ni étiquettes inutiles, titres de PR avec
+  leurs émojis (✨ au lieu de `:sparkles:`), réglages en mots simples, nouveautés sans commande terminal
+  quand tu es à jour, bulle du Dock seulement sur l'accueil (#44, #58).
+- **Corrections** : « Plus de réglages… » garde le site tapé, une note se supprime après confirmation, la
+  recherche ne remonte plus de résultats sans rapport, l'en-tête de la cloche n'est plus coupé, le pied de
+  page n'apparaît que sur Raccourcis (#58).
+
 ## 1.32.0 — 2026-10-24
 
 - **Pour commencer** : au premier lancement, une carte en haut de Raccourcis liste ce qu'il reste à
