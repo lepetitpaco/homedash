@@ -129,7 +129,7 @@ export default function Rail({
   const kidsBadge = (key: string, name: string) => {
     const n = kids[key] ?? 0
     return n ? (
-      <span className="rail-kids" title={`${n} onglet${n > 1 ? 's' : ''} ouvert${n > 1 ? 's' : ''} dans ${name}`}>
+      <span className="rail-open" title={`${n} onglet${n > 1 ? 's' : ''} ouvert${n > 1 ? 's' : ''} dans ${name}`}>
         {n}
       </span>
     ) : null
