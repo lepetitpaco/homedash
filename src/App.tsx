@@ -1901,7 +1901,8 @@ export default function App() {
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
       {copiedKey?.startsWith('tab:') ? <div className="toast toast-saved">⧉ Lien copié</div> : null}
       <UpdateProgress />
-      <DockHint />
+      {/* Sur l'accueil seulement : par-dessus un site, elle cachait la page (issue #44). */}
+      {view === 'links' ? <DockHint /> : null}
       {menus.draft ? (
         <EditDialog
           draft={menus.draft}

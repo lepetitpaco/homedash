@@ -115,7 +115,7 @@ const DISPLAY_FIELDS: {
     fields: [
       { key: 'maxTiles', label: 'Tuiles « les plus utilisés »', hint: 'nombre de liens dans la rangée des plus cliqués' },
       { key: 'linkWidth', label: 'Largeur d’un lien', unit: 'px', hint: 'plus petit = plus de liens par ligne' },
-      { key: 'railWidth', label: 'Colonne des titres', unit: 'px', hint: 'largeur de la colonne où s’affiche le nom de chaque catégorie' },
+      { key: 'railWidth', label: 'Largeur des noms de catégorie', unit: 'px', hint: 'la colonne de gauche de chaque catégorie de liens, où s’affiche son nom' },
       { key: 'sidebarWidth', label: 'Blocs Notes / Stats', unit: 'px', hint: 'largeur mini de chaque bloc sous les tuiles' },
       { key: 'healthcheckInterval', label: 'Test des voyants', unit: 's', hint: 'fréquence de vérification des liens surveillés' },
     ],
@@ -909,7 +909,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                   ['showClock', 'Horloge', 'heure et date dans la barre du haut'],
                   ['showTiles', 'Tuiles', 'rangées « épinglés » et « les plus utilisés » en haut de Raccourcis (décochées : la carte « Les plus ouverts » les remplace)'],
                   ['showFooter', 'Pied de page', 'raccourcis clavier rappelés en bas de page'],
-                  ['favicons', 'Favicons', 'icône du site devant chaque lien'],
+                  ['favicons', 'Icônes des sites', 'le petit logo du site devant chaque lien'],
                 ] as const
               ).map(([key, label, hint]) => (
                 <label className="set-toggle" key={key}>

@@ -69,9 +69,10 @@ function BranchRow({ b, repo }: { b: LocalBranch; repo: LocalRepo }) {
   // le ref distant local sinon. Un lien 404 vaut moins que pas de lien.
   const onRemote = b.on_github ?? b.remote_ref
   const url = repo.url && onRemote ? `${repo.url}/tree/${encodeURIComponent(b.name)}` : null
+  // En mots : « 22↓ » ne disait rien à qui ne connaît pas git (issue #44).
   const gap = [
-    b.ahead_default ? `${b.ahead_default}↑` : null,
-    b.behind_default ? `${b.behind_default}↓` : null,
+    b.ahead_default ? `${b.ahead_default} d'avance` : null,
+    b.behind_default ? `${b.behind_default} de retard` : null,
   ]
     .filter(Boolean)
     .join(' ')
@@ -98,11 +99,6 @@ function BranchRow({ b, repo }: { b: LocalBranch; repo: LocalRepo }) {
           <span className={`loc-safe is-${b.safety.level}`} title={b.safety.detail}>
             {b.safety.label}
           </span>
-          {b.delete ? (
-            <code className="loc-flag" title={`git branch ${b.delete} ${b.name}`}>
-              {b.delete}
-            </code>
-          ) : null}
         </div>
         <div className="gh-meta" title={`${b.short} · ${b.subject}`}>
           {b.advice}
@@ -122,8 +118,8 @@ function BranchRow({ b, repo }: { b: LocalBranch; repo: LocalRepo }) {
           {meta.label}
         </span>
         {gap ? (
-          <span className="gh-sub" title={`vs origin/${repo.default_branch ?? 'défaut'} — ${
-            b.ahead_default} devant, ${b.behind_default} derrière`}>
+          <span className="gh-sub" title={`Commits par rapport à ${repo.default_branch ?? 'la branche principale'} : ${
+            b.ahead_default} en plus, ${b.behind_default} en moins`}>
             {gap}
             {b.capped ? '+' : ''}
           </span>
@@ -206,8 +202,8 @@ function RepoCardLocal({ repo, copied, onCopy, onRefresh, refreshing }: {
         <span title={repo.path}>{repo.display}</span>
         <span className={repo.fetched_at && Date.now() / 1000 - repo.fetched_at > 86400
           ? 'loc-stale' : undefined}
-          title="Dernier `git fetch` — au-delà d'un jour, l'état du distant se discute">
-          fetch {agoShort(repo.fetched_at)}
+          title="Dernière mise à jour depuis GitHub sur ce disque (git fetch) : au-delà d'un jour, l'état en ligne peut avoir changé">
+          synchro {agoShort(repo.fetched_at)}
         </span>
       </div>
 
@@ -447,12 +443,12 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings, c
         </div>
       ) : null}
 
+      {/* Ce qui rassure en une ligne ; le détail technique et la commande globale
+          repliés : c'était la première chose affichée, en jargon (issue #44). */}
       <p className="loc-warning">
         <span className="loc-lock">🔒 lecture seule</span>
-        Le backend relit les fichiers <code>.git</code> lui-même : aucune commande git n'est
-        lancée, aucun fichier n'est ouvert en écriture, et le dossier est monté{' '}
-        <code>:ro</code> dans le conteneur. Les commandes ci-dessous sont du texte à copier —
-        rien ne part d'ici.
+        homedash regarde tes dossiers sans jamais rien y modifier. Les commandes proposées sont à copier
+        dans un terminal, si tu le souhaites.
         {data?.roots?.length ? (
           <span className="loc-roots">
             {' '}Dossiers lus : {data.roots.map((r, i) => (
@@ -467,11 +463,12 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings, c
       </p>
 
       {data?.global_commands?.length ? (
-        <div className="loc-cmds is-global">
+        <details className="loc-cmds is-global">
+          <summary>Commande pour tout mettre à jour d'un coup</summary>
           {data.global_commands.map((c) => (
             <Command key={c.id} c={c} copied={copied} onCopy={onCopy} />
           ))}
-        </div>
+        </details>
       ) : null}
 
       <Masonry

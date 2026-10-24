@@ -79,7 +79,7 @@ export default function GhRenovate({
 
       {r.upstream_open.length > 0 || r.upstream_merged.length > 0 ? (
         <>
-          <div className="gh-divider">⬆️ Upstream — PRs dans base-site</div>
+          <div className="gh-divider">⬆️ Dans le projet socle (base-site)</div>
           {r.gate ? <GateBanner gate={r.gate} /> : null}
           {r.upstream_open.map((p) => (
             <OpenRow key={`u${p.repo}#${p.number}`} p={p} />
@@ -92,7 +92,7 @@ export default function GhRenovate({
 
       {r.open_groups.length > 0 ? (
         <>
-          <div className="gh-divider">⬇️ Downstream ouvertes — par version cible</div>
+          <div className="gh-divider">⬇️ À reporter dans les autres projets, par version</div>
           {r.open_groups.map((g) => (
             <div key={g.version}>
               <div className="gh-version">
