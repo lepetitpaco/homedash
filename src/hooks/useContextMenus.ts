@@ -140,7 +140,7 @@ export function useContextMenus(
         },
         {
           label: 'Masquer',
-          hint: 'gardée dans tes réglages',
+          hint: 'réaffichable en bas de l’accueil',
           onSelect: () => persist(updateGroup(raw, name, { hidden: true })),
         },
         { sep: true },

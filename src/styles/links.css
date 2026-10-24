@@ -804,3 +804,20 @@
   justify-self: start;
   margin: 8px 0;
 }
+
+/* « 2 catégories masquées — afficher », sous les catégories (issue #57). */
+.board-hidden {
+  justify-self: start;
+  margin: 6px 0 0;
+  padding: 4px 0;
+  background: none;
+  border: 0;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.board-hidden:hover {
+  color: var(--text);
+  text-decoration: underline;
+}

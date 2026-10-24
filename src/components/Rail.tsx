@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { folderOf, moveTab, sessionOf, srcOf, tabKey } from '../lib/customTabs'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 
@@ -242,8 +242,26 @@ export default function Rail({
     )
   }
 
+  // L'onglet affiché reste visible : un onglet ouvert en bas d'une longue barre
+  // était créé hors de la partie visible (issue #53). Un nouveau clignote un instant.
+  const navRef = useRef<HTMLElement>(null)
+  const seen = useRef(new Set(temps.map((t) => t.id)))
+  const [fresh, setFresh] = useState<string | null>(null)
+  useEffect(() => {
+    const added = temps.find((t) => !seen.current.has(t.id))
+    seen.current = new Set(temps.map((t) => t.id))
+    if (!added) return
+    setFresh(added.id)
+    const timer = window.setTimeout(() => setFresh(null), 1600)
+    return () => window.clearTimeout(timer)
+  }, [temps])
+  useEffect(() => {
+    navRef.current?.querySelector('.rail-list .is-active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [active, temps.length])
+
   return (
     <nav
+      ref={navRef}
       className={`rail is-${mode}`}
       aria-label="Mes sites"
       // Les icônes ont leur propre menu (elles l'ont déjà ouvert : defaultPrevented).
@@ -321,14 +339,14 @@ export default function Rail({
         })}
 
         {temps.length ? (
-          <div className="rail-temps" aria-label="Onglets éphémères">
+          <div className="rail-temps" aria-label="Onglets temporaires">
             {temps.map((t) => {
               const key = tabKey(t)
               const session = sessionOf(t, sessions)
               return (
                 <div
                   key={t.id}
-                  className={`rail-item rail-temp${active === key ? ' is-active' : ''}${asleep.includes(key) ? ' is-asleep' : ''}`}
+                  className={`rail-item rail-temp${active === key ? ' is-active' : ''}${asleep.includes(key) ? ' is-asleep' : ''}${fresh === t.id ? ' is-fresh' : ''}`}
                   onContextMenu={(e) => {
                     e.preventDefault()
                     onTempMenu(e, t)
@@ -338,7 +356,7 @@ export default function Rail({
                   <button
                     className="rail-btn"
                     onClick={() => onSelect(key)}
-                    title={`${t.label} · éphémère${session ? ` · compte ${session.name}` : ''} — clic droit : garder`}
+                    title={`${t.label} · onglet temporaire${session ? ` · compte ${session.name}` : ''} — clic droit pour le garder`}
                   >
                     <span
                       className={`rail-icon${session ? ' has-session' : ''}`}
@@ -364,7 +382,7 @@ export default function Rail({
                     </span>
                     {wide ? <span className="rail-label">{t.label}</span> : null}
                   </button>
-                  <button className="rail-temp-x" onClick={() => onTempClose(t)} title="Fermer l'onglet éphémère">
+                  <button className="rail-temp-x" onClick={() => onTempClose(t)} title="Fermer l'onglet">
                     ✕
                   </button>
                 </div>
@@ -387,7 +405,7 @@ export default function Rail({
         <button
           className={`rail-tool rail-settings${active === 'settings' ? ' is-active' : ''}`}
           onClick={onSettings}
-          title="Réglages · clic droit sur la barre : ajouter un onglet, éphémère, largeur"
+          title="Réglages · clic droit sur la barre : ajouter un site, onglet temporaire, largeur"
         >
           ⚙{wide ? <span className="rail-label">Réglages</span> : null}
         </button>

@@ -67,7 +67,7 @@ export function plainHit(hit: Hit): {
     case 'web':
       return { icon: hit.icon, name: `Rechercher « ${hit.q} »`, sub: `sur ${hit.engine}`, chip: hit.engine, color: '#60a5fa', action: 'Rechercher' }
     case 'tab':
-      return { icon: hit.icon(), name: hit.tab.label, sub: hit.tab.url, chip: hit.tab.id.startsWith('tmp-') ? 'éphémère' : 'onglet', color: '#a78bfa', action: 'Aller à l’onglet' }
+      return { icon: hit.icon(), name: hit.tab.label, sub: hit.tab.url, chip: hit.tab.id.startsWith('tmp-') ? 'temporaire' : 'onglet', color: '#a78bfa', action: 'Aller à l’onglet' }
     case 'page':
       return { icon: '🕘', name: hit.visit.title || hit.visit.url, sub: hit.visit.url, chip: hit.visit.tab || 'historique', color: '#94a3b8', action: 'Ouvrir' }
     case 'cmd':

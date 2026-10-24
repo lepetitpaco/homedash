@@ -609,7 +609,7 @@ export default function SetTabs({
                 className={!linkTabsKept ? 'is-on' : ''}
                 onClick={() => onLinkTabsKept(false)}
               >
-                Éphémères
+                Temporaires
               </button>
               <button
                 type="button"
@@ -622,7 +622,7 @@ export default function SetTabs({
               </button>
             </span>
             <em className="xs-note">
-              Éphémères : fermés à la relance de l'appli. Gardés : rouverts à la relance. Un onglet à la fois : clic
+              Temporaires : fermés au redémarrage de l'appli. Gardés : rouverts au redémarrage. Un onglet à la fois : clic
               droit → Garder ouvert, ou Ne plus garder.
             </em>
           </div>
@@ -798,11 +798,11 @@ export default function SetTabs({
       {kept.length ? (
         <section className="xs-group">
           <header>
-            <h3 className="set-sub">Éphémères gardés</h3>
+            <h3 className="set-sub">Onglets gardés</h3>
           </header>
           <p className="set-hint">
-            Ouverts depuis un lien ou ⧉, puis « Garder ouvert » : ils survivent au redémarrage, rangés avec les
-            éphémères, sans capter les liens des autres onglets.
+            Ouverts depuis un lien, puis clic droit → « Garder ouvert » : ils sont rouverts au redémarrage, rangés avec les
+            onglets temporaires, sans capter les liens des autres onglets.
           </p>
           <ul className="xs-kept">
             {kept.map((t) => (

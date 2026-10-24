@@ -54,9 +54,9 @@ même sans aucun site : son **＋** ajoute le premier.
 
 - La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
 - **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…*
-- **Onglet éphémère** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse.
+- **Onglet temporaire** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse. Fermé au redémarrage ; clic droit → *Garder ouvert* pour le conserver.
   Un lien cliqué dans l'appli en ouvre un en haut de l'endroit où tu es (voir *Appli de bureau*) ;
-  clic droit sur la barre → *Nouvel onglet éphémère* en ouvre un seul, dans la barre de gauche.
+  clic droit sur la barre → *Nouvel onglet temporaire* en ouvre un seul, dans la barre de gauche.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -84,7 +84,7 @@ homedash.
 - **Garder ces onglets** : ils disparaissent à la relance de l'appli, sauf *Garder ouvert* (clic droit
   sur l'onglet). Pour les garder tous d'office : *Réglages → Liens & onglets → Onglets ouverts par un lien*.
 - **Clic droit dans un site** : ouvrir le lien ailleurs (en onglet ici, dans le site de *Mes sites*,
-  éphémère dans la barre de gauche, navigateur), copier, rechercher.
+  temporaire dans la barre de gauche, navigateur), copier, rechercher.
 
 #### Installer et mettre à jour
 
@@ -249,7 +249,7 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 - **Une adresse** (`exemple.com`, `localhost:3000`) : Entrée l'ouvre.
 - **Un raccourci** en premier mot : `g` Google, `gh` GitHub, `yt` YouTube, `w` Wikipédia, `maps`, `tr`
   traduction, `mdn`.
-- **Une action** : « réglages », « thème », « nouvelle catégorie », « éphémère »…
+- **Une action** : « réglages », « thème », « nouvelle catégorie », « temporaire »…
 
 `↑` `↓` pour choisir, `↵` pour ouvrir ou copier, `Échap` pour effacer. `⌘S` enregistre les réglages.
 

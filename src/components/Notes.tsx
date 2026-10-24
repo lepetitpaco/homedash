@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { newNote, noteTitle, notePreview, saveNotes, type Note } from '../lib/notes'
 import type { NotesConfig } from '../types'
+import { confirmDialog } from './ConfirmHost'
 
 type Props = {
   config: NotesConfig
@@ -140,7 +141,18 @@ export default function Notes({ config, notes, setNotes, openId, setOpenId }: Pr
               }}
             />
             <div className="note-editor-foot">
-              <button className="note-danger" onClick={() => remove(open.id)}>
+              <button
+                className="note-danger"
+                // Comme partout ailleurs : on confirme avant d'effacer (issue #58).
+                onClick={() =>
+                  void confirmDialog({
+                    title: 'Supprimer cette note ?',
+                    body: `« ${noteTitle(open.text)} » sera effacée pour de bon. Les autres notes ne changent pas.`,
+                    confirmLabel: 'Supprimer',
+                    danger: true,
+                  }).then((ok) => ok && remove(open.id))
+                }
+              >
                 supprimer
               </button>
               <span className="note-hint">autosave · Échap pour fermer</span>

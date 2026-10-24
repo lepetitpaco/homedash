@@ -24,7 +24,10 @@ function scoreText(haystack: string, needle: string): number {
   const idx = h.indexOf(n)
   if (idx >= 0) return 400 - Math.min(idx, 100)
 
-  // sous-séquence : "mpa" -> "mon-projet-api"
+  // sous-séquence : "mpa" -> "mon-projet-api". Pas sur un texte long (une adresse,
+  // un titre de PR) : « gmail » s'y retrouvait lettre à lettre dans
+  // github.com/…/david-veepee-…, et ces résultats passaient devant (issue #58).
+  if (h.length > 40) return wordsScore(h, n)
   let hi = 0
   let gaps = 0
   for (const ch of n) {
