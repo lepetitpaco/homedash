@@ -4,6 +4,27 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.34.0 — 2026-10-24
+
+- **Tu sais où sont tes onglets** : un chiffre bleu sur l'icône d'un site (et sur ⚡) compte les onglets
+  ouverts dedans, même quand tu es ailleurs.
+- **Une seule place pour les onglets temporaires** : toujours en haut, là où tu es (avant, certains
+  allaient en bas de la barre de gauche).
+- **Garder, c'est simple** : clic droit sur un onglet temporaire → *Garder dans Mes sites*. Le réglage
+  « onglets gardés » disparaît : un onglet est temporaire, ou dans Mes sites.
+- **Fini l'accumulation** : *Fermer tous les onglets temporaires* (clic droit sur l'un d'eux ou sur la
+  barre), et un onglet temporaire se ferme tout seul après 3 h sans y aller.
+- **Un lien ne te fait plus perdre ta page** : quand il change la page d'un site déjà ouvert, homedash
+  te dit comment revenir (⌘[).
+- **⋯ au survol** d'un lien, d'une tuile ou d'une catégorie : le menu qui n'existait qu'au clic droit.
+- **Comptes par dossier** : clic droit sur un dossier → *Compte de tout le dossier*. La lettre du compte
+  (le « P ») ne s'affiche plus que sur les sites qui font exception. « Connexion commune » devient
+  « compte principal ».
+- **Le bon site pour un lien** : quand plusieurs sites correspondent, le plus précis gagne (Gmail avant
+  un site google.com).
+- Détails : 💤 plus visible et expliqué au survol, ✕ toujours visible sur l'onglet affiché, un dossier se
+  supprime après confirmation.
+
 ## 1.33.1 — 2026-10-24
 
 - **Onglet Local en mots simples** : « effacée de GitHub », « jamais envoyée », « à envoyer »,
