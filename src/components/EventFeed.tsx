@@ -2,14 +2,15 @@ import { useMemo, useRef, useState } from 'react'
 import { dayOf, hhmm, type EventSource, type HdEvent, type InApp } from '../lib/events'
 import { confirmDialog } from './ConfirmHost'
 
-type Filter = 'all' | 'github' | 'basecamp' | 'local' | 'bad'
+type Filter = 'all' | 'code' | 'basecamp' | 'bad'
 
-const FILTERS: { id: Filter; label: string; title: string }[] = [
-  { id: 'all', label: 'tout', title: 'Tous les événements' },
-  { id: 'github', label: 'GitHub', title: 'CI, PRs, Renovate' },
-  { id: 'basecamp', label: 'Basecamp', title: 'Nouvelles notifications et tâches Basecamp' },
-  { id: 'local', label: 'Local', title: 'Branches devenues supprimables sur le disque' },
-  { id: 'bad', label: 'problèmes', title: 'Uniquement ce qui a cassé' },
+// Les mêmes que la cloche (Tout / GitHub & Local / Basecamp), plus « Problèmes » :
+// deux découpages pour la même liste déroutaient (issue #44).
+const FILTERS: { id: Filter; label: string; title: string; sources?: EventSource[] }[] = [
+  { id: 'all', label: 'Tout', title: 'Tous les événements' },
+  { id: 'code', label: 'GitHub & Local', title: 'CI, PRs, Renovate, branches à supprimer', sources: ['github', 'local'] },
+  { id: 'basecamp', label: 'Basecamp', title: 'Nouvelles notifications et tâches Basecamp', sources: ['basecamp'] },
+  { id: 'bad', label: 'Problèmes', title: 'Uniquement ce qui a cassé' },
 ]
 
 /**
@@ -50,7 +51,11 @@ export default function EventFeed({
   const shown = useMemo(
     () =>
       events.filter((e) =>
-        filter === 'all' ? true : filter === 'bad' ? e.level === 'bad' : e.source === filter,
+        filter === 'all'
+          ? true
+          : filter === 'bad'
+            ? e.level === 'bad'
+            : !!FILTERS.find((f) => f.id === filter)?.sources?.includes(e.source),
       ),
     [events, filter],
   )
@@ -79,7 +84,7 @@ export default function EventFeed({
           <span className="group-count">{events.length}</span>
           {fresh > 0 ? <span className="ev-fresh-count">{fresh} nouveau{fresh > 1 ? 'x' : ''}</span> : null}
           <div className="ev-filters">
-            {FILTERS.filter((f) => !off.includes(f.id as EventSource)).map((f) => (
+            {FILTERS.filter((f) => !f.sources || f.sources.some((x) => !off.includes(x))).map((f) => (
               <button
                 key={f.id}
                 className={`ev-chip${filter === f.id ? ' is-on' : ''}`}
@@ -103,10 +108,10 @@ export default function EventFeed({
               }).then((ok) => ok && onClear())
             }}
           >
-            vider
+            Vider
           </button>
           <button className="ev-clear" title="Revenir à l'onglet précédent" onClick={onClose}>
-            fermer ✕
+            Fermer ✕
           </button>
         </div>
       </header>
