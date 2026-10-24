@@ -1,5 +1,6 @@
 import type { FlatLink, Health } from '../types'
 import Favicon from './Favicon'
+import MoreButton from './MoreButton'
 
 type Props = {
   link: FlatLink
@@ -65,6 +66,7 @@ export default function LinkRow({
       {link.check && health ? (
         <span className={`dot dot-${health}`} title={`${link.url} — ${HEALTH_LABEL[health]}`} />
       ) : null}
+      {onContext ? <MoreButton onMenu={(e) => onContext(e, link)} /> : null}
     </a>
   )
 }

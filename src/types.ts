@@ -206,6 +206,8 @@ export type TabFolder = {
   icon?: string
   /** Couleur du dossier dans la barre (#rrggbb). */
   color?: string
+  /** Compte de tout le dossier (id de `tabSessions`) : repris par les sites qu'on y ajoute. */
+  session?: string
 }
 
 /**

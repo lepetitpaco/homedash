@@ -136,8 +136,27 @@ export function samePage(a: string, b: string): boolean {
  * même compte que l'onglet d'où vient le lien (deux Claude, perso et commun).
  */
 export function linkTarget(url: string, tabs: CustomTab[], from?: CustomTab): CustomTab | undefined {
-  const all = tabs.filter((t) => capturesLink(t, url))
-  return all.find((t) => (t.session ?? '') === (from?.session ?? '')) ?? all[0]
+  // Le plus précis d'abord : mail.google.com passe devant un site google.com qui
+  // capterait aussi l'Agenda, Drive… (issue #60). À égalité, l'ordre de la barre.
+  const all = tabs
+    .map((t, i) => ({ t, i, score: matchLength(t, url) }))
+    .filter((x) => x.score > 0)
+    .sort((a, b) => b.score - a.score || a.i - b.i)
+    .map((x) => x.t)
+  const best = all.filter((t) => matchLength(t, url) === matchLength(all[0], url))
+  return best.find((t) => (t.session ?? '') === (from?.session ?? '')) ?? all[0]
+}
+
+/** Longueur du domaine de `t` qui correspond à `url` (0 = aucun) : plus c'est long, plus c'est précis. */
+function matchLength(t: CustomTab | undefined, url: string): number {
+  if (!t || !capturesLink(t, url)) return 0
+  let h = ''
+  try {
+    h = bare(new URL(url).hostname)
+  } catch {
+    return 0
+  }
+  return Math.max(...domainsOf(t).filter((d) => h === d || h.endsWith('.' + d)).map((d) => (h === d ? 1000 : d.length)))
 }
 
 /** Sites qui affichent des non-lus : chargés au démarrage de l'appli par défaut. */

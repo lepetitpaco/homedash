@@ -1,3 +1,4 @@
+import MoreButton from './MoreButton'
 import type { FlatLink, Health } from '../types'
 import LinkRow from './LinkRow'
 
@@ -40,17 +41,18 @@ export default function GroupCard({
             {icon}
           </span>
           <h2 className="group-title">{name}</h2>
-          {down > 0 ? <span className="badge badge-down">{down} down</span> : null}
+          {down > 0 ? <span className="badge badge-down">{down} injoignable{down > 1 ? 's' : ''}</span> : null}
           <span className="group-count">{links.length}</span>
           <span className="caret" aria-hidden="true">
             {collapsed ? '▸' : '▾'}
           </span>
         </button>
+        {onContextGroup ? <MoreButton label="Actions de la catégorie" onMenu={(e) => onContextGroup(e, name)} /> : null}
       </header>
       {collapsed ? null : (
         <div className="group-body" onContextMenu={(e) => onContextGroup?.(e, name)}>
           {links.length === 0 ? (
-            <p className="group-empty">Aucun lien — clic droit pour en ajouter.</p>
+            <p className="group-empty">Aucun lien — ⋯ ou clic droit pour en ajouter.</p>
           ) : null}
           {links.map((link) => (
             <LinkRow
