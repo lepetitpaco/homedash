@@ -4,6 +4,13 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 1.33.1 — 2026-10-24
+
+- **Onglet Local en mots simples** : « effacée de GitHub », « jamais envoyée », « à envoyer »,
+  « intégrée à master puis supprimée sur GitHub : plus rien à garder ici »… au lieu de « distant »,
+  « origin/master », « ref », « sha » (#44).
+- **Activité** : mêmes filtres que la cloche (Tout, GitHub & Local, Basecamp), plus « Problèmes ».
+
 ## 1.33.0 — 2026-10-24
 
 - **Un site = un seul endroit** : un lien vers un de tes sites (Gmail, Chat, GitHub, Discord…) l'ouvre
