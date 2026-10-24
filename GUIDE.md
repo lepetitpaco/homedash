@@ -55,10 +55,14 @@ même sans aucun site : son **＋** ajoute le premier.
 #### Bon à savoir
 
 - La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
-- **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…*
-- **Onglet temporaire** (contour pointillé) : un site le temps d'une recherche, avec sa barre d'adresse. Fermé au redémarrage ; clic droit → *Garder ouvert* pour le conserver.
-  Un lien vers un site qui n'est pas dans ta barre en ouvre un en haut de l'endroit où tu es (voir *Appli de bureau*) ;
-  clic droit sur la barre → *Nouvel onglet temporaire* en ouvre un seul, dans la barre de gauche.
+- **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…* Pour
+  tout un dossier : clic droit sur le dossier → *Compte de tout le dossier* ; la lettre du compte ne
+  s'affiche alors que sur les sites qui font exception.
+- **Onglet temporaire** (contour pointillé) : un lien vers un site qui n'est pas dans ta barre l'ouvre en
+  haut, là où tu es. Le petit chiffre en bas à gauche d'une icône compte les onglets ouverts dans ce
+  site. Il se ferme au redémarrage ou après 3 h sans y aller ; clic droit → *Garder dans Mes sites* pour
+  le conserver, ou *Fermer tous les onglets temporaires*.
+- **⋯ au survol** d'un lien, d'une tuile ou d'une catégorie : le même menu que le clic droit.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.

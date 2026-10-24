@@ -36,9 +36,6 @@ type Props = {
   /** Liens de homedash dans l'appli (Réglages → `ui.openLinks`). */
   openLinks: 'app' | 'browser'
   onOpenLinks: (v: 'app' | 'browser') => void
-  /** Onglets ouverts par un lien : gardés à la relance (Réglages → `ui.linkTabsKept`). */
-  linkTabsKept: boolean
-  onLinkTabsKept: (v: boolean) => void
   /** Quelle entrée de Réglages : Mes sites (sites, dossiers, comptes) ou Liens & onglets (comportement). */
   part?: 'sites' | 'links'
 }
@@ -66,8 +63,6 @@ export default function SetTabs({
   onSleepMinutes,
   openLinks,
   onOpenLinks,
-  linkTabsKept,
-  onLinkTabsKept,
   part = 'sites',
 }: Props) {
   const [open, setOpen] = useState<string | null>(null)
@@ -148,9 +143,9 @@ export default function SetTabs({
   /** Toutes les données d'un compte (ou de la connexion commune) : déconnecte de tous ses sites. */
   const clearAccount = (id: string | undefined, name: string) =>
     void confirmDialog({
-      title: `Effacer toutes les données de ${id ? `« ${name} »` : 'la connexion commune'} ?`,
+      title: `Effacer toutes les données ${id ? `de « ${name} »` : 'du compte principal'} ?`,
       body: [
-        `Cookies, sessions et cache de tous les sites de ${id ? `ce compte` : 'la connexion commune'} sont effacés : tu en seras déconnecté partout.`,
+        `Cookies, sessions et cache de tous les sites ${id ? `de ce compte` : 'du compte principal'} sont effacés : tu en seras déconnecté partout.`,
         "Tes onglets, leurs réglages et les autres comptes ne bougent pas. Pour un seul site : clic droit sur son icône → Effacer les données de ce site.",
       ],
       confirmLabel: 'Tout effacer',
@@ -204,7 +199,7 @@ export default function SetTabs({
     void confirmDialog({
       title: `Supprimer le compte « ${x.name} » ?`,
       body: [
-        'Ses onglets repassent sur la connexion commune, comme les autres onglets.',
+        'Ses onglets repassent sur le compte principal, comme les autres onglets.',
         "Sa connexion reste enregistrée dans l'appli mais ne sert plus : un nouveau compte repart de zéro.",
       ],
       confirmLabel: 'Supprimer',
@@ -527,7 +522,7 @@ export default function SetTabs({
               value={sessionOf(t, sessions)?.id ?? ''}
               onChange={(v) => patch(t.id, { session: v || undefined })}
               options={[
-                { value: '', label: 'Connexion commune' },
+                { value: '', label: 'Compte principal' },
                 ...sessions.map((x) => ({ value: x.id, label: x.name, color: x.color })),
               ]}
               action={{ label: '＋ Nouveau compte…', onSelect: () => void addSession(t.id) }}
@@ -599,33 +594,10 @@ export default function SetTabs({
         ) : null}
 
         {desktop ? (
-          <div className="xs-sleep">
-            <span>◫ Onglets ouverts par un lien</span>
-            <span className="xs-seg" role="radiogroup">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!linkTabsKept}
-                className={!linkTabsKept ? 'is-on' : ''}
-                onClick={() => onLinkTabsKept(false)}
-              >
-                Temporaires
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={linkTabsKept}
-                className={linkTabsKept ? 'is-on' : ''}
-                onClick={() => onLinkTabsKept(true)}
-              >
-                Gardés
-              </button>
-            </span>
-            <em className="xs-note">
-              Temporaires : fermés au redémarrage de l'appli. Gardés : rouverts au redémarrage. Un onglet à la fois : clic
-              droit → Garder ouvert, ou Ne plus garder.
-            </em>
-          </div>
+          <p className="xs-note">
+            ◫ Un onglet ouvert par un lien est <strong>temporaire</strong> : fermé au redémarrage, ou après 3 h
+            sans y aller. Pour le garder : clic droit dessus → <em>Garder dans Mes sites</em>.
+          </p>
         ) : null}
 
         <label className="xs-sleep">
@@ -879,7 +851,7 @@ export default function SetTabs({
           {desktop?.clearData ? (
             <p className="set-hint xs-clear">
               🧹 Effacer toutes les données (cookies, sessions, cache) d'un compte :{' '}
-              {[{ id: undefined as string | undefined, name: 'connexion commune', color: undefined as string | undefined }, ...sessions].map((x) => (
+              {[{ id: undefined as string | undefined, name: 'compte principal', color: undefined as string | undefined }, ...sessions].map((x) => (
                 <button
                   key={x.id ?? 'commun'}
                   type="button"

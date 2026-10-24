@@ -49,6 +49,8 @@ type Props = {
   mode: RailMode
   icons: Record<string, ReactNode>
   counts: Record<string, number>
+  /** Onglets ouverts dans chaque espace (`x:…`, `links` pour le dash) : visibles d'ici (issue #60). */
+  kids: Record<string, number>
   onHome: () => void
   onSettings: () => void
   onSelect: (key: `x:${string}`) => void
@@ -94,6 +96,7 @@ export default function Rail({
   mode,
   icons,
   counts,
+  kids,
   onHome,
   onSettings,
   onSelect,
@@ -122,6 +125,15 @@ export default function Rail({
   const inFolder = (f: TabFolder) => tabs.filter((t) => folderOf(t, folders) === f.id)
   const wide = mode === 'wide'
   // Notifications coupées (`notify: false`) : pas de pastille.
+  /** « 2 » en haut à droite : des onglets sont ouverts en haut de cet espace. */
+  const kidsBadge = (key: string, name: string) => {
+    const n = kids[key] ?? 0
+    return n ? (
+      <span className="rail-open" title={`${n} onglet${n > 1 ? 's' : ''} ouvert${n > 1 ? 's' : ''} dans ${name}`}>
+        {n}
+      </span>
+    ) : null
+  }
   const unread = (t: CustomTab) => (t.embed && t.notify !== false ? (counts[tabKey(t)] ?? 0) : 0)
   const endDrag = () => {
     setDrag(null)
@@ -144,9 +156,20 @@ export default function Rail({
     },
   })
 
+  /** Compte d'un dossier : le sien, sinon celui que partagent tous ses sites. */
+  const folderSession = (id?: string) => {
+    const f = folders.find((x) => x.id === id)
+    if (!f) return undefined
+    if (f.session) return f.session
+    const inside = tabs.filter((x) => x.folder === id)
+    return inside.length && inside.every((x) => x.session === inside[0].session) ? inside[0].session : undefined
+  }
   const item = (t: CustomTab) => {
     const key = tabKey(t)
-    const session = sessionOf(t, sessions)
+    const own = sessionOf(t, sessions)
+    // Le compte de tout son dossier : pas répété sur chaque icône (issue #60),
+    // seulement l'exception. Le nom au survol le dit toujours.
+    const session = own && own.id !== folderSession(t.folder) ? own : undefined
     const zone = over?.id === t.id ? over.zone : null
     const inner = (
       <>
@@ -162,6 +185,7 @@ export default function Rail({
             </span>
           ) : null}
           {badge(unread(t))}
+          {kidsBadge(key, t.label)}
 {audible[key] || muted[key] ? (
             <span
               className={`rail-audio${muted[key] ? ' is-muted' : ''}`}
@@ -191,7 +215,8 @@ export default function Rail({
         ) : null}
       </>
     )
-    const title = `${t.label}${session ? ` · compte ${session.name}` : ''}${t.embed ? '' : ' ↗'}`
+    const title = `${t.label}${own ? ` · compte ${own.name}` : ''}${t.embed ? '' : ' ↗'}${
+      asleep.includes(key) ? ' · 💤 en veille, se recharge au clic' : ''}`
     return (
       <div
         key={t.id}
@@ -274,7 +299,9 @@ export default function Rail({
       <div className={`rail-item rail-home${active ? '' : ' is-active'}`}>
         <span className="rail-pill" aria-hidden="true" />
         <button className="rail-btn" onClick={onHome} title="homedash : Raccourcis, GitHub, Local…">
-          <span className="rail-icon">⚡</span>
+          <span className="rail-icon">
+            ⚡{kidsBadge('links', 'homedash')}
+          </span>
           {wide ? <span className="rail-label">homedash</span> : null}
         </button>
       </div>

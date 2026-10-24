@@ -502,7 +502,8 @@ body {
   cursor: pointer;
   opacity: 0;
 }
-.rail-temp:hover .rail-temp-x {
+.rail-temp:hover .rail-temp-x,
+.rail-temp.is-active .rail-temp-x {
   opacity: 1;
 }
 .rail-temp-x:hover {
@@ -518,9 +519,9 @@ body {
 }
 .rail-zz {
   position: absolute;
-  right: -6px;
-  top: -6px;
-  font-size: 11px;
+  right: -7px;
+  top: -7px;
+  font-size: 14px;
 }
 
 /* Son : 🔊 / 🔇 dans le coin haut-droit de l'icône, cliquable. */
@@ -560,4 +561,29 @@ body {
 .rail-item.is-fresh .rail-btn {
   border-radius: 14px;
   animation: rail-fresh 1.6s ease-out;
+}
+
+/* Onglets ouverts en haut de cet espace (issue #60) : discret, en haut à droite. */
+.rail-open {
+  position: absolute;
+  left: -5px;
+  bottom: -5px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 9px;
+  border: 2px solid color-mix(in srgb, var(--bg) 82%, #000);
+  background: var(--sig-info);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  box-sizing: content-box;
+  pointer-events: none;
+}
+.rail.is-mini .rail-open {
+  left: -3px;
+  bottom: -3px;
+  font-size: 9px;
 }

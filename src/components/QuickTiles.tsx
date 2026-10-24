@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FlatLink, Health } from '../types'
 import Favicon from './Favicon'
+import MoreButton from './MoreButton'
 
 type Props = {
   title: string
@@ -130,6 +131,7 @@ export default function QuickTiles({
               </span>
               {count > 0 ? <span className="tile-count">{count}</span> : null}
               {link.check && health[link.id] ? <span className={`dot dot-${health[link.id]}`} /> : null}
+              {onContext ? <MoreButton onMenu={(e) => onContext(e, link)} /> : null}
             </a>
           )
         })}
