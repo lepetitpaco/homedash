@@ -60,7 +60,8 @@ const NOTIF_LABEL: Record<NotifState, string> = {
 /** Parties qui règlent un compte GitHub : la barre de choix du compte s'affiche au-dessus. */
 const ACCOUNT_SECTIONS: string[] = ['set-github']
 /** Anciennes parties (avant 1.31) réunies dans « GitHub » : un lien ou une partie mémorisée y mène. */
-const MERGED: Record<string, string> = { 'set-account': 'set-github', 'set-repos': 'set-github', 'set-ghtab': 'set-github' }
+// « Liens & onglets » est une partie de Mes sites depuis l'issue #59 : même composant, deux entrées de menu.
+const MERGED: Record<string, string> = { 'set-account': 'set-github', 'set-repos': 'set-github', 'set-ghtab': 'set-github', 'set-links': 'set-tabs' }
 const sectionOf = (id: string) => MERGED[id] ?? id
 
 /**
@@ -73,7 +74,6 @@ const SECTIONS = [
   { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
-  { id: 'set-links', icon: '🔗', label: 'Liens & onglets', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
@@ -794,10 +794,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             openLinks={draft.ui?.openLinks === 'browser' ? 'browser' : 'app'}
             onOpenLinks={(openLinks) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), openLinks } })}
           />
-        </Card>
-        ) : null}
-        {active === 'set-links' ? (
-        <Card id="set-links" icon="🔗" title="Liens & onglets">
+          <h3 className="set-sub set-sub-gap">🔗 Liens, onglets et veille</h3>
           <SetTabs
             part="links"
             tabs={draft.tabs ?? []}

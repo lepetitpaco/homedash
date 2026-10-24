@@ -345,3 +345,8 @@
   font-size: 0.72rem;
   color: var(--text-dim);
 }
+
+/* Mes sites : la partie « Liens, onglets et veille » sous la liste (issue #59). */
+.set-sub-gap {
+  margin-top: 28px;
+}

@@ -25,6 +25,9 @@ function counts(gh: GithubData | null | undefined, repo: string) {
   return { branches, prs, renovate: renovate.length, failing, waiting }
 }
 
+/** Bouton à vue : les deux premiers, et ceux mis en avant (« mes PRs »). */
+const shown = (action: { highlight?: boolean }, i: number) => i < 2 || !!action.highlight
+
 export default function RepoCard({ repos, onOpen, gh }: Props) {
   const [copied, setCopied] = useState<string | null>(null)
   const actions = repos.actions ?? []
@@ -103,7 +106,9 @@ export default function RepoCard({ repos, onOpen, gh }: Props) {
                 </div>
               ) : null}
               <div className="repo-actions">
-                {actions.map((action) => (
+                {/* Deux boutons et « mes PRs » à vue, le reste derrière ⋯ : sept boutons
+                    par repo faisaient un mur de boutons identiques (issue #59). */}
+                {actions.filter(shown).map((action) => (
                   <a
                     key={action.label}
                     className={`repo-chip${action.highlight ? ' repo-chip-mine' : ''}`}
@@ -115,6 +120,31 @@ export default function RepoCard({ repos, onOpen, gh }: Props) {
                     {action.label}
                   </a>
                 ))}
+                {actions.some((a, i) => !shown(a, i)) ? (
+                  <details className="repo-more">
+                    <summary className="repo-chip" title="Autres liens du repo">
+                      ⋯
+                    </summary>
+                    <div className="repo-more-list">
+                      {actions.map((action, i) =>
+                        shown(action, i) ? null : (
+                          <a
+                            key={action.label}
+                            href={`${base}${template(action.path, vars)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            onClick={(e) => {
+                              onOpen(`${id}#${action.label}`)
+                              e.currentTarget.closest('details')?.removeAttribute('open')
+                            }}
+                          >
+                            {action.label}
+                          </a>
+                        ),
+                      )}
+                    </div>
+                  </details>
+                ) : null}
               </div>
             </div>
           )

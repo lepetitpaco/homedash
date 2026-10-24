@@ -83,12 +83,12 @@ homedash.
   vers un autre site s'ouvre en onglet temporaire, en haut, là où tu es : à côté de *Raccourcis* depuis le
   dash, en haut du site depuis un site. ✕ ou clic molette pour fermer ; ⚡ ramène au dash, et recliqué,
   à *Raccourcis*.
-- **Plutôt le navigateur ?** *Réglages → Liens & onglets → Liens qui ouvrent un nouvel onglet → Dans le
+- **Plutôt le navigateur ?** *Réglages → Mes sites → Liens qui ouvrent un nouvel onglet → Dans le
   navigateur*. Valable pour les liens du dash et ceux d'un site qui ouvrent un nouvel onglet (un lien qui
   change juste de page reste dans le site). Dans les deux cas, ⌘clic (Ctrl+clic sous Windows, ou ⇧clic)
   fait l'inverse, et le clic droit propose les deux.
-- **Garder ces onglets** : ils disparaissent à la relance de l'appli, sauf *Garder ouvert* (clic droit
-  sur l'onglet). Pour les garder tous d'office : *Réglages → Liens & onglets → Onglets ouverts par un lien*.
+- **Garder un onglet** : il se ferme au redémarrage ou après 3 h sans y aller, sauf *Garder dans Mes
+  sites* (clic droit sur l'onglet).
 - **Clic droit sur un lien** : *Dans <ton site>*, *Nouvel onglet temporaire* (avec le compte de ton
   choix) ou *Dans le navigateur* ; copier, rechercher.
 
@@ -115,7 +115,7 @@ homedash.
 
 - **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
   Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller (durée dans
-  *Réglages → Liens & onglets*).
+  *Réglages → Mes sites*).
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.
@@ -273,8 +273,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion |
-| 🗂 Mes sites | Tes sites (une ligne chacun, clic pour l'ouvrir), dossiers, comptes de connexion |
-| 🔗 Liens & onglets | Où s'ouvrent les liens, onglets ouverts par un lien, mise en veille |
+| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
