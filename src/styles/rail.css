@@ -561,3 +561,27 @@ body {
   border-radius: 14px;
   animation: rail-fresh 1.6s ease-out;
 }
+
+/* Onglets ouverts en haut de cet espace (issue #60) : discret, en haut à droite. */
+.rail-kids {
+  position: absolute;
+  right: -5px;
+  top: -5px;
+  min-width: 14px;
+  height: 14px;
+  padding: 0 3px;
+  border-radius: 8px;
+  background: var(--panel-2, #2a2f3a);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 10px;
+  line-height: 14px;
+  text-align: center;
+  box-sizing: content-box;
+  pointer-events: none;
+}
+.rail.is-mini .rail-kids {
+  right: -3px;
+  top: -3px;
+  font-size: 9px;
+}

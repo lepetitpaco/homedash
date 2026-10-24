@@ -70,6 +70,8 @@ import SetupCard, { type SetupStep } from './components/SetupCard'
 import { updateGroup } from './lib/mutate'
 
 const RAIL_KEY = 'homedash:rail'
+/** Onglet temporaire fermé tout seul après ce temps sans y aller. */
+const TEMP_IDLE_MS = 3 * 3600_000
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
 /** Dernières pastilles des onglets perso, par `tabKey`. */
 const TAB_COUNTS_KEY = 'homedash:tab-counts'
@@ -135,6 +137,14 @@ export default function App() {
   const tempUrl = useRef(new Map<string, string>())
   // Page affichée dans chaque onglet (perso ou éphémère) : « Copier le lien » (issue #33).
   const pageUrl = useRef(new Map<string, string>())
+  // Message bref en bas de l'écran (un lien a changé la page d'un site…).
+  const [notice, setNotice] = useState<string | null>(null)
+  const noticeTimer = useRef<number | null>(null)
+  const flashNotice = (text: string) => {
+    setNotice(text)
+    if (noticeTimer.current) window.clearTimeout(noticeTimer.current)
+    noticeTimer.current = window.setTimeout(() => setNotice(null), 5000)
+  }
   // Lien à ouvrir dans un onglet perso, pas encore pris par lui (voir openInTab).
   const pendingLinks = useRef(new Map<string, string>())
   const takeLink = useCallback((key: string) => {
@@ -195,6 +205,29 @@ export default function App() {
   const sessionsRef = useRef(tabSessions)
   sessionsRef.current = tabSessions
   const { tab, selectTab, goBack, stepTab } = useTabs(cfg?.title, allTabs)
+  // Onglets temporaires pas regardés depuis 3 h : fermés tout seuls (issue #60).
+  // Chacun garde un site chargé (100 à 400 Mo) ; avant, ils s'accumulaient jusqu'au
+  // redémarrage. Les gardés (ancien réglage) ne bougent pas.
+  const tempSeen = useRef(new Map<string, number>())
+  useEffect(() => {
+    tempSeen.current.set(tab, Date.now())
+  }, [tab])
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      const now = Date.now()
+      setTemps((ts) => {
+        const keep = ts.filter((t) => {
+          const key = `x:${t.id}`
+          if (!tempSeen.current.has(key)) tempSeen.current.set(key, now)
+          return key === tabNowRef.current || now - (tempSeen.current.get(key) ?? now) < TEMP_IDLE_MS
+        })
+        return keep.length === ts.length ? ts : keep
+      })
+    }, 10 * 60_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const tabNowRef = useRef(tab)
+  tabNowRef.current = tab
   // Onglet d'une fonctionnalité coupée (mémorisé, ou `?tab=`) : retour à l'accueil.
   useEffect(() => {
     if ((tab === 'github' || tab === 'basecamp' || tab === 'local') && raw && !featureOn(raw, tab)) selectTab('links')
@@ -888,15 +921,13 @@ export default function App() {
     selectTab(tabKey(t))
     window.dispatchEvent(new CustomEvent<OpenInTab>(OPEN_IN_TAB, { detail: { key: tabKey(t), url } }))
   }
-  /** Onglet éphémère sur `url`, avec ce compte (absent = connexion commune). */
-  const openTemp = (url: string, session?: string) => {
-    const id = `tmp-${newTabId(allTabs.map((t) => t.id)).slice(2)}`
-    const label = hostOf(url).replace(/^www\./, '') || 'Onglet'
-    setTemps((ts) => [...ts, { id, label, url, embed: true, session }])
-    perfEvent('temp-open', { host: hostOf(url) })
-    search.setQuery('')
-    selectTab(`x:${id}`)
-  }
+  /**
+   * Onglet temporaire sur `url`, avec ce compte (absent = connexion commune) :
+   * toujours en haut, dans l'espace où l'on est (le dash depuis Réglages). Avant,
+   * certains allaient en bas de la barre de gauche : deux places pour la même
+   * chose (issue #60).
+   */
+  const openTemp = (url: string, session?: string) => openChild(spaceOf(tab) ?? DASH, url, session)
   /**
    * Compte d'un onglet ouvert par un lien dans `space` : celui de l'onglet perso du
    * site s'il en a un (on y est connecté), sinon celui de l'onglet d'origine.
@@ -905,20 +936,15 @@ export default function App() {
     linkTarget(url, regularTabs, from)?.session ??
     (from ?? (space === DASH ? undefined : allTabs.find((x) => tabKey(x) === space)))?.session
   /**
-   * Lien ouvert « ici » : un onglet en haut de l'espace `space` (le dash ou un onglet
-   * perso), plutôt qu'ailleurs dans la barre de gauche. Éphémère, ou gardé (survit à
-   * la relance) si Réglages → Onglets perso le dit.
+   * Lien ouvert « ici » : un onglet temporaire en haut de l'espace `space` (le dash
+   * ou un onglet perso). Pour le garder : clic droit → Garder dans Mes sites. Le
+   * réglage « onglets gardés d'office » n'existe plus (issue #60) : deux niveaux,
+   * temporaire ou Mes sites, au lieu de trois.
    */
   const openChild = (space: string, url: string, session?: string) => {
     const label = hostOf(url).replace(/^www\./, '') || 'Onglet'
     perfEvent('temp-open', { host: hostOf(url), space: space === DASH ? 'dash' : 'onglet' })
     search.setQuery('')
-    if (ui.linkTabsKept) {
-      const id = newTabId(allTabs.map((t) => t.id))
-      saveTabs([...customTabs, { id, label, url, embed: true, session, parent: space, kept: true }])
-      selectTab(`x:${id}`)
-      return
-    }
     const id = `tmp-${newTabId(allTabs.map((t) => t.id)).slice(2)}`
     setTemps((ts) => [...ts, { id, label, url, embed: true, session, parent: space }])
     selectTab(`x:${id}`)
@@ -939,7 +965,13 @@ export default function App() {
     }
     const target = linkTarget(url, regularTabs, from)
     // Le site lui-même (Telegram « ouvrir dans un nouvel onglet ») : un onglet à part.
-    if (target && target.id !== from?.id) return openInTab(target, url)
+    if (target && target.id !== from?.id) {
+      // Le site avait une page ouverte : elle est remplacée, on dit comment la
+      // retrouver (issue #60) plutôt que de la perdre en silence.
+      const was = pageUrl.current.get(target.id)
+      if (was && !samePage(was, url)) flashNotice(`Ouvert dans ${target.label} · ${keys('[')} pour revenir à la page d’avant`)
+      return openInTab(target, url)
+    }
     openChild(space, url, sessionFor(space, url, from))
   }
   inAppRef.current = (url, flip = false, searched = false) => {
@@ -947,8 +979,8 @@ export default function App() {
     // homedash lui-même (une autre page servie par le container) : le navigateur.
     if (new URL(url, window.location.href).host === window.location.host) return false
     const space = spaceOf(tab) ?? DASH
-    // Cherché depuis un site : une nouvelle navigation, pas un lien de ce site.
-    // Un éphémère à part dans la barre de gauche, avec le compte du site visé.
+    // Cherché depuis un site : une nouvelle navigation, pas un lien de ce site :
+    // le site visé s'il est dans la barre de gauche, sinon un onglet temporaire.
     if (searched && space !== DASH) {
       const target = linkTarget(url, regularTabs)
       if (target) openInTab(target, url)
@@ -998,6 +1030,9 @@ export default function App() {
       items: [
         { icon: '＋', label: 'Ajouter un site', onSelect: addTab },
         { icon: '⧉', label: 'Nouvel onglet temporaire', onSelect: () => newTemp(at) },
+        ...(temps.length
+          ? [{ icon: '✕', label: 'Fermer tous les onglets temporaires', hint: `${temps.length}`, onSelect: closeAllTemps }]
+          : []),
         { sep: true },
         { heading: 'Largeur' },
         width('wide', 'Étendue (icônes et noms)'),
@@ -1007,6 +1042,13 @@ export default function App() {
         { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => changeRail('hidden') },
       ],
     })
+  }
+  /** Tous les onglets temporaires (pas les gardés), et retour à l'espace d'où l'on était. */
+  const closeAllTemps = () => {
+    const shownTemp = temps.find((t) => tabKey(t) === tab)
+    perfEvent('temp-close', { count: temps.length, all: true })
+    setTemps([])
+    if (shownTemp) selectTab(shownTemp.parent && shownTemp.parent !== DASH ? (shownTemp.parent as TabId) : lastNative.current)
   }
   const closeTemp = (t: CustomTab) => {
     perfEvent('temp-close', { host: hostOf(t.url), kept: !!t.kept })
@@ -1111,14 +1153,10 @@ export default function App() {
       items: [
         { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(tempUrl.current.get(t.id) ?? t.url) },
         copyItem(t),
-        { heading: 'Garder' },
-        ...(t.kept
-          ? [
-              { icon: '📌', label: 'Garder cette page', hint: 'rouvrira ici', onSelect: () => promoteTemp(t, true) },
-              { icon: '◌', label: 'Ne plus garder', hint: 'disparaît au redémarrage', onSelect: () => unkeep(t) },
-            ]
-          : [{ icon: '📌', label: 'Garder ouvert', hint: 'survit au redémarrage', onSelect: () => promoteTemp(t, true) }]),
-        { icon: '＋', label: 'Ajouter à mes sites', onSelect: () => promoteTemp(t, false) },
+        { sep: true },
+        { icon: '📌', label: 'Garder dans Mes sites', hint: 'dans la barre de gauche', onSelect: () => promoteTemp(t, false) },
+        // Gardé avec l'ancien réglage : on peut encore le rendre temporaire.
+        ...(t.kept ? [{ icon: '◌', label: 'Ne plus garder', hint: 'fermé au redémarrage', onSelect: () => unkeep(t) }] : []),
         { heading: 'Onglet' },
         notifyItem(t),
         muteItem(t),
@@ -1126,6 +1164,9 @@ export default function App() {
         ...clearItem(t),
         { sep: true },
         { icon: '✕', label: 'Fermer', danger: !!t.kept, onSelect: () => closeTemp(t) },
+        ...(allTemps.filter((x) => !x.kept).length > 1
+          ? [{ icon: '✕', label: 'Fermer tous les onglets temporaires', hint: `${allTemps.filter((x) => !x.kept).length}`, onSelect: closeAllTemps }]
+          : []),
       ],
     })
   /** Lien « nouvel onglet » d'un site (main.js) : un onglet perso de ce site, sinon false → navigateur. */
@@ -1573,6 +1614,9 @@ export default function App() {
         <Rail
           tabs={regularTabs}
           temps={allTemps.filter((t) => !parentOf(t))}
+          kids={Object.fromEntries(
+            [DASH, ...regularTabs.map(tabKey)].map((k) => [k === DASH ? 'links' : k, childrenOf(k).length]),
+          )}
           asleep={asleep}
           audible={audible}
           muted={muted}
@@ -1899,6 +1943,7 @@ export default function App() {
         />
       ) : null}
       {reloaded ? <div className="toast toast-saved">↻ homedash rechargé</div> : null}
+      {notice ? <div className="toast toast-saved">{notice}</div> : null}
       {copiedKey?.startsWith('tab:') ? <div className="toast toast-saved">⧉ Lien copié</div> : null}
       <UpdateProgress />
       {/* Sur l'accueil seulement : par-dessus un site, elle cachait la page (issue #44). */}

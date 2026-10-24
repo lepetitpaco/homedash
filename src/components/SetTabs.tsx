@@ -36,9 +36,6 @@ type Props = {
   /** Liens de homedash dans l'appli (Réglages → `ui.openLinks`). */
   openLinks: 'app' | 'browser'
   onOpenLinks: (v: 'app' | 'browser') => void
-  /** Onglets ouverts par un lien : gardés à la relance (Réglages → `ui.linkTabsKept`). */
-  linkTabsKept: boolean
-  onLinkTabsKept: (v: boolean) => void
   /** Quelle entrée de Réglages : Mes sites (sites, dossiers, comptes) ou Liens & onglets (comportement). */
   part?: 'sites' | 'links'
 }
@@ -66,8 +63,6 @@ export default function SetTabs({
   onSleepMinutes,
   openLinks,
   onOpenLinks,
-  linkTabsKept,
-  onLinkTabsKept,
   part = 'sites',
 }: Props) {
   const [open, setOpen] = useState<string | null>(null)
@@ -599,33 +594,10 @@ export default function SetTabs({
         ) : null}
 
         {desktop ? (
-          <div className="xs-sleep">
-            <span>◫ Onglets ouverts par un lien</span>
-            <span className="xs-seg" role="radiogroup">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!linkTabsKept}
-                className={!linkTabsKept ? 'is-on' : ''}
-                onClick={() => onLinkTabsKept(false)}
-              >
-                Temporaires
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={linkTabsKept}
-                className={linkTabsKept ? 'is-on' : ''}
-                onClick={() => onLinkTabsKept(true)}
-              >
-                Gardés
-              </button>
-            </span>
-            <em className="xs-note">
-              Temporaires : fermés au redémarrage de l'appli. Gardés : rouverts au redémarrage. Un onglet à la fois : clic
-              droit → Garder ouvert, ou Ne plus garder.
-            </em>
-          </div>
+          <p className="xs-note">
+            ◫ Un onglet ouvert par un lien est <strong>temporaire</strong> : fermé au redémarrage, ou après 3 h
+            sans y aller. Pour le garder : clic droit dessus → <em>Garder dans Mes sites</em>.
+          </p>
         ) : null}
 
         <label className="xs-sleep">
