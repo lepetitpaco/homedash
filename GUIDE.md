@@ -23,7 +23,8 @@ Ta page d'accueil : tes liens, des notes, des infos à copier.
 
 ## 🗂 Mes sites
 
-Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côté de homedash.
+Tes sites (Gmail, Chat, Claude…) et fichiers dans la barre de gauche, à côté de homedash. Elle est là
+même sans aucun site : son **＋** ajoute le premier.
 
 ![Un site ouvert dans un onglet](docs/screenshots/site-dans-un-onglet.jpg)
 

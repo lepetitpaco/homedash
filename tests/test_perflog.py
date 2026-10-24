@@ -30,6 +30,15 @@ class PerfLogTest(unittest.TestCase):
         self.assertIn("t", line)
         self.assertTrue((perflog.perf_dir() / f"page-{today}.jsonl").exists())
 
+    def test_a_sleep_is_set_apart_not_counted_as_slow(self):
+        perflog._timed.clear()
+        perflog.timed("github", 25.0)
+        perflog.timed("github", 549.0)
+        self.assertEqual(perflog._timed["github"], (1, 25.0, 25.0))
+        today = date.today().isoformat()
+        rows = [json.loads(l) for l in (perflog.perf_dir() / f"server-{today}.jsonl").read_text().splitlines()]
+        self.assertEqual([(r["kind"], r["took_s"]) for r in rows], [("slow", 25.0), ("asleep", 549.0)])
+
     def test_nothing_is_written_when_disabled(self):
         perflog.configure(False)
         self.assertFalse(perflog.append("app", {"kind": "sample"}))
