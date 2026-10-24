@@ -138,6 +138,8 @@ export type UiConfig = {
   linkTabsKept: boolean
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
+  /** Accueil : carte « Pour commencer » masquée (Réglages → Affichage la remet). */
+  setupHidden: boolean
 }
 
 /**

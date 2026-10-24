@@ -1,0 +1,80 @@
+/* Accueil : carte « Pour commencer » (SetupCard). */
+.setup-card {
+  margin-bottom: 14px;
+  padding: 14px 16px;
+  border-color: color-mix(in srgb, var(--sig-info) 40%, var(--border));
+}
+.setup-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.setup-head h2 {
+  margin: 0;
+  font-size: 15px;
+}
+.setup-count {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.setup-head .reveal-btn {
+  margin-left: auto;
+}
+.setup-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.setup-steps li {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-soft);
+  border-radius: 8px;
+}
+.setup-steps li.is-done {
+  opacity: 0.6;
+}
+.setup-icon {
+  width: 22px;
+  text-align: center;
+  font-size: 16px;
+}
+.is-done .setup-icon {
+  color: var(--sig-ok);
+}
+.setup-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+}
+.setup-text strong {
+  font-size: 14px;
+}
+.setup-text span {
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.setup-go {
+  white-space: nowrap;
+}
+.setup-foot {
+  margin: 10px 0 0;
+  color: var(--text-dim);
+  font-size: 13px;
+}
+.setup-link {
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--sig-info);
+  font: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}

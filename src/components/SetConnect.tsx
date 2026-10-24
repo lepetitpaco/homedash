@@ -113,32 +113,49 @@ export default function SetConnect({ account, auth, onChange }: Props) {
             </button>
           </div>
           {error ? <p className="set-hint set-bad">✗ {error}</p> : null}
-          <details className="set-howto">
-            <summary>Créer un jeton</summary>
+          {/* Ouverte tant qu'on n'est pas connecté : c'est l'étape où l'on bloquait. */}
+          <details className="set-howto" open={!connected}>
+            <summary>Comment créer un jeton (2 minutes)</summary>
+            <p className="set-hint">
+              Un jeton est un mot de passe limité que tu crées sur GitHub pour homedash. Il reste sur cette
+              machine.
+            </p>
             <ol>
               <li>
+                Ouvre{' '}
                 <a href={FINE_URL} target="_blank" rel="noreferrer" data-outside>
-                  Jeton fine-grained
+                  la page de création du jeton
                 </a>{' '}
-                (recommandé) — <em>Resource owner</em> : ton org ou ton compte ·{' '}
-                <em>Repository access</em> : les repos à suivre.
+                (connecté à ton compte GitHub).
               </li>
               <li>
-                Permissions, toutes en <strong>Read-only</strong> : Contents, Metadata, Pull
-                requests, Issues, Checks, Commit statuses — et, côté org, Members (pour proposer l'équipe).
-                Issues en <strong>Read and write</strong> pour créer une issue depuis une tâche Basecamp.
+                <strong>Token name</strong> : homedash. <strong>Expiration</strong> : la plus longue possible.
               </li>
               <li>
-                Plus rapide mais plus large :{' '}
-                <a href={CLASSIC_URL} target="_blank" rel="noreferrer" data-outside>
-                  jeton classic pré-rempli
-                </a>{' '}
-                (scopes <code>repo</code>, <code>read:org</code> — donne aussi l'écriture).
+                <strong>Resource owner</strong> : l'organisation de tes repos de travail (ou ton compte pour
+                tes repos perso). Un jeton par propriétaire : pour l'autre, ajoute un compte en haut de la page.
+              </li>
+              <li>
+                <strong>Repository access</strong> : <em>All repositories</em>, ou seulement ceux à suivre.
+              </li>
+              <li>
+                <strong>Permissions</strong> → <em>Repository permissions</em>, en <strong>Read-only</strong> :
+                Contents, Pull requests, Commit statuses, Checks, Issues (Metadata se coche tout seul). Pour
+                créer une issue depuis une tâche Basecamp : Issues en <strong>Read and write</strong>.
+              </li>
+              <li>
+                <strong>Generate token</strong>, copie le jeton (il commence par <code>github_pat_</code>), colle-le
+                ci-dessus puis <strong>Connecter</strong>.
               </li>
             </ol>
             <p className="set-hint">
-              Le jeton donne accès à tous les repos de ce compte, perso et organisations. Pour un autre
-              compte GitHub, ajoute un compte en haut de la page.
+              Si tes repos de travail n'apparaissent pas ensuite, l'organisation doit peut-être approuver le
+              jeton (demande à un admin). Plus rapide, mais avec plus de droits :{' '}
+              <a href={CLASSIC_URL} target="_blank" rel="noreferrer" data-outside>
+                un jeton « classic » déjà rempli
+              </a>{' '}
+              : choisis l'expiration, <strong>Generate token</strong>, copie, colle. Il ouvre tous tes repos,
+              y compris en écriture.
             </p>
           </details>
         </>
