@@ -100,7 +100,7 @@ def reload_all():
     """Après toute écriture de config (Réglages, restauration) : recharge les
     sections, vide les caches, et réveille ce qui dormait faute de config — un
     premier dossier de dépôts ajouté depuis la page doit suffire."""
-    started_at = time.time()
+    started_at = time.monotonic()
     load_sections()
     accounts.invalidate_all()
     localgit.invalidate()
@@ -108,7 +108,7 @@ def reload_all():
         localgit.start_watch()
         localgit.kickoff("réglages")
     accounts.kickoff_all()
-    perflog.timed("config", time.time() - started_at)
+    perflog.timed("config", time.monotonic() - started_at)
 
 def adopt_login(acc_id, login):
     """Premier branchement d'un compte : son login devient l'utilisateur observé,
