@@ -230,7 +230,7 @@ export type TabSession = {
 export type LayoutEntry = string
 
 /** Ce qu'on peut couper : l'onglet disparaît, et le serveur ne lit plus le service. */
-export type Feature = 'github' | 'basecamp' | 'local'
+export type Feature = 'github' | 'basecamp' | 'local' | 'trello'
 
 export const featureOn = (cfg: Pick<Config, 'features'> | null | undefined, f: Feature): boolean =>
   cfg?.features?.[f] !== false
@@ -266,6 +266,11 @@ export type Config = {
   /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
   basecamp?: {
     /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */
+    hidden?: string[]
+  }
+  /** Onglet Trello. Tout est facultatif : absent = défaut. */
+  trello?: {
+    /** Tableaux masqués (ids). Absent = tout afficher, y compris les nouveaux. */
     hidden?: string[]
   }
 

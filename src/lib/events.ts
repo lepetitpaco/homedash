@@ -4,7 +4,7 @@ import { notifyEvents } from './notifications'
 import { shown } from './errors'
 
 export type EventLevel = 'ok' | 'bad' | 'warn' | 'info'
-export type EventSource = 'github' | 'local' | 'basecamp'
+export type EventSource = 'github' | 'local' | 'basecamp' | 'trello'
 
 export type HdEvent = {
   /** Entier strictement croissant, jamais réutilisé. L'ordre fait autorité. */

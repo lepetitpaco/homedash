@@ -3,6 +3,9 @@ import ConfirmHost from './components/ConfirmHost'
 import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import BasecampView, { showBcIssues, showBcTask } from './components/BasecampView'
+import TrelloView, { showTrIssues, showTrTask } from './components/TrelloView'
+import TrCardHost, { showTrCard } from './components/TrCardHost'
+import TrIssueHost, { askTrIssue } from './components/TrIssueHost'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
@@ -34,6 +37,8 @@ import { useUsage } from './hooks/useUsage'
 import { useEvents, type HdEvent } from './lib/events'
 import { lateCount, useBasecamp, type BcFound, type BcTask } from './lib/basecamp'
 import { bcKey, issuesByTask, whereOf, type IssueTask } from './lib/bcIssues'
+import { lateCount as trLateCount, useTrello, type TrCard } from './lib/trello'
+import { issuesByCard, trKey, whereOf as trWhere, type IssueCard } from './lib/trIssues'
 import IssueHost, { askIssue } from './components/IssueHost'
 import TaskHost, { showTask } from './components/TaskHost'
 import {
@@ -99,7 +104,12 @@ function shortLink(url: string): string {
 export default function App() {
   const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad } = useConfigState()
   // Fonctionnalités coupées dans Réglages : ni onglet, ni commande, ni résultat de recherche.
-  const on = { github: featureOn(raw, 'github'), basecamp: featureOn(raw, 'basecamp'), local: featureOn(raw, 'local') }
+  const on = {
+    github: featureOn(raw, 'github'),
+    basecamp: featureOn(raw, 'basecamp'),
+    local: featureOn(raw, 'local'),
+    trello: featureOn(raw, 'trello'),
+  }
   const [notes, setNotes] = useState<Note[]>([])
   const [openNoteId, setOpenNoteId] = useState<string | null>(null)
   const searchRef = useRef<HTMLInputElement>(null)
@@ -230,7 +240,7 @@ export default function App() {
   tabNowRef.current = tab
   // Onglet d'une fonctionnalité coupée (mémorisé, ou `?tab=`) : retour à l'accueil.
   useEffect(() => {
-    if ((tab === 'github' || tab === 'basecamp' || tab === 'local') && raw && !featureOn(raw, tab)) selectTab('links')
+    if ((tab === 'github' || tab === 'basecamp' || tab === 'local' || tab === 'trello') && raw && !featureOn(raw, tab)) selectTab('links')
   }, [tab, raw, selectTab])
   // ⇧⌘R (appli de bureau) : le site ouvert, ou homedash sur un onglet natif.
   useEffect(() => setGhFront(tab === 'github' || tab === 'links'), [tab])
@@ -420,21 +430,46 @@ export default function App() {
   // devenu un événement du journal, écrit par le serveur.
   const local = useLocal(tab === 'local')
   const bc = useBasecamp(tab === 'basecamp')
+  const tr = useTrello(tab === 'trello')
   const changelog = useChangelog()
   // « rapport prêt » : la vue Issues de l'onglet Basecamp, d'où on le publie
   const openBcIssues = useCallback(() => {
     showBcIssues()
     selectTab('basecamp')
   }, [selectTab])
+  const openTrIssues = useCallback(() => {
+    showTrIssues()
+    selectTab('trello')
+  }, [selectTab])
+  const openTrTask = useCallback(
+    (url: string) => {
+      if (url) showTrTask(url)
+      selectTab('trello')
+    },
+    [selectTab],
+  )
   const inApp = useCallback(
-    (e: HdEvent) => (e.source === 'local' ? openLocal : e.kind === 'bc-report' ? openBcIssues : undefined),
-    [openLocal, openBcIssues],
+    (e: HdEvent) =>
+      e.source === 'local'
+        ? openLocal
+        : e.kind === 'bc-report'
+          ? openBcIssues
+          : e.kind === 'tr-report'
+            ? openTrIssues
+            : e.kind === 'tr-task'
+              ? () => openTrTask(e.url)
+              : undefined,
+    [openLocal, openBcIssues, openTrIssues, openTrTask],
   )
   // Fonctionnalité coupée : ses événements quittent la cloche, l'historique et les notifications.
-  const eventsOff = useMemo(
-    () => (['github', 'basecamp', 'local'] as const).filter((f) => !featureOn(raw, f)),
-    [raw],
-  )
+  const eventsOff = useMemo(() => {
+    const off: ('github' | 'basecamp' | 'local' | 'trello')[] = []
+    if (!featureOn(raw, 'github')) off.push('github')
+    if (!featureOn(raw, 'basecamp')) off.push('basecamp')
+    if (!featureOn(raw, 'local')) off.push('local')
+    if (!featureOn(raw, 'trello')) off.push('trello')
+    return off
+  }, [raw])
   const events = useEvents(inApp, eventsOff)
   // ⌘R sur un onglet natif (appli 2.0) : relire GitHub, le disque et Basecamp,
   // sans recharger la page ni remonter les sites (issue #63).
@@ -602,6 +637,9 @@ export default function App() {
       ...(bc.data?.configured
         ? [{ id: 'basecamp', icon: '🏕', label: 'Basecamp', keywords: 'tâches', run: () => selectTab('basecamp') }]
         : []),
+      ...(on.trello && tr.data?.configured
+        ? [{ id: 'trello', icon: '📋', label: 'Trello', keywords: 'cartes tableaux', run: () => selectTab('trello') }]
+        : []),
       { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
       { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config', run: () => selectTab('settings') },
       ...(desktop
@@ -633,7 +671,7 @@ export default function App() {
         run: clearVisits,
       },
     ],
-    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, newGroup, on.github, on.local],
+    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, tr.data?.configured, newGroup, on.github, on.local, on.trello],
   )
   // Basecamp dans la recherche : mes tâches (déjà là) ; tout Basecamp, useSearch le cherche
   const bcTasks = useMemo(
@@ -641,8 +679,15 @@ export default function App() {
     [bc.data],
   )
   // Portées de la recherche : celles des fonctionnalités coupées (ou Basecamp non connecté) n'y sont pas.
+  const trCards = useMemo(() => (tr.data?.enabled ? tr.data.cards ?? [] : []), [tr.data])
   const searchScopes = SEARCH_SCOPES.filter((x) =>
-    x.id === 'code' ? on.github || on.local : x.id === 'basecamp' ? on.basecamp && !!bc.data?.enabled : true,
+    x.id === 'code'
+      ? on.github || on.local
+      : x.id === 'basecamp'
+        ? on.basecamp && !!bc.data?.enabled
+        : x.id === 'trello'
+          ? on.trello && !!tr.data?.enabled
+          : true,
   )
   const search = useSearch({
     cfg,
@@ -652,6 +697,8 @@ export default function App() {
     local: on.local ? local.data : null,
     bcTasks,
     bcSearch: !!bc.data?.enabled && !!bc.data.loaded,
+    trCards,
+    trSearch: !!tr.data?.enabled && !!tr.data.loaded,
     searchRef,
     paused: !!menus.draft,
     track,
@@ -685,11 +732,11 @@ export default function App() {
   // « Pour commencer » (accueil) : ce qui est branché, relu à chaque retour sur
   // l'accueil et après chaque enregistrement.
   const setupWanted = tab === 'links' && !!raw && raw.ui?.setupHidden !== true
-  const [setupState, setSetupState] = useState<{ github: boolean; basecamp: boolean; local: boolean } | null>(null)
+  const [setupState, setSetupState] = useState<{ github: boolean; basecamp: boolean; local: boolean; trello?: boolean } | null>(null)
   useEffect(() => {
     if (!setupWanted) return
     fetch('api/health', { cache: 'no-store' })
-      .then((r) => r.json() as Promise<{ github: boolean; basecamp: boolean; local: boolean }>)
+      .then((r) => r.json() as Promise<{ github: boolean; basecamp: boolean; local: boolean; trello?: boolean }>)
       .then(setSetupState)
       .catch(() => undefined)
   }, [setupWanted, raw])
@@ -731,7 +778,7 @@ export default function App() {
   const hasChecks = links.some((l) => l.check) && ui.healthcheckInterval > 0
   /**
    * ⟳ de la barre du haut : tout ce qui peut avoir du nouveau, d'un coup. Le
-   * serveur relit GitHub, Basecamp et le disque ; les sites relisent leurs
+   * serveur relit GitHub, Basecamp, Trello et le disque ; les sites relisent leurs
    * non-lus, et ceux en veille sont réveillés (ils se rendorment ensuite comme
    * d'habitude) ; la cloche est relue à mesure que les réponses arrivent.
    */
@@ -743,6 +790,7 @@ export default function App() {
     gh.refresh()
     local.refresh()
     if (bc.data?.configured) bc.refresh()
+    if (tr.data?.configured) tr.refresh()
     void changelog.check()
     const now = Date.now()
     setAsleep((a) => {
@@ -757,6 +805,8 @@ export default function App() {
   }
   const bcHidden = raw?.basecamp?.hidden ?? []
   const bcLate = lateCount(bc.data, bcHidden)
+  const trHidden = raw?.trello?.hidden ?? []
+  const trLate = trLateCount(tr.data, trHidden)
   // GitHub et Local : le même code, en ligne et sur le disque. Côte à côte dans
   // un seul bloc (« duo »), chacun garde son clic.
   const code = { id: 'code', title: 'Ton code : en ligne (GitHub) et sur ton disque (Local)' }
@@ -1334,6 +1384,35 @@ export default function App() {
     })
     return true
   }
+  const newTrIssue = (card: IssueCard, comment?: string): boolean => {
+    const repos = tr.data?.github?.repos ?? []
+    if (!repos.length) return false
+    const key = trKey(card.url)
+    askTrIssue({
+      repos,
+      card,
+      comment,
+      existing: (key && issuesByCard(tr.data?.github?.issues ?? []).get(key)) || [],
+      cloneOf,
+      onOpen: openLink,
+      onOpenOutside: desktop ? openOutside : undefined,
+      onMade: tr.reload,
+    })
+    return true
+  }
+  const trCardOf = (c: TrCard): IssueCard => ({ url: c.url, title: c.title, where: trWhere(c), board: c.board_id })
+  const viewTrCard = (card: IssueCard, comment?: string) => {
+    const key = trKey(card.url)
+    showTrCard({
+      url: card.url,
+      title: card.title,
+      where: card.where,
+      comment,
+      issues: (key && issuesByCard(tr.data?.github?.issues ?? []).get(key)) || [],
+      onOpen: openLink,
+      onIssue: tr.data?.github?.repos?.length ? (c) => void newTrIssue(card, c) : undefined,
+    })
+  }
   const bcTaskOf = (t: BcTask): IssueTask => ({ url: t.url, title: t.title, where: whereOf(t), project: t.project })
   /** Fiche d'une tâche (description, échanges), ouverte sur un échange s'il est donné. */
   const viewTask = (task: IssueTask, comment?: number) => {
@@ -1395,6 +1474,15 @@ export default function App() {
         const t = [...(bc.data?.tasks.priorities ?? []), ...(bc.data?.tasks.others ?? [])].find((x) => bcKey(x.url) === key)
         const issue = issueItems(t ? { ...bcTaskOf(t), url } : { url, title: m.text.trim().slice(0, 200) })
         if (issue.length) items.push({ sep: true }, ...issue)
+      }
+      const trk = trKey(m.link)
+      if (trk) {
+        const url = m.link.split(/[?#]/)[0]
+        const c = (tr.data?.cards ?? []).find((x) => x.short_link === trk)
+        const card: IssueCard = c ? { ...trCardOf(c), url } : { url, title: m.text.trim().slice(0, 200) }
+        if (tr.data?.github?.repos?.length) {
+          items.push({ sep: true }, { icon: '🐙', label: 'Créer une issue GitHub…', onSelect: () => void newTrIssue(card) })
+        }
       }
     }
     if (m.image) {
@@ -1474,6 +1562,17 @@ export default function App() {
             label: 'Basecamp',
             badge: bcLate,
             badgeTitle: `${bcLate} tâche(s) Basecamp en retard`,
+          },
+        ]
+      : []),
+    ...(on.trello && tr.data?.configured
+      ? [
+          {
+            id: 'trello' as TabId,
+            icon: '📋',
+            label: 'Trello',
+            badge: trLate,
+            badgeTitle: `${trLate} carte(s) Trello en retard`,
           },
         ]
       : []),
@@ -1577,6 +1676,17 @@ export default function App() {
           run: () => openSection('set-basecamp'),
         }]
       : []),
+    ...(on.trello
+      ? [{
+          id: 'trello',
+          icon: '📋',
+          title: 'Connecte Trello',
+          hint: 'Tes cartes et tes notifications, en lecture seule.',
+          done: setupState?.trello,
+          action: 'Connecter',
+          run: () => openSection('set-trello'),
+        }]
+      : []),
     // Défauts = écran 49" : sur un écran plus petit, le texte paraît minuscule.
     ...(window.innerWidth < 4000
       ? [{
@@ -1661,6 +1771,8 @@ export default function App() {
               inApp={inApp}
               basecamp={bc.data}
               onOpenBasecamp={() => selectTab('basecamp')}
+              trello={tr.data}
+              onOpenTrello={() => selectTab('trello')}
             />
           </>
         }
@@ -1829,6 +1941,35 @@ export default function App() {
             showBcTask(item.url)
             selectTab('basecamp')
           }}
+          onTrIssue={
+            tr.data?.github?.repos?.length
+              ? (item) => {
+                  search.setQuery('')
+                  void newTrIssue({
+                    url: item.url.split(/[?#]/)[0],
+                    title: item.title,
+                    where: [item.board, item.parent].filter(Boolean).join(' › '),
+                    board: (tr.data?.cards ?? []).find((c) => c.url.split(/[?#]/)[0] === item.url.split(/[?#]/)[0])?.board_id,
+                  }, item.comment_id ?? undefined)
+                }
+              : undefined
+          }
+          onTrView={(item) => {
+            search.setQuery('')
+            viewTrCard(
+              {
+                url: item.url.split(/[?#]/)[0],
+                title: item.title,
+                where: [item.board, item.parent].filter(Boolean).join(' › '),
+              },
+              item.comment_id ?? undefined,
+            )
+          }}
+          onTrShow={(item) => {
+            search.setQuery('')
+            showTrTask(item.url)
+            selectTab('trello')
+          }}
         />
       ) : view === 'events' ? (
         <EventFeed
@@ -1853,6 +1994,32 @@ export default function App() {
           cloneOf={cloneOf}
           onSettings={() => {
             presetSettingsSection('set-basecamp')
+            selectTab('settings')
+          }}
+        />
+      ) : view === 'trello' ? (
+        <TrelloView
+          data={tr.data}
+          error={tr.error}
+          hidden={trHidden}
+          onHidden={(hidden) => raw && persist({ ...raw, trello: { ...raw.trello, hidden } })}
+          onRefresh={tr.refresh}
+          onTaskMenu={(e, c) => {
+            e.preventDefault()
+            const card = trCardOf(c)
+            const items: MenuItem[] = desktop ? [{ heading: 'Ouvrir' }, ...openChoices(c.url), { sep: true }] : []
+            items.push({ icon: '💬', label: 'Voir la carte et ses échanges', onSelect: () => viewTrCard(card) })
+            items.push({ icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${c.url}`, c.url) })
+            if (tr.data?.github?.repos?.length) {
+              items.push({ sep: true }, { icon: '🐙', label: 'Créer une issue GitHub…', onSelect: () => void newTrIssue(card) })
+            }
+            menus.openMenu({ x: e.clientX, y: e.clientY, title: c.title, items })
+          }}
+          onNewIssue={tr.data?.github?.repos?.length ? (c) => void newTrIssue(trCardOf(c)) : undefined}
+          onShowCard={(c) => viewTrCard(trCardOf(c))}
+          cloneOf={cloneOf}
+          onSettings={() => {
+            presetSettingsSection('set-trello')
             selectTab('settings')
           }}
         />
@@ -1977,6 +2144,8 @@ export default function App() {
       <NameColorHost />
       <TaskHost />
       <IssueHost />
+      <TrCardHost />
+      <TrIssueHost />
       {adding ? (
         <AddTabDialog
           folders={tabFolders}

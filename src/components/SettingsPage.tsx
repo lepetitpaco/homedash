@@ -32,6 +32,7 @@ import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type Re
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
+import SetTrello from './SetTrello'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
@@ -73,6 +74,7 @@ const SECTIONS = [
   { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'GitHub' },
   { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
+  { id: 'set-trello', icon: '📋', label: 'Trello', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
@@ -84,6 +86,7 @@ const SECTION_FEATURE: Record<string, Feature> = {
   'set-github': 'github',
   'set-local': 'local',
   'set-basecamp': 'basecamp',
+  'set-trello': 'trello',
 }
 
 /** Réglages → Fonctionnalités : ce que chacune ajoute à la page. */
@@ -91,6 +94,7 @@ const FEATURE_LIST: { id: Feature; icon: string; label: string; hint: string }[]
   { id: 'github', icon: '🐙', label: 'GitHub', hint: 'onglet GitHub (branches, PRs, CI, Renovate), carte Repos de l’accueil, recherche dans les repos' },
   { id: 'local', icon: '💻', label: 'Local', hint: 'onglet Local : les dépôts de ton disque et leurs branches à nettoyer' },
   { id: 'basecamp', icon: '🏕', label: 'Basecamp', hint: 'onglet Basecamp (tes tâches), ses non-lus dans la cloche, recherche dans Basecamp' },
+  { id: 'trello', icon: '📋', label: 'Trello', hint: 'onglet Trello (tes cartes), ses non-lus dans la cloche, recherche dans Trello' },
 ]
 
 /** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
@@ -802,6 +806,11 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           <SetBasecamp />
         </Card>
         ) : null}
+        {active === 'set-trello' ? (
+        <Card id="set-trello" icon="📋" title="Trello">
+          <SetTrello />
+        </Card>
+        ) : null}
         {active === 'set-tabs' ? (
         <Card id="set-tabs" icon="🗂" title="Mes sites">
           <SetTabs
@@ -1118,7 +1127,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           <span className="set-actions-note">
             {dirty
               ? '● Modifications non enregistrées'
-              : '✓ Tout est enregistré. Les connexions (GitHub, Basecamp) et les sauvegardes s’appliquent dès le clic ; le reste attend « Enregistrer ».'}
+              : '✓ Tout est enregistré. Les connexions (GitHub, Basecamp, Trello) et les sauvegardes s’appliquent dès le clic ; le reste attend « Enregistrer ».'}
           </span>
           <button className="set-cancel" onClick={() => setDraft(config)} disabled={saving || !dirty}>
             Annuler
