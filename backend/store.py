@@ -21,6 +21,8 @@ USAGE       = "usage.json"
 EVENTS      = "events.json"
 # Rapports d'issues déjà publiés sur Basecamp (id du commentaire GitHub → lien)
 BC_POSTED   = "bc_posted.json"
+# Rapports d'issues déjà publiés sur Trello (id du commentaire GitHub → lien)
+TR_POSTED   = "tr_posted.json"
 # Le jeton GitHub saisi dans Réglages. Fichier à part, en 600, et jamais servi
 # au navigateur ni inclus dans les sauvegardes : config.json, lui, transite
 # entier par GET /api/config.
@@ -124,7 +126,7 @@ def backup_config():
 # Fonctionnalités qu'on peut couper (Réglages → Fonctionnalités) : `features` de
 # config.json, clé absente = active. Coupée, elle disparaît de la page et le
 # serveur cesse de lire le service qu'elle suit.
-FEATURES = ("github", "basecamp", "local")
+FEATURES = ("github", "basecamp", "local", "trello")
 
 def feature_on(cfg, name):
     features = (cfg or {}).get("features")
@@ -244,6 +246,13 @@ def validate_config(cfg):
         hidden = bc.get("hidden")
         if hidden is not None and not (isinstance(hidden, list) and all(isinstance(x, str) for x in hidden)):
             return '"basecamp.hidden" doit être une liste de textes'
+    tr = cfg.get("trello")
+    if tr is not None:
+        if not isinstance(tr, dict):
+            return '"trello" doit être un objet'
+        hidden = tr.get("hidden")
+        if hidden is not None and not (isinstance(hidden, list) and all(isinstance(x, str) for x in hidden)):
+            return '"trello.hidden" doit être une liste de textes'
     loc = cfg.get("local")
     if loc is not None:
         if not isinstance(loc, dict):

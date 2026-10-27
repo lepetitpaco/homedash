@@ -177,6 +177,7 @@ const GROUP_TITLE: Record<string, (n: number) => [string, string]> = {
   'rm-pass': (n) => [`🟢 ${n} projets validés`, 'CI verte : tu peux merger les autres.'],
   'rm-fail': (n) => [`⛔ ${n} projets KO après merge`, 'Ne pas propager.'],
   'bc-report': (n) => [`📤 ${n} rapports prêts à publier sur Basecamp`, ''],
+  'tr-report': (n) => [`📤 ${n} rapports prêts à publier sur Trello`, ''],
   'local-cleanup': (n) => [
     `🧹 ${n} branches locales sont mergées`,
     'Leurs copies locales ne servent plus à rien.',

@@ -2,7 +2,7 @@ import { useMemo, useRef, useState } from 'react'
 import { dayOf, hhmm, type EventSource, type HdEvent, type InApp } from '../lib/events'
 import { confirmDialog } from './ConfirmHost'
 
-type Filter = 'all' | 'code' | 'basecamp' | 'bad'
+type Filter = 'all' | 'code' | 'basecamp' | 'trello' | 'bad'
 
 // Les mêmes que la cloche (Tout / GitHub & Local / Basecamp), plus « Problèmes » :
 // deux découpages pour la même liste déroutaient (issue #44).
@@ -10,6 +10,7 @@ const FILTERS: { id: Filter; label: string; title: string; sources?: EventSource
   { id: 'all', label: 'Tout', title: 'Tous les événements' },
   { id: 'code', label: 'GitHub & Local', title: 'CI, PRs, Renovate, branches à supprimer', sources: ['github', 'local'] },
   { id: 'basecamp', label: 'Basecamp', title: 'Nouvelles notifications et tâches Basecamp', sources: ['basecamp'] },
+  { id: 'trello', label: 'Trello', title: 'Nouvelles notifications et cartes Trello', sources: ['trello'] },
   { id: 'bad', label: 'Problèmes', title: 'Uniquement ce qui a cassé' },
 ]
 

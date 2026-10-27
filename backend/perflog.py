@@ -42,7 +42,7 @@ _timed    = {}           # opération -> [nombre, durée totale, pire durée] de
 
 # Au-delà, une opération a sa propre ligne « slow » (en plus du cumul) : c'est
 # elle qu'on cherchera en relisant le journal.
-SLOW = {"github": 20.0, "local": 3.0, "basecamp": 10.0, "config": 3.0}
+SLOW = {"github": 20.0, "local": 3.0, "basecamp": 10.0, "trello": 10.0, "config": 3.0}
 # Au-delà, ce n'est pas une lenteur mais la machine mise en veille pendant
 # l'opération : ligne « asleep », hors du cumul (elle fausserait pire et moyenne).
 ASLEEP = 300.0

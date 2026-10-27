@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useDismiss } from '../hooks/useDismiss'
 import type { BcData } from '../lib/basecamp'
+import type { TrData } from '../lib/trello'
 import type { HdEvent, InApp } from '../lib/events'
 import { agoShort } from '../lib/local'
 import { notifState, toggleNotifications, type NotifState } from '../lib/notifications'
@@ -18,7 +19,8 @@ const BC_ICON: Record<string, string> = {
   bubbles: '🫧',
 }
 
-type Filter = 'all' | 'code' | 'basecamp'
+type Filter = 'all' | 'code' | 'basecamp' | 'trello'
+const CODE_SOURCES = new Set(['github', 'local'])
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'non supportées par ce navigateur',
@@ -58,11 +60,17 @@ export default function EventBell({
   inApp,
   basecamp,
   onOpenBasecamp,
+  trello,
+  onOpenTrello,
 }: {
   /** Basecamp connecté : ses notifs non lues dans la même cloche. */
   basecamp?: BcData | null
   /** « Mes tâches → » : l'onglet Basecamp. */
   onOpenBasecamp?: () => void
+  /** Trello connecté : ses notifs non lues dans la même cloche. */
+  trello?: TrData | null
+  /** « Mes cartes → » : l'onglet Trello. */
+  onOpenTrello?: () => void
   events: HdEvent[]
   unseen: number
   seen: number
@@ -78,8 +86,10 @@ export default function EventBell({
   const [notif, setNotif] = useState<NotifState>('default')
   const [filter, setFilter] = useState<Filter>('all')
   const bc = basecamp?.enabled ? basecamp : null
+  const tr = trello?.enabled ? trello : null
   const bcUnread = bc?.unreads.length ?? 0
-  const total = unseen + bcUnread
+  const trUnread = tr?.unreads.length ?? 0
+  const total = unseen + bcUnread + trUnread
   const wrap = useRef<HTMLDivElement>(null)
   const close = useCallback(() => setOpen(false), [])
 
@@ -100,15 +110,21 @@ export default function EventBell({
 
   const multiAccount = new Set(events.map((ev) => ev.account).filter(Boolean)).size > 1
   // Une notif encore non lue est en tête : sa ligne du journal ne la répète pas.
-  const unreadTags = new Set((bc?.unreads ?? []).map((n) => `bc:notif:${n.id}`))
-  const journal = events.filter(
-    (e) =>
-      !unreadTags.has(e.tag) &&
-      (filter === 'all' || (filter === 'basecamp') === (e.source === 'basecamp')),
-  )
+  const unreadTags = new Set([
+    ...(bc?.unreads ?? []).map((n) => `bc:notif:${n.id}`),
+    ...(tr?.unreads ?? []).map((n) => `tr:notif:${n.id}`),
+  ])
+  const journal = events.filter((e) => {
+    if (unreadTags.has(e.tag)) return false
+    if (filter === 'all') return true
+    if (filter === 'code') return CODE_SOURCES.has(e.source)
+    if (filter === 'basecamp') return e.source === 'basecamp'
+    return e.source === 'trello'
+  })
   const shown = journal.slice(0, SHOWN)
-  const unreads = bc && filter !== 'code' ? bc.unreads : []
-  const codeFresh = events.filter((e) => e.seq > mark && e.source !== 'basecamp').length
+  const unreads = bc && (filter === 'all' || filter === 'basecamp') ? bc.unreads : []
+  const trUnreads = tr && (filter === 'all' || filter === 'trello') ? tr.unreads : []
+  const codeFresh = events.filter((e) => e.seq > mark && CODE_SOURCES.has(e.source)).length
   const blocked = notif === 'unsupported' || notif === 'insecure' || notif === 'denied'
   const go = (fn: () => void) => () => {
     setOpen(false)
@@ -121,7 +137,7 @@ export default function EventBell({
         className={`icon-btn bell-btn${open ? ' is-open' : ''}`}
         onClick={toggle}
         title={
-          [unseen ? `${unseen} événement(s) depuis ta dernière visite` : '', bcUnread ? `${bcUnread} notif(s) Basecamp non lue(s)` : '']
+          [unseen ? `${unseen} événement(s) depuis ta dernière visite` : '', bcUnread ? `${bcUnread} notif(s) Basecamp non lue(s)` : '', trUnread ? `${trUnread} notif(s) Trello non lue(s)` : '']
             .filter(Boolean)
             .join(' · ') || 'Notifications'
         }
@@ -136,13 +152,14 @@ export default function EventBell({
         <div className="bell-panel" role="dialog" aria-label="Notifications">
           <div className="bell-head">
             <strong>Notifications</strong>
-            {bc ? (
+            {bc || tr ? (
               <span className="bell-filters" role="radiogroup">
                 {(
                   [
                     ['all', 'Tout'],
                     ['code', `GitHub & Local${codeFresh ? ` · ${codeFresh}` : ''}`],
-                    ['basecamp', `🏕 Basecamp${bcUnread ? ` · ${bcUnread}` : ''}`],
+                    ...(bc ? [['basecamp', `🏕 Basecamp${bcUnread ? ` · ${bcUnread}` : ''}`] as const] : []),
+                    ...(tr ? [['trello', `📋 Trello${trUnread ? ` · ${trUnread}` : ''}`] as const] : []),
                   ] as const
                 ).map(([id, label]) => (
                   <button
@@ -191,7 +208,17 @@ export default function EventBell({
                 </button>
               </div>
             ) : null}
-            {bc?.error && filter !== 'code' ? <p className="gh-empty">⚠ {bc.error}</p> : null}
+            {filter === 'trello' && onOpenTrello ? (
+              <div className="bell-section">
+                📋 Trello
+                <span className="set-spacer" />
+                <button className="bell-link" onClick={go(onOpenTrello)}>
+                  Mes cartes →
+                </button>
+              </div>
+            ) : null}
+            {bc?.error && (filter === 'all' || filter === 'basecamp') ? <p className="gh-empty">⚠ {bc.error}</p> : null}
+            {tr?.error && (filter === 'all' || filter === 'trello') ? <p className="gh-empty">⚠ {tr.error}</p> : null}
             {unreads.map((n) => (
               <a
                 key={n.id}
@@ -218,13 +245,40 @@ export default function EventBell({
                 </div>
               </a>
             ))}
-            {unreads.length && shown.length ? <div className="bell-section">Déjà vues</div> : null}
+            {trUnreads.map((n) => (
+              <a
+                key={`tr:${n.id}`}
+                className="ev-row is-info is-unread"
+                href={n.url}
+                target="_blank"
+                rel="noreferrer"
+                title={n.excerpt || n.title}
+                onClick={() => setOpen(false)}
+              >
+                <time className="ev-time">{n.ts ? agoShort(n.ts).replace('il y a ', '') : ''}</time>
+                <div className="ev-main">
+                  <div className="ev-title">
+                    <span aria-hidden="true">📋 </span>
+                    {n.title}
+                    <span className="ev-unread">non lue</span>
+                  </div>
+                  <div className="ev-body">
+                    {[n.board, n.creator && n.excerpt ? `${n.creator} — ${n.excerpt}` : n.creator || n.excerpt]
+                      .filter(Boolean)
+                      .join(' · ')}
+                  </div>
+                </div>
+              </a>
+            ))}
+            {(unreads.length || trUnreads.length) && shown.length ? <div className="bell-section">Déjà vues</div> : null}
             {error ? <p className="gh-empty">✗ journal illisible : {error}</p> : null}
-            {!unreads.length && !shown.length && !error ? (
+            {!unreads.length && !trUnreads.length && !shown.length && !error ? (
               <p className="gh-empty">
                 {filter === 'basecamp'
                   ? 'Rien pour l’instant : les notifications Basecamp arriveront ici, et y resteront une fois lues.'
-                  : 'Rien pour l’instant : CI qui casse ou repasse au vert, PR mergée, Renovate publiée, branche locale devenue inutile arriveront ici.'}
+                  : filter === 'trello'
+                    ? 'Rien pour l’instant : les notifications Trello arriveront ici, et y resteront une fois lues.'
+                    : 'Rien pour l’instant : CI qui casse ou repasse au vert, PR mergée, Renovate publiée, branche locale devenue inutile arriveront ici.'}
               </p>
             ) : null}
             {shown.map((e) => (

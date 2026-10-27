@@ -93,3 +93,12 @@ class FeaturesTest(unittest.TestCase):
         server.load_sections()
         self.assertTrue(localgit.CFG["enabled"])
         self.assertTrue(basecamp._on[0])
+
+    def test_trello_switched_off_then_on(self):
+        import trello
+        store.write(store.CONFIG, {**BASE, "features": {"trello": False}})
+        server.load_sections()
+        self.assertFalse(trello._on[0])
+        store.write(store.CONFIG, BASE)
+        server.load_sections()
+        self.assertTrue(trello._on[0])

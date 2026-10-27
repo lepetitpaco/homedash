@@ -18,6 +18,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import backup
 import accounts
 import basecamp
+import trello
 import events
 import errlog
 import favicons
@@ -93,6 +94,7 @@ def load_sections():
     local = cfg.get("local") or {}
     localgit.configure({**local, "enabled": store.feature_on(cfg, "local") and local.get("enabled", True) is not False})
     basecamp.set_enabled(store.feature_on(cfg, "basecamp"))
+    trello.set_enabled(store.feature_on(cfg, "trello"))
     # Journal de performance : désactivé par défaut (Réglages → Affichage).
     perflog.configure((cfg.get("ui") or {}).get("perfLog") is True)
 
@@ -296,6 +298,12 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/basecamp/app":
             basecamp.forget()
             return self._json(basecamp.status())
+        if path == "/api/trello/token":
+            trello.disconnect()
+            return self._json(trello.status())
+        if path == "/api/trello/app":
+            trello.forget()
+            return self._json(trello.status())
         if path.startswith("/api/github/accounts/"):
             acc_id = urllib.parse.unquote(path[len("/api/github/accounts/"):])
             def drop(accs):
@@ -370,6 +378,31 @@ class Handler(BaseHTTPRequestHandler):
                 return self._err(502, str(e))
         if path == "/api/basecamp/auth":
             return self._json(basecamp.status())
+        if path == "/api/trello":
+            return self._json({**trello.payload(),
+                               "github": accounts.tr_issues(fresh=bool(self._query("fresh")))})
+        if path == "/api/trello/search":
+            try:
+                return self._json({"items": trello.search(self._query("q"))})
+            except RuntimeError as e:
+                return self._err(502, str(e))
+        if path == "/api/trello/file":
+            try:
+                ctype, body = trello.attachment(self._query("url"))
+            except ValueError as e:
+                return self._err(422, str(e))
+            except RuntimeError as e:
+                return self._err(502, str(e))
+            return self._send(200, body, ctype, cache="private, max-age=3600")
+        if path == "/api/trello/card":
+            try:
+                return self._json(trello.card_text(self._query("url")))
+            except ValueError as e:
+                return self._err(422, str(e))
+            except RuntimeError as e:
+                return self._err(502, str(e))
+        if path == "/api/trello/auth":
+            return self._json(trello.status())
         if path == "/api/basecamp/callback":
             return self._basecamp_callback()
         if path == "/api/file":
@@ -438,6 +471,7 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/health":
             return self._json({"ok": True, "github": accounts.enabled(),
                                "basecamp": basecamp.connected(),
+                               "trello": trello.connected(),
                                "local": localgit.enabled(),
                                "accounts": len(accounts.all_mods())})
         return self._err(404, "route inconnue")
@@ -568,6 +602,49 @@ class Handler(BaseHTTPRequestHandler):
 
             if path == "/api/basecamp/refresh":
                 return self._json({"ok": True, "started": basecamp.kickoff()})
+
+            if path == "/api/trello/app":
+                try:
+                    trello.set_key((self._body() or {}).get("api_key"))
+                except ValueError as e:
+                    return self._err(422, str(e))
+                return self._json(trello.status())
+
+            if path == "/api/trello/authorize":
+                try:
+                    return self._json({"url": trello.authorize_url()})
+                except ValueError as e:
+                    return self._err(422, str(e))
+
+            if path == "/api/trello/token":
+                try:
+                    trello.connect((self._body() or {}).get("token"))
+                except ValueError as e:
+                    return self._err(422, str(e))
+                except RuntimeError as e:
+                    return self._err(422, str(e))
+                trello.kickoff()
+                return self._json(trello.status())
+
+            if path in ("/api/trello/report", "/api/trello/dismiss"):
+                body = self._body() or {}
+                mod  = accounts.get(body.get("account"))
+                found = next((i for i in (mod.tr_issues()["issues"] if mod else [])
+                              if i["repo"] == body.get("repo") and i["number"] == body.get("number")), None)
+                if path.endswith("/dismiss"):
+                    if not found:
+                        return self._err(404, "Issue introuvable : relis GitHub puis réessaie.")
+                    return self._json({"posted": trello.dismiss(found, undo=bool(body.get("undo")))})
+                if not found or not found.get("report"):
+                    return self._err(404, "Pas de rapport pour cette issue : relis GitHub puis réessaie.")
+                try:
+                    return self._json(trello.publish_report(found))
+                except RuntimeError as e:
+                    errlog.record("serveur", "rapport non publié sur Trello", str(e), "POST /api/trello/report")
+                    return self._json({"error": str(e)}, 502)
+
+            if path == "/api/trello/refresh":
+                return self._json({"ok": True, "started": trello.kickoff()})
 
             if path == "/api/perf":
                 # Mesures de l'appli de bureau et actions de la page (perflog.py).
@@ -799,6 +876,7 @@ def main():
     backup.start_auto()
     updates.start()
     basecamp.start()
+    trello.start()
 
     connected = [m for m in accounts.all_mods() if m.token()]
     if not connected:

@@ -31,6 +31,9 @@ class BasecampConfigTest(unittest.TestCase):
         self.assertIsNone(store.validate_config({**base, "basecamp": {"hidden": ["12"]}}))
         self.assertIsNotNone(store.validate_config({**base, "basecamp": {"hidden": [12]}}))
         self.assertIsNotNone(store.validate_config({**base, "basecamp": []}))
+        self.assertIsNone(store.validate_config({**base, "trello": {"hidden": ["b1"]}}))
+        self.assertIsNotNone(store.validate_config({**base, "trello": {"hidden": [1]}}))
+        self.assertIsNotNone(store.validate_config({**base, "trello": []}))
 
 
 class FeaturesTest(unittest.TestCase):

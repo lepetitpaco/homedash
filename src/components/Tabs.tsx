@@ -1,7 +1,7 @@
 import { useState } from 'react'
 
 /** `x:<id>` = onglet perso (`config.tabs`). */
-export type TabId = 'links' | 'github' | 'basecamp' | 'events' | 'local' | 'settings' | `x:${string}`
+export type TabId = 'links' | 'github' | 'basecamp' | 'trello' | 'events' | 'local' | 'settings' | `x:${string}`
 
 export type Tab = {
   id: TabId

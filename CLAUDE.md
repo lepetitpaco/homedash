@@ -103,7 +103,9 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
    GitHub : seule écriture, `github.create_issue()` (onglet Basecamp, à la demande, repos suivis
    seulement). Testé.
 5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier au
-   navigateur, inclus dans les sauvegardes), ni dans une réponse d'API.
+   navigateur, inclus dans les sauvegardes), ni dans une réponse d'API. Un proxy d'image ne les envoie
+   qu'à l'hôte du service (`trello.com`, `api.trello.com` ; pour Basecamp, les `blobs` du compte) et ne
+   suit pas une redirection ailleurs.
 6. **Toute requête passe par `Handler._refused()`** (Host local, pas d'écriture intersite, corps JSON).
    Toute écriture du front envoie `Content-Type: application/json` dès qu'elle a un corps.
 7. **Un seul format de config.** `accounts.migrate()` convertit les anciens au chargement (y compris une
@@ -148,6 +150,8 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - `seq` (jamais réutilisé, même après `clear()`) et non `ts` pour repérer le nouveau.
 - Amorçage : une section jamais vue ne produit rien (sinon le premier fetch déverse tout l'état).
 - Front : `baseline` (en mémoire, rien notifié au chargement) ≠ `seen` (localStorage, la pastille).
+- Filtre « GitHub & Local » : sources `github` et `local` seulement. Une source nouvelle (Trello, la
+  suivante) a son propre filtre ; elle n'est pas « tout sauf Basecamp ».
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
 **Appli de bureau (`desktop/`)**

@@ -1,0 +1,120 @@
+/* Onglet Trello. Classes tr-* seulement : ne pas réutiliser bc-* (Basecamp). */
+
+.tr-layout {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  min-height: 0;
+}
+.tr-nav {
+  flex: 0 0 auto;
+  overflow: auto;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tr-nav button {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: 0;
+  color: inherit;
+  padding: 6px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.tr-nav button.is-on {
+  background: var(--panel, rgba(255, 255, 255, 0.06));
+}
+.tr-nav .tr-count {
+  margin-left: auto;
+  opacity: 0.7;
+}
+.tr-nav .is-late {
+  color: var(--sig-bad, #b91c1c);
+}
+.tr-main {
+  flex: 1;
+  min-width: 0;
+  overflow: auto;
+  padding: 8px 12px 24px;
+}
+.tr-lists {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  overflow: auto;
+}
+.tr-list {
+  flex: 0 0 260px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.tr-list h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.tr-card {
+  border: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  border-radius: 10px;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.tr-card.is-late {
+  border-color: var(--sig-bad, #b91c1c);
+}
+.tr-card.is-focus {
+  outline: 2px solid var(--sig-info, #2563eb);
+}
+.tr-card-top {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.tr-card-top a {
+  font-weight: 600;
+}
+.tr-card-actions {
+  margin-left: auto;
+  display: flex;
+  gap: 4px;
+}
+.tr-sheet,
+.tr-issue {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 48px 16px;
+  overflow: auto;
+}
+.tr-sheet-card,
+.tr-issue-card {
+  width: min(720px, 100%);
+  background: var(--bg, #111);
+  color: inherit;
+  border-radius: 14px;
+  padding: 16px 18px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.tr-check {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+.tr-comment {
+  border-top: 1px solid var(--line, rgba(255, 255, 255, 0.12));
+  padding-top: 8px;
+}

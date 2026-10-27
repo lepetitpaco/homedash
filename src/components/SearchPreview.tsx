@@ -4,6 +4,8 @@ import type { CiState, GithubData } from '../lib/ghboard'
 import type { LocalData, LocalRepo } from '../lib/local'
 import type { BcFound } from '../lib/basecamp'
 import { bcKey } from '../lib/bcIssues'
+import type { TrFound } from '../lib/trello'
+import { trKey } from '../lib/trIssues'
 import { noteTitle } from '../lib/notes'
 import type { Health, ReposConfig } from '../types'
 import Favicon from './Favicon'
@@ -29,6 +31,9 @@ type Props = {
   onBcIssue?: (item: BcFound) => void
   onBcShow?: (item: BcFound) => void
   onBcView?: (item: BcFound) => void
+  onTrIssue?: (item: TrFound) => void
+  onTrShow?: (item: TrFound) => void
+  onTrView?: (item: TrFound) => void
 }
 
 const HEALTH: Record<Health, string> = {
@@ -284,7 +289,7 @@ function NotePreview({
 }
 
 /** Adresse, recherche web, onglet, page de l'historique, action : une carte simple. */
-function PlainPreview({ hit, onActivate, onBcIssue, onBcShow, onBcView }: Props) {
+function PlainPreview({ hit, onActivate, onBcIssue, onBcShow, onBcView, onTrIssue, onTrShow, onTrView }: Props) {
   const p = plainHit(hit)
   if (!p) return null
   const when = hit.kind === 'page' ? new Date(hit.visit.ts) : null
@@ -299,6 +304,7 @@ function PlainPreview({ hit, onActivate, onBcIssue, onBcShow, onBcView }: Props)
       </div>
       {p.sub ? <code className="sp-url">{p.sub}</code> : null}
       {hit.kind === 'bc' ? <BcFacts hit={hit} /> : null}
+      {hit.kind === 'tr' ? <TrFacts hit={hit} /> : null}
       {hit.kind === 'page' && when ? (
         <div className="sp-facts">
           <span>vue {hit.visit.n} fois</span>
@@ -325,6 +331,21 @@ function PlainPreview({ hit, onActivate, onBcIssue, onBcShow, onBcView }: Props)
             🐙 {hit.item.type === 'Comment' ? 'Issue sur cet échange' : 'Créer une issue'}
           </button>
         ) : null}
+        {hit.kind === 'tr' && trKey(hit.item.url) && onTrView ? (
+          <button className="btn" onClick={() => onTrView(hit.item)}>
+            💬 Voir la carte
+          </button>
+        ) : null}
+        {hit.kind === 'tr' && hit.item.mine && onTrShow ? (
+          <button className="btn" onClick={() => onTrShow(hit.item)}>
+            Voir dans le dash
+          </button>
+        ) : null}
+        {hit.kind === 'tr' && trKey(hit.item.url) && onTrIssue ? (
+          <button className="btn" onClick={() => onTrIssue(hit.item)}>
+            🐙 Créer une issue
+          </button>
+        ) : null}
       </div>
     </div>
   )
@@ -342,6 +363,22 @@ function BcFacts({ hit }: { hit: Extract<Hit, { kind: 'bc' }> }) {
         {item.due_on ? <span>📅 échéance le {day(item.due_on)}</span> : null}
         {item.completed ? <span>✓ terminée</span> : null}
         {item.status && item.status !== 'active' ? <span>{item.status === 'archived' ? '🗄 archivée' : '🗑 à la corbeille'}</span> : null}
+        {item.creator ? <span>par {item.creator}</span> : null}
+        {item.updated_at ? <span>modifié le {day(item.updated_at)}</span> : null}
+      </div>
+    </>
+  )
+}
+
+function TrFacts({ hit }: { hit: Extract<Hit, { kind: 'tr' }> }) {
+  const { item } = hit
+  const day = (iso: string) => new Date(iso).toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return (
+    <>
+      {item.excerpt ? <p className="sp-note">{item.excerpt}</p> : null}
+      <div className="sp-facts">
+        <span>{item.mine ? '📋 ta carte' : item.type || 'Trello'}</span>
+        {item.due ? <span>📅 échéance le {day(item.due)}</span> : null}
         {item.creator ? <span>par {item.creator}</span> : null}
         {item.updated_at ? <span>modifié le {day(item.updated_at)}</span> : null}
       </div>

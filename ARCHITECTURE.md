@@ -10,6 +10,8 @@ backend/                  Python stdlib, aucune dépendance
   github.py               données GitHub d'un compte (cache ETag)
   basecamp.py             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
                           publié en commentaire (seule écriture)
+  trello.py               Trello : clé d'API + jeton collé, cartes ouvertes, notifications non lues
+                          (lecture), rapport d'issue publié en commentaire (seule écriture)
   localfile.py            Mes sites : un fichier du dossier personnel servi en lecture seule
   favicons.py             icônes de Mes sites relayées (la page les recadre), en cache
   perflog.py              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
@@ -63,7 +65,14 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/basecamp/file?url=` | GET | Image jointe à une tâche, lue avec le jeton (adresse `…/blobs/…` du compte, formats d'image sûrs, sans SVG) |
 | `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
 | `/api/basecamp/dismiss` | POST | Écarter une issue liée sans publier son rapport (`undo` : la rétablir) ; rien n'est envoyé |
-| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp (repos suivis) |
+| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp ou une carte Trello (repos suivis) |
+| `/api/trello`, `/api/trello/refresh` | GET, POST | Cartes ouvertes et notifs non lues, relecture |
+| `/api/trello/{auth,app,authorize,token}` | GET, PUT, POST, DELETE | Réglages : clé d'API, page d'autorisation, jeton collé, déconnexion |
+| `/api/trello/search?q=` | GET | Recherche Trello (barre de recherche), réponses gardées 1 min |
+| `/api/trello/card?url=` | GET | Description, listes et commentaires d'une carte |
+| `/api/trello/file?url=` | GET | Image déjà vue sur une carte (formats sûrs, sans SVG) |
+| `/api/trello/report` | POST | Publier le rapport d'une issue liée en commentaire de sa carte (une fois) |
+| `/api/trello/dismiss` | POST | Écarter une issue liée sans publier ; rien n'est envoyé |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
 | `/api/perf` | GET, POST, DELETE | Journal de performance : état et place prise, mesure de l'appli / action de la page, vider |
 | `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est dans Mes sites) |
@@ -77,7 +86,7 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
 | `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Aide) |
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
-| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp connecté, nombre de comptes GitHub |
+| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp et Trello connectés, nombre de comptes GitHub |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.

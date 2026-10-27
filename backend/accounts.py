@@ -282,6 +282,21 @@ def bc_issues(fresh=False):
     return {"issues": issues, "repos": repos}
 
 
+def tr_issues(fresh=False):
+    """Issues liées à Trello, même forme que `bc_issues`."""
+    issues, repos = [], []
+    for mod in all_mods():
+        if not (mod.token() and mod.enabled()):
+            continue
+        if fresh and mod.age() >= (mod.CFG.get("auto_refresh") or 15):
+            mod.kickoff(mod.token())
+        acc = mod.ACCOUNT["id"]
+        got = mod.tr_issues()
+        issues += [dict(i, account=acc) for i in got["issues"]]
+        repos += [{"account": acc, "repo": r} for r in got["repos"]]
+    return {"issues": issues, "repos": repos}
+
+
 def invalidate_all():
     for mod in all_mods():
         mod.invalidate()
