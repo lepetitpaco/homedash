@@ -1,0 +1,47 @@
+# Construction de l'appli par GitHub Actions (.github/workflows/release.yml).
+# `app/` est assemblé par assemble.sh : coquille Electron, serveur compilé,
+# front, CHANGELOG et GUIDE. Aucune dépendance à l'exécution.
+appId: com.lepetitpaco.homedash # ne plus changer : macOS et Windows y rattachent autorisations et épingles
+productName: homedash
+copyright: lepetitpaco
+directories:
+  app: app
+  output: dist.noindex
+  buildResources: build
+# Pas d'archive asar : le serveur (modules ESM) est lancé tel quel dans un utilityProcess.
+asar: false
+electronLanguages: [fr, en]
+mac:
+  target:
+    - target: dmg
+      arch: [arm64, x64]
+    - target: zip # pour les mises à jour (updater.js)
+      arch: [arm64, x64]
+  category: public.app-category.developer-tools
+  icon: build/icon.png
+  # Pas de compte développeur Apple : signature « ad hoc », obligatoire sur Apple Silicon.
+  identity: '-'
+  hardenedRuntime: false
+  artifactName: ${productName}-${version}-${arch}-mac.${ext}
+  extendInfo:
+    NSCameraUsageDescription: Appels vidéo (Google Meet…) dans un onglet perso.
+    NSMicrophoneUsageDescription: Appels (Google Meet…) dans un onglet perso.
+dmg:
+  artifactName: ${productName}-${version}-${arch}.${ext}
+win:
+  target:
+    - target: nsis
+      arch: [x64]
+  icon: build/icon.png
+  artifactName: ${productName}-${version}-setup.${ext}
+nsis:
+  oneClick: true
+  perMachine: false
+  runAfterFinish: true
+  shortcutName: homedash
+# latest-mac.yml / latest.yml (empreintes sha512) : l'appli s'en sert pour se mettre à jour.
+publish:
+  provider: github
+  owner: lepetitpaco
+  repo: homedash
+  releaseType: release

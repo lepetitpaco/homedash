@@ -15,8 +15,8 @@ jour. On peut tout améliorer, mais pas dénaturer ce qui suit.
 5. **Basecamp** : tâches en lecture seule ; tâche → issue GitHub → rapport publié (au clic seulement).
 6. **Cloche et journal** : ce qui sonne, et quand.
 7. **Réglages** : tout se règle dans la page, aucun fichier à éditer ; sauvegardes et restauration.
-8. **Mise à jour** : version lue dans `CHANGELOG.md`, annonce, *Mettre à jour* de l'appli, sauvegarde
-   de `data/` avant migration.
+8. **Mise à jour** : version lue dans `CHANGELOG.md`, annonce (dernière Release GitHub), *Mettre à jour*
+   de l'appli (téléchargement, empreinte vérifiée, sauvegarde avant), sauvegarde de `data/` avant migration.
 9. **Données et sécurité** : `data/` jamais écrasé, format de config migré (jamais cassé), jetons côté
    serveur, accès local seulement (règles absolues ci-dessous).
 
@@ -59,9 +59,10 @@ tag, push. Trois commits poussés ensemble = une seule version, jamais une par c
   | Ajustement visible (mise en page, texte, réglage d'un comportement existant) ou correction | patch `1.6.1` |
   | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
 
-  Une version qui change l'appli de bureau (main.js, preload.js, updater.js, Electron) monte la version
-  de `desktop/package.json` et porte, juste sous son titre, la ligne `Appli de bureau : A.B.C` : la page
-  l'affiche, et la mise à jour depuis l'appli la reconstruit sur la machine.
+  Depuis la 2.0, l'appli embarque tout : **chaque version** monte `desktop/package.json` à la même
+  version que le CHANGELOG (le workflow de Release refuse un tag où les deux diffèrent). Le tag `vX.Y.Z`
+  poussé déclenche GitHub Actions, qui construit l'appli et publie la Release que les applis installées
+  proposent.
 
   Plusieurs changements livrés ensemble (une vague, un push) = une seule version. Après le commit : `git tag -a vX.Y.Z -m
   "X.Y.Z"` puis `git push --follow-tags`.
@@ -79,55 +80,62 @@ tag, push. Trois commits poussés ensemble = une seule version, jamais une par c
 Node n'est pas requis sur l'hôte, tout passe par Docker :
 
 ```bash
-docker compose up -d --build                                              # lancer / redéployer
-docker run --rm -v "$PWD":/app -w /app node:22-alpine npx tsc --noEmit    # typecheck
-python3 -m unittest discover -s tests -t .                                # tests (~10 s)
-sh desktop/build-local.sh [--install]                                     # appli de bureau (Mac)
-sh desktop/build-windows.sh                                               # appli de bureau (Windows .exe)
+docker compose -f docker-compose.dev.yml up -d                            # dev : homedash-dev.localhost:7778, à chaud
+docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm run typecheck && npm test"
+sh desktop/build-local.sh [--install]                                     # l'appli, construite sur ce Mac
+node scripts/parity.mjs <ancien> <nouveau>                                # compare deux serveurs (GET seulement)
 ```
 
-Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git sur l'hôte.
+Les tests (Vitest, `tests-ts/`) n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git.
+Les versions publiées sont construites par `.github/workflows/release.yml` (Mac arm64 + x64, Windows x64).
 
 ## Règles absolues
 
-1. **Zéro dépendance au runtime** : stdlib Python côté serveur, React seul côté front. `desktop/` (Electron)
-   est une coquille facultative à part : rien du serveur ni du front n'en dépend, la page marche sans.
-2. **L'onglet Local n'écrit et n'exécute rien.** `gitread.py` ouvre en `"rb"`, sans sous-processus ni
-   commande git (même `git status` écrit). Les commandes affichées sont du texte à copier.
+1. **Zéro dépendance au runtime** : Node seul côté serveur (`server/`, TypeScript « effaçable » : lancé
+   tel quel en dev, compilé par `tsc` pour l'appli), React seul côté front, Electron seul pour l'appli
+   (`desktop/`, sans paquet npm à l'exécution). Rien du serveur ni du front ne dépend d'Electron : la page
+   marche aussi dans un navigateur (dev, ou « Accès depuis le navigateur »).
+2. **L'onglet Local n'écrit et n'exécute rien.** `gitread.ts` ne fait que des lectures (`readFileSync`,
+   `readSync`, `lstat`), sans sous-processus ni commande git (même `git status` écrit). Les commandes
+   affichées sont du texte à copier. Testé contre git (`tests-ts/gitread.test.ts`).
 3. **« 🗑 à supprimer » exige `safety.level` dans `SAFE_LEVELS`** (contenu présent ailleurs). Jamais de
    suppression sur la branche courante ni une protégée. `_commands()` filtre sur `delete`. Testé.
-4. **Basecamp est en lecture seule, à une exception.** `basecamp.py` lit par GET (`_api_get`) ; l'échange
-   de jeton POSTe vers Launchpad ; seule écriture : `publish_report()`, le rapport d'une issue liée en
+4. **Basecamp est en lecture seule, à une exception.** `basecamp.ts` lit par GET (`apiGet`) ; l'échange
+   de jeton POSTe vers Launchpad ; seule écriture : `publishReport()`, le rapport d'une issue liée en
    commentaire de sa tâche, au clic, une fois par rapport, texte et tâche lus par le serveur (jamais
    fournis par la page). Jamais de tâche cochée ni de notif marquée lue. Testé.
-   GitHub : seule écriture, `github.create_issue()` (onglet Basecamp, à la demande, repos suivis
+   GitHub : seule écriture, `GitHubAccount.createIssue()` (onglet Basecamp, à la demande, repos suivis
    seulement). Testé.
-5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier au
-   navigateur, inclus dans les sauvegardes), ni dans une réponse d'API.
-6. **Toute requête passe par `Handler._refused()`** (Host local, pas d'écriture intersite, corps JSON).
-   Toute écriture du front envoie `Content-Type: application/json` dès qu'elle a un corps.
+5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier à
+   la page, inclus dans les sauvegardes), ni dans une réponse d'API. Seule sortie : l'export complet
+   (`fullexport.ts`), **chiffré** par un mot de passe (scrypt + AES-256-GCM). Testé.
+6. **Toute requête passe par `app.handle()` → `refused()`** (Host connu, pas d'écriture intersite, corps
+   JSON), quel que soit le transport (`http.ts` en dev, messages de l'appli). Toute écriture du front
+   envoie `Content-Type: application/json` dès qu'elle a un corps.
 7. **Un seul format de config.** `accounts.migrate()` convertit les anciens au chargement (y compris une
    sauvegarde restaurée). Aucun repli sur l'ancien format ailleurs.
-8. **Écritures atomiques** via `store.write()` ; lecture-modification-écriture de config sous
-   `server._config_lock` ; `store.validate_config()` avant toute écriture.
+8. **Écritures atomiques** via `store.write()` ; `store.validateConfig()` avant toute écriture.
+   Lecture-modification-écriture de config **sans `await` entre la lecture et l'écriture** : Node n'a
+   qu'un fil, c'est ce qui remplace le verrou de la 1.x.
 9. **Pas de `window.confirm` / `alert`** : `confirmDialog()` (dit ce qui change et ce qui est conservé).
 10. **Une mise à jour ne casse jamais les données des autres.** `data/` n'est jamais versionné ni écrasé
    par le code. Changer le format de `config.json` = une étape de plus dans `accounts.migrate()`
    (idempotente, testée), jamais un renommage ou une suppression de clé ailleurs. Une clé nouvelle a un
    défaut côté code : une config ancienne sans elle doit marcher telle quelle. Au démarrage d'une
-   nouvelle version, `updates.on_start()` sauvegarde `data/` **avant** la migration.
+   nouvelle version, `updates.onStart()` sauvegarde `data/` **avant** la migration ; l'appli sauvegarde
+   aussi avant de se remplacer.
 
 ## Pièges connus
 
 **GitHub**
-- `github.py` est chargé **une fois par compte** (`accounts._load_module`) : pas d'état partagé entre
+- Une instance `GitHubAccount` **par compte** (`accounts.configure`) : pas d'état partagé entre
   comptes. `localgit` importe `accounts` sous le nom `github` (même API, agrégée).
 - Repos écrits `propriétaire/repo` ; `configure()` les ramène au nom court (clé partout) et garde le
   propriétaire dans `_OWNERS`. Deux repos de même nom ne peuvent donc pas être suivis ensemble.
 - Le cache ETag est vital : sans lui ~16 800 appels/h pour un plafond de 5 000. Les 304 sont gratuits.
 - Attribution d'une branche : PR dont `head.ref` == branche, puis auteurs des commits propres, puis auteur
   du tip si déjà mergée. **Jamais** de filtrage par préfixe de nom.
-- `apply_token()` vide caches et amorçage du journal : sinon le changement de jeton passe pour des nouveautés.
+- `applyToken()` vide caches et amorçage du journal : sinon le changement de jeton passe pour des nouveautés.
 
 **Onglet Local**
 - Verdict : GitHub (`on_github`) prime sur les `refs/remotes` locaux quand le repo est suivi ; c'est l'écart
@@ -138,25 +146,36 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 - `gitread` gère les deltas `ofs` **et** `ref` (un clone frais met tout en packs).
 - Surveillance par `stat` toutes les 2 s (pas de scan complet) ; `.git/index` temporisé ; en veille si la
   page n'a rien demandé depuis `watch_idle`.
-- Dossiers stockés en `~/…` (ou chemin de l'hôte : `C:/…`, `/Volumes/…`), traduits par
-  `localgit.resolve()`. Le disque est monté `:ro` sur `/hostdisk` (`HOST_DISK`) : `browse()` limité au
-  dossier personnel et à ce disque après `realpath` (un lien vers le conteneur est refusé) ; choix de
-  fichier (`files`, Mes sites) : dossier personnel seulement, comme `localfile`.
+- Dossiers stockés en `~/…` (ou chemin absolu : `C:/…`, `/Volumes/…`), traduits par `paths.resolve()`.
+  Dans l'appli ce sont les vrais chemins ; en dev, le dossier personnel est monté `:ro` sur `/host`
+  (`HOST_MOUNT`, `HOST_HOME`) et le disque sur `/hostdisk` (`DISK_MOUNT`, `HOST_DISK`). Chemins toujours
+  écrits avec des `/`, Windows compris. `browse()` limité au dossier personnel et au disque après
+  `realpath` ; choix de fichier (`files`, Mes sites) : dossier personnel seulement, comme `localfile`.
+  Plus de `:ro` du système dans l'appli : ces garde-fous sont les seuls, et testés.
 
 **Journal et cloche**
-- `events.py` est le **seul** endroit qui décide ce qui est un événement ; le front affiche.
+- `events.ts` est le **seul** endroit qui décide ce qui est un événement ; le front affiche.
 - `seq` (jamais réutilisé, même après `clear()`) et non `ts` pour repérer le nouveau.
 - Amorçage : une section jamais vue ne produit rien (sinon le premier fetch déverse tout l'état).
 - Front : `baseline` (en mémoire, rien notifié au chargement) ≠ `seen` (localStorage, la pastille).
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
 **Appli de bureau (`desktop/`)**
-- Elle charge la page du container, elle n'embarque ni front ni backend : une fonction de la page se
-  livre par le container. **Pas de release ni de CI** : chacun construit l'appli sur sa machine
-  (`build-local.sh` sur Mac, `build-windows.ps1` sous Windows, `build-windows.sh` depuis un Mac/Linux),
-  une fois ; ensuite `updater.js` (Aide → Mettre à jour) fait `git pull`, `docker compose up`, et
-  reconstruit puis relance l'appli si `desktop/package.json` est plus récent que celle qui tourne.
-  Construite sur place, ni macOS ni Windows ne la bloquent.
+- Elle embarque tout (2.0) : `server.js` lance `server/host.js` dans un utilityProcess, et intercepte
+  `http://localhost:7777` dans ses sessions (`protocol.handle('http')`) : **aucun port ouvert**, et la page
+  garde son origine de toujours (localStorage, connexions, contexte sûr pour notifications et
+  presse-papiers). Les sessions des sites ne reçoivent que `GET /api/file`. Mode dev : `HOMEDASH_URL`
+  (ou `devUrl` dans desktop.json) charge une autre adresse, le serveur intégré ne démarre pas.
+- Données : `<userData>/data` (`app.getPath('userData')`, dossier `homedash` : même que la 1.x, donc
+  sessions des sites gardées). `HOMEDASH_PROFILE=/dossier` : profil à part (tests).
+- Mise à jour (`updater.js`) : dernière Release, fichier de la machine d'après `latest-mac.yml` /
+  `latest.yml`, sha512 vérifié, instantané des données, puis remplacement par un processus détaché (Mac :
+  .app extrait par `ditto` ; Windows : installateur NSIS `/S --force-run`). Dépôt privé : jeton du premier
+  compte GitHub connecté. Pas de signature : `identity: '-'` (ad hoc) dans electron-builder.yml.
+- Identifiant d'appli `com.lepetitpaco.homedash` : **ne plus le changer** (autorisations, notifications,
+  épingles de la barre des tâches y sont rattachées).
+- Fermer la fenêtre la cache (Mac et Windows, icône près de l'horloge) ; seul *Quitter* arrête l'appli et
+  son serveur.
 - La page la détecte par `window.homedashDesktop` (`src/lib/desktop.ts`) et doit marcher sans : webview
   dans l'appli, iframe sinon.
 - `will-attach-webview` : sans Node, seul preload `guest-preload.js` (monde isolé, boutons précédent /
@@ -192,7 +211,7 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
 
 **Front**
 - Erreurs : jamais de jargon à l'écran (nom de fichier, code HTTP, `Failed to fetch`). `shown(où, e)`
-  (`src/lib/errors.ts`) donne la phrase lisible et note le détail au journal (`errlog.py`,
+  (`src/lib/errors.ts`) donne la phrase lisible et note le détail au journal (`errlog.ts`,
   Réglages → Aide → Journal d'erreurs). Serveur injoignable = passager : la page réessaie seule.
 - `reload_all()` est le seul chemin après une écriture de config côté serveur.
 - Tout déclenchement manuel du polling relance la boucle (`pulse`), pas seulement `load()`.

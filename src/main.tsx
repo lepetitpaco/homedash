@@ -16,6 +16,21 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
   })
 }
 
+// Dev (Docker :7778) : favicon orange, pour ne pas confondre avec homedash de tous les jours (bleu).
+if (import.meta.env.DEV) {
+  const img = new Image()
+  img.onload = () => {
+    const c = document.createElement('canvas')
+    c.width = c.height = 64
+    const g = c.getContext('2d')
+    if (!g) return
+    g.filter = 'hue-rotate(185deg) saturate(1.6)'
+    g.drawImage(img, 0, 0, 64, 64)
+    document.querySelector('link[rel="icon"]')?.setAttribute('href', c.toDataURL('image/png'))
+  }
+  img.src = 'icon-192.png'
+}
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <App />

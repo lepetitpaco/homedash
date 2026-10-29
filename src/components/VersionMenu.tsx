@@ -116,7 +116,10 @@ export function ChangelogBody({ data }: { data: Changelog }) {
         {data.update ? `⬆️ La version ${data.latest} est disponible` : '✓ Tu as la dernière version'}
       </strong>
       {canUpdate && data.update ? <UpdateNow appTooOld={appTooOld} required={required} /> : null}
-      {data.update && !canUpdate ? (
+      {data.update && !canUpdate && !command ? (
+        // 2.0 : plus de commande, c'est l'appli qui se met à jour (page ouverte dans un navigateur).
+        <p>Dans l'appli homedash : Aide → Vérifier les mises à jour.</p>
+      ) : data.update && !canUpdate ? (
         <>
           <p>Colle cette commande dans un terminal :</p>
           <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
@@ -124,7 +127,7 @@ export function ChangelogBody({ data }: { data: Changelog }) {
             <span>{copied === 'update' ? '✓ copié' : 'copier'}</span>
           </button>
         </>
-      ) : (
+      ) : !command ? null : (
         <details className="cl-manual">
           <summary>Mettre à jour à la main (terminal)</summary>
           <button className="cl-cmd" onClick={() => copy()} title="Copier la commande">
@@ -172,9 +175,10 @@ export function ChangelogBody({ data }: { data: Changelog }) {
 }
 
 /**
- * « Mettre à jour maintenant » (appli de bureau ≥ 1.4.0) : l'appli demande
- * confirmation, lance git pull et docker compose, se reconstruit si besoin, et
- * raconte ici ce qu'elle fait.
+ * « Mettre à jour maintenant » (appli de bureau) : l'appli demande confirmation,
+ * puis (2.0) télécharge la Release, vérifie son empreinte, sauvegarde les
+ * données et se relance ; (1.x) git pull et docker compose. Elle raconte ici ce
+ * qu'elle fait.
  */
 function UpdateNow({ appTooOld, required }: { appTooOld: boolean; required: string | null }) {
   const [lines, setLines] = useState<{ line: string; kind: string }[]>([])
@@ -205,9 +209,11 @@ function UpdateNow({ appTooOld, required }: { appTooOld: boolean; required: stri
         {state === 'running' ? 'mise à jour…' : '⬆ Mettre à jour maintenant'}
       </button>
       <span className="cl-now-hint">
-        {appTooOld
-          ? `L'appli de bureau se reconstruit aussi (version ${required}) puis se relance : une demi-minute de plus.`
-          : 'git pull et docker compose, lancés pour toi ; la page se recharge à la fin.'}
+        {desktop?.features?.includes('release-update')
+          ? "Téléchargée depuis GitHub, vérifiée, tes données sauvegardées : homedash se relance tout seul."
+          : appTooOld
+            ? `L'appli de bureau se reconstruit aussi (version ${required}) puis se relance : une demi-minute de plus.`
+            : 'git pull et docker compose, lancés pour toi ; la page se recharge à la fin.'}
       </span>
       {lines.length ? (
         <pre ref={box} className={`cl-log${state === 'failed' ? ' is-failed' : ''}`}>

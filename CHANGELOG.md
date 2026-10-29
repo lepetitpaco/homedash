@@ -4,6 +4,28 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.0.0 — 2026-10-29
+Appli de bureau : 2.0.0
+
+- **homedash devient une vraie appli, sans Docker** : tout est dedans. Télécharge-la une fois sur la page
+  des versions (`.dmg` sur Mac, `setup.exe` sous Windows), ensuite elle se met à jour toute seule.
+  *Action requise* : installer la nouvelle appli, une fois. Au premier lancement, elle propose de
+  reprendre les données de ton homedash Docker (copiées, l'original n'est pas touché) ; tu pourras
+  ensuite arrêter l'ancien container.
+- **Mise à jour en un clic** : l'appli télécharge la nouvelle version, vérifie qu'elle n'a pas été
+  abîmée, sauvegarde tes données, puis se remplace et se relance. Plus de commande à taper.
+- **Aucun port ouvert** : homedash n'existe que dans l'appli. *Réglages → Affichage → Accès depuis le
+  navigateur* l'ouvre aussi sur http://localhost:7777, si tu en as besoin.
+- **Changer de machine sans tout refaire** : *Réglages → Sauvegardes → Export complet* emporte tout, tes
+  comptes GitHub et Basecamp et les connexions de tes sites compris, dans un fichier chiffré par un mot de
+  passe. Sur l'autre machine, un aperçu montre ce qu'il contient avant d'importer.
+- **Basecamp en un clic** : dans l'appli, *Se connecter à Basecamp* ouvre une fenêtre ; autorise, c'est
+  tout, plus d'adresse à copier-coller.
+- **⌘R recharge le site ouvert**, comme dans un navigateur (sur un onglet de homedash : ses données) ;
+  **⇧⌘R** recharge tout homedash. C'était l'inverse, et ⌘R rechargeait une douzaine de sites d'un coup.
+- **Windows : homedash reste ouvert en arrière-plan** : fermer la fenêtre la cache, l'icône près de
+  l'horloge la rouvre ou quitte. Les pastilles et la cloche continuent.
+
 ## 1.34.1 — 2026-10-24
 
 - **Carte Repos allégée** : *PRs*, *Branches* et *mes PRs* à vue, les autres liens (Actions, Issues,
@@ -493,7 +515,7 @@ Appli de bureau : 1.4.0
   le modifier dans un éditeur clair ; dossiers et comptes en étiquettes à côté. Le ＋ de la barre de
   gauche ouvre directement un nouvel onglet à remplir, affiché par défaut dans homedash.
 - Comptes, liens, clic droit, `⌘R` et `⇧⌘R` demandent l'appli de bureau 1.1.0
-  ([la télécharger](https://github.com/davidgennaoui/homedash/releases/latest), ou
+  ([la télécharger](https://github.com/lepetitpaco/homedash/releases/latest), ou
   `sh desktop/build-local.sh --install`).
 
 ## 1.13.2 — 2026-10-20

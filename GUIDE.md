@@ -69,8 +69,9 @@ même sans aucun site : son **＋** ajoute le premier.
 
 ## 💻 Appli de bureau
 
-homedash dans sa propre fenêtre, sur Mac et Windows. Docker reste nécessaire : l'appli affiche ton
-homedash.
+homedash dans sa propre fenêtre, sur Mac et Windows. Depuis la 2.0, l'appli **est** homedash : elle
+contient tout, sans Docker. Elle n'ouvre aucun port ; tes données sont dans
+`~/Library/Application Support/homedash/data` (Mac) ou `%APPDATA%\homedash\data` (Windows).
 
 ![Clic droit sur un lien, dans un site](docs/screenshots/clic-droit-sur-un-lien.jpg)
 
@@ -94,22 +95,29 @@ homedash.
 
 #### Installer et mettre à jour
 
-- **Installer** : une fois, avec la commande du [README](README.md) (Mac ou Windows). Construite sur ta
-  machine, elle n'est pas bloquée au premier lancement.
-- **Mettre à jour** : *Aide → Mettre à jour maintenant*. homedash et l'appli se mettent à jour ;
-  l'appli se reconstruit et se relance seule quand une version le demande (« 💻 appli requise » dans
-  les nouveautés).
-- **Quelque chose semble cassé** : *Aide → Forcer la mise à jour* reconstruit tout.
+- **Installer** : télécharge l'appli sur la page des
+  [versions](https://github.com/lepetitpaco/homedash/releases/latest) : le `.dmg` sur Mac (`arm64` pour
+  Apple Silicon, `x64` pour Intel), le `setup.exe` sous Windows. Elle n'est pas signée : au premier
+  lancement, macOS la bloque (*Réglages Système → Confidentialité et sécurité → Ouvrir quand même*) et
+  Windows prévient (*Informations complémentaires → Exécuter quand même*). Une seule fois.
+- **Tu avais homedash avec Docker** : au premier lancement, l'appli propose de reprendre ses données
+  (le dossier `data` du projet). Elles sont **copiées**, l'original n'est pas touché. Ensuite, arrête
+  l'ancien container (`docker compose down` dans le dossier du projet).
+- **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli télécharge
+  la nouvelle version, vérifie qu'elle n'a pas été abîmée, sauvegarde tes données, puis se remplace et se
+  relance. Rien d'autre à télécharger.
+- **Ouvrir homedash dans un navigateur** : *Réglages → Affichage → Accès depuis le navigateur*, puis
+  **http://localhost:7777**, tant que l'appli tourne. Désactivé par défaut.
 
 #### Raccourcis
 
 | Mac | Windows | Action |
 | --- | --- | --- |
-| `⌘R` | `Ctrl+R` | Recharger homedash |
-| `⇧⌘R` | `Ctrl+Maj+R` | Recharger le site ouvert |
+| `⌘R` | `Ctrl+R` | Recharger le site ouvert (sur un onglet de homedash : relire ses données) |
+| `⇧⌘R` | `Ctrl+Maj+R` | Recharger tout homedash (tous les sites se rechargent) |
 | `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
 | `⌘,` | `Ctrl+,` | Réglages |
-| `⌘Q` | Fermer la fenêtre | Quitter (sur Mac, fermer la fenêtre la cache seulement) |
+| `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : pastilles et cloche continuent |
 
 #### Bon à savoir
 
@@ -170,8 +178,7 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
 - **Tes clones peuvent être n'importe où** : *Réglages → Dépôts locaux → + ajouter un dossier*, puis
   🏠 dossier personnel ou 💽 le disque (`C:` sous Windows, `/Volumes` sur Mac pour les disques externes).
-  Tout est lu en lecture seule. Sur Mac, un dossier hors de `/Users` et `/Volumes` doit d'abord être
-  partagé dans Docker Desktop (Réglages → Resources → File sharing).
+  Tout est lu en lecture seule.
 - **Rien n'est exécuté** : les commandes proposées (`git branch -d …`) sont à copier et lancer toi-même.
 - **Branche courante pas à jour** : en retard sur sa version en ligne → `git pull` ; sur une autre
   branche que main/master, main a avancé → `git fetch origin && git merge origin/main`. Les deux à la
@@ -188,7 +195,8 @@ les rapports d'issues que tu publies (ci-dessous).
 - **🔥 À traiter** : tout ce qui est en retard ou dû dans les 7 jours.
 - **Un projet** (à gauche) : ses tableaux et ses to-dos. Les pastilles du haut masquent un projet.
 - **Se connecter** (une fois, pas besoin d'être admin) : le pas-à-pas est dans *Réglages → Basecamp*.
-  Le jeton se renouvelle ensuite tout seul.
+  Dans l'appli, *Se connecter à Basecamp* ouvre une fenêtre : autorise, c'est tout. Le jeton se
+  renouvelle ensuite tout seul.
 
 **Lire une tâche sans ouvrir Basecamp** : 💬 au survol (ou clic droit → *Voir la tâche et ses
 échanges*) ouvre sa fiche : description, étapes, issues liées, et tous les échanges, le plus récent en
@@ -294,14 +302,21 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 - **Revenir en arrière** : *restaurer* sur une ligne. L'état actuel est sauvegardé juste avant.
 - **Faire le ménage** : coche des lignes (ou *tout*, *les automatiques*, *plus de 7 jours*), puis
   *supprimer la sélection*.
-- **Changer de machine** : *télécharger*, puis *restaurer un fichier…* sur l'autre. Les jetons ne sont
-  pas dans les sauvegardes : recolle-les ensuite.
+- **Changer de machine** (un Mac et un PC, par exemple) : *Export complet*, avec un mot de passe. Le
+  fichier `.homedash` emporte tout, jetons GitHub et Basecamp et connexions de tes sites compris,
+  chiffré. Sur l'autre machine : *importer un export complet…*, le mot de passe, puis *aperçu* montre ce
+  qu'il contient avant de rien changer. Certains sites (Google, Microsoft…) redemandent quand même la
+  connexion sur une nouvelle machine.
+- **Juste tes réglages** : *télécharger*, puis *restaurer un fichier…*. Ce fichier-là ne contient pas
+  les jetons : recolle-les ensuite.
 
 ## 🆘 En cas de souci
 
 | Ce que tu vois | Quoi faire |
 | --- | --- |
-| « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, lance Docker Desktop |
+| « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, quitte et relance l'appli |
+| « homedash n'a pas pu démarrer » | Le serveur de l'appli s'est arrêté : quitte et relance homedash. Si ça recommence, *Aide → Signaler un problème* |
+| Accès navigateur : « le port 7777 est déjà pris » | L'ancien homedash Docker tourne encore : `docker compose down` dans son dossier |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
 | Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion*, le pas-à-pas « Comment créer un jeton » y est ouvert |
 | Un repo n'est pas proposé | Repo d'un collègue où tu es collaborateur : onglet *Partagés avec toi*. Sinon le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |

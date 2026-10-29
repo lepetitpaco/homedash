@@ -1,16 +1,19 @@
 {
   "name": "homedash-desktop",
   "productName": "homedash",
-  "version": "1.5.6",
-  "description": "homedash dans sa propre fenêtre, avec des webviews pour les onglets perso",
+  "version": "2.0.0",
+  "description": "homedash, appli de bureau autonome : front, serveur et onglets perso",
   "private": true,
   "main": "main.js",
-  "author": "davidgennaoui",
+  "author": "lepetitpaco",
+  "homepage": "https://github.com/lepetitpaco/homedash",
   "scripts": {
-    "icon": "node -e \"require('fs').mkdirSync('build',{recursive:true});require('fs').copyFileSync('../public/icon-512.png','build/icon.png')\"",
-    "start": "npm run icon && electron ."
+    "assemble": "sh assemble.sh",
+    "dist:mac": "electron-builder --mac --arm64 --x64 --publish never",
+    "dist:win": "electron-builder --win --x64 --publish never"
   },
   "devDependencies": {
-    "electron": "44.9.1"
+    "electron": "44.9.1",
+    "electron-builder": "26.18.0"
   }
 }

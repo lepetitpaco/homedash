@@ -16,6 +16,7 @@ import {
 } from '../lib/basecamp'
 import { confirmDialog } from './ConfirmHost'
 import { shown } from '../lib/errors'
+import { desktop } from '../lib/desktop'
 
 const LAUNCHPAD = 'https://launchpad.37signals.com/integrations'
 
@@ -67,8 +68,18 @@ export default function SetBasecamp() {
       }),
     )
 
-  // Nouvel onglet : on garde celui-ci pour y coller l'adresse de retour.
-  const login = () => run(bcAuthorize().then(({ url }) => void window.open(url, '_blank', 'noopener')))
+  // Appli 2.0 : une fenêtre de l'appli, retour intercepté, rien à coller. Sinon
+  // un nouvel onglet : on garde celui-ci pour y coller l'adresse de retour.
+  const inApp = !!desktop?.basecampConnect
+  const login = () =>
+    run(
+      inApp
+        ? desktop!.basecampConnect!().then((r) => {
+            if (!r.ok && r.reason !== 'fenêtre fermée') throw new Error(r.reason || 'connexion refusée')
+            return bcStatus()
+          })
+        : bcAuthorize().then(({ url }) => void window.open(url, '_blank', 'noopener')),
+    )
 
   const sendCode = () => run(bcCode(code.trim()).then((s) => (setCode(''), s)))
 
@@ -132,8 +143,11 @@ export default function SetBasecamp() {
               {busy ? '…' : 'Se connecter à Basecamp'}
             </button>
             <span className="set-hint">
-              Ouvre Basecamp dans un nouvel onglet. Autorise, puis copie l'adresse complète de la page où tu
-              arrives (<code>{siteOf(saved)}</code>) et colle-la ci-dessous.
+              {inApp ? (
+                <>Ouvre Basecamp dans une fenêtre de l'appli : autorise, et c'est tout. Si ça ne marche pas, copie l'adresse de la page où tu arrives (<code>{siteOf(saved)}</code>) et colle-la ci-dessous.</>
+              ) : (
+                <>Ouvre Basecamp dans un nouvel onglet. Autorise, puis copie l'adresse complète de la page où tu arrives (<code>{siteOf(saved)}</code>) et colle-la ci-dessous.</>
+              )}
             </span>
           </div>
           <div className="set-add">

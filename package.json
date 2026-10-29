@@ -1,12 +1,15 @@
 {
   "name": "homedash",
   "private": true,
-  "version": "1.0.0",
+  "version": "2.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite --host 0.0.0.0 --port 7778",
-    "build": "vite build",
-    "typecheck": "tsc --noEmit",
+    "server:dev": "node --watch server/main.ts",
+    "server:build": "tsc -p server",
+    "build": "vite build && tsc -p server",
+    "typecheck": "tsc --noEmit && tsc -p server --noEmit && tsc -p tests-ts --noEmit",
+    "test": "vitest run",
     "preview": "vite preview --host 0.0.0.0 --port 7778"
   },
   "dependencies": {
@@ -18,6 +21,8 @@
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "^5.9.0",
-    "vite": "^7.1.0"
+    "vite": "^7.1.0",
+    "@types/node": "^24.0.0",
+    "vitest": "^3.2.0"
   }
 }

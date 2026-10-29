@@ -1,25 +1,32 @@
 # Architecture
 
-Un conteneur, un process Python (stdlib) qui sert le front React compilé et l'API. Node ne sert qu'au build.
+Une appli Electron qui embarque tout : le front React compilé et le serveur TypeScript (Node seul,
+aucune dépendance), lancé dans un utilityProcess. La page garde l'adresse http://localhost:7777, servie
+par l'appli sans ouvrir de port. En dev, le même serveur tourne en HTTP dans Docker (:7778).
 
 ```
-backend/                  Python stdlib, aucune dépendance
-  server.py               HTTP : fichiers statiques + /api/*, contrôles Host/Origin
-  store.py                JSON dans data/ : écriture atomique, validation, secrets en 600
-  accounts.py             comptes GitHub : un module github.py chargé par compte, migration de config
-  github.py               données GitHub d'un compte (cache ETag)
-  basecamp.py             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
-                          publié en commentaire (seule écriture)
-  localfile.py            Mes sites : un fichier du dossier personnel servi en lecture seule
-  favicons.py             icônes de Mes sites relayées (la page les recadre), en cache
-  perflog.py              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
-  perfreport.py           ce journal résumé jour par jour (Réglages → Aide, scripts/perf-report.py)
-  events.py               journal des événements (la cloche)
-  gitread.py              lecture des .git sans git ni écriture
-  localgit.py             onglet Local : verdicts et commandes proposées
-  backup.py               instantanés, export, restauration, réparation d'une config abîmée
-  errlog.py               journal d'erreurs (data/logs/, 30 jours) : message vu + détail technique
-  updates.py              version installée (CHANGELOG.md), mise à jour disponible sur GitHub, GUIDE.md servi
+server/                   TypeScript « effaçable » : lancé tel quel en dev, compilé par tsc (dist-server/)
+  app.ts                  handle(req) → res : toute l'API et les fichiers, indépendants du transport ;
+                          contrôles Host/Origin (refused) ; démarrage des tâches de fond
+  http.ts, main.ts        transport HTTP : dev (:7779 derrière Vite :7778), accès navigateur
+  host.ts                 dans l'appli : requêtes reçues par messages, accès navigateur facultatif
+  store.ts                JSON dans data/ : écriture atomique, validation, secrets en 600
+  paths.ts                chemins affichés (~/…, C:/…) ↔ lisibles (vrais dans l'appli, montages en dev)
+  accounts.ts             comptes GitHub : une instance GitHubAccount par compte, migration de config
+  github.ts               données GitHub d'un compte (cache ETag), seule écriture : createIssue
+  basecamp.ts             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
+                          publié en commentaire (seule écriture) ; html.ts lit leur HTML
+  localfile.ts            Mes sites : un fichier du dossier personnel servi en lecture seule
+  favicons.ts             icônes de Mes sites relayées (la page les recadre), en cache
+  perflog.ts              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
+  perfreport.ts           ce journal résumé jour par jour (Réglages → Aide, scripts/perf-report.mjs)
+  events.ts               journal des événements (la cloche)
+  gitread.ts              lecture des .git sans git ni écriture
+  localgit.ts             onglet Local : verdicts et commandes proposées
+  backup.ts               instantanés, export, restauration, réparation d'une config abîmée
+  fullexport.ts           export complet chiffré (.homedash : scrypt + AES-256-GCM), aperçu, import
+  errlog.ts               journal d'erreurs (data/logs/, 30 jours) : message vu + détail technique
+  updates.ts              version installée (CHANGELOG.md), dernière Release GitHub, GUIDE.md servi
 src/
   App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
@@ -27,21 +34,28 @@ src/
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
                           tabCount (pastilles de Mes sites)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
-desktop/                  appli de bureau facultative (Electron) : fenêtre sur la page du container,
-                          webviews de Mes sites (guest-preload.js : souris, clavier, rien d'exposé),
-                          badge du Dock (barre des tâches sous Windows).
-                          Construite sur la machine : build-local.sh (Mac, Docker + codesign),
-                          build-windows.ps1 / .sh (Windows x64 : Docker, installateur NSIS installer.nsi).
-                          updater.js : mise à jour depuis l'appli (git pull, compose, se reconstruit)
-scripts/perf-report.py    résumé du journal de performance en texte (même calcul que la page :
-                          backend/perfreport.py)
-tests/                    unittest stdlib
+desktop/                  l'appli (Electron)
+  main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
+                          d'exposé), badge du Dock / barre des tâches, icône près de l'horloge (Windows),
+                          menus, connexion Basecamp interceptée, cookies de l'export complet,
+                          reprise des données Docker au premier lancement
+  server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
+                          GET /api/file seulement)
+  updater.js              mise à jour par la dernière Release (sha512 vérifié, données sauvegardées)
+  assemble.sh             assemble desktop/app/ (coquille + server/ + public/ + CHANGELOG, GUIDE)
+  electron-builder.yml    .dmg / .zip Mac (arm64, x64), setup.exe Windows, latest*.yml
+  build-local.sh          l'appli construite sur ce Mac pour l'essayer (Docker + codesign ad hoc)
+.github/workflows/        release.yml : tag vX.Y.Z → appli construite et Release publiée
+tests-ts/                 Vitest (gitread comparé à git, verdicts Local, Basecamp lecture seule, API…)
+scripts/                  parity.mjs (compare deux serveurs), perf-report.mjs
+docker-compose.dev.yml    le dev : Vite + serveur en --watch, homedash-dev.localhost:7778
 CLAUDE.md                 règles du code et fonctionnalités principales (fait foi, pour humains et IA)
 AGENTS.md, .cursor/rules/ les mêmes règles pour Cursor et les autres IA (renvoient à CLAUDE.md)
-CHANGELOG.md              une entrée par version (un push) ; la première = version installée
+CHANGELOG.md              une entrée par version (un tag = une Release) ; la première = version installée
 GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
 docs/screenshots/         captures (instance de démo) : README, GUIDE, et servies sous /guide/
-data/                     (non versionné) config.json, secrets.json, notes, journal, backups/, version.json
+data/                     (non versionné, dev) ; dans l'appli : <userData>/data
+                          config.json, secrets.json, notes, journal, backups/, version.json
 ```
 
 ## API
@@ -77,22 +91,33 @@ data/                     (non versionné) config.json, secrets.json, notes, jou
 | `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
 | `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Aide) |
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
-| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp connecté, nombre de comptes GitHub |
+| `/api/export/full` | POST | Export complet chiffré (mot de passe, cookies des sites fournis par l'appli) → fichier `.homedash` |
+| `/api/import/preview`, `/api/import/apply` | POST | Export complet : aperçu sans secret, puis import (instantané avant, jetons remplacés gardés à part) |
+| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp connecté, comptes GitHub, version, accès navigateur |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.
 
 ## Choix structurants
 
-- **Zéro dépendance au runtime.** Image légère, rien à mettre à jour, peu de surface d'attaque.
-- **L'appli de bureau n'est qu'une coquille.** Une page web ne peut afficher un autre site que dans une
-  iframe, que Gmail, Chat… refusent, ni lire ce qu'il affiche. Electron fournit des webviews, qui
-  échappent aux deux. Elle charge la page du container (rien d'embarqué) : le serveur et le front restent
-  sans dépendance, et la page marche aussi dans un navigateur.
+- **Zéro dépendance au runtime.** Node seul pour le serveur, React seul pour la page, Electron seul pour
+  l'appli : rien à mettre à jour, peu de surface d'attaque.
+- **Une appli, pas un container (2.0).** Une page web ne peut afficher un autre site que dans une
+  iframe, que Gmail, Chat… refusent, ni lire ce qu'il affiche : Electron fournit des webviews, qui
+  échappent aux deux. Electron embarquant déjà Node, le serveur y vit aussi, écrit en TypeScript : un
+  seul langage, rien d'autre à installer. Le serveur ne dépend pas d'Electron (`app.handle()` sert aussi
+  le HTTP du dev), et la page marche aussi dans un navigateur.
+- **Aucun port.** L'appli sert http://localhost:7777 dans ses propres sessions (`protocol.handle`) :
+  même origine qu'en 1.x (réglages de la page et connexions gardés, contexte sûr), mais aucun site ouvert
+  dans le navigateur ne peut joindre l'API. Le port n'existe que si on l'active (« Accès depuis le
+  navigateur »).
+- **Mise à jour par les Releases.** Un tag construit l'appli (Actions) ; l'appli télécharge son fichier,
+  vérifie le sha512 publié, sauvegarde les données et se remplace. Sans signature : le compte GitHub est
+  la seule protection (double authentification indispensable).
 - **Le serveur tient le journal.** Il tourne en continu, voit tout même page fermée, et c'est le seul
   endroit qui décide ce qui est un événement : la cloche et les notifications ne font qu'afficher.
-- **L'onglet Local relit les `.git` à la main** (`gitread.py`). Aucune commande git n'est sans écriture
+- **L'onglet Local relit les `.git` à la main** (`gitread.ts`). Aucune commande git n'est sans écriture
   (`git status` réécrit l'index) ; relire les fichiers garantit qu'on ne touche jamais un dépôt.
-  Validé contre git dans `tests/`.
+  Validé contre git dans `tests-ts/gitread.test.ts` (packs, deltas `ofs` et `ref`, aucune écriture).
 - **Cache ETag GitHub.** ~220 appels au démarrage, puis 0 tant que rien ne change (les 304 sont gratuits).
-- **Un module `github.py` par compte.** Chaque compte a son jeton et ses caches, sans rien partager.
+- **Une instance `GitHubAccount` par compte.** Chaque compte a son jeton et ses caches, sans rien partager.

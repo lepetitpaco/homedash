@@ -27,7 +27,7 @@ const dayLabel = (d: string) => new Date(`${d}T12:00`).toLocaleDateString('fr-FR
 /**
  * Réglages → Aide → Journal de performance (si le journal a des mesures) : ce
  * que consomment le serveur, l'appli et chaque onglet, jour par jour, en clair.
- * Le même résumé que `scripts/perf-report.py`, et « Copier » pour une issue.
+ * Le même résumé que `scripts/perf-report.mjs`, et « Copier » pour une issue.
  */
 export default function PerfLog() {
   const [days, setDays] = useState<Day[] | null>(null)

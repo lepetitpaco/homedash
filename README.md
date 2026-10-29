@@ -1,8 +1,8 @@
 # homedash
 
 Ta page d'accueil, chez toi : tes liens et notes, ton code (GitHub et dépôts locaux), Basecamp, et tes
-sites (Gmail, Chat, Claude…) dans une barre façon Discord, avec leurs non-lus. Dans le navigateur, ou
-dans sa propre appli sur Mac et Windows.
+sites (Gmail, Chat, Claude…) dans une barre façon Discord, avec leurs non-lus. Une appli pour Mac et
+Windows, qui s'installe et se met à jour toute seule.
 
 ![homedash : un site ouvert dans l'appli, barre de gauche et non-lus](docs/screenshots/site-dans-un-onglet.jpg)
 
@@ -24,28 +24,20 @@ Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (démo, 
 
 ## Installer
 
-Il faut **Docker Desktop** (lancé), **Git** et l'accès au dépôt. Colle le bloc de ton système dans un
-terminal, depuis le dossier où tu ranges tes projets.
+Télécharge la dernière version sur la page des
+**[versions](https://github.com/lepetitpaco/homedash/releases/latest)** :
 
-**Mac** (Terminal) :
+- **Mac** : `homedash-<version>-arm64.dmg` (Apple Silicon) ou `-x64.dmg` (Intel). Ouvre-le, glisse
+  homedash dans Applications.
+- **Windows** : `homedash-<version>-setup.exe`.
 
-```bash
-git clone https://github.com/lepetitpaco/homedash.git && cd homedash
-docker compose up -d --build              # le serveur (2-3 min la première fois)
-sh desktop/build-local.sh --install       # l'appli, dans Applications (1 min)
-open -a homedash
-```
+Rien d'autre à installer : ni Docker, ni Git, ni Node. L'appli n'est pas signée : au premier lancement,
+macOS la bloque (*Réglages Système → Confidentialité et sécurité → Ouvrir quand même*) et Windows
+prévient (*Informations complémentaires → Exécuter quand même*). Une seule fois.
 
-**Windows** (PowerShell) :
-
-```powershell
-git clone https://github.com/lepetitpaco/homedash.git; cd homedash
-docker compose up -d --build              # le serveur (2-3 min la première fois)
-powershell -ExecutionPolicy Bypass -File desktop\build-windows.ps1 -Install   # l'appli (1-2 min)
-```
-
-Pas envie de l'appli ? Arrête-toi après `docker compose` et ouvre **http://localhost:7777**. Dans
-Docker Desktop, coche *Start Docker Desktop when you sign in* : homedash redémarre avec ta machine.
+**Tu avais homedash avec Docker (1.x)** : au premier lancement, l'appli propose de reprendre tes données
+(le dossier `data` du projet). Elles sont copiées, l'original n'est pas touché. Une fois vérifié, arrête
+l'ancien container : `docker compose down` dans son dossier.
 
 ## Premiers réglages
 
@@ -61,26 +53,21 @@ Tout se fait dans **⚙ Réglages**, aucun fichier à éditer :
 
 ## Mettre à jour
 
-Une nouvelle version, la cloche et le numéro de version (en haut à droite) le disent.
-
-- **Dans l'appli** : *Aide → Mettre à jour maintenant*. Elle récupère la version, reconstruit le
-  serveur, et se reconstruit elle-même quand il le faut.
-- **Sans l'appli** : `git pull && docker compose up -d --build` (sous Windows : `git pull; docker
-  compose up -d --build`).
-
-Tes données sont sauvegardées automatiquement avant chaque mise à jour.
+Une nouvelle version, la cloche et le numéro de version (en haut à droite) le disent. *Aide → Vérifier
+les mises à jour* (ou le bouton des nouveautés) : l'appli télécharge la version, vérifie son empreinte,
+sauvegarde tes données, puis se remplace et se relance.
 
 ## Bon à savoir
 
-- **Tes données** sont dans `data/`, jamais dans git. Sauvegarde automatique chaque jour, restauration
-  dans *Réglages → Sauvegardes*.
-- **Les jetons** restent côté serveur (`data/secrets.json`) : jamais envoyés au navigateur, ni mis dans
-  les sauvegardes.
+- **Tes données** sont sur ta machine : `~/Library/Application Support/homedash/data` (Mac),
+  `%APPDATA%\homedash\data` (Windows). Sauvegarde automatique chaque jour, restauration dans
+  *Réglages → Sauvegardes*. Pour changer de machine : *Export complet*, chiffré par un mot de passe.
+- **Les jetons** restent dans le serveur de l'appli (`secrets.json`) : jamais envoyés à la page, ni mis
+  dans les sauvegardes simples.
 - **L'onglet Local ne touche à rien** : tes dossiers sont lus, jamais modifiés, et aucune commande
   git n'est lancée.
-- **Accessible depuis ta machine seulement** (`127.0.0.1`). Pour l'ouvrir au réseau : remplace
-  `127.0.0.1:${HOMEDASH_PORT:-7777}:80` par `${HOMEDASH_PORT:-7777}:80` dans `docker-compose.yml`, et
-  lance avec `HOMEDASH_HOSTS=<nom-ou-ip>`.
+- **Aucun port ouvert** : homedash n'existe que dans l'appli. *Réglages → Affichage → Accès depuis le
+  navigateur* l'ouvre aussi sur http://localhost:7777, sur ta machine seulement.
 - **Un souci ?** *Réglages → Aide* (guide, *En cas de souci*, journal d'erreurs), puis une
   [issue](https://github.com/lepetitpaco/homedash/issues/new).
 
@@ -93,19 +80,21 @@ mise à jour. Améliore tout ce que tu veux, sans dénaturer l'existant.
   principales** à ne pas changer sans prévenir) et **[ARCHITECTURE.md](ARCHITECTURE.md)** (fichiers,
   API). Ton IA les lit aussi : `CLAUDE.md` pour Claude Code, `AGENTS.md` et `.cursor/rules/` pour
   Cursor et les autres. Elle te prévient avant de toucher une fonctionnalité principale.
-- **Tester** (Node n'est pas requis, tout passe par Docker) :
+- **Développer et tester** (Node n'est pas requis sur la machine, tout passe par Docker) :
 
   ```bash
-  docker compose up -d --build                                              # redéployer, puis tester la page
-  docker run --rm -v "$PWD":/app -w /app node:22-alpine npx tsc --noEmit    # typecheck
-  python3 -m unittest discover -s tests -t .                                # tests (~10 s)
+  docker compose -f docker-compose.dev.yml up -d     # http://homedash-dev.localhost:7778, rechargement à chaud
+  docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm run typecheck && npm test"
+  sh desktop/build-local.sh                          # l'appli, construite sur ce Mac pour l'essayer
+  HOMEDASH_URL=http://localhost:7778 /Applications/homedash.app/Contents/MacOS/homedash   # l'appli sur le dev
   ```
 
 - **Livrer** : travaille ta vague sur une branche locale, puis pousse sur `main`, après `git pull
   --rebase` et `git fetch --tags`. Un push = une version : une entrée en tête du `CHANGELOG.md` pour
-  toute la vague (pas une par commit), un tag `vX.Y.Z`, le `GUIDE.md` à jour et une issue par
-  changement. Le détail est dans `CLAUDE.md`. Jamais de
-  `push --force`.
+  toute la vague (pas une par commit), la même version dans `desktop/package.json`, un tag `vX.Y.Z`, le
+  `GUIDE.md` à jour et une issue par changement. Le tag déclenche GitHub Actions, qui construit l'appli
+  et publie la Release : c'est elle que les applis installées proposent. Le détail est dans
+  `CLAUDE.md`. Jamais de `push --force`.
 
 ## Aller plus loin
 

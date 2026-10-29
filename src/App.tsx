@@ -53,7 +53,7 @@ import {
   tabKey,
 } from './lib/customTabs'
 import { perfEvent, setPerfLog } from './lib/perf'
-import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, RELOAD_TAB, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
+import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, REFRESH_DATA, RELOAD_TAB, reloadSwap, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -310,6 +310,9 @@ export default function App() {
       desktop?.onReloadTab?.(() => {
         const t = tabRef.current
         if (t.startsWith('x:')) window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: t }))
+        // Onglet natif : ses données seulement, sans remonter les sites (issue #63).
+        // Une appli d'avant la 2.0 n'envoie ceci que sur ⇧⌘R : là, on recharge tout comme avant.
+        else if (reloadSwap) window.dispatchEvent(new CustomEvent(REFRESH_DATA))
         else window.location.reload()
       }),
     [],
@@ -433,6 +436,20 @@ export default function App() {
     [raw],
   )
   const events = useEvents(inApp, eventsOff)
+  // ⌘R sur un onglet natif (appli 2.0) : relire GitHub, le disque et Basecamp,
+  // sans recharger la page ni remonter les sites (issue #63).
+  const ghRefresh = gh.refresh
+  const localRefresh = local.refresh
+  const bcRefresh = bc.refresh
+  useEffect(() => {
+    const again = () => {
+      ghRefresh()
+      localRefresh()
+      bcRefresh()
+    }
+    window.addEventListener(REFRESH_DATA, again)
+    return () => window.removeEventListener(REFRESH_DATA, again)
+  }, [ghRefresh, localRefresh, bcRefresh])
   const { collapsed, toggleGroup, effectiveTheme, switchTheme } = usePrefs(cfg?.ui.theme)
   const { copiedKey, copy } = useCopy()
 
@@ -833,7 +850,7 @@ export default function App() {
                 icon: '↻',
                 label: 'Recharger',
                 // ⇧⌘R recharge l'onglet affiché : le rappeler sur un autre tromperait.
-                hint: desktop && view === tabKey(t) ? keys('R', true) : undefined,
+                hint: desktop && view === tabKey(t) ? keys('R', !reloadSwap) : undefined,
                 onSelect: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: tabKey(t) })),
               },
             ]
@@ -1411,7 +1428,7 @@ export default function App() {
     if (!items.length) {
       items.push({ icon: '←', label: 'Précédent', disabled: !m.canBack, onSelect: () => act(m.id, 'back') })
       items.push({ icon: '→', label: 'Suivant', disabled: !m.canForward, onSelect: () => act(m.id, 'forward') })
-      items.push({ icon: '↻', label: 'Recharger', hint: keys('R', true), onSelect: () => act(m.id, 'reload') })
+      items.push({ icon: '↻', label: 'Recharger', hint: keys('R', !reloadSwap), onSelect: () => act(m.id, 'reload') })
     }
     const from = fromGuest(m.id)
     // x / y d'Electron : déjà dans la fenêtre (pas dans la webview).

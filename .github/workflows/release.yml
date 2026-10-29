@@ -1,0 +1,109 @@
+# Une Release à chaque tag vX.Y.Z : l'appli construite pour Mac (Apple Silicon et
+# Intel) et Windows, publiée avec les empreintes dont l'appli se sert pour se
+# mettre à jour (latest-mac.yml, latest.yml).
+#
+#   git tag -a v2.0.1 -m "2.0.1" && git push --follow-tags
+#
+# Un push sur beta-2.0 construit aussi l'appli, sans rien publier : les fichiers
+# se téléchargent depuis l'onglet Actions (artefacts), pour essayer avant de taguer.
+#
+# Sécurité : droits minimaux (lecture partout, écriture des Releases dans le
+# seul job qui publie) ; actions figées par empreinte de commit, pas par tag.
+name: release
+
+on:
+  push:
+    tags: ['v*.*.*']
+    branches: [beta-2.0]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    strategy:
+      fail-fast: true
+      matrix:
+        include:
+          - os: macos-latest
+            dist: dist:mac
+          - os: windows-latest
+            dist: dist:win
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            desktop/package-lock.json
+
+      - name: Version du tag = version de l'appli
+        if: startsWith(github.ref, 'refs/tags/')
+        shell: bash
+        run: |
+          tag="${GITHUB_REF_NAME#v}"
+          app=$(node -p "require('./desktop/package.json').version")
+          log=$(sed -n 's/^## \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' CHANGELOG.md | head -1)
+          [ "$tag" = "$app" ] && [ "$tag" = "$log" ] || { echo "tag $tag, desktop/package.json $app, CHANGELOG $log : à aligner"; exit 1; }
+
+      - name: Front et serveur
+        shell: bash
+        run: |
+          npm ci --no-audit --no-fund
+          npm run build
+
+      # Une fois suffit, et les tests du disque créent des liens symboliques
+      # (droits d'administrateur sous Windows).
+      - name: Typage et tests
+        if: runner.os == 'macOS'
+        run: |
+          npm run typecheck
+          npm test
+
+      - name: Appli
+        shell: bash
+        working-directory: desktop
+        run: |
+          npm ci --no-audit --no-fund
+          sh assemble.sh
+          npm run ${{ matrix.dist }}
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: ${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            desktop/dist.noindex/*.dmg
+            desktop/dist.noindex/*.zip
+            desktop/dist.noindex/*.exe
+            desktop/dist.noindex/*.blockmap
+            desktop/dist.noindex/latest*.yml
+
+  publish:
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          path: out
+          merge-multiple: true
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # Notes : l'entrée du CHANGELOG pour cette version.
+          awk -v v="$version" '$0 ~ "^## "v" " {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
+          gh release create "$GITHUB_REF_NAME" out/* --title "homedash $version" --notes-file notes.md --verify-tag

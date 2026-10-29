@@ -138,6 +138,12 @@ export type UiConfig = {
   linkTabsKept: boolean
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
+  /**
+   * Appli de bureau 2.0 : homedash aussi dans un navigateur, sur
+   * http://localhost:7777 (127.0.0.1 seulement). Désactivé par défaut : sans
+   * lui, l'appli n'ouvre aucun port.
+   */
+  browserAccess: boolean
   /** Accueil : carte « Pour commencer » masquée (Réglages → Affichage la remet). */
   setupHidden: boolean
 }

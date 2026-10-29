@@ -15,6 +15,11 @@ export type Desktop = {
   clearData?: (partition: string, host?: string) => Promise<boolean>
   /** Réglages de notifications du système (`notif-settings` dans features, ≥ 1.5.1). */
   openNotificationSettings?: () => void
+  /** Connexion à Basecamp dans une fenêtre de l'appli (`basecamp-connect`, 2.0). */
+  basecampConnect?: () => Promise<{ ok: boolean; reason?: string }>
+  /** Cookies des sessions d'onglets, pour l'export complet (`full-export`, 2.0). */
+  exportCookies?: (partitions: string[]) => Promise<Record<string, unknown[]> | null>
+  importCookies?: (jar: Record<string, unknown[]>) => Promise<{ ok: number; failed: number }>
   /** Mise à jour depuis l'appli (`update` dans features). */
   update?: () => Promise<{ ok: boolean; reason?: string; relaunch?: boolean }>
   onUpdateLog?: (cb: (msg: { line: string; kind: 'cmd' | 'out' | 'error' | 'done' }) => void) => () => void
@@ -64,6 +69,15 @@ export type OpenInTab = { key: string; url: string }
 
 /** Événement de la page : recharger la webview de l'onglet perso `detail` (`x:…`). */
 export const RELOAD_TAB = 'homedash:reload-tab'
+
+/**
+ * ⌘R recharge l'onglet ouvert, ⇧⌘R tout homedash (appli ≥ 2.0, issue #63) ;
+ * avant, c'était l'inverse : les libellés suivent l'appli qui tourne.
+ */
+export const reloadSwap = !!desktop?.features?.includes('reload-swap')
+
+/** Événement de la page : relire tout de suite les données (⌘R sur un onglet natif). */
+export const REFRESH_DATA = 'homedash:refresh-data'
 
 /** L'appli sait-elle donner sa propre connexion à un onglet ? (appli ≥ 1.1.0) */
 export const hasSessions = !!desktop?.features?.includes('sessions')

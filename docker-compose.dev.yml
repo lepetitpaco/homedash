@@ -1,0 +1,33 @@
+# homedash en développement : la page sur http://homedash-dev.localhost:7778
+#
+#   docker compose -f docker-compose.dev.yml up -d
+#
+# Rien n'est construit : le front tourne sous Vite (rechargement à chaud) et le
+# serveur TypeScript se relance seul à chaque modification (`node --watch`).
+# L'appli de bureau en mode dev s'y branche : HOMEDASH_URL=http://localhost:7778.
+# Pour utiliser homedash au quotidien, c'est l'appli de bureau, pas ce fichier.
+services:
+  homedash-dev:
+    image: node:24-alpine
+    container_name: homedash-dev
+    working_dir: /app
+    # dépendances installées dans le conteneur (node_modules de Linux, jamais du Mac)
+    command: sh -c "npm ci --no-audit --no-fund && (node --watch server/main.ts & npx vite --host 0.0.0.0 --port 7778 --strictPort)"
+    restart: unless-stopped
+    ports:
+      # bind local uniquement : data/ contient des jetons
+      - "127.0.0.1:7778:7778"
+    environment:
+      - TZ=Europe/Paris
+      - DATA_DIR=/app/data
+      - PORT=7779
+      - HOST=127.0.0.1
+      - HOMEDASH_HOSTS=homedash-dev.localhost
+      # Ce que valent /host et /hostdisk côté machine (chemins des commandes à copier).
+      - HOST_HOME=${HOME:-${USERPROFILE:-}}
+      - HOST_DISK=${HOMEDASH_DISK:-${SystemDrive:-/Volumes}}
+    volumes:
+      - .:/app
+      # Onglet Local et Mes sites : dossier personnel et disque, en LECTURE SEULE.
+      - ${HOME:-${USERPROFILE:-}}:/host:ro
+      - ${HOMEDASH_DISK:-${SystemDrive:-/Volumes}}/:/hostdisk:ro

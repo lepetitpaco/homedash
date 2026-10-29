@@ -128,3 +128,29 @@ export const deleteBackup = (name: string) => call<{ ok: boolean }>(`api/backups
 export const restoreBackup = (name: string) =>
   call<{ before: string }>(`api/backups/${name}/restore`, { method: 'POST' })
 export const restoreFile = (data: unknown) => call<{ before: string }>('api/backup/restore', json('POST', data))
+
+/** Ce que contient un export complet, sans aucun secret (aperçu avant import). */
+export type FullSummary = {
+  created: number
+  version: string
+  title: string
+  links: number
+  tabs: number
+  github_accounts: number
+  github_tokens: number
+  basecamp: boolean
+  notes: number
+  cookies: number
+  cookie_sites: number
+  sessions: number
+}
+
+/** Export complet (#61) : fichier chiffré par mot de passe, jetons et connexions des sites compris. */
+export async function fullExport(password: string, cookies: unknown): Promise<Blob> {
+  const res = await fetch('api/export/full', json('POST', { password, cookies }))
+  if (!res.ok) throw new Error(((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? `HTTP ${res.status}`)
+  return res.blob()
+}
+export const fullPreview = (file: string, password: string) => call<FullSummary>('api/import/preview', json('POST', { file, password }))
+export const fullImport = (file: string, password: string, include: { settings: boolean; secrets: boolean; cookies: boolean }) =>
+  call<{ ok: boolean; before: string; cookies: Record<string, unknown[]> }>('api/import/apply', json('POST', { file, password, include }))

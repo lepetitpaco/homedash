@@ -1,10 +1,11 @@
 /**
  * homedash — appli de bureau.
  *
- * Une coquille autour de la page servie par le conteneur : elle n'embarque ni
- * le front ni le backend, elle charge `http://localhost:7777` (ou HOMEDASH_URL).
- * Un `git pull` + redéploiement met donc homedash à jour sans reconstruire
- * l'appli.
+ * Elle embarque tout : le front et le serveur (server.js, dans un
+ * utilityProcess). La page garde son adresse http://localhost:7777, servie par
+ * l'appli elle-même, sans aucun port ouvert. Mode dev : HOMEDASH_URL (par
+ * exemple http://localhost:7778, le Docker de dev) charge une autre adresse et
+ * le serveur embarqué ne démarre pas.
  *
  * Ce qu'elle apporte à la page : des <webview> pour les onglets perso. Une page
  * web ne peut montrer un autre site que dans une iframe, que Gmail, Google
@@ -12,16 +13,31 @@
  * soumis à aucun refus. La page détecte l'appli (`window.homedashDesktop`,
  * posé par preload.js) et choisit seule webview ou iframe.
  */
-const { app, BrowserWindow, Menu, Notification, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
+const { app, BrowserWindow, Menu, Notification, Tray, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
 const fs = require('node:fs')
 const path = require('node:path')
+const server = require('./server')
 const { runUpdate } = require('./updater')
+
+// Profil à part (tests, seconde instance) : HOMEDASH_PROFILE=/un/dossier. Sans
+// lui, ~/Library/Application Support/homedash (Mac), %APPDATA%\homedash (Windows).
+if (process.env.HOMEDASH_PROFILE) app.setPath('userData', path.resolve(process.env.HOMEDASH_PROFILE))
 
 // Session commune des webviews : une connexion Google vaut pour Gmail et pour
 // Chat, et survit au redémarrage de l'appli. Un onglet peut en demander une à
 // part (« Compte » dans Réglages : perso, pro…) : `persist:homedash-tabs-<nom>`.
 // Les onglets d'un même compte partagent leur connexion.
 const PARTITION = 'persist:homedash-tabs'
+/** L'icône de l'appli : embarquée (`icon.png`, assemble.sh), ou celle du dépôt quand on lance les sources. */
+const appIcon = () => {
+  for (const p of [path.join(__dirname, 'icon.png'), path.join(__dirname, 'build', 'icon.png')]) {
+    const icon = nativeImage.createFromPath(p)
+    if (!icon.isEmpty()) return icon
+  }
+  return nativeImage.createEmpty()
+}
+/** Identifiant de l'appli pour macOS et Windows (notifications, barre des tâches). Ne plus le changer. */
+const APP_ID = 'com.lepetitpaco.homedash'
 const OWN_PARTITION = /^persist:homedash-tabs-[a-z0-9-]{1,40}$/
 
 function settingsFile() {
@@ -45,17 +61,37 @@ function writeSettings(patch) {
   }
 }
 
-/** Adresse de homedash : variable d'environnement, réglage enregistré, ou le défaut du docker-compose. */
-function homeUrl() {
-  const raw = process.env.HOMEDASH_URL || readSettings().url || 'http://localhost:7777'
+/**
+ * Mode dev : HOMEDASH_URL (ou `devUrl` dans desktop.json) charge un homedash
+ * servi ailleurs (le Docker de dev). Sinon, celui de l'appli. L'ancien réglage
+ * `url` (appli 1.x, qui pointait vers le container) n'est plus lu.
+ */
+function devUrl() {
+  const raw = process.env.HOMEDASH_URL || readSettings().devUrl || ''
   try {
-    return new URL(raw).origin
+    return raw ? new URL(raw).origin : ''
   } catch {
-    return 'http://localhost:7777'
+    return ''
   }
 }
 
-const HOME = homeUrl()
+const DEV = devUrl()
+const HOME = DEV || server.ORIGIN
+// Mode dev : un profil à part (`homedash-dev`), pour tourner à côté de l'appli de tous les jours
+// sans partager ses connexions ni son verrou « une seule instance ».
+if (DEV && !process.env.HOMEDASH_PROFILE) app.setPath('userData', path.join(app.getPath('appData'), 'homedash-dev'))
+
+/** Appel à l'API de homedash : par messages (appli), ou en http (mode dev). */
+async function call(method, p, payload) {
+  if (!DEV) return server.api(method, p, payload)
+  const r = await fetch(HOME + p, {
+    method,
+    cache: 'no-store',
+    headers: payload === undefined ? {} : { 'Content-Type': 'application/json' },
+    body: payload === undefined ? undefined : JSON.stringify(payload),
+  })
+  return { status: r.status, data: await r.json().catch(() => null) }
+}
 const isHome = (url) => {
   try {
     return new URL(url).origin === HOME
@@ -172,13 +208,21 @@ async function route(url, fromId, flip = false) {
 }
 
 function fallbackPage(reason) {
-  const html = `<!doctype html><meta charset=utf-8><title>homedash</title>
+  const why = reason ? String(reason).replace(/[<>&]/g, '') : ''
+  const html = DEV
+    ? `<!doctype html><meta charset=utf-8><title>homedash</title>
 <body style="font:15px system-ui;background:#0b0d12;color:#e5e7eb;padding:3rem;line-height:1.6">
-<h2>homedash ne répond pas sur <code>${HOME}</code></h2>
-<p>Le conteneur est-il lancé ? Dans le dossier du projet :</p>
-<pre style="background:#151922;padding:.8rem 1rem;border-radius:.4rem">docker compose up -d</pre>
-<p style="color:#9ca3af">${reason ? String(reason).replace(/[<>&]/g, '') + ' · ' : ''}nouvel essai toutes les 3 s…</p>
+<h2>Mode dev : homedash ne répond pas sur <code>${HOME}</code></h2>
+<p>Le Docker de dev est-il lancé ? Dans le dossier du projet :</p>
+<pre style="background:#151922;padding:.8rem 1rem;border-radius:.4rem">docker compose -f docker-compose.dev.yml up -d</pre>
+<p style="color:#9ca3af">${why ? why + ' · ' : ''}nouvel essai toutes les 3 s…</p>
 <script>setTimeout(() => location.replace(${JSON.stringify(HOME)}), 3000)</script>`
+    : `<!doctype html><meta charset=utf-8><title>homedash</title>
+<body style="font:15px system-ui;background:#0b0d12;color:#e5e7eb;padding:3rem;line-height:1.6">
+<h2>homedash n'a pas pu démarrer</h2>
+<p>Le serveur intégré à l'appli s'est arrêté. Tes données ne sont pas touchées.</p>
+<p style="color:#9ca3af">${why}</p>
+<p>Quitte homedash puis relance-le. Si ça recommence : Aide → Signaler un problème.</p>`
   return 'data:text/html;charset=utf-8,' + encodeURIComponent(html)
 }
 
@@ -190,7 +234,7 @@ function createWindow() {
     ...(saved || {}),
     minWidth: 900,
     minHeight: 600,
-    title: 'homedash',
+    title: DEV ? 'homedash (dev)' : 'homedash',
     backgroundColor: '#0b0d12',
     // Windows : la barre de menus n'apparaît qu'avec Alt (comme Slack, Discord).
     autoHideMenuBar: process.platform === 'win32',
@@ -224,10 +268,11 @@ function createWindow() {
   win.on('resize', remember)
   win.on('move', remember)
 
-  // macOS : fermer la fenêtre la cache, l'appli continue (pastilles du Dock à jour).
+  // Mac et Windows : fermer la fenêtre la cache, l'appli continue (pastilles,
+  // cloche, sondages). Seul « Quitter » l'arrête (Dock, ou icône près de l'horloge).
   let closing = false
   win.on('close', (e) => {
-    if (process.platform === 'darwin' && !quitting) {
+    if ((process.platform === 'darwin' || process.platform === 'win32') && !quitting) {
       e.preventDefault()
       win.hide()
       return
@@ -338,7 +383,31 @@ function createWindow() {
     })
   })
 
+  // Mode dev : l'éclair passe à l'orange (Dock, barre des tâches) pour ne pas confondre les deux appli.
+  if (DEV) wc.once('did-finish-load', () => void devIcon())
   void win.loadURL(HOME)
+}
+
+/** L'icône en orange, dessinée par la page (le processus principal n'a pas de quoi teinter une image). */
+async function devIcon() {
+  try {
+    const url = await win.webContents.executeJavaScript(`new Promise((ok) => {
+      const img = new Image()
+      img.onload = () => {
+        const c = document.createElement('canvas'); c.width = c.height = 512
+        const g = c.getContext('2d'); g.filter = 'hue-rotate(185deg) saturate(1.6)'; g.drawImage(img, 0, 0, 512, 512)
+        ok(c.toDataURL('image/png'))
+      }
+      img.onerror = () => ok('')
+      img.src = 'icon-512.png'
+    })`)
+    if (!url) return
+    const icon = nativeImage.createFromDataURL(url)
+    if (process.platform === 'darwin') app.dock.setIcon(icon)
+    else win?.setIcon(icon)
+  } catch {
+    /* page pas chargée : l'icône normale reste */
+  }
 }
 
 const ready = new Set()
@@ -348,6 +417,9 @@ function setupTabsSession(partition) {
   if (ready.has(partition)) return
   ready.add(partition)
   const s = session.fromPartition(partition)
+  // Mes sites peut afficher un fichier du disque (http://localhost:7777/api/file) :
+  // c'est la seule adresse de homedash qu'un onglet atteint.
+  if (!DEV) server.serve(s, true)
   // UA honnête par défaut ; celui de Chrome pour les requêtes vers Google
   // (pages, cadres, redirections) — et pour leur navigator.userAgent, plus bas.
   const honest = s.getUserAgent()
@@ -373,8 +445,8 @@ function setupMenu() {
   const askUrl = async () => {
     const choice = await dialog.showMessageBox(win, {
       type: 'info',
-      message: 'Adresse de homedash',
-      detail: `Actuellement : ${HOME}\n\nPour une autre adresse (autre port, seconde instance), lance l'appli avec HOMEDASH_URL=http://localhost:7778, ou écris {"url": "…"} dans :\n${settingsFile()}`,
+      message: 'Mode dev',
+      detail: `L'appli affiche ${HOME} au lieu de son homedash intégré.\n\nPour revenir au fonctionnement normal : lance l'appli sans HOMEDASH_URL, et retire "devUrl" de :\n${settingsFile()}`,
       buttons: ['OK', 'Ouvrir le dossier'],
     })
     if (choice.response === 1) shell.showItemInFolder(settingsFile())
@@ -412,19 +484,21 @@ function setupMenu() {
     {
       label: 'Présentation',
       submenu: [
-        // ⌘R : toute la page homedash, onglets perso compris (après un
-        // redéploiement). PAS le rôle `reload` d'Electron : il recharge ce qui a
-        // le focus, donc le site d'un onglet perso dès qu'on a cliqué dedans.
-        {
-          label: 'Recharger homedash',
-          accelerator: 'CmdOrCtrl+R',
-          click: () => void reloadHome(),
-        },
-        // ⇧⌘R : seulement le site ouvert ; la page sait lequel (preload.js).
+        // ⌘R : seulement l'onglet ouvert, comme dans un navigateur (issue #63) :
+        // recharger toute la page remonte une douzaine de sites d'un coup. La
+        // page sait lequel est ouvert (preload.js) ; un onglet natif relit ses données.
         {
           label: "Recharger l'onglet ouvert",
-          accelerator: 'Shift+CmdOrCtrl+R',
+          accelerator: 'CmdOrCtrl+R',
           click: () => win?.webContents.send('homedash:reload-tab'),
+        },
+        // ⇧⌘R : toute la page homedash, onglets perso compris (sites fermés
+        // proprement d'abord). PAS le rôle `reload` d'Electron : il recharge ce
+        // qui a le focus.
+        {
+          label: 'Recharger tout homedash',
+          accelerator: 'Shift+CmdOrCtrl+R',
+          click: () => void reloadHome(),
         },
         { type: 'separator' },
         { role: 'zoomIn', label: 'Zoom avant' },
@@ -432,9 +506,9 @@ function setupMenu() {
         { role: 'resetZoom', label: 'Taille réelle' },
         { type: 'separator' },
         { role: 'togglefullscreen', label: 'Plein écran' },
-        { label: 'Adresse de homedash…', click: askUrl },
-        // Outils de développement : au clavier seulement (⌥⌘I), pas dans le menu.
-        { role: 'toggleDevTools', visible: false },
+        ...(DEV ? [{ label: 'Mode dev…', click: askUrl }] : []),
+        // Outils de développement (⌥⌘I, Ctrl+Maj+I) : au clavier seulement, sauf en mode dev où ils sont au menu.
+        { role: 'toggleDevTools', label: 'Outils de développement', visible: !!DEV },
       ],
     },
     {
@@ -451,11 +525,9 @@ function setupMenu() {
         { label: 'Nouveautés', click: () => toPage('help-news') },
         { label: 'Guide', click: () => toPage('help-guide') },
         { type: 'separator' },
-        // Mettre à jour = homedash ET l'appli : elle se reconstruit sur place quand
-        // le CHANGELOG le demande, rien à télécharger.
+        // La nouvelle version vient des Releases GitHub : téléchargée, vérifiée,
+        // installée, l'appli se relance (updater.js).
         { label: 'Vérifier les mises à jour…', click: () => void checkUpdates() },
-        { label: 'Mettre à jour maintenant…', click: () => void startUpdate(false) },
-        { label: 'Forcer la mise à jour…', click: () => void startUpdate(true) },
         { type: 'separator' },
         { label: 'Signaler un problème…', click: () => void openRepo('issues/new') },
         { label: 'Voir les issues', click: () => void openRepo('issues') },
@@ -464,6 +536,88 @@ function setupMenu() {
     },
   ]
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
+}
+
+/**
+ * Premier lancement de la 2.0 : pas encore de données. On propose de reprendre
+ * celles de l'installation Docker (le dossier `data/` du projet) : COPIE,
+ * jamais déplacement, l'original reste intact. Sinon on part de zéro, et un
+ * export complet s'importe ensuite dans Réglages → Sauvegardes.
+ */
+async function firstRun() {
+  const dir = server.dataDir()
+  if (fs.existsSync(path.join(dir, 'config.json'))) return
+  const home = require('node:os').homedir()
+  const project = readSettings().projectDir // retenu par l'appli 1.x pour ses mises à jour
+  const guesses = [project && path.join(project, 'data'), ...['homedash', 'dev/homedash', 'dev/projects/tools/homedash', 'projects/homedash'].map((d) => path.join(home, d, 'data'))]
+  const isData = (d) => !!d && fs.existsSync(path.join(d, 'config.json'))
+  let found = guesses.find(isData) || null
+  for (;;) {
+    const r = await dialog.showMessageBox({
+      type: 'question',
+      message: 'Bienvenue dans homedash 2.0',
+      detail:
+        (found
+          ? `Une installation Docker de homedash a été trouvée :\n${found}\n\nReprendre ses données (liens, notes, comptes, jetons, sauvegardes) ? Elles sont copiées : l'original n'est pas touché.`
+          : "Tu avais homedash avec Docker ? Choisis son dossier « data » pour reprendre tes données (copiées, l'original n'est pas touché).") +
+        '\n\nDepuis une autre machine : commence à zéro, puis Réglages → Sauvegardes → importer un export complet.',
+      buttons: found ? ['Reprendre ces données', 'Choisir un autre dossier…', 'Commencer à zéro'] : ['Choisir le dossier data…', 'Commencer à zéro'],
+      defaultId: 0,
+      cancelId: found ? 2 : 1,
+    })
+    const choice = found ? r.response : r.response === 0 ? 1 : 2
+    if (choice === 2) return
+    if (choice === 1) {
+      const pick = await dialog.showOpenDialog({ title: 'Dossier « data » de homedash', properties: ['openDirectory'], defaultPath: found || home })
+      const d = pick.filePaths?.[0]
+      if (!d) continue
+      const data = isData(d) ? d : isData(path.join(d, 'data')) ? path.join(d, 'data') : null
+      if (!data) {
+        await dialog.showMessageBox({ type: 'warning', message: "Ce dossier n'est pas un dossier de données homedash", detail: 'Il doit contenir config.json (le dossier « data » du projet homedash).' })
+        continue
+      }
+      found = data
+      continue
+    }
+    try {
+      fs.mkdirSync(path.dirname(dir), { recursive: true })
+      fs.cpSync(found, dir, { recursive: true, errorOnExist: false, force: false, preserveTimestamps: true })
+      // les jetons restent lisibles par toi seul
+      for (const n of fs.readdirSync(dir)) if (n.startsWith('secrets')) fs.chmodSync(path.join(dir, n), 0o600)
+      return
+    } catch (e) {
+      await dialog.showMessageBox({ type: 'error', message: 'Copie impossible', detail: `${e.message}\n\nRien n'a été modifié dans ${found}.` })
+      found = null
+    }
+  }
+}
+
+/**
+ * Windows : icône près de l'horloge. Fermer la fenêtre ne quitte pas (les
+ * pastilles et la cloche continuent) ; l'icône la rouvre, son menu quitte.
+ */
+let tray = null
+function setupTray() {
+  if (process.platform !== 'win32' || tray) return
+  const icon = appIcon()
+  tray = new Tray(icon.isEmpty() ? icon : icon.resize({ width: 16, height: 16 }))
+  tray.setToolTip('homedash')
+  const show = () => {
+    if (!win) createWindow()
+    else {
+      if (win.isMinimized()) win.restore()
+      win.show()
+      win.focus()
+    }
+  }
+  tray.on('click', show)
+  tray.setContextMenu(
+    Menu.buildFromTemplate([
+      { label: 'Ouvrir homedash', click: show },
+      { type: 'separator' },
+      { label: 'Quitter homedash', click: () => app.quit() },
+    ]),
+  )
 }
 
 // ── Pont avec la page (preload.js) ──────────────────────────────────────────
@@ -575,6 +729,60 @@ ipcMain.handle('homedash:clear-data', async (e, req) => {
   return true
 })
 
+/**
+ * Export complet (#61) : les cookies des sessions d'onglets que la page désigne
+ * (jamais celle de homedash), pour les emporter, chiffrés, sur une autre machine.
+ */
+const tabsPartition = (p) => p === PARTITION || OWN_PARTITION.test(p)
+ipcMain.handle('homedash:cookies-export', async (e, partitions) => {
+  if (!fromHome(e)) return null
+  const out = {}
+  for (const p of new Set([PARTITION, ...(Array.isArray(partitions) ? partitions : [])].map(String))) {
+    if (!tabsPartition(p)) continue
+    const list = await session.fromPartition(p).cookies.get({})
+    if (list.length) out[p] = list
+  }
+  return out
+})
+
+/**
+ * Import complet : les cookies reviennent dans leurs sessions. Certains sites
+ * (Google, Microsoft…) refusent une session venue d'une autre machine et
+ * redemandent la connexion : la page le dit avant.
+ */
+ipcMain.handle('homedash:cookies-import', async (e, jar) => {
+  if (!fromHome(e) || !jar || typeof jar !== 'object') return { ok: 0, failed: 0 }
+  let ok = 0
+  let failed = 0
+  for (const [p, list] of Object.entries(jar)) {
+    if (!tabsPartition(p) || !Array.isArray(list)) continue
+    setupTabsSession(p)
+    const s = session.fromPartition(p)
+    for (const c of list) {
+      try {
+        const host = String(c.domain || '').replace(/^\./, '')
+        await s.cookies.set({
+          url: `${c.secure ? 'https' : 'http'}://${host}${c.path || '/'}`,
+          name: c.name,
+          value: c.value,
+          // Cookie d'hôte : pas de domaine, sinon il deviendrait valable pour les sous-domaines.
+          ...(c.hostOnly ? {} : { domain: c.domain }),
+          path: c.path,
+          secure: !!c.secure,
+          httpOnly: !!c.httpOnly,
+          ...(c.expirationDate ? { expirationDate: c.expirationDate } : {}),
+          ...(c.sameSite && c.sameSite !== 'unspecified' ? { sameSite: c.sameSite } : {}),
+        })
+        ok++
+      } catch {
+        failed++
+      }
+    }
+    await s.cookies.flushStore()
+  }
+  return { ok, failed }
+})
+
 // Version de l'appli (la page compare avec celle que demande le changelog).
 ipcMain.on('homedash:app-version', (e) => {
   e.returnValue = fromHome(e) ? app.getVersion() : ''
@@ -583,11 +791,7 @@ ipcMain.on('homedash:app-version', (e) => {
 // ── Mises à jour et actions du menu ─────────────────────────────────────────
 /** Version, changelog et dépôt d'après le serveur (`/api/changelog`) ; `check` le fait vérifier GitHub. */
 async function changelog(check = false) {
-  const r = await fetch(`${HOME}/api/changelog${check ? '/check' : ''}`, {
-    cache: 'no-store',
-    ...(check ? { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' } : {}),
-  })
-  return r.json()
+  return (await (check ? call('POST', '/api/changelog/check', {}) : call('GET', '/api/changelog'))).data || {}
 }
 
 /** La page affiche une partie de Réglages (`settings`, `help-news`, `help-guide`). */
@@ -598,7 +802,7 @@ function toPage(target) {
 }
 
 async function openRepo(sub) {
-  let repo = 'davidgennaoui/homedash'
+  let repo = 'lepetitpaco/homedash'
   try {
     repo = (await changelog()).repo || repo
   } catch {
@@ -608,22 +812,22 @@ async function openRepo(sub) {
 }
 
 /** Bouton de la page ou menu : updater.js, qui demande confirmation. */
-async function startUpdate(force) {
-  let serverDir = ''
-  try {
-    serverDir = (await changelog()).dir || ''
-  } catch {
-    /* serveur injoignable : on demandera le dossier */
-  }
+async function startUpdate() {
   win?.show()
+  if (DEV) {
+    await dialog.showMessageBox(win, { type: 'info', message: 'Mode dev', detail: "En mode dev, homedash vient du Docker de dev : rien à mettre à jour ici." })
+    return { ok: false, reason: 'mode dev' }
+  }
   return runUpdate({
     win,
-    home: HOME,
-    reloadHome,
-    serverDir,
-    force,
-    settings: { read: readSettings, write: writeSettings },
+    repo: (await changelog().catch(() => ({}))).repo || 'lepetitpaco/homedash',
+    call,
+    dataDir: server.dataDir(),
     send: (msg) => win?.webContents.send('homedash:update-log', msg),
+    beforeQuit: async () => {
+      quitting = true
+      await unloadGuests()
+    },
   })
 }
 
@@ -633,7 +837,7 @@ async function checkUpdates() {
   try {
     data = await changelog(true)
   } catch {
-    return dialog.showMessageBox(win, { type: 'warning', message: 'homedash ne répond pas', detail: 'Docker Desktop est-il lancé ?' })
+    return dialog.showMessageBox(win, { type: 'warning', message: 'homedash ne répond pas', detail: 'Relance homedash, puis réessaie.' })
   }
   if (data.error)
     return dialog.showMessageBox(win, { type: 'warning', message: 'Vérification impossible', detail: data.error })
@@ -651,13 +855,80 @@ async function checkUpdates() {
     defaultId: 0,
     cancelId: 2,
   })
-  if (r.response === 0) void startUpdate(false)
+  if (r.response === 0) void startUpdate()
   if (r.response === 1) toPage('help-news')
 }
 
 // Bouton « Mettre à jour maintenant » du changelog. La page ne choisit rien
 // d'autre que de le demander.
-ipcMain.handle('homedash:update', async (e) => (fromHome(e) ? startUpdate(false) : { ok: false, reason: 'refusé' }))
+ipcMain.handle('homedash:update', async (e) => (fromHome(e) ? startUpdate() : { ok: false, reason: 'refusé' }))
+
+/**
+ * Connexion à Basecamp en un clic. Launchpad refuse une adresse de retour en
+ * localhost : on garde celle de Réglages (`https://<domaine>/oauth`, qui n'a pas
+ * besoin d'exister) et l'appli intercepte la redirection avant qu'elle parte
+ * sur le réseau. La fenêtre utilise la session des onglets : déjà connecté à
+ * Basecamp dans un onglet, il n'y a qu'à cliquer « Autoriser ».
+ */
+let basecampWindow = null
+ipcMain.handle('homedash:basecamp-connect', async (e) => {
+  if (!fromHome(e)) return { ok: false, reason: 'refusé' }
+  if (basecampWindow) {
+    basecampWindow.focus()
+    return { ok: false, reason: 'déjà ouverte' }
+  }
+  const auth = (await call('GET', '/api/basecamp/auth')).data || {}
+  const back = String(auth.redirect_uri || '')
+  if (!/^https?:\/\//.test(back)) return { ok: false, reason: 'adresse de retour manquante (Réglages → Basecamp)' }
+  const start = await call('POST', '/api/basecamp/authorize', {})
+  if (start.status !== 200 || !start.data?.url) return { ok: false, reason: start.data?.error || 'appli Basecamp non renseignée' }
+  setupTabsSession(PARTITION)
+  return new Promise((resolve) => {
+    const w = new BrowserWindow({
+      width: 560,
+      height: 760,
+      parent: win || undefined,
+      title: 'Connexion à Basecamp',
+      autoHideMenuBar: true,
+      webPreferences: { session: session.fromPartition(PARTITION), sandbox: true, contextIsolation: true, nodeIntegration: false },
+    })
+    basecampWindow = w
+    let done = false
+    const finish = (result) => {
+      if (done) return
+      done = true
+      resolve(result)
+      if (!w.isDestroyed()) w.close()
+    }
+    // La redirection vers l'adresse de retour : on la lit, on ne la suit pas.
+    const intercept = (ev, url) => {
+      if (!url.startsWith(back.split('?')[0])) return
+      ev.preventDefault()
+      const err = (() => {
+        try {
+          return new URL(url).searchParams.get('error')
+        } catch {
+          return null
+        }
+      })()
+      if (err) return finish({ ok: false, reason: `Basecamp a refusé l'accès (${err})` })
+      void call('POST', '/api/basecamp/code', { code: url }).then((r) =>
+        finish(r.status === 200 ? { ok: true } : { ok: false, reason: r.data?.error || 'connexion refusée' }),
+      )
+    }
+    w.webContents.on('will-redirect', intercept)
+    w.webContents.on('will-navigate', intercept)
+    w.webContents.setWindowOpenHandler(({ url }) => {
+      if (isWeb(url)) void w.loadURL(url)
+      return { action: 'deny' }
+    })
+    w.on('closed', () => {
+      basecampWindow = null
+      finish({ ok: false, reason: 'fenêtre fermée' })
+    })
+    void w.loadURL(start.data.url)
+  })
+})
 
 ipcMain.on('homedash:open', (e, url) => {
   if (fromHome(e) && isWeb(String(url))) void shell.openExternal(String(url))
@@ -679,7 +950,7 @@ ipcMain.on('homedash:notif-settings', (e) => {
         body: "Active « Pastilles de l'app » pour voir les non-lus sur l'icône du Dock.",
         silent: true,
       }).show()
-    const id = 'com.github.davidgennaoui.homedash'
+    const id = APP_ID
     setTimeout(() => void shell.openExternal(`x-apple.systempreferences:com.apple.Notifications-Settings.extension?id=${id}`), 800)
   } else if (process.platform === 'win32') {
     void shell.openExternal('ms-settings:notifications')
@@ -693,11 +964,7 @@ ipcMain.on('homedash:notif-settings', (e) => {
 const PERF_EVERY = 5 * 60 * 1000
 
 function postPerf(record) {
-  fetch(`${HOME}/api/perf`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ source: 'app', ...record }),
-  }).catch(() => undefined) // serveur arrêté : la mesure est perdue, rien de grave
+  call('POST', '/api/perf', { source: 'app', ...record }).catch(() => undefined) // serveur arrêté : la mesure est perdue, rien de grave
 }
 
 async function perfSample(kind = 'sample', extra = {}) {
@@ -814,6 +1081,7 @@ if (!app.requestSingleInstanceLock()) {
     postPerf({ kind: 'event', event: 'quit' })
     void unloadGuests().finally(() => {
       unloaded = true
+      server.stop() // le serveur suit l'appli : quitter l'arrête
       app.quit()
     })
   })
@@ -822,19 +1090,41 @@ if (!app.requestSingleInstanceLock()) {
     else createWindow()
   })
   app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') app.quit()
+    // Mac et Windows : l'appli reste (Dock, icône près de l'horloge). Ailleurs, elle quitte.
+    if (process.platform !== 'darwin' && process.platform !== 'win32') app.quit()
   })
   // Windows : identité de l'appli pour la barre des tâches et les notifications
   // (sans elle, les notifications des sites ne s'affichent pas).
-  if (process.platform === 'win32') app.setAppUserModelId('com.github.davidgennaoui.homedash')
-  app.whenReady().then(() => {
+  if (process.platform === 'win32') app.setAppUserModelId(APP_ID)
+  app.whenReady().then(async () => {
     if (process.platform === 'darwin' && !app.isPackaged) {
-      const icon = nativeImage.createFromPath(path.join(__dirname, 'build', 'icon.png'))
+      const icon = appIcon()
       if (!icon.isEmpty()) app.dock.setIcon(icon)
+    }
+    let failed = ''
+    if (!DEV) {
+      // La page et son API : http://localhost:7777, servi par l'appli, sans port.
+      await firstRun()
+      server.serve(session.defaultSession)
+      await server.start().catch((e) => (failed = e.message))
+      // Un plantage en route : relancé une fois, puis la page se recharge.
+      let restarts = 0
+      server.onExit(() => {
+        if (quitting) return
+        if (restarts++ >= 2) return void win?.loadURL(fallbackPage("le serveur s'est arrêté plusieurs fois"))
+        setTimeout(() => {
+          server
+            .start()
+            .then(() => win?.webContents.reloadIgnoringCache())
+            .catch((e) => win?.loadURL(fallbackPage(e.message)))
+        }, 1000)
+      })
     }
     setupTabsSession(PARTITION)
     setupMenu()
+    setupTray()
     createWindow()
+    if (failed) void win.loadURL(fallbackPage(failed))
     postPerf({ kind: 'event', event: 'start', version: app.getVersion(), electron: process.versions.electron })
     win.on('hide', () => postPerf({ kind: 'event', event: 'hide' }))
     win.on('show', () => postPerf({ kind: 'event', event: 'show' }))

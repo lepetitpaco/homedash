@@ -2,7 +2,7 @@
  * Notifications système : le RENDU du journal d'événements, rien de plus.
  *
  * Le diff — quelles transitions méritent d'être signalées — appartient
- * désormais au backend (`backend/events.py` et ses appelants). Ce module ne
+ * désormais au backend (`server/events.ts` et ses appelants). Ce module ne
  * décide plus de rien : il reçoit des événements déjà qualifiés et les affiche.
  * Tant que les deux vivaient séparément, la cloche et la page pouvaient raconter
  * deux histoires différentes du même cycle.

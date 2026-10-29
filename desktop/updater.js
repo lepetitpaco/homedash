@@ -1,189 +1,214 @@
 /**
- * Mise à jour depuis l'appli (bouton du changelog) : ce que la page ne peut
- * pas faire, le container n'ayant ni git ni Docker de la machine.
+ * Mise à jour de l'appli depuis les Releases GitHub (2.0 : plus de git ni de Docker).
  *
- *   1. git pull, puis docker compose up -d --build, dans le dossier du projet ;
- *   2. si la coquille de l'appli a changé (desktop/package.json plus récent que
- *      l'appli qui tourne), elle se reconstruit sur place, se ferme, est
- *      remplacée et se relance ; sinon la page est rechargée.
+ *   1. la dernière Release, et dans son `latest-mac.yml` / `latest.yml` le
+ *      fichier qui correspond à cette machine, avec son empreinte sha512 ;
+ *   2. téléchargement, empreinte vérifiée : un fichier abîmé ou modifié est refusé ;
+ *   3. sauvegarde des données (instantané, Réglages → Sauvegardes) ;
+ *   4. l'appli se ferme et se remplace : Mac, le .app extrait du .zip ; Windows,
+ *      l'installateur en silencieux. Puis elle se relance.
  *
- * La page ne demande qu'« une mise à jour » : les commandes sont fixées ici,
- * et une fenêtre du système demande confirmation à chaque fois. L'avancement
- * remonte à la page (`homedash:update-log`).
+ * Même chemin sur Mac et Windows, sans dépendance. Dépôt privé : le jeton du
+ * premier compte GitHub connecté sert au téléchargement (jamais envoyé ailleurs
+ * qu'à api.github.com). La page ne demande qu'« une mise à jour » ; une fenêtre
+ * du système demande confirmation. L'avancement remonte à la page.
  */
 const { app, dialog } = require('electron')
 const { spawn } = require('node:child_process')
+const crypto = require('node:crypto')
 const fs = require('node:fs')
+const os = require('node:os')
 const path = require('node:path')
+const { Readable } = require('node:stream')
+const { pipeline } = require('node:stream/promises')
+const { matches, newer, parseLatest, pick } = require('./release')
 
 const isWin = process.platform === 'win32'
+const isMac = process.platform === 'darwin'
 let running = false
 
-/** `1.10.0` > `1.9.3`. */
-const newer = (a, b) => {
-  const x = String(a).split('.').map(Number)
-  const y = String(b).split('.').map(Number)
-  for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) > (y[i] || 0)
-  return false
-}
-
-const isProject = (dir) =>
-  !!dir && fs.existsSync(path.join(dir, 'docker-compose.yml')) && fs.existsSync(path.join(dir, 'desktop', 'package.json'))
-
-/**
- * Une commande dans le shell de l'utilisateur : sur Mac un shell de connexion
- * (une appli lancée du Dock n'a pas son PATH : docker, git de Homebrew…),
- * PowerShell sous Windows. Chaque ligne de sortie part à la page.
- */
-function sh(cmd, cwd, log) {
-  return new Promise((resolve) => {
-    log(`$ ${cmd}`, 'cmd')
-    const child = isWin
-      ? spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', cmd], { cwd, windowsHide: true })
-      : spawn(process.env.SHELL || '/bin/zsh', ['-lc', cmd], { cwd, env: { ...process.env, GIT_TERMINAL_PROMPT: '0' } })
-    const out = (buf) =>
-      String(buf)
-        .split(/\r?\n|\r/)
-        .filter((l) => l.trim())
-        .forEach((l) => log(l))
-    child.stdout.on('data', out)
-    child.stderr.on('data', out)
-    child.on('error', (e) => {
-      log(e.message, 'error')
-      resolve(1)
-    })
-    child.on('close', (code) => resolve(code ?? 1))
-  })
-}
-
-/** Le dossier du projet : celui que donne le serveur, le dernier choisi, ou on le demande. */
-async function projectDir(win, serverDir, settings) {
-  for (const d of [serverDir, settings.read().projectDir]) if (isProject(d)) return d
-  const pick = await dialog.showOpenDialog(win, {
-    title: 'Où est le dossier homedash ?',
-    message: 'Choisis le dossier du projet homedash (celui qui contient docker-compose.yml).',
-    properties: ['openDirectory'],
-  })
-  const dir = pick.filePaths?.[0]
-  if (!isProject(dir)) return null
-  settings.write({ projectDir: dir })
-  return dir
-}
-
-/** Attend que le serveur réponde de nouveau (après docker compose up). */
-async function waitServer(home, log) {
-  for (let i = 0; i < 90; i++) {
-    try {
-      const r = await fetch(`${home}/api/changelog`, { cache: 'no-store' })
-      if (r.ok) return true
-    } catch {
-      /* container en cours de redémarrage */
-    }
-    await new Promise((r) => setTimeout(r, 2000))
+/** Jeton du premier compte GitHub connecté (dépôt privé), lu dans les données de l'appli. */
+function token(dataDir) {
+  try {
+    const s = JSON.parse(fs.readFileSync(path.join(dataDir, 'secrets.json'), 'utf8'))
+    return Object.values(s.github_tokens || {}).find(Boolean) || null
+  } catch {
+    return null
   }
-  log('Le serveur ne répond pas après 3 min : vérifie Docker Desktop.', 'error')
-  return false
+}
+
+function headers(tok, accept = 'application/vnd.github+json') {
+  return { Accept: accept, 'User-Agent': `homedash/${app.getVersion()}`, 'X-GitHub-Api-Version': '2022-11-28', ...(tok ? { Authorization: `Bearer ${tok}` } : {}) }
+}
+
+async function getJson(url, tok) {
+  const r = await fetch(url, { headers: headers(tok), signal: AbortSignal.timeout(15000) })
+  if (!r.ok) throw new Error(r.status === 404 ? 'aucune version publiée (ou dépôt privé sans compte GitHub connecté)' : `GitHub répond ${r.status}`)
+  return r.json()
+}
+
+/** La dernière Release et le fichier de cette machine. */
+async function checkRelease(repo, dataDir) {
+  const tok = token(dataDir)
+  const rel = await getJson(`https://api.github.com/repos/${repo}/releases/latest`, tok)
+  const version = String(rel.tag_name || '').replace(/^v/, '')
+  const latestName = isMac ? 'latest-mac.yml' : 'latest.yml'
+  const yml = (rel.assets || []).find((a) => a.name === latestName)
+  if (!yml) return { version, newer: newer(version, app.getVersion()), file: null, reason: `${latestName} absent de la Release` }
+  const text = await (await download(yml, tok)).text()
+  const want = pick(parseLatest(text))
+  const asset = want && (rel.assets || []).find((a) => a.name === want.url)
+  return {
+    version,
+    newer: newer(version, app.getVersion()),
+    url: rel.html_url,
+    file: asset ? { name: asset.name, size: asset.size, sha512: want.sha512, asset } : null,
+    reason: asset ? null : "pas de fichier pour cette machine dans la Release",
+  }
+}
+
+/** Fichier d'une Release : par l'API (avec jeton, dépôt privé) ou l'adresse publique. */
+async function download(asset, tok) {
+  const url = tok ? asset.url : asset.browser_download_url
+  // L'API répond par une redirection vers le stockage : le jeton ne la suit pas (fetch le retire).
+  const r = await fetch(url, { headers: headers(tok, 'application/octet-stream'), redirect: 'follow' })
+  if (!r.ok) throw new Error(`téléchargement refusé (${r.status})`)
+  return r
+}
+
+/** Télécharge dans `dest` et rend l'empreinte sha512 (base64, comme latest*.yml). */
+async function fetchTo(asset, tok, dest, log) {
+  const r = await download(asset, tok)
+  const hash = crypto.createHash('sha512')
+  let got = 0
+  let last = 0
+  const counter = new (require('node:stream').Transform)({
+    transform(chunk, _enc, done) {
+      hash.update(chunk)
+      got += chunk.length
+      const pct = asset.size ? Math.floor((got / asset.size) * 100) : 0
+      if (pct >= last + 10) {
+        last = pct
+        log(`… ${pct} %`)
+      }
+      done(null, chunk)
+    },
+  })
+  await pipeline(Readable.fromWeb(r.body), counter, fs.createWriteStream(dest))
+  return hash.digest('base64')
+}
+
+function run(cmd, args) {
+  return new Promise((resolve) => {
+    const p = spawn(cmd, args, { stdio: 'ignore' })
+    p.on('error', () => resolve(1))
+    p.on('close', (code) => resolve(code ?? 1))
+  })
 }
 
 /**
- * Remplace l'appli par celle qu'on vient de construire, une fois fermée, et la
- * relance. Le remplacement est fait par un processus détaché : l'appli ne
- * s'écrase pas elle-même pendant qu'elle tourne.
+ * Remplace l'appli une fois fermée, puis la relance. Un processus détaché s'en
+ * charge : l'appli ne s'écrase pas elle-même pendant qu'elle tourne.
  */
-function swapAndRelaunch(dir, version, log) {
+function swapAndRelaunch(staged) {
   if (isWin) {
-    const setup = path.join(dir, 'desktop', 'dist.noindex', `homedash-${version}-win-x64-setup.exe`)
-    const exe = path.join(process.env.LOCALAPPDATA || '', 'Programs', 'homedash', 'homedash.exe')
-    const ps = `Start-Sleep -Seconds 2; Start-Process -FilePath '${setup}' -ArgumentList '/S' -Wait; Start-Process '${exe}'`
-    spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], {
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    }).unref()
+    // NSIS d'electron-builder : /S = silencieux, --force-run = relancer après.
+    const q = (s) => s.replace(/'/g, "''")
+    const ps = `while (Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 500 }; Start-Process -FilePath '${q(staged)}' -ArgumentList '/S','--updated','--force-run'`
+    spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { detached: true, stdio: 'ignore', windowsHide: true }).unref()
   } else {
     // homedash.app qui tourne : …/homedash.app/Contents/MacOS/homedash
     const bundle = path.resolve(process.execPath, '..', '..', '..')
-    const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
-    const built = path.join(dir, 'desktop', 'dist.noindex', `homedash-darwin-${arch}`, 'homedash.app')
     const q = (s) => `'${s.replace(/'/g, `'\\''`)}'`
-    const script = `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done; rm -rf ${q(bundle)} && cp -R ${q(built)} ${q(bundle)}; open ${q(bundle)}`
+    const script = `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done; rm -rf ${q(bundle)} && mv ${q(staged)} ${q(bundle)}; open ${q(bundle)}`
     spawn('/bin/sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref()
   }
-  log("L'appli se ferme, se remplace et se relance…", 'done')
-  // quit (pas exit) : les sites se ferment proprement avant (main.js, before-quit)
-  setTimeout(() => app.quit(), 1200)
 }
 
 /**
- * Lance la mise à jour. `serverDir` : dossier du projet d'après le serveur
- * (HOMEDASH_DIR), vide sous Windows le plus souvent. `force` (menu « Forcer la
- * mise à jour ») : l'appli se reconstruit même sans nouvelle version, pour
- * dépanner une installation abîmée.
+ * Lance la mise à jour : `call` parle au serveur (instantané des données),
+ * `beforeQuit` ferme proprement les sites, `send` remonte l'avancement à la page.
  */
-async function runUpdate({ win, home, serverDir, settings, send, reloadHome, force = false }) {
+async function runUpdate({ win, repo, call, dataDir, send, beforeQuit }) {
   const log = (line, kind = 'out') => send({ line, kind })
   if (running) return { ok: false, reason: 'déjà en cours' }
-  const dir = await projectDir(win, serverDir, settings)
-  if (!dir) return { ok: false, reason: 'dossier du projet introuvable' }
-
+  if (!app.isPackaged) {
+    await dialog.showMessageBox(win, { type: 'info', message: "Appli lancée depuis les sources", detail: 'La mise à jour ne remplace qu\'une appli installée.' })
+    return { ok: false, reason: 'non installée' }
+  }
+  let rel
+  try {
+    rel = await checkRelease(repo, dataDir)
+  } catch (e) {
+    log(`Vérification impossible : ${e.message}`, 'error')
+    return { ok: false, reason: e.message }
+  }
+  if (!rel.newer) {
+    await dialog.showMessageBox(win, { type: 'info', message: `homedash est à jour (${app.getVersion()})` })
+    return { ok: false, reason: 'à jour' }
+  }
+  if (!rel.file) {
+    log(`Version ${rel.version} publiée, mais ${rel.reason}.`, 'error')
+    return { ok: false, reason: rel.reason }
+  }
   const ok = await dialog.showMessageBox(win, {
     type: 'question',
-    message: force ? 'Forcer la mise à jour de homedash ?' : 'Mettre à jour homedash ?',
+    message: `Installer homedash ${rel.version} ?`,
     detail:
-      `Dans ${dir} :\n• git pull (récupère la nouvelle version)\n• docker compose up -d --build (quelques secondes, plus la première fois)\n` +
-      (force
-        ? "• l'appli se reconstruit, se ferme et se relance, même sans nouvelle version (une demi-minute environ)\n\nÀ utiliser si quelque chose semble cassé. Tes données sont sauvegardées avant."
-        : "\nTes données sont sauvegardées avant. Si l'appli elle-même a changé, elle se reconstruit, se ferme et se relance (une demi-minute de plus)."),
-    buttons: [force ? 'Tout reconstruire' : 'Mettre à jour', 'Annuler'],
+      `Tu as la ${app.getVersion()}.\n\n• téléchargement depuis GitHub (${Math.round((rel.file.size || 0) / 1e6)} Mo), empreinte vérifiée\n` +
+      "• tes données sont sauvegardées avant\n• homedash se ferme, se remplace et se relance (quelques secondes)",
+    buttons: ['Installer', 'Plus tard'],
     defaultId: 0,
     cancelId: 1,
   })
   if (ok.response !== 0) return { ok: false, reason: 'annulé' }
 
   running = true
+  const work = fs.mkdtempSync(path.join(os.tmpdir(), 'homedash-update-'))
+  let handedOver = false
   try {
-    log(`Dossier : ${dir}`)
-    if ((await sh('git pull --ff-only', dir, log)) !== 0) {
-      log("git pull a échoué (modifications locales ? identifiants GitHub ?) : rien n'a été changé.", 'error')
-      return { ok: false, reason: 'git pull' }
+    const file = path.join(work, rel.file.name)
+    log(`Téléchargement de ${rel.file.name}…`, 'cmd')
+    const digest = await fetchTo(rel.file.asset, token(dataDir), file, log)
+    if (!matches(digest, rel.file.sha512)) {
+      log("Empreinte différente de celle publiée : fichier abîmé ou modifié, rien n'a été installé.", 'error')
+      return { ok: false, reason: 'empreinte' }
     }
-    if ((await sh('docker compose up -d --build', dir, log)) !== 0) {
-      log('Le container ne s’est pas reconstruit : Docker Desktop est-il lancé ?', 'error')
-      return { ok: false, reason: 'docker' }
+    log('✓ Empreinte vérifiée.')
+    const snap = await call('POST', '/api/backups', {})
+    if (snap.status !== 200) {
+      log("Sauvegarde des données impossible : mise à jour annulée, rien n'a changé.", 'error')
+      return { ok: false, reason: 'sauvegarde' }
     }
-    if (!(await waitServer(home, log))) return { ok: false, reason: 'serveur' }
-    log('✓ homedash est à jour.', 'done')
-
-    let shell = ''
-    try {
-      shell = JSON.parse(fs.readFileSync(path.join(dir, 'desktop', 'package.json'), 'utf8')).version
-    } catch {
-      /* pas de desktop/ : rien à reconstruire */
+    log(`✓ Données sauvegardées (${snap.data?.name}).`)
+    let staged = file
+    if (isMac) {
+      // ditto : l'outil de macOS, garde les attributs et la signature du bundle
+      const out = path.join(work, 'app')
+      if ((await run('/usr/bin/ditto', ['-x', '-k', file, out])) !== 0) {
+        log("Le fichier téléchargé ne s'ouvre pas : rien n'a été installé.", 'error')
+        return { ok: false, reason: 'zip' }
+      }
+      staged = path.join(out, 'homedash.app')
+      if (!fs.existsSync(staged)) {
+        log("homedash.app introuvable dans le fichier : rien n'a été installé.", 'error')
+        return { ok: false, reason: 'zip' }
+      }
     }
-    if (!app.isPackaged || !shell || (!force && !newer(shell, app.getVersion()))) {
-      log('Rechargement de la page…', 'done')
-      setTimeout(() => void reloadHome(), 1500)
-      return { ok: true }
-    }
-
-    log(
-      force && !newer(shell, app.getVersion())
-        ? `Reconstruction de l'appli (${shell})…`
-        : `Nouvelle version de l'appli (${app.getVersion()} → ${shell}) : reconstruction…`,
-    )
-    const build = isWin
-      ? `powershell -NoProfile -ExecutionPolicy Bypass -File desktop\\build-windows.ps1`
-      : 'sh desktop/build-local.sh'
-    if ((await sh(build, dir, log)) !== 0) {
-      log("La reconstruction de l'appli a échoué : homedash est à jour, l'appli garde son ancienne version.", 'error')
-      setTimeout(() => void reloadHome(), 3000)
-      return { ok: false, reason: 'build' }
-    }
-    swapAndRelaunch(dir, shell, log)
+    log("homedash se ferme, se remplace et se relance…", 'done')
+    swapAndRelaunch(staged)
+    handedOver = true
+    await beforeQuit()
+    setTimeout(() => app.quit(), 300)
     return { ok: true, relaunch: true }
+  } catch (e) {
+    log(`Mise à jour interrompue : ${e.message}. Rien n'a changé.`, 'error')
+    return { ok: false, reason: e.message }
   } finally {
     running = false
+    // Échec : le téléchargement ne sert plus. Réussite : le processus détaché en a besoin.
+    if (!handedOver) fs.rmSync(work, { recursive: true, force: true })
   }
 }
 
-module.exports = { runUpdate }
+module.exports = { checkRelease, runUpdate }

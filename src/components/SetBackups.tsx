@@ -9,6 +9,7 @@ import {
 } from '../lib/admin'
 import { confirmDialog } from './ConfirmHost'
 import { shown } from '../lib/errors'
+import SetFullExport from './SetFullExport'
 
 const REASON: Record<string, string> = {
   auto: 'automatique',
@@ -227,6 +228,8 @@ export default function SetBackups() {
         Contient liens, infos, réglages, notes et compteurs — pas le jeton GitHub ni le journal.
         Automatique une fois par jour et avant chaque mise à jour, {30} conservées.
       </p>
+      <h3 className="set-sub set-sub-gap">🔐 Export complet (autre machine)</h3>
+      <SetFullExport />
     </>
   )
 }

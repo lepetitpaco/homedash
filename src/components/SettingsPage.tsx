@@ -133,6 +133,28 @@ const DISPLAY_FIELDS: {
 ]
 
 /** Une partie d'une carte de réglages : icône, titre et une phrase qui dit à quoi elle sert. */
+/** État réel de l'accès depuis le navigateur (le port a pu être refusé : ancien Docker encore lancé). */
+function BrowserAccessState() {
+  const [st, setSt] = useState<{ on: boolean; error: string | null; url?: string } | null>(null)
+  useEffect(() => {
+    let alive = true
+    const read = () =>
+      fetch('api/health', { cache: 'no-store' })
+        .then((r) => r.json())
+        .then((h: { browser_access?: typeof st }) => alive && setSt(h.browser_access ?? null))
+        .catch(() => undefined)
+    void read()
+    const t = window.setInterval(read, 3000)
+    return () => {
+      alive = false
+      window.clearInterval(t)
+    }
+  }, [])
+  if (!st) return null
+  if (st.error) return <p className="set-hint set-bad">✗ {st.error}</p>
+  return st.on ? <p className="set-hint set-ok">✓ ouvert : <code>{st.url}</code> (après enregistrement des réglages)</p> : null
+}
+
 function Block({ icon, title, hint, children }: { icon: string; title: string; hint?: string; children: ReactNode }) {
   return (
     <section className="set-block">
@@ -978,6 +1000,28 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </div>
             </Block>
           ))}
+          {desktop?.features?.includes('app-server') ? (
+            <Block
+              icon="🌐"
+              title="Accès depuis le navigateur"
+              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
+            >
+              <div className="set-toggles">
+                <label className="set-toggle">
+                  <input
+                    type="checkbox"
+                    checked={draft.ui?.browserAccess === true}
+                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
+                  />
+                  <span>
+                    Ouvrir homedash sur <code>http://localhost:7777</code>
+                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
+                  </span>
+                </label>
+              </div>
+              <BrowserAccessState />
+            </Block>
+          ) : null}
           <Block
             icon="⏱"
             title="Journal de performance"

@@ -12,14 +12,40 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
   appVersion: ipcRenderer.sendSync('homedash:app-version'),
   platform: process.platform,
   /** Ce que cette version de l'appli sait faire (absent = appli 1.0.0). */
-  features: ['sessions', 'reload-tab', 'links', 'audio', 'update', 'menu', 'notif-settings', 'clear-data', 'link-flip'],
+  features: [
+    'sessions',
+    'reload-tab',
+    'links',
+    'audio',
+    'update',
+    'menu',
+    'notif-settings',
+    'clear-data',
+    'link-flip',
+    // 2.0 : serveur intégré, mise à jour par les Releases, ⌘R = l'onglet ouvert (#63),
+    // connexion Basecamp en un clic, export complet avec les connexions des sites (#61).
+    'app-server',
+    'release-update',
+    'reload-swap',
+    'basecamp-connect',
+    'full-export',
+  ],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
   /**
-   * Met homedash à jour (git pull, docker compose, et l'appli si besoin), après
+   * Met homedash à jour depuis la dernière Release GitHub (téléchargée, vérifiée,
+   * données sauvegardées, puis l'appli se remplace et se relance), après
    * confirmation dans une fenêtre du système. Résout { ok, reason?, relaunch? }.
    */
   update: () => ipcRenderer.invoke('homedash:update'),
+  /** Connexion à Basecamp dans une fenêtre de l'appli, retour intercepté. Résout { ok, reason? }. */
+  basecampConnect: () => ipcRenderer.invoke('homedash:basecamp-connect'),
+  /**
+   * Cookies des sessions d'onglets, pour l'export complet ({ partition: cookies[] }),
+   * et leur réimport. Seulement les sessions des onglets, jamais celle de homedash.
+   */
+  exportCookies: (partitions) => ipcRenderer.invoke('homedash:cookies-export', partitions),
+  importCookies: (data) => ipcRenderer.invoke('homedash:cookies-import', data),
   /** Avancement de la mise à jour ({ line, kind }). Renvoie de quoi se désabonner. */
   onUpdateLog: (cb) => {
     const handler = (_e, msg) => cb(msg)
@@ -58,7 +84,7 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     ipcRenderer.on('homedash:guest-down', handler)
     return () => ipcRenderer.removeListener('homedash:guest-down', handler)
   },
-  /** ⇧⌘R (menu de l'appli) : recharger l'onglet ouvert. Renvoie de quoi se désabonner. */
+  /** ⌘R (menu de l'appli ; ⇧⌘R avant la 2.0) : recharger l'onglet ouvert. Renvoie de quoi se désabonner. */
   onReloadTab: (cb) => {
     const handler = () => cb()
     ipcRenderer.on('homedash:reload-tab', handler)

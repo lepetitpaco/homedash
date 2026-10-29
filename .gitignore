@@ -18,8 +18,7 @@ homedash-*.json
 # ── Build et dépendances ──────────────────────────────────────────────────────
 node_modules/
 dist/
-__pycache__/
-*.pyc
+dist-server/
 *.zip
 
 # ── Poste de travail ──────────────────────────────────────────────────────────
