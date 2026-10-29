@@ -19,7 +19,9 @@ services:
       - "127.0.0.1:7778:7778"
     environment:
       - TZ=Europe/Paris
-      - DATA_DIR=/app/data
+      # data-dev/ : les données du dev, à part de data/ (celles d'une ancienne installation Docker,
+      # que l'appli reprend à son premier lancement)
+      - DATA_DIR=/app/data-dev
       - PORT=7779
       - HOST=127.0.0.1
       - HOMEDASH_HOSTS=homedash-dev.localhost
