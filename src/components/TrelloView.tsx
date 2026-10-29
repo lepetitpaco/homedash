@@ -16,6 +16,7 @@ import {
   cardDue,
   dayDiff,
   isSoon,
+  type TrBoard,
   type TrCard,
   type TrData,
   type TrIssue,
@@ -45,20 +46,43 @@ export function showTrTask(url: string) {
   wake?.()
 }
 
-type Board = { id: string; name: string; url: string; lists: { id: string; title: string; pos: number; cards: TrCard[] }[] }
+type Board = {
+  id: string
+  name: string
+  url: string
+  background: string
+  background_brightness: string
+  lists: { id: string; title: string; pos: number; cards: TrCard[] }[]
+}
 
-function group(cards: TrCard[], hidden: string[]): Board[] {
+function group(cards: TrCard[], catalog: TrBoard[], hidden: string[]): Board[] {
   const off = new Set(hidden)
   const boards = new Map<string, Board>()
+  for (const src of catalog) {
+    if (!src.id || off.has(src.id)) continue
+    boards.set(src.id, {
+      id: src.id,
+      name: src.name,
+      url: src.url,
+      background: src.background || '',
+      background_brightness: src.background_brightness || '',
+      lists: [...src.lists]
+        .sort((a, b) => a.pos - b.pos || a.name.localeCompare(b.name, 'fr'))
+        .map((l) => ({ id: l.id, title: l.name, pos: l.pos, cards: [] as TrCard[] })),
+    })
+  }
+  const known = boards.size > 0
   for (const c of cards) {
     if (off.has(c.board_id)) continue
     let b = boards.get(c.board_id)
     if (!b) {
-      b = { id: c.board_id, name: c.board, url: c.board_url, lists: [] }
+      if (known) continue
+      b = { id: c.board_id, name: c.board, url: c.board_url, background: '', background_brightness: '', lists: [] }
       boards.set(c.board_id, b)
     }
     let list = b.lists.find((l) => l.id === c.list_id)
     if (!list) {
+      if (known) continue
       list = { id: c.list_id, title: c.list, pos: c.list_pos, cards: [] }
       b.lists.push(list)
     }
@@ -67,7 +91,7 @@ function group(cards: TrCard[], hidden: string[]): Board[] {
   const out = [...boards.values()].sort((a, b) => a.name.localeCompare(b.name, 'fr'))
   for (const b of out) {
     b.lists.sort((a, c) => a.pos - c.pos || a.title.localeCompare(c.title, 'fr'))
-    for (const l of b.lists) l.cards.sort((a, c) => (dayDiff(a) ?? 999) - (dayDiff(c) ?? 999) || a.pos - c.pos)
+    for (const l of b.lists) l.cards.sort((a, c) => a.pos - c.pos || a.title.localeCompare(c.title, 'fr'))
   }
   return out
 }
@@ -102,7 +126,7 @@ export default function TrelloView({
   cloneOf?: (repo: string) => string | null
   onSettings: () => void
 }) {
-  const boards = useMemo(() => group(data?.cards ?? [], hidden), [data, hidden])
+  const boards = useMemo(() => group(data?.cards ?? [], data?.boards ?? [], hidden), [data, hidden])
   const [view, setView] = useState(URGENT)
   const [width, setWidth] = useState(260)
   const [showDone, setShowDone] = useState(false)
@@ -171,9 +195,16 @@ export default function TrelloView({
   const byCard = issuesByCard(issues)
   const active = issues.filter((i) => !doneOf(i, posted))
   const finished = issues.filter((i) => doneOf(i, posted))
-  const urgent = (data.cards ?? []).filter((c) => !hidden.includes(c.board_id) && isSoon(c, SOON))
+  const urgent = (data.cards ?? [])
+    .filter((c) => c.mine !== false && !hidden.includes(c.board_id) && isSoon(c, SOON))
+    .sort((a, c) => (dayDiff(a) ?? 999) - (dayDiff(c) ?? 999) || a.pos - c.pos)
   const board = boards.find((b) => b.id === view)
-  const hiddenBoards = [...new Set((data.cards ?? []).filter((c) => hidden.includes(c.board_id)).map((c) => c.board_id))]
+  const boardName = (id: string) =>
+    (data.boards ?? []).find((b) => b.id === id)?.name
+    || (data.cards ?? []).find((c) => c.board_id === id)?.board
+    || 'ce tableau'
+  const hiddenBoards = hidden.filter((id) =>
+    (data.boards ?? []).some((b) => b.id === id) || (data.cards ?? []).some((c) => c.board_id === id))
 
   const copy = async (text: string) => {
     if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text)
@@ -209,21 +240,22 @@ export default function TrelloView({
           🐙 Issues GitHub <span className="tr-count">{active.length}</span>
         </button>
         {boards.map((b) => {
-          const late = b.lists.flatMap((l) => l.cards).filter((c) => (dayDiff(c) ?? 1) < 0).length
+          const late = b.lists.flatMap((l) => l.cards).filter((c) => c.mine !== false && (dayDiff(c) ?? 1) < 0).length
+          const total = b.lists.reduce((n, l) => n + l.cards.length, 0)
           return (
             <button key={b.id} className={view === b.id ? 'is-on' : ''} onClick={() => choose(b.id)}>
               <span>{b.name}</span>
-              {late ? <span className="tr-count is-late">{late}</span> : <span className="tr-count">{b.lists.reduce((n, l) => n + l.cards.length, 0)}</span>}
+              {late ? <span className="tr-count is-late">{late}</span> : <span className="tr-count">{total}</span>}
             </button>
           )
         })}
         {hiddenBoards.map((id) => (
           <button key={id} onClick={() => onHidden(hidden.filter((h) => h !== id))}>
-            réafficher {id}
+            réafficher {boardName(id)}
           </button>
         ))}
       </nav>
-      <div className="tr-main">
+      <div className={`tr-main${board ? ' is-board' : ''}`}>
         <header className="group-head">
           <h2>{view === URGENT ? 'À traiter' : view === ISSUES ? 'Issues GitHub' : board?.name ?? 'Trello'}</h2>
           <button onClick={onRefresh} disabled={data.building}>{data.building ? '…' : '↻'}</button>
@@ -235,25 +267,31 @@ export default function TrelloView({
         {!data.loaded ? <GhEmpty>Lecture des cartes…</GhEmpty> : null}
         {data.loaded && view === URGENT ? (
           urgent.length ? (
-            <div className="tr-lists">
-              <section className="tr-list">
-                {urgent.map((c) => (
-                  <Card key={c.id} c={c} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}
-                    onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
-                ))}
-              </section>
+            <div className="tr-pile">
+              {urgent.map((c) => (
+                <Card key={c.id} c={c} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}
+                  onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
+              ))}
             </div>
           ) : <GhEmpty>Rien en retard ni d'échéance dans les {SOON} jours.</GhEmpty>
         ) : null}
         {data.loaded && board ? (
-          <div className="tr-lists">
+          <div
+            className={`tr-board${board.background_brightness === 'light' ? ' is-light' : ''}`}
+            style={board.background ? { backgroundImage: `url("${board.background}")` } : undefined}
+          >
             {board.lists.map((l) => (
               <section key={l.id} className="tr-list">
-                <h3>{l.title}</h3>
-                {l.cards.map((c) => (
-                  <Card key={c.id} c={c} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}
-                    onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
-                ))}
+                <h3>
+                  <span className="tr-list-title">{l.title}</span>
+                  <span className="tr-list-count">{l.cards.length}</span>
+                </h3>
+                <div className="tr-list-cards">
+                  {l.cards.map((c) => (
+                    <Card key={c.id} c={c} flash={flash} showMine issues={byCard.get(c.short_link) ?? []} posted={posted}
+                      onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
+                  ))}
+                </div>
               </section>
             ))}
           </div>
@@ -292,10 +330,11 @@ function doneOf(i: TrIssue, posted: Record<string, TrPosted>): 'posted' | 'dismi
 }
 
 function Card({
-  c, flash, issues, posted, onNewIssue, onShowCard, onTaskMenu, onSend, busy,
+  c, flash, showMine, issues, posted, onNewIssue, onShowCard, onTaskMenu, onSend, busy,
 }: {
   c: TrCard
   flash: string | null
+  showMine?: boolean
   issues: TrIssue[]
   posted: Record<string, TrPosted>
   onNewIssue?: (c: TrCard) => void
@@ -311,18 +350,19 @@ function Card({
       className={`tr-card${(dayDiff(c) ?? 1) < 0 ? ' is-late' : ''}${flash === c.short_link ? ' is-focus' : ''}`}
       onContextMenu={(e) => onTaskMenu?.(e, c)}
     >
-      <div className="tr-card-top">
-        <a href={c.url} target="_blank" rel="noreferrer">{c.title}</a>
-        <span className="tr-card-actions">
-          {onShowCard ? <button title="Voir la carte et ses échanges" onClick={() => onShowCard(c)}>💬</button> : null}
-          {onNewIssue ? <button title="Créer une issue GitHub" onClick={() => onNewIssue(c)}>🐙＋</button> : null}
-        </span>
-      </div>
-      <div>
-        {c.checks ? <span>{c.checks_done}/{c.checks} cases</span> : null}
-        {c.comments ? <span> · 💬 {c.comments}</span> : null}
-        {' '}<Due c={c} />
-      </div>
+      <a className="tr-card-title" href={c.url} target="_blank" rel="noreferrer">{c.title}</a>
+      <span className="tr-card-actions">
+        {onShowCard ? <button title="Voir la carte et ses échanges" onClick={() => onShowCard(c)}>💬</button> : null}
+        {onNewIssue ? <button title="Créer une issue GitHub" onClick={() => onNewIssue(c)}>🐙＋</button> : null}
+      </span>
+      {showMine && c.mine || c.checks || c.comments || cardDue(c) ? (
+        <div className="tr-card-foot">
+          {showMine && c.mine ? <span className="tr-mine">toi</span> : null}
+          {c.checks ? <span>✓ {c.checks_done}/{c.checks}</span> : null}
+          {c.comments ? <span>💬 {c.comments}</span> : null}
+          <Due c={c} />
+        </div>
+      ) : null}
       {ready ? (
         <button disabled={busy === ready.number} onClick={() => onSend(ready)}>📤 publier sur Trello</button>
       ) : null}
@@ -346,7 +386,7 @@ function IssueRow({
   const done = doneOf(i, posted)
   const link = i.report ? posted[String(i.report.id)]?.url : ''
   return (
-    <article className="tr-card">
+    <article className="tr-issue">
       <a href={i.url} target="_blank" rel="noreferrer">{i.state === 'closed' ? '✓' : '●'} {i.repo} #{i.number} {i.title}</a>
       <div className="set-add">
         <button onClick={() => void onCopy(cloneOf?.(i.repo) ? claudeCommand(cloneOf(i.repo) as string, claudePrompt(i.repo, i.number)) : claudePrompt(i.repo, i.number))}>

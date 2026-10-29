@@ -202,7 +202,7 @@ export function useSearch({
       .slice(0, 10)
       .map((item) => ({ kind: 'bc', key: `bc:${item.url}`, item }))
 
-    const trMine: TrFound[] = trCards.map((c) => ({
+    const trMine: TrFound[] = trCards.filter((c) => c.mine !== false).map((c) => ({
       id: c.id,
       type: 'card',
       title: c.title,

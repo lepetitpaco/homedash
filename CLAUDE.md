@@ -154,6 +154,16 @@ Les tests n'utilisent ni `data/` ni le réseau. Les tests `gitread` exigent git 
   suivante) a son propre filtre ; elle n'est pas « tout sauf Basecamp ».
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
+**Trello**
+- Le tableau affiché vient de `GET /boards/{id}?lists=open&cards=visible` (toutes les cartes des listes
+  ouvertes). `/members/me/cards` ne donne que les cartes du membre, y compris sur une liste archivée :
+  ça ne sert qu'au drapeau `mine` (À traiter, pastille, cloche). `cards=visible` sur la collection
+  `/members/me/boards` ne renvoie aucune carte.
+- Le fond du tableau n'est gardé que s'il est `https` sur `trello-backgrounds.s3.amazonaws.com`. La page
+  le charge en CSS. Jamais le proxy d'images : celui-ci envoie le jeton, et cet hôte n'est pas le sien.
+- La zone du tableau est sombre, comme Trello, même en thème clair. Le texte des cartes n'utilise pas
+  `--text` : sur ce fond fixe, `--text` en thème clair deviendrait illisible.
+
 **Appli de bureau (`desktop/`)**
 - Elle charge la page du container, elle n'embarque ni front ni backend : une fonction de la page se
   livre par le container. **Pas de release ni de CI** : chacun construit l'appli sur sa machine

@@ -1,4 +1,4 @@
-"""Trello — cartes assignées et notifications, en lecture seule.
+"""Trello — cartes visibles des tableaux et notifications, en lecture seule.
 
 Ce module lit Trello. Les GET passent par `_call()`. Les seules écritures :
 obtenir rien chez Trello à la connexion (le jeton est collé, pas échangé), et
@@ -38,12 +38,16 @@ IMAGE_HOSTS   = {"trello.com", "www.trello.com", "api.trello.com"}
 ATTACH_MAX    = 15 * 1024 * 1024
 
 MEMBER = API + "/members/me?fields=fullName,username"
+# Cartes où le membre est inscrit : sert à « À traiter » et à la cloche.
+# L'onglet, lui, montre toutes les cartes visibles de chaque tableau.
 CARDS  = (API + "/members/me/cards?filter=open"
-          "&fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges"
-          "&board=true&board_fields=name,shortUrl,url"
-          "&list=true&list_fields=name,pos")
+          "&fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges")
+BOARDS = API + "/members/me/boards?filter=open&fields=id,name,shortUrl,url"
 NOTIFS = (API + "/members/me/notifications?read_filter=unread&limit=50"
           "&memberCreator=true&display=true&memberCreator_fields=fullName")
+_BOARD_ID = re.compile(r"^[A-Za-z0-9]{1,32}$")
+_BG_HOST  = "trello-backgrounds.s3.amazonaws.com"
+_BG_BAD   = re.compile(r"[\s\"'()\\]")
 
 _CARD_URL = re.compile(r"^https://trello\.com/c/([A-Za-z0-9]+)(?:/|$)")
 _SHORT    = re.compile(r"^[A-Za-z0-9]+$")
@@ -51,7 +55,7 @@ _SHORT    = re.compile(r"^[A-Za-z0-9]+$")
 _lock       = threading.Lock()
 _post_lock  = threading.Lock()
 _search_lock = threading.Lock()
-_data       = {"cards": None, "unreads": None}
+_data       = {"cards": None, "unreads": None, "boards": None}
 _state      = {"ts": 0.0, "building": False, "error": None, "retry_at": 0.0}
 _seeded     = set()
 _searches   = {}
@@ -85,7 +89,7 @@ def active():
 
 def _reset():
     with _lock:
-        _data["cards"] = _data["unreads"] = None
+        _data["cards"] = _data["unreads"] = _data["boards"] = None
         _state.update(ts=0.0, error=None, retry_at=0.0)
         _seeded.clear()
     with _search_lock:
@@ -231,18 +235,48 @@ def forget():
     _reset()
 
 
-def _card(c):
+def _board_url(bid):
+    """Un tableau : ses listes ouvertes et toutes les cartes qu'on y voit."""
+    return (
+        f"{API}/boards/{urllib.parse.quote(bid)}?fields=name,shortUrl,url,prefs"
+        "&lists=open&list_fields=name,pos"
+        "&cards=visible&card_fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges"
+    )
+
+def _catalog(boards):
+    """id de tableau et de liste → objet Trello (nom, url, position)."""
+    by_board, by_list = {}, {}
+    for b in boards or []:
+        if not isinstance(b, dict) or not b.get("id"):
+            continue
+        by_board[str(b["id"])] = b
+        for lst in b.get("lists") or []:
+            if isinstance(lst, dict) and lst.get("id"):
+                by_list[str(lst["id"])] = lst
+    return by_board, by_list
+
+def _named(nested, looked):
+    """Le nom collé sur la carte gagne ; sinon celui du catalogue des tableaux."""
+    base = dict(looked or {})
+    if isinstance(nested, dict):
+        base.update({k: v for k, v in nested.items() if v not in (None, "")})
+    return base
+
+def _card(c, by_board=None, by_list=None, mine_ids=None):
     if not isinstance(c, dict) or c.get("closed"):
         return None
-    board = c.get("board") if isinstance(c.get("board"), dict) else {}
-    lst = c.get("list") if isinstance(c.get("list"), dict) else {}
+    board = _named(c.get("board"), (by_board or {}).get(str(c.get("idBoard") or "")))
+    lst = _named(c.get("list"), (by_list or {}).get(str(c.get("idList") or "")))
     badges = c.get("badges") if isinstance(c.get("badges"), dict) else {}
     short = c.get("shortLink") or ""
     url = c.get("shortUrl") or (f"https://trello.com/c/{short}" if short else "")
     if not url:
         return None
+    cid = str(c.get("id") or short)
+    # Sans ensemble d'ids, la carte vient d'une lecture « les miennes ».
+    mine = True if mine_ids is None else (cid in mine_ids or short in mine_ids)
     return {
-        "id": c.get("id") or short,
+        "id": cid,
         "short_link": short,
         "title": (c.get("name") or "").strip() or "(sans titre)",
         "url": url,
@@ -258,12 +292,74 @@ def _card(c):
         "comments": badges.get("comments") or 0,
         "checks": badges.get("checkItems") or 0,
         "checks_done": badges.get("checkItemsChecked") or 0,
+        "mine": mine,
     }
 
-def normalize_cards(body):
+def normalize_cards(body, boards=None, mine_ids=None):
     if not isinstance(body, list):
         return []
-    return [c for c in (_card(x) for x in body) if c]
+    by_board, by_list = _catalog(boards)
+    return [c for c in (_card(x, by_board, by_list, mine_ids) for x in body) if c]
+
+def _mine_ids(body):
+    ids = set()
+    for c in body or []:
+        if not isinstance(c, dict):
+            continue
+        if c.get("id"):
+            ids.add(str(c["id"]))
+        if c.get("shortLink"):
+            ids.add(str(c["shortLink"]))
+    return ids
+
+def _background(detail):
+    """Image de fond du tableau, seulement sur l'hôte des fonds Trello."""
+    prefs = detail.get("prefs") if isinstance(detail.get("prefs"), dict) else {}
+    bright = prefs.get("backgroundBrightness")
+    bright = bright if bright in ("dark", "light") else ""
+    url = prefs.get("backgroundImage") or ""
+    if not isinstance(url, str) or _BG_BAD.search(url):
+        return "", bright
+    try:
+        parts = urllib.parse.urlparse(url)
+    except ValueError:
+        return "", bright
+    host = (parts.hostname or "").lower()
+    if parts.scheme != "https" or host != _BG_HOST or parts.username or parts.password:
+        return "", bright
+    return url, bright
+
+def _board_view(detail, mine_ids):
+    """Colonnes ouvertes, dans l'ordre Trello, et les cartes qu'on y voit."""
+    bid = str(detail.get("id") or "")
+    by_board = {bid: detail} if bid else {}
+    by_list = {}
+    lists = []
+    for lst in detail.get("lists") or []:
+        if not isinstance(lst, dict) or not lst.get("id") or lst.get("closed"):
+            continue
+        by_list[str(lst["id"])] = lst
+        pos = lst.get("pos") if isinstance(lst.get("pos"), (int, float)) else 0
+        lists.append({"id": str(lst["id"]), "name": lst.get("name") or "Sans liste", "pos": pos})
+    lists.sort(key=lambda l: (l["pos"], l["name"]))
+    cards = []
+    for raw in detail.get("cards") or []:
+        if isinstance(raw, dict) and not raw.get("idBoard") and bid:
+            raw = dict(raw)
+            raw["idBoard"] = bid
+        card = _card(raw, by_board, by_list, mine_ids)
+        if card:
+            cards.append(card)
+    background, brightness = _background(detail)
+    board = {
+        "id": bid,
+        "name": detail.get("name") or "Sans tableau",
+        "url": detail.get("shortUrl") or detail.get("url") or "",
+        "background": background,
+        "background_brightness": brightness,
+        "lists": lists,
+    }
+    return board, cards
 
 def _ts(iso):
     try:
@@ -316,9 +412,10 @@ def _diff(before, after, known):
                 body=" · ".join(x for x in (n.get("board"), (n.get("excerpt") or "")[:140]) if x),
                 repo=n.get("board") or "", url=n.get("url") or "", tag=f"tr:notif:{n['id']}"))
     if "cards" in known:
-        old = {c["id"] for c in before.get("cards") or []}
+        old = {c["id"]: bool(c.get("mine", True)) for c in before.get("cards") or []}
         for c in after.get("cards") or []:
-            if c["id"] in old:
+            # Une carte des autres ne sonne pas. Une carte qui t'est assignée, si.
+            if not c.get("mine", True) or old.get(c["id"]):
                 continue
             out.append(events.event(
                 "tr-task", "info", "trello", f"📌 Nouvelle carte — {c['title']}",
@@ -338,32 +435,72 @@ def _limit(code, headers):
         _state["retry_at"] = time.time() + max(1, wait)
     return wait
 
+def _get_json(url, what):
+    code, body, headers = _call("GET", url)
+    wait = _limit(code, headers)
+    if wait is not None:
+        raise RuntimeError(f"Trello limite les appels : nouvel essai dans {wait} s")
+    if code == 401:
+        raise RuntimeError("Le jeton Trello ne marche plus. Reconnecte-toi dans Réglages.")
+    if code != 200 or not isinstance(body, (dict, list)):
+        raise RuntimeError(what)
+    return body
+
+def _open_boards(mine_ids):
+    """Chaque tableau ouvert : ses colonnes ouvertes et toutes les cartes visibles."""
+    index = _get_json(BOARDS, "Lecture des tableaux impossible.")
+    if not isinstance(index, list):
+        raise RuntimeError("Lecture des tableaux impossible.")
+    cards, boards, seen = [], [], set()
+    for item in index:
+        if not isinstance(item, dict):
+            continue
+        bid = str(item.get("id") or "")
+        if not _BOARD_ID.match(bid):
+            continue
+        detail = _get_json(_board_url(bid), "Lecture d'un tableau impossible.")
+        if not isinstance(detail, dict):
+            raise RuntimeError("Lecture d'un tableau impossible.")
+        if not detail.get("id") or not detail.get("name"):
+            detail = dict(detail)
+            detail.setdefault("id", bid)
+            detail.setdefault("name", item.get("name") or "")
+            detail.setdefault("shortUrl", item.get("shortUrl") or item.get("url") or "")
+        board, found = _board_view(detail, mine_ids)
+        boards.append(board)
+        for card in found:
+            if card["id"] in seen:
+                continue
+            seen.add(card["id"])
+            cards.append(card)
+    return cards, boards, seen
+
 def rebuild():
-    """Relit cartes et notifications. Un seul à la fois (`kickoff`)."""
+    """Relit les tableaux et les notifications. Un seul à la fois (`kickoff`)."""
     started_at = time.monotonic()
     try:
         if not connected():
             return
-        code, body, headers = _call("GET", CARDS)
-        wait = _limit(code, headers)
-        if wait is not None:
-            raise RuntimeError(f"Trello limite les appels : nouvel essai dans {wait} s")
-        if code == 401:
-            raise RuntimeError("Le jeton Trello ne marche plus. Reconnecte-toi dans Réglages.")
-        if code != 200:
-            raise RuntimeError("Lecture des cartes impossible.")
-        ncode, nbody, nheaders = _call("GET", NOTIFS)
-        wait = _limit(ncode, nheaders)
-        if wait is not None:
-            raise RuntimeError(f"Trello limite les appels : nouvel essai dans {wait} s")
-        if ncode == 401:
-            raise RuntimeError("Le jeton Trello ne marche plus. Reconnecte-toi dans Réglages.")
-        if ncode != 200:
-            raise RuntimeError("Lecture des notifications impossible.")
-        cards, unreads = normalize_cards(body), normalize_unreads(nbody)
+        member = _get_json(CARDS, "Lecture des cartes impossible.")
+        mine_ids = _mine_ids(member if isinstance(member, list) else [])
+        cards, boards, seen = _open_boards(mine_ids)
+        # Une carte assignée sur une liste archivée reste dans « À traiter »,
+        # sans rouvrir cette liste dans le tableau.
+        catalogue = [{
+            "id": b["id"], "name": b["name"], "shortUrl": b["url"],
+            "lists": [{"id": l["id"], "name": l["name"], "pos": l["pos"]} for l in b["lists"]],
+        } for b in boards]
+        for card in normalize_cards(member if isinstance(member, list) else [], catalogue, mine_ids):
+            if card["id"] in seen:
+                continue
+            card["mine"] = True
+            seen.add(card["id"])
+            cards.append(card)
+        nbody = _get_json(NOTIFS, "Lecture des notifications impossible.")
+        unreads = normalize_unreads(nbody)
         with _lock:
             before = {"cards": list(_data["cards"] or []), "unreads": list(_data["unreads"] or [])}
-            _data["cards"], _data["unreads"] = cards, unreads
+            _data["cards"], _data["unreads"], _data["boards"] = cards, unreads, boards
             known = tuple(k for k in ("cards", "unreads") if k in _seeded)
             _seeded.update(("cards", "unreads"))
             _state.update(ts=time.time(), error=None)
@@ -389,10 +526,10 @@ def kickoff():
 def payload():
     s = _secret()
     with _lock:
-        cards, unreads = _data["cards"], _data["unreads"]
+        cards, unreads, boards = _data["cards"], _data["unreads"], _data["boards"]
         st = dict(_state)
     if not _on[0]:
-        cards, unreads = None, None
+        cards, unreads, boards = None, None, None
     return {
         "configured": _on[0] and configured(),
         "enabled": active(),
@@ -403,6 +540,7 @@ def payload():
         "error": st["error"],
         "every": EVERY,
         "cards": cards or [],
+        "boards": boards or [],
         "unreads": unreads or [],
         "loaded": cards is not None,
         "posted": posted(),

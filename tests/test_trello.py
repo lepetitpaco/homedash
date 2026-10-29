@@ -64,6 +64,11 @@ class Fake:
         self.member_code = 200
         self.cards = [card(1), card(2, closed=True)]
         self.cards_code = 200
+        self.board_cards = None
+        self.boards = [{
+            "id": "b1", "name": "Sprint", "shortUrl": "https://trello.com/b/xx/sprint",
+            "lists": [{"id": "l1", "name": "En cours", "pos": 10}],
+        }]
         self.notifs = [notif(1)]
         self.notifs_code = 200
         self.search_body = {"cards": [], "actions": [], "boards": []}
@@ -78,6 +83,13 @@ class Fake:
         if url in self.files:
             ctype, data = self.files[url]
             return Resp(200, data, {"content-type": ctype})
+        if "/members/me/boards" in url:
+            return Resp(200, self.boards)
+        if "/boards/" in url and "/cards/" not in url:
+            board = dict(self.boards[0]) if self.boards else {"id": "b1", "name": "Sprint"}
+            src = self.cards if self.board_cards is None else self.board_cards
+            board["cards"] = [c for c in src if not c.get("closed")]
+            return Resp(200, board)
         if "/members/me/cards" in url:
             return Resp(self.cards_code, self.cards, {"retry-after": "12"} if self.cards_code == 429 else None)
         if "/notifications" in url:
@@ -203,6 +215,86 @@ class ReadTest(unittest.TestCase):
         self.assertFalse(body["configured"])
         self.assertTrue(trello.connected())
         self.assertEqual(self.fake.requests, [])
+
+    def test_board_and_list_names_come_from_the_catalogue(self):
+        raw = card(1)
+        raw.pop("board")
+        raw.pop("list")
+        got = trello.normalize_cards([raw], self.fake.boards)
+        self.assertEqual(got[0]["board"], "Sprint")
+        self.assertEqual(got[0]["list"], "En cours")
+        self.assertEqual(got[0]["list_pos"], 10)
+
+    def test_board_background_stays_on_trello_backgrounds(self):
+        detail = {
+            "id": "b1", "name": "Sprint", "shortUrl": "https://trello.com/b/xx/sprint",
+            "lists": [], "cards": [],
+            "prefs": {
+                "backgroundImage": "https://evil.example/a.jpg",
+                "backgroundBrightness": "dark",
+                "permissionLevel": "private",
+            },
+        }
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], "")
+        self.assertNotIn("evil.example", json.dumps(board))
+        self.assertEqual(board["background_brightness"], "dark")
+        detail["prefs"]["backgroundImage"] = "http://trello-backgrounds.s3.amazonaws.com/a.jpg"
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], "")
+        detail["prefs"]["backgroundImage"] = "https://trello-backgrounds.s3.amazonaws.com/a.jpg"
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], detail["prefs"]["backgroundImage"])
+        detail["prefs"]["backgroundImage"] = 'https://trello-backgrounds.s3.amazonaws.com/a.jpg");background:url(https://evil.example/x)'
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], "")
+        detail["prefs"]["backgroundImage"] = "https://user:secret@trello-backgrounds.s3.amazonaws.com/a.jpg"
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], "")
+        self.assertNotIn("secret", json.dumps(board))
+        detail["prefs"]["backgroundImage"] = "https://trello-backgrounds.s3.amazonaws.com.evil.example/a.jpg"
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], "")
+        detail["prefs"]["backgroundBrightness"] = "neon"
+        detail["prefs"]["backgroundImage"] = "https://trello-backgrounds.s3.amazonaws.com/a.jpg"
+        board, _ = trello._board_view(detail, set())
+        self.assertEqual(board["background"], "https://trello-backgrounds.s3.amazonaws.com/a.jpg")
+        self.assertEqual(board["background_brightness"], "")
+        board, _ = trello._board_view({"id": "b1", "name": "Sprint", "lists": [], "cards": []}, set())
+        self.assertEqual(board["background"], "")
+        self.assertEqual(board["background_brightness"], "")
+
+    def test_a_board_shows_every_visible_card_and_not_an_archived_list(self):
+        other = card(4)
+        archived = card(6)
+        archived["idList"] = "l-old"
+        archived["list"] = {"id": "l-old", "name": "Audio", "pos": 99}
+        self.fake.board_cards = [card(1), other]
+        self.fake.cards = [card(1), archived]
+        self.fake.boards[0]["lists"].append({"id": "l2", "name": "Vide", "pos": 20, "closed": False})
+        trello.rebuild()
+        body = trello.payload()
+        got = {c["short_link"]: c for c in body["cards"]}
+        self.assertEqual(set(got), {"sl1", "sl4", "sl6"})
+        self.assertTrue(got["sl1"]["mine"])
+        self.assertFalse(got["sl4"]["mine"])
+        self.assertTrue(got["sl6"]["mine"])
+        lists = body["boards"][0]["lists"]
+        self.assertEqual([l["id"] for l in lists], ["l1", "l2"])
+        self.assertNotIn("l-old", [l["id"] for l in lists])
+
+    def test_someone_elses_new_card_stays_quiet_until_it_is_yours(self):
+        self.fake.board_cards = [card(1), card(4)]
+        self.fake.cards = [card(1)]
+        self.fake.notifs = []
+        trello.rebuild()
+        self.fake.board_cards = [card(1), card(4), card(5)]
+        trello.rebuild()
+        self.assertEqual(events.payload()["events"], [])
+        self.fake.cards = [card(1), card(4)]
+        trello.rebuild()
+        kinds = [e["kind"] for e in events.payload()["events"]]
+        self.assertEqual(kinds, ["tr-task"])
 
     def test_closed_card_is_dropped_and_board_kept(self):
         got = trello.normalize_cards(self.fake.cards)
