@@ -98,8 +98,9 @@ contient tout, sans Docker. Elle n'ouvre aucun port ; tes données sont dans
 - **Installer** : télécharge l'appli sur la page des
   [versions](https://github.com/lepetitpaco/homedash/releases/latest) : le `.dmg` sur Mac (`arm64` pour
   Apple Silicon, `x64` pour Intel), le `setup.exe` sous Windows. Elle n'est pas signée : au premier
-  lancement, macOS la bloque (*Réglages Système → Confidentialité et sécurité → Ouvrir quand même*) et
-  Windows prévient (*Informations complémentaires → Exécuter quand même*). Une seule fois.
+  lancement, macOS la bloque. Clique *Terminé*, puis *Réglages Système → Confidentialité et sécurité*,
+  tout en bas : *Ouvrir quand même*. Windows prévient aussi (*Informations complémentaires → Exécuter
+  quand même*). Une seule fois : les mises à jour passent ensuite sans rien demander.
 - **Tu avais homedash avec Docker** : au premier lancement, l'appli propose de reprendre ses données
   (le dossier `data` du projet). Elles sont **copiées**, l'original n'est pas touché. Ensuite, arrête
   l'ancien container (`docker compose down` dans le dossier du projet).

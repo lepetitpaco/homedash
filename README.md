@@ -24,20 +24,43 @@ Toutes les captures, commentées : **[docs/APERCU.md](docs/APERCU.md)** (démo, 
 
 ## Installer
 
-Télécharge la dernière version sur la page des
-**[versions](https://github.com/lepetitpaco/homedash/releases/latest)** :
+1. **Télécharge** la dernière version sur la page des
+   **[versions](https://github.com/lepetitpaco/homedash/releases/latest)** :
+   - **Mac Apple Silicon** (M1, M2…) : `homedash-<version>-arm64.dmg` ;
+   - **Mac Intel** : `homedash-<version>-x64.dmg` ;
+   - **Windows** : `homedash-<version>-setup.exe`.
 
-- **Mac** : `homedash-<version>-arm64.dmg` (Apple Silicon) ou `-x64.dmg` (Intel). Ouvre-le, glisse
-  homedash dans Applications.
-- **Windows** : `homedash-<version>-setup.exe`.
+   Les autres fichiers (`.zip`, `.blockmap`, `latest*.yml`) servent aux mises à jour automatiques.
+2. **Installe** : sur Mac, ouvre le `.dmg` et glisse homedash dans Applications ; sous Windows, lance
+   le `setup.exe`. Rien d'autre à installer : ni Docker, ni Git, ni Node.
+3. **Autorise-la au premier lancement** (une seule fois : l'appli n'est pas signée par Apple ni
+   Microsoft) :
+   - **Mac** : macOS affiche « Apple n'a pas pu confirmer que homedash… ». Clique **Terminé** (pas
+     *Placer dans la corbeille*), puis *Réglages Système → Confidentialité et sécurité*, tout en bas :
+     **Ouvrir quand même**, ton mot de passe, puis **Ouvrir**. Le bouton n'apparaît qu'après une
+     tentative d'ouverture : relance homedash s'il n'y est pas.
+   - **Windows** : « Windows a protégé votre ordinateur » → **Informations complémentaires** →
+     **Exécuter quand même**.
+4. **Premier lancement** : homedash propose de reprendre les données d'une installation Docker
+   (ci-dessous) ; sinon, *Commencer à zéro*.
 
-Rien d'autre à installer : ni Docker, ni Git, ni Node. L'appli n'est pas signée : au premier lancement,
-macOS la bloque (*Réglages Système → Confidentialité et sécurité → Ouvrir quand même*) et Windows
-prévient (*Informations complémentaires → Exécuter quand même*). Une seule fois.
+Les mises à jour se font ensuite depuis l'appli, sans rien retélécharger ni réautoriser.
 
-**Tu avais homedash avec Docker (1.x)** : au premier lancement, l'appli propose de reprendre tes données
-(le dossier `data` du projet). Elles sont copiées, l'original n'est pas touché. Une fois vérifié, arrête
-l'ancien container : `docker compose down` dans son dossier.
+### Tu avais homedash avec Docker (1.x)
+
+Fais-le **sur la machine où tournait la v1** : tout est repris, connexions des sites comprises.
+
+1. Installe la 2.0 (ci-dessus) et ouvre-la.
+2. Elle trouve le dossier `data` de ton projet homedash : **Reprendre ces données**. Sinon, *Choisir
+   un autre dossier…* et désigne le dossier du projet ou son dossier `data`. Les données sont **copiées**,
+   l'original n'est pas touché ; une sauvegarde est prise au démarrage (*Réglages → Sauvegardes*).
+3. Tes sites (Gmail, Discord…) sont déjà connectés : la 2.0 reprend les sessions de l'ancienne appli. Si
+   macOS demande l'accès à « homedash Safe Storage » dans le trousseau : **Toujours autoriser**.
+4. Vérifie que tout y est, puis arrête l'ancien container (`docker compose down` dans le dossier du
+   projet) et supprime l'ancienne appli si tu l'avais construite.
+
+**Sur une autre machine** : installe d'abord la 2.0 là où tu avais la v1, puis *Réglages → Sauvegardes
+→ Export complet*, et importe le fichier sur la nouvelle machine.
 
 ## Premiers réglages
 

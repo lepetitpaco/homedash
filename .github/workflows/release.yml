@@ -4,8 +4,9 @@
 #
 #   git tag -a v2.0.1 -m "2.0.1" && git push --follow-tags
 #
-# Un push sur beta-2.0 construit aussi l'appli, sans rien publier : les fichiers
-# se téléchargent depuis l'onglet Actions (artefacts), pour essayer avant de taguer.
+# Lancé à la main (Actions → release → Run workflow), il construit l'appli sans
+# rien publier : les fichiers se téléchargent depuis le run (artefacts), pour
+# essayer une branche avant de taguer.
 #
 # Sécurité : droits minimaux (lecture partout, écriture des Releases dans le
 # seul job qui publie) ; actions figées par empreinte de commit, pas par tag.
@@ -14,7 +15,6 @@ name: release
 on:
   push:
     tags: ['v*.*.*']
-    branches: [beta-2.0]
   workflow_dispatch:
 
 permissions:
