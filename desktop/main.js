@@ -67,7 +67,14 @@ function writeSettings(patch) {
  * `url` (appli 1.x, qui pointait vers le container) n'est plus lu.
  */
 function devUrl() {
-  const raw = process.env.HOMEDASH_URL || readSettings().devUrl || ''
+  // `dev.json` : posé dans l'appli par `build-local.sh --dev` (l'appli de dev, éclair orange).
+  let built = ''
+  try {
+    built = JSON.parse(fs.readFileSync(path.join(__dirname, 'dev.json'), 'utf8')).devUrl || ''
+  } catch {
+    /* appli normale */
+  }
+  const raw = process.env.HOMEDASH_URL || readSettings().devUrl || built
   try {
     return raw ? new URL(raw).origin : ''
   } catch {
