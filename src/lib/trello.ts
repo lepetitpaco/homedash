@@ -24,6 +24,17 @@ export type TrCard = {
   comments: number
   checks: number
   checks_done: number
+  /** Carte où le compte connecté est membre. Absent : on la traite comme sienne. */
+  mine?: boolean
+}
+
+export type TrBoard = {
+  id: string
+  name: string
+  url: string
+  background?: string
+  background_brightness?: string
+  lists: { id: string; name: string; pos: number }[]
 }
 
 export type TrNotif = {
@@ -60,6 +71,7 @@ export type TrData = {
   error: string | null
   every: number
   cards: TrCard[]
+  boards: TrBoard[]
   unreads: TrNotif[]
   loaded: boolean
   posted: Record<string, TrPosted>
@@ -225,5 +237,5 @@ export function isSoon(c: Pick<TrCard, 'due' | 'due_complete'>, days = 7): boole
 export function lateCount(data: TrData | null, hidden: string[]): number {
   if (!data?.enabled) return 0
   const off = new Set(hidden)
-  return data.cards.filter((c) => !off.has(c.board_id) && dayDiff(c) !== null && (dayDiff(c) as number) < 0).length
+  return data.cards.filter((c) => c.mine !== false && !off.has(c.board_id) && dayDiff(c) !== null && (dayDiff(c) as number) < 0).length
 }

@@ -160,6 +160,16 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Front : `baseline` (en mémoire, rien notifié au chargement) ≠ `seen` (localStorage, la pastille).
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
+**Trello**
+- Le tableau affiché vient de `GET /boards/{id}?lists=open&cards=visible` (toutes les cartes des listes
+  ouvertes). `/members/me/cards` ne donne que les cartes du membre, y compris sur une liste archivée :
+  ça ne sert qu'au drapeau `mine` (À traiter, pastille, cloche). `cards=visible` sur la collection
+  `/members/me/boards` ne renvoie aucune carte.
+- Le fond du tableau n'est gardé que s'il est `https` sur `trello-backgrounds.s3.amazonaws.com`. La page
+  le charge en CSS. Jamais le proxy d'images : celui-ci envoie le jeton, et cet hôte n'est pas le sien.
+- La zone du tableau est sombre, comme Trello, même en thème clair. Le texte des cartes n'utilise pas
+  `--text` : sur ce fond fixe, `--text` en thème clair deviendrait illisible.
+
 **Appli de bureau (`desktop/`)**
 - Elle embarque tout (2.0) : `server.js` lance `server/host.js` dans un utilityProcess, et intercepte
   `http://localhost:7777` dans ses sessions (`protocol.handle('http')`) : **aucun port ouvert**, et la page

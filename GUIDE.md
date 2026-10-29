@@ -246,20 +246,21 @@ Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton
 
 ## 📋 Trello
 
-Tes cartes Trello ouvertes, sans ouvrir Trello. **Lecture seule** : homedash ne coche rien, ne déplace
-aucune carte, et ne poste que le rapport d'une issue, quand tu le demandes. Les notifications ne sont
-jamais marquées lues.
+Les cartes ouvertes de tes tableaux Trello, dans les mêmes colonnes que sur Trello. **Lecture seule** :
+homedash ne coche rien, ne déplace aucune carte, et ne poste que le rapport d'une issue, quand tu le
+demandes. Les notifications ne sont jamais marquées lues. Les listes archivées ne sont pas affichées.
 
 - **Se connecter** (une fois) : *Réglages → Trello*. Une clé d'API vient d'un Power-Up personnel
   (trello.com/power-ups/admin). *Autoriser* ouvre la page Trello ; tu colles le jeton. Le jeton reste
   sur le serveur.
-- L'onglet apparaît dès que la clé est enregistrée. À gauche : **🔥 À traiter** (échéance dépassée ou
-  dans les 7 jours), **🐙 Issues GitHub**, puis un tableau par tableau. Un tableau se masque ; un nouveau
-  tableau est montré.
+- L'onglet apparaît dès que la clé est enregistrée. À gauche : **🔥 À traiter** (tes cartes, échéance
+  dépassée ou dans les 7 jours), **🐙 Issues GitHub**, puis un tableau par tableau. Un tableau montre
+  toutes ses cartes visibles, pas seulement les tiennes. Un tableau se masque ; un nouveau tableau
+  est montré.
 - **💬** ouvre la carte (description, cases, échanges). **🐙＋** crée une issue GitHub liée à la carte,
   comme pour Basecamp. Le rapport se publie en commentaire de la carte, une fois, après confirmation.
   ✕ écarte une issue sans rien envoyer.
-- La pastille de l'onglet compte les cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
+- La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
   de Mes sites : le site refuse ce cadre.
 
 ## 🔎 Recherche
