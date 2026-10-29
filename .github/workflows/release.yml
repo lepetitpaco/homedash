@@ -84,7 +84,6 @@ jobs:
             desktop/dist.noindex/*.dmg
             desktop/dist.noindex/*.zip
             desktop/dist.noindex/*.exe
-            desktop/dist.noindex/*.blockmap
             desktop/dist.noindex/latest*.yml
 
   publish:

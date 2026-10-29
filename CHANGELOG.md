@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.0.1 — 2026-10-29
+Appli de bureau : 2.0.1
+
+- **Page des versions plus lisible** : seulement les fichiers à télécharger (`.dmg`, `setup.exe`) et ceux
+  des mises à jour automatiques.
+
 ## 2.0.0 — 2026-10-29
 Appli de bureau : 2.0.0
 
