@@ -3,7 +3,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import * as events from '../server/events.ts'
-import { GitHubAccount, setFetch, trReport } from '../server/github.ts'
+import { GitHubAccount, setFetch, setIssueSources, trReport } from '../server/github.ts'
 import * as store from '../server/store.ts'
 import * as trello from '../server/trello.ts'
 
@@ -313,12 +313,39 @@ describe('issues GitHub liées à Trello', () => {
             { number: 1, title: 'tr', body: 'x <!-- homedash:tr https://trello.com/c/sl1 -->', comments: 1, state: 'open', updated_at: '2026-10-21' },
             { number: 2, title: 'bc', body: 'x <!-- homedash:bc https://3.basecamp.com/1/buckets/2/todos/3 -->', comments: 0, state: 'open', updated_at: '2026-10-20' },
           ]
-    const tr = await gh.fetchTrIssues('t')
-    const bc = await gh.fetchBcIssues('t')
+    const calls: string[] = []
+    const inner = gh.gh
+    gh.gh = async (p: string, ...rest: unknown[]) => (calls.push(p), inner(p, ...rest))
+    const [bc, tr] = await gh.fetchLinkedIssues('t')
+    expect(calls.filter((p) => p.endsWith('/issues'))).toEqual(['/repos/org/api/issues'])
     expect(tr.map((i: any) => i.number)).toEqual([1])
     expect(tr[0].tr_url).toBe('https://trello.com/c/sl1')
     expect(tr[0].report.body).toBe('ok')
     expect(bc.map((i: any) => i.number)).toEqual([2])
+  })
+  it('ni Basecamp ni Trello : aucune issue lue', async () => {
+    const gh = new GitHubAccount() as any
+    gh.configure({ me: 'moi', repos: ['org/api'] })
+    const calls: string[] = []
+    gh.gh = async (p: string) => (calls.push(p), [])
+    setIssueSources(() => ({ basecamp: false, trello: false }))
+    try {
+      expect(await gh.fetchLinkedIssues('t')).toEqual([[], []])
+      expect(calls).toEqual([])
+    } finally {
+      setIssueSources(() => ({ basecamp: true, trello: true }))
+    }
+  })
+  it('Trello seul : une issue Basecamp est ignorée', async () => {
+    const gh = new GitHubAccount() as any
+    gh.configure({ me: 'moi', repos: ['org/api'] })
+    gh.gh = async () => [{ number: 2, title: 'bc', body: '<!-- homedash:bc https://3.basecamp.com/1/buckets/2/todos/3 -->', comments: 0 }]
+    setIssueSources(() => ({ basecamp: false, trello: true }))
+    try {
+      expect(await gh.fetchLinkedIssues('t')).toEqual([[], []])
+    } finally {
+      setIssueSources(() => ({ basecamp: true, trello: true }))
+    }
   })
   it('un rapport Trello sonne en Trello, pas en Basecamp', () => {
     const evs = new GitHubAccount().diff({ issues: [], tr_issues: [] }, { issues: [], tr_issues: [{ repo: 'org/api', number: 1, title: 't', url: 'u', report: { id: 5 } }] }, ['issues'])

@@ -17,7 +17,7 @@ import * as errlog from './errlog.ts'
 import * as events from './events.ts'
 import * as favicons from './favicons.ts'
 import * as fullexport from './fullexport.ts'
-import { CannotWrite } from './github.ts'
+import { CannotWrite, setIssueSources } from './github.ts'
 import { escape } from './html.ts'
 import * as localfile from './localfile.ts'
 import * as localgit from './localgit.ts'
@@ -843,6 +843,8 @@ export function start(): void {
   updates.start()
   basecamp.start()
   trello.start()
+  // issues liées : lues seulement si Basecamp ou Trello sert
+  setIssueSources(() => ({ basecamp: basecamp.active(), trello: trello.active() }))
   const connected = accounts.allMods().filter((m) => m.token())
   console.log(connected.length ? `ℹ GitHub : ${connected.length} compte(s) connecté(s)` : 'ℹ GitHub non connecté — Réglages → Compte')
   accounts.kickoffAll() // premier fetch au démarrage : la page n'attend pas

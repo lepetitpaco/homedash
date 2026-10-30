@@ -279,6 +279,14 @@ const prKey = (p: any) => `${p.repo}#${p.number}`
 const byKey = (items: any[] | undefined) => new Map((items || []).map((p) => [prKey(p), p]))
 const ciState = (p: any) => p?.ci?.state
 
+type Sources = { basecamp: boolean; trello: boolean }
+/** Outils actifs (Basecamp, Trello), relus à chaque passe : sans eux, la section `issues` ne lit rien. */
+let issueSources: () => Sources = () => ({ basecamp: true, trello: true })
+
+export function setIssueSources(fn: () => Sources): void {
+  issueSources = fn
+}
+
 export const SECTIONS = ['branches', 'prs', 'renovate', 'merged', 'issues'] as const
 
 type Data = { branches: any[]; prs: any[]; renovate: any[]; renovate_merged: any[]; merged: any[]; issues: any[]; tr_issues: any[] }
@@ -736,7 +744,13 @@ export class GitHubAccount {
     return out.slice(0, count)
   }
 
-  private async fetchBcIssues(tok: string): Promise<any[]> {
+  /**
+   * Issues liées à Basecamp (`homedash:bc`) et à Trello (`homedash:tr`) : une
+   * seule liste par repo, triée ensuite. Rien n'est lu pour un outil inactif.
+   */
+  private async fetchLinkedIssues(tok: string): Promise<[any[], any[]]> {
+    const sources = issueSources()
+    if (!sources.basecamp && !sources.trello) return [[], []]
     const tasks = (
       await pmap(this.CFG.repos || [], MAX_WORKERS, async (repo: string) => {
         const items = await this.gh(`/repos/${this.owner(repo)}/${repo}/issues`, tok, {
@@ -745,67 +759,47 @@ export class GitHubAccount {
           direction: 'desc',
           per_page: BC_ISSUES_SCAN,
         })
-        const out: [string, any, string][] = []
+        const out: [string, any, string, string][] = []
         for (const it of Array.isArray(items) ? items : []) {
-          const m = BC_LINK.exec(it.body || '')
-          if (m && !it.pull_request) out.push([repo, it, m[1]])
+          if (it.pull_request) continue
+          const bc = sources.basecamp ? BC_LINK.exec(it.body || '') : null
+          const tr = sources.trello ? TR_LINK.exec(it.body || '') : null
+          if (bc || tr) out.push([repo, it, bc?.[1] || '', tr?.[1] || ''])
         }
         return out
       })
     ).flat()
-    const out = await pmap(tasks, MAX_WORKERS, async ([repo, it, bcUrl]) => {
-      let report = null
+    const found = await pmap(tasks, MAX_WORKERS, async ([repo, it, bcUrl, trUrl]) => {
+      let comments: any[] = []
       const n = it.comments || 0
       if (n) {
         // le rapport arrive en dernier : la dernière page suffit
-        const comments = await this.gh(
+        const got = await this.gh(
           `/repos/${this.owner(repo)}/${repo}/issues/${it.number}/comments`,
           tok,
           { per_page: 100, page: Math.floor((n - 1) / 100) + 1 },
           true,
           'application/vnd.github.full+json',
         )
-        report = bcReport(Array.isArray(comments) ? comments : [])
+        comments = Array.isArray(got) ? got : []
       }
-      return {
+      const base = {
         repo: `${this.owner(repo)}/${repo}`,
         number: it.number,
         title: it.title || '',
         url: it.html_url || '',
         state: it.state || 'open',
-        bc_url: bcUrl,
         updated_at: it.updated_at || '',
-        report,
+      }
+      return {
+        bc: bcUrl ? { ...base, bc_url: bcUrl, report: n ? bcReport(comments) : null } : null,
+        tr: trUrl ? { ...base, tr_url: trUrl, report: n ? trReport(comments) : null } : null,
       }
     })
-    out.sort((a, b) => (b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0))
-    return out
-  }
-
-  /** Issues dont le corps porte le marqueur Trello. Ne touche pas aux issues Basecamp. */
-  private async fetchTrIssues(tok: string): Promise<any[]> {
-    const tasks = (
-      await pmap(this.CFG.repos || [], MAX_WORKERS, async (repo: string) => {
-        const items = await this.gh(`/repos/${this.owner(repo)}/${repo}/issues`, tok, { state: 'all', sort: 'updated', direction: 'desc', per_page: BC_ISSUES_SCAN })
-        const out: [string, any, string][] = []
-        for (const it of Array.isArray(items) ? items : []) {
-          const m = TR_LINK.exec(it.body || '')
-          if (m && !it.pull_request) out.push([repo, it, m[1]])
-        }
-        return out
-      })
-    ).flat()
-    const out = await pmap(tasks, MAX_WORKERS, async ([repo, it, trUrl]) => {
-      let report = null
-      const n = it.comments || 0
-      if (n) {
-        const comments = await this.gh(`/repos/${this.owner(repo)}/${repo}/issues/${it.number}/comments`, tok, { per_page: 100, page: Math.floor((n - 1) / 100) + 1 })
-        report = trReport(Array.isArray(comments) ? comments : [])
-      }
-      return { repo: `${this.owner(repo)}/${repo}`, number: it.number, title: it.title || '', url: it.html_url || '', state: it.state || 'open', tr_url: trUrl, updated_at: it.updated_at || '', report }
-    })
-    out.sort((a, b) => (b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0))
-    return out
+    const recent = (a: any, b: any) => (b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0)
+    const bc = found.map((f) => f.bc).filter(Boolean).sort(recent)
+    const tr = found.map((f) => f.tr).filter(Boolean).sort(recent)
+    return [bc, tr]
   }
 
   /**
@@ -1069,7 +1063,7 @@ export class GitHubAccount {
         prs: () => this.fetchPrs(tok, user),
         renovate: () => this.fetchRenovate(tok),
         merged: () => this.fetchMerged(tok, user),
-        issues: () => Promise.all([this.fetchBcIssues(tok), this.fetchTrIssues(tok)]),
+        issues: () => this.fetchLinkedIssues(tok),
       }
       const results = await Promise.all(todo.map((name) => jobs[name]()))
       // Instantané d'avant : les listes sont remplacées, jamais mutées.
