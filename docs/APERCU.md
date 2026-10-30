@@ -70,6 +70,13 @@ modifié : les commandes sont à copier.
 
 Tes tâches en retard ou à venir ; une tâche devient une issue GitHub, et son rapport revient en commentaire.
 
+## Trello
+
+![L'onglet Trello](screenshots/trello.jpg)
+
+Tes tableaux tels qu'ils sont sur Trello ; tes cartes en retard ou proches en tête ; une carte devient une
+issue GitHub.
+
 ## Recherche
 
 ![La recherche](screenshots/recherche.jpg)

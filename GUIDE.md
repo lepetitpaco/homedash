@@ -300,7 +300,7 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 - **Faire le ménage** : coche des lignes (ou *tout*, *les automatiques*, *plus de 7 jours*), puis
   *supprimer la sélection*.
 - **Changer de machine** (un Mac et un PC, par exemple) : *Export complet*, avec un mot de passe. Le
-  fichier `.homedash` emporte tout, jetons GitHub et Basecamp et connexions de tes sites compris,
+  fichier `.homedash` emporte tout, jetons GitHub, Basecamp et Trello et connexions de tes sites compris,
   chiffré. Sur l'autre machine : *importer un export complet…*, le mot de passe, puis *aperçu* montre ce
   qu'il contient avant de rien changer. Certains sites (Google, Microsoft…) redemandent quand même la
   connexion sur une nouvelle machine.

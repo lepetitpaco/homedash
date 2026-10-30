@@ -144,3 +144,27 @@ const list = [
   ev('ci-failed', 'error', 'github', '❌ CI cassée — api #142', 'Export des commandes en CSV · 2 échecs', 0.5, 'api'),
 ]
 export const events = { events: list, seq, total: list.length }
+
+const tc = (n, title, list, o = {}) => ({
+  id: `c${n}`, short_link: `sl${n}`, title, url: `https://trello.com/c/sl${n}`, board_id: 'b1', board: 'Site perso',
+  board_url: 'https://trello.com/b/demo/site-perso', list_id: list, list: { l1: 'Idées', l2: 'À faire', l3: 'En cours', l4: 'Fait' }[list],
+  list_pos: { l1: 1, l2: 2, l3: 3, l4: 4 }[list], pos: n, due: o.due ?? null, due_complete: false, comments: o.comments ?? 0,
+  checks: o.checks ?? 0, checks_done: o.done ?? 0, mine: o.mine ?? true,
+})
+export const trello = {
+  configured: true, enabled: true, account: 'Ada', username: 'ada', updated_at: now / 1000 - 20, building: false, error: null,
+  every: 60, loaded: true, posted: {},
+  boards: [{ id: 'b1', name: 'Site perso', url: 'https://trello.com/b/demo/site-perso', background: '', background_brightness: 'dark',
+    lists: [{ id: 'l1', name: 'Idées', pos: 1 }, { id: 'l2', name: 'À faire', pos: 2 }, { id: 'l3', name: 'En cours', pos: 3 }, { id: 'l4', name: 'Fait', pos: 4 }] }],
+  cards: [
+    tc(1, 'Mode sombre automatique', 'l1', { mine: false }),
+    tc(2, 'Page « À propos »', 'l1', { mine: false, comments: 1 }),
+    tc(3, 'Formulaire de contact', 'l2', { due: day(2), checks: 4, done: 1 }),
+    tc(4, 'Optimiser les images', 'l2', { comments: 3 }),
+    tc(5, 'Nouveau thème du blog', 'l3', { due: day(-1), checks: 5, done: 3, comments: 2 }),
+    tc(6, 'Flux RSS', 'l4', { mine: false }),
+    tc(7, 'Nom de domaine renouvelé', 'l4'),
+  ],
+  unreads: [{ id: 'n1', title: 'Grace a commenté « Nouveau thème du blog »', url: 'https://trello.com/c/sl5', board: 'Site perso', excerpt: 'Les couleurs me vont !', creator: 'Grace', ts: sec(2) }],
+  github: { issues: [], repos: [{ account: 'main', repo: 'acme/web' }] },
+}
