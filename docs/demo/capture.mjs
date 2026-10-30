@@ -13,7 +13,7 @@ const ONLY = process.env.ONLY ? new Set(process.env.ONLY.split(',')) : null
 const browser = await chromium.launch()
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 }, deviceScaleFactor: 1, colorScheme: 'dark' })
 const json = (body) => ({ status: 200, contentType: 'application/json', body: JSON.stringify(body) })
-for (const [name, body] of Object.entries({ github: fx.github, local: fx.local, basecamp: fx.basecamp, events: fx.events }))
+for (const [name, body] of Object.entries({ github: fx.github, local: fx.local, basecamp: fx.basecamp, trello: fx.trello, events: fx.events }))
   await page.route(new RegExp(`/api/${name}(\\?.*)?$`), (r) => r.fulfill(json(body)))
 
 const tab = (label) => page.locator('button', { hasText: label }).first().click()
@@ -22,6 +22,11 @@ const shots = {
   github: () => tab('GitHub'),
   local: () => tab('Local'),
   basecamp: () => tab('Basecamp'),
+  trello: async () => {
+    await tab('Trello')
+    await page.waitForTimeout(800)
+    await page.getByText('Site perso', { exact: true }).first().click()
+  },
   cloche: () => page.locator('button[aria-label="Notifications"]').click(),
   recherche: async () => {
     await page.keyboard.press('/')

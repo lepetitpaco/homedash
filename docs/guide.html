@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Mode d'emploi · homedash</title>
+  <meta name="description" content="Le mode d'emploi de homedash, onglet par onglet.">
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <div class="hero"><h1>Mode d'emploi</h1><p>Onglet par onglet. Aussi dans l'appli : <i>Réglages → Aide → Guide</i>.</p></div>
+  <div class="layout">
+    <nav class="toc" id="toc"></nav>
+    <article class="md" id="md"><p class="loading">Chargement…</p></article>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script type="module">
+    import { render } from './assets/site.js'
+    // Captures du dépôt → celles du site ; la première ligne renvoie au README, inutile ici
+    render('GUIDE.md', (h) => h.replaceAll('docs/screenshots/', 'screenshots/').replace(/<p>Installation[\s\S]*?<\/p>/, ''))
+  </script>
+</body>
+</html>
