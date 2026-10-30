@@ -14,8 +14,9 @@ homedash sert à toute une équipe : ce qui arrive sur `main` et part en version
 ## En deux mots
 
 - **Appli Electron** (`desktop/`) qui embarque un **serveur TypeScript** (`server/`, Node seul, aucune
-  dépendance) et la **page React** (`src/`). Aucun port ouvert : l'appli sert `http://localhost:7777`
-  dans ses propres sessions.
+  dépendance) et la **page React** (`src/`). Aucun port ouvert : l'adresse `http://localhost:7777` n'existe
+  que dans les sessions de l'appli (`protocol.handle`), un navigateur n'y trouve rien. Le vrai port ne
+  s'ouvre qu'avec *Accès depuis le navigateur* (désactivé par défaut). En dev, c'est :7778.
 - Les données vivent dans le profil de l'appli (`data/`), jamais dans le dépôt.
 
 ## Travailler
