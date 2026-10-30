@@ -17,7 +17,7 @@ import * as errlog from './errlog.ts'
 import * as events from './events.ts'
 import * as favicons from './favicons.ts'
 import * as fullexport from './fullexport.ts'
-import { CannotWrite, setIssueSources } from './github.ts'
+import { BC_LINK, CannotWrite, setIssueSources, TR_LINK } from './github.ts'
 import { escape } from './html.ts'
 import * as localfile from './localfile.ts'
 import * as localgit from './localgit.ts'
@@ -687,7 +687,7 @@ async function apiWrite(req: Req, method: string): Promise<Res> {
     return json(store.bumpUsage(linkId, Date.now()))
   }
   if (p === '/api/github/issue') {
-    // Issue créée depuis une tâche Basecamp (seule écriture vers GitHub)
+    // Issue créée depuis une tâche Basecamp ou une carte Trello (seule écriture vers GitHub)
     const b = body(req) || {}
     const mod = acc(req, b.account)
     const title = String(b.title || '')
@@ -695,6 +695,11 @@ async function apiWrite(req: Req, method: string): Promise<Res> {
       .slice(0, 256)
     if (!mod) return err(req, 404, 'compte inconnu')
     if (!title) return err(req, 422, 'Il faut un titre.')
+    // Repos choisis pour l'outil (Réglages) : le serveur l'impose, pas seulement la page.
+    const text = String(b.body || '')
+    const tool = BC_LINK.test(text) ? 'basecamp' : TR_LINK.test(text) ? 'trello' : null
+    if (tool && !accounts.repoAllowed(tool, String(b.repo || '')))
+      return err(req, 422, `Ce repo n'est pas choisi pour ${tool === 'basecamp' ? 'Basecamp' : 'Trello'} : Réglages → ${tool === 'basecamp' ? 'Basecamp' : 'Trello'}.`)
     let made
     try {
       made = await mod.createIssue(b.repo, title, String(b.body || '').slice(0, 60000))

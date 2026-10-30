@@ -290,12 +290,16 @@ export function validateConfig(cfg: unknown): string | null {
     if (!isObj(bc)) return '"basecamp" doit être un objet'
     const hidden = bc.hidden
     if (hidden !== undefined && hidden !== null && !strList(hidden)) return '"basecamp.hidden" doit être une liste de textes'
+    const repos = bc.repos
+    if (repos !== undefined && repos !== null && !strList(repos)) return '"basecamp.repos" doit être une liste de textes'
   }
   const tr = cfg.trello
   if (tr !== undefined && tr !== null) {
     if (!isObj(tr)) return '"trello" doit être un objet'
     const hidden = tr.hidden
     if (hidden !== undefined && hidden !== null && !strList(hidden)) return '"trello.hidden" doit être une liste de textes'
+    const repos = tr.repos
+    if (repos !== undefined && repos !== null && !strList(repos)) return '"trello.repos" doit être une liste de textes'
   }
   const loc = cfg.local
   if (loc !== undefined && loc !== null) {

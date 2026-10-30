@@ -33,6 +33,7 @@ import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
 import SetTrello from './SetTrello'
+import SetToolRepos from './SetToolRepos'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
@@ -425,6 +426,12 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }
   const tracked = [...new Set([...uses.prs, ...uses.branches, ...uses.github, ...uses.home])].sort()
   const nameOf = (k: string) => k.split('/').pop() ?? k
+  // Repos où créer une issue depuis Basecamp ou Trello : ceux des PRs, tous comptes confondus (comme le serveur).
+  const followed = [...new Set(accList.flatMap((a) => asList(a.repos)).filter((r) => r.includes('/')))].sort()
+  const setToolRepos = (tool: 'basecamp' | 'trello', list: string[]) => {
+    const { repos: _old, ...rest } = (draft[tool] ?? {}) as { repos?: string[] }
+    setDraft({ ...draft, [tool]: list.length ? { ...rest, repos: list } : rest })
+  }
 
   const itemOf = (key: string): RepoItem => {
     const [owner, name] = key.split('/', 2)
@@ -804,11 +811,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         {active === 'set-basecamp' ? (
         <Card id="set-basecamp" icon="🏕" title="Basecamp">
           <SetBasecamp />
+          <SetToolRepos tool="Basecamp" followed={followed} chosen={asList(draft.basecamp?.repos)} onChange={(l) => setToolRepos('basecamp', l)} />
         </Card>
         ) : null}
         {active === 'set-trello' ? (
         <Card id="set-trello" icon="📋" title="Trello">
           <SetTrello />
+          <SetToolRepos tool="Trello" followed={followed} chosen={asList(draft.trello?.repos)} onChange={(l) => setToolRepos('trello', l)} />
         </Card>
         ) : null}
         {active === 'set-tabs' ? (

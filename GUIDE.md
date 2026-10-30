@@ -207,6 +207,11 @@ les rapports que tu publies.
 Dans **🐙 Issues GitHub** : *▶ prompt de départ* recopie la commande ; *📝 rapport final* donne un prompt
 pour faire réécrire le rapport ; *afficher les terminées* et *rétablir* retrouvent les issues écartées.
 
+**Repos où créer les issues** (*Réglages → Basecamp*, et pareil dans *Réglages → Trello*) : coche les
+repos qui peuvent recevoir une issue depuis cet outil, par exemple les repos du travail pour Basecamp et
+tes repos perso pour Trello. Seuls ceux-là sont proposés, et homedash refuse les autres. Aucun coché =
+tous les repos suivis.
+
 Le jeton GitHub doit pouvoir lire les issues, et les écrire pour *Créer sur GitHub* (*Issues : Read and
 write* en fine-grained ; un jeton classic `repo` suffit).
 
@@ -225,7 +230,8 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
   toutes ses cartes visibles, pas seulement les tiennes. Un tableau se masque ; un nouveau tableau
   est montré.
 - **💬** ouvre la carte (description, cases, échanges). **🐙＋** crée une issue GitHub liée à la carte,
-  comme pour Basecamp. Le rapport se publie en commentaire de la carte, une fois, après confirmation.
+  comme pour Basecamp, dans un des repos choisis pour Trello (*Réglages → Trello*, *Repos où créer les
+  issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
   ✕ écarte une issue sans rien envoyer.
 - La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
   de Mes sites : le site refuse ce cadre.
@@ -270,8 +276,8 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas |
 | 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
-| 🏕 Basecamp | La connexion |
-| 📋 Trello | La clé d'API et le jeton |
+| 🏕 Basecamp | La connexion, les repos où créer les issues |
+| 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |

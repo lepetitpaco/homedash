@@ -180,6 +180,10 @@ export function forget(accId: string): void {
 // ── Chargement ──────────────────────────────────────────────────────────────────
 /** (Re)charge les comptes. À chaud : un compte qui reste garde son instance, donc ses caches. */
 export function configure(cfg: Cfg): void {
+  for (const tool of TOOLS) {
+    const list = cfg[tool]?.repos
+    toolRepos[tool] = Array.isArray(list) && list.length ? new Set(list.map((r: unknown) => String(r).toLowerCase())) : null
+  }
   const accs = fromConfig(cfg)
   const on = store.featureOn(cfg, 'github')
   const ids = accs.map((a) => a.id as string)
@@ -192,6 +196,18 @@ export function configure(cfg: Cfg): void {
     mod.configure(settingsOf(acc, on))
     mod.applyToken(...tokenFor(acc.id))
   }
+}
+
+// ── Repos par outil ─────────────────────────────────────────────────────────────
+const TOOLS = ['basecamp', 'trello'] as const
+export type Tool = (typeof TOOLS)[number]
+/** Repos choisis pour créer les issues d'un outil (`basecamp.repos`, `trello.repos`). null = tous les repos suivis. */
+const toolRepos: Record<Tool, Set<string> | null> = { basecamp: null, trello: null }
+
+/** `propriétaire/repo` peut recevoir une issue créée depuis cet outil. */
+export function repoAllowed(tool: Tool, repo: string): boolean {
+  const only = toolRepos[tool]
+  return !only || only.has(String(repo).toLowerCase())
 }
 
 /** Instance du compte demandé, ou du premier s'il n'existe pas. */
@@ -251,7 +267,7 @@ export function bcIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
     const acc = mod.ACCOUNT.id
     const got = mod.bcIssues()
     issues.push(...got.issues.map((i) => ({ ...i, account: acc })))
-    repos.push(...got.repos.map((r) => ({ account: acc, repo: r })))
+    repos.push(...got.repos.filter((r) => repoAllowed('basecamp', r)).map((r) => ({ account: acc, repo: r })))
   }
   return { issues, repos }
 }
@@ -266,7 +282,7 @@ export function trIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
     const acc = mod.ACCOUNT.id
     const got = mod.trIssues()
     issues.push(...got.issues.map((i) => ({ ...i, account: acc })))
-    repos.push(...got.repos.map((r) => ({ account: acc, repo: r })))
+    repos.push(...got.repos.filter((r) => repoAllowed('trello', r)).map((r) => ({ account: acc, repo: r })))
   }
   return { issues, repos }
 }
