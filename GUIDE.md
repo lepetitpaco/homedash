@@ -214,9 +214,10 @@ Les cartes ouvertes de tes tableaux Trello, dans les mêmes colonnes que sur Tre
 homedash ne coche rien, ne déplace aucune carte, et ne poste que le rapport d'une issue, quand tu le
 demandes. Les notifications ne sont jamais marquées lues. Les listes archivées ne sont pas affichées.
 
-- **Se connecter** (une fois) : *Réglages → Trello*. Une clé d'API vient d'un Power-Up personnel
-  (trello.com/power-ups/admin). *Autoriser* ouvre la page Trello ; tu colles le jeton. Le jeton reste
-  sur le serveur.
+- **Se connecter** (une fois) : sur trello.com/power-ups/admin, crée une application *homedash*
+  (« n'utilise pas les fonctionnalités Power-up », confidentielle, aucune URL à remplir), copie sa
+  **clé API** dans *Réglages → Trello*, puis *Se connecter à Trello* : autorise, et colle le jeton
+  affiché. Le jeton reste dans l'appli.
 - L'onglet apparaît dès que la clé est enregistrée. À gauche : **🔥 À traiter** (tes cartes, échéance
   dépassée ou dans les 7 jours), **🐙 Issues GitHub**, puis un tableau par tableau. Un tableau montre
   toutes ses cartes visibles, pas seulement les tiennes. Un tableau se masque ; un nouveau tableau
