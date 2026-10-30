@@ -1,8 +1,6 @@
 # Aperçu
 
-Captures d'une instance de **démo** : données fictives, aucun compte réel. Les sites dans les onglets sont
-affichés par l'appli de bureau ; dans un navigateur, le reste est identique. Mode d'emploi :
-[GUIDE.md](../GUIDE.md).
+Captures d'une instance de **démo** (données fictives). Mode d'emploi : [GUIDE.md](../GUIDE.md).
 
 ## Un site dans un onglet
 
@@ -52,6 +50,31 @@ de liens.
 ![La fenêtre d'ajout d'un site](screenshots/nouvel-onglet.jpg)
 
 ＋ en bas de la barre : une adresse, ou un site courant en un clic.
+
+## GitHub
+
+![L'onglet GitHub](screenshots/github.jpg)
+
+Tes branches actives avec leur PR et leur CI, les PRs ouvertes, les mergées.
+
+## Local
+
+![L'onglet Local](screenshots/local.jpg)
+
+Tes clones, branche par branche : ce qui peut partir sans risque, ce qui reste à pousser. Rien n'est
+modifié : les commandes sont à copier.
+
+## Basecamp
+
+![L'onglet Basecamp](screenshots/basecamp.jpg)
+
+Tes tâches en retard ou à venir ; une tâche devient une issue GitHub, et son rapport revient en commentaire.
+
+## Recherche
+
+![La recherche](screenshots/recherche.jpg)
+
+`/` ou `⌘K` : liens, sites, repos, PRs, tâches, notes… et le web.
 
 ## La cloche
 
