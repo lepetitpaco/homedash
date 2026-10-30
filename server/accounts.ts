@@ -256,6 +256,21 @@ export function bcIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
   return { issues, repos }
 }
 
+/** Issues liées à Trello, même forme que `bcIssues`. */
+export function trIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
+  const issues: Cfg[] = []
+  const repos: Cfg[] = []
+  for (const mod of allMods()) {
+    if (!(mod.token() && mod.enabled())) continue
+    if (fresh && mod.age() >= (mod.CFG.auto_refresh || 15)) mod.kickoff(mod.token())
+    const acc = mod.ACCOUNT.id
+    const got = mod.trIssues()
+    issues.push(...got.issues.map((i) => ({ ...i, account: acc })))
+    repos.push(...got.repos.map((r) => ({ account: acc, repo: r })))
+  }
+  return { issues, repos }
+}
+
 export function invalidateAll(): void {
   for (const mod of allMods()) mod.invalidate()
 }

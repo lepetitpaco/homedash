@@ -12,7 +12,7 @@ jour. On peut tout améliorer, mais pas dénaturer ce qui suit.
    page marche aussi sans l'appli, dans un navigateur.
 3. **GitHub** : branches, PRs, CI, Renovate, équipe, plusieurs comptes ; cache ETag (quota de l'API).
 4. **Onglet Local** : lecture seule du disque, verdicts des branches, commandes à copier.
-5. **Basecamp** : tâches en lecture seule ; tâche → issue GitHub → rapport publié (au clic seulement).
+5. **Basecamp** (et **Trello**) : tâches/cartes en lecture seule ; tâche → issue GitHub → rapport publié (au clic seulement).
 6. **Cloche et journal** : ce qui sonne, et quand.
 7. **Réglages** : tout se règle dans la page, aucun fichier à éditer ; sauvegardes et restauration.
 8. **Mise à jour** : version lue dans `CHANGELOG.md`, annonce (dernière Release GitHub), *Mettre à jour*
@@ -104,11 +104,15 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
    de jeton POSTe vers Launchpad ; seule écriture : `publishReport()`, le rapport d'une issue liée en
    commentaire de sa tâche, au clic, une fois par rapport, texte et tâche lus par le serveur (jamais
    fournis par la page). Jamais de tâche cochée ni de notif marquée lue. Testé.
+   **Trello, pareil** (`trello.ts`) : GET seulement, scope `read,write` (jamais `account`), jeton en
+   en-tête OAuth, jamais dans l'adresse ; seule écriture, `publishReport()`. Testé.
    GitHub : seule écriture, `GitHubAccount.createIssue()` (onglet Basecamp, à la demande, repos suivis
    seulement). Testé.
 5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier à
    la page, inclus dans les sauvegardes), ni dans une réponse d'API. Seule sortie : l'export complet
-   (`fullexport.ts`), **chiffré** par un mot de passe (scrypt + AES-256-GCM). Testé.
+   (`fullexport.ts`), **chiffré** par un mot de passe (scrypt + AES-256-GCM). Testé. Un proxy d'image ne
+   les envoie qu'à l'hôte du service (`trello.com`, `api.trello.com` ; pour Basecamp, les `blobs` du
+   compte) et ne suit pas une redirection ailleurs.
 6. **Toute requête passe par `app.handle()` → `refused()`** (Host connu, pas d'écriture intersite, corps
    JSON), quel que soit le transport (`http.ts` en dev, messages de l'appli). Toute écriture du front
    envoie `Content-Type: application/json` dès qu'elle a un corps.
@@ -169,6 +173,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   le charge en CSS. Jamais le proxy d'images : celui-ci envoie le jeton, et cet hôte n'est pas le sien.
 - La zone du tableau est sombre, comme Trello, même en thème clair. Le texte des cartes n'utilise pas
   `--text` : sur ce fond fixe, `--text` en thème clair deviendrait illisible.
+- Filtre « GitHub & Local » de la cloche : sources `github` et `local` seulement. Une source nouvelle a
+  son propre filtre ; elle n'est pas « tout sauf Basecamp ».
 
 **Appli de bureau (`desktop/`)**
 - Elle embarque tout (2.0) : `server.js` lance `server/host.js` dans un utilityProcess, et intercepte
