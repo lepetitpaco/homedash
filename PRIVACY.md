@@ -34,8 +34,8 @@ Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en deh
 
 ## Ta machine
 
-- L'appli **n'ouvre aucun port**. *Accès depuis le navigateur* (désactivé par défaut) l'ouvre sur
-  `localhost:7777`, ta machine seulement.
+- L'appli **n'ouvre aucun port** : rien n'écoute sur ta machine. Seule l'option *Accès depuis le
+  navigateur* (désactivée par défaut) ouvre `localhost:7777`, joignable depuis ta machine seulement.
 - L'onglet **Local lit** tes dossiers de code sans rien y écrire ni lancer de commande.
 - Le code est ouvert : tout ceci se vérifie dans ce dépôt (`server/`, `desktop/`).
 

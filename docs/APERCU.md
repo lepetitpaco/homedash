@@ -7,7 +7,7 @@ Captures d'une instance de **démo** (données fictives). Mode d'emploi : [GUIDE
 ![Wikipédia ouvert dans un onglet](screenshots/site-dans-un-onglet.jpg)
 
 Le site prend toute la page. En haut, une seule barre : son nom (l'adresse au survol), ← → ↻, ↗ pour
-l'ouvrir dans le navigateur, partager pour copier son lien, ⚙ pour le modifier, puis la recherche. À gauche, la barre façon Discord :
+l'ouvrir dans le navigateur, partager pour copier son lien, ⚙ pour le modifier, puis la recherche. À gauche, la barre des sites :
 ⚡ pour homedash, une icône par site avec son compte (P) et ses non-lus (3, 12), rangés en dossiers.
 
 ## Clic droit
