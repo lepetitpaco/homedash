@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Nouveautés · homedash</title>
+  <meta name="description" content="Ce qui change à chaque version de homedash.">
+  <link rel="icon" href="icon.png">
+  <link rel="stylesheet" href="assets/site.css">
+</head>
+<body>
+  <div class="hero"><h1>Nouveautés</h1><p>Ce qui change à chaque version. L'appli te propose la dernière toute seule.</p></div>
+  <div class="layout single">
+    <article class="md" id="md"><p class="loading">Chargement…</p></article>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+  <script type="module">
+    import { render } from './assets/site.js'
+    // Une carte par version ; l'introduction (règles de version, pour les développeurs) est retirée
+    render('CHANGELOG.md', (h) => {
+      const parts = h.split(/(?=<h2>)/).slice(1)
+      return parts
+        .map((p, i) => {
+          const m = /<h2>([^<]*?)\s+—\s+([^<]*)<\/h2>/.exec(p)
+          const body = p.replace(/<h2>[\s\S]*?<\/h2>/, '').replace(/<p>Appli de bureau : [^<]*<\/p>/, '')
+          const title = m ? `<h2>Version ${m[1]}${i === 0 ? '<span class="badge">dernière</span>' : ''}</h2><div class="date">${m[2]}</div>` : ''
+          return `<section class="ver${i === 0 ? ' latest' : ''}">${title}${body}</section>`
+        })
+        .join('')
+    })
+  </script>
+</body>
+</html>
