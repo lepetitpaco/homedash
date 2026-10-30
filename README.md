@@ -10,7 +10,7 @@ mise à jour automatique.
 | --- | --- | --- |
 | ![](docs/screenshots/accueil.jpg) | ![](docs/screenshots/github.jpg) | ![](docs/screenshots/cloche.jpg) |
 
-Plus de captures : **[docs/APERCU.md](docs/APERCU.md)** (données fictives).
+Le site : **[lepetitpaco.github.io/homedash](https://lepetitpaco.github.io/homedash/)** · plus de captures : [docs/APERCU.md](docs/APERCU.md).
 
 ## Ce que ça fait
 
@@ -23,6 +23,9 @@ Plus de captures : **[docs/APERCU.md](docs/APERCU.md)** (données fictives).
 - **Recherche** (`/` ou `⌘K`) : tout ce qui précède, plus le web.
 
 ## Installer
+
+Pas à pas : **[la page Installer](https://lepetitpaco.github.io/homedash/installer.html)**.
+
 
 1. Télécharge la **[dernière version](https://github.com/lepetitpaco/homedash/releases/latest)** :
    `…-arm64.dmg` (Mac M1, M2…), `…-x64.dmg` (Mac Intel) ou `…-setup.exe` (Windows).
