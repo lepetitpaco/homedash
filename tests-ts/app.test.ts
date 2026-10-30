@@ -6,7 +6,7 @@
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import * as accounts from '../server/accounts.ts'
 import { type Req, handle, httpHosts, loadSections, refused } from '../server/app.ts'
@@ -183,5 +183,47 @@ describe('fichiers statiques', () => {
   })
   it('route inconnue : 404', async () => {
     expect((await call('GET', '/api/nexiste-pas')).status).toBe(404)
+  })
+})
+
+describe('repos par outil (#26)', () => {
+  const CFG = { ...BASE, github_accounts: [{ id: 'main', label: '', repos: ['o/perso', 'o/admin'] }] }
+  const TR = '<!-- homedash:tr https://trello.com/c/sl1 -->'
+  const BC = '<!-- homedash:bc https://3.basecamp.com/1/buckets/2/todos/3 -->'
+  const issue = (repo: string, body: string) => call('POST', '/api/github/issue', { body: { account: 'main', repo, title: 'T', body } })
+  const posted: string[] = []
+  beforeEach(() => {
+    posted.length = 0
+    setFetch(async (url, init) => {
+      if (init?.method === 'POST') posted.push(String(url))
+      return new Response(JSON.stringify({ number: 1, html_url: 'u' }), { status: 201 })
+    })
+    accounts.setToken('main', 't')
+  })
+  afterEach(() => setFetch((i, init) => fetch(i, init)))
+
+  it('config sans la clé : tous les repos suivis', () => {
+    store.write(store.CONFIG, CFG)
+    loadSections()
+    expect(accounts.repoAllowed('trello', 'o/admin')).toBe(true)
+    expect(accounts.repoAllowed('basecamp', 'o/admin')).toBe(true)
+  })
+  it('repo hors choix : 422, rien envoyé à GitHub', async () => {
+    store.write(store.CONFIG, { ...CFG, trello: { repos: ['o/perso'] } })
+    loadSections()
+    expect((await issue('o/admin', `besoin\n${TR}`)).status).toBe(422)
+    expect(posted).toEqual([])
+    // Basecamp n'a rien choisi : tous les repos
+    expect((await issue('o/admin', `besoin\n${BC}`)).status).toBe(200)
+    expect(posted.length).toBe(1)
+  })
+  it('repo choisi : issue créée', async () => {
+    store.write(store.CONFIG, { ...CFG, trello: { repos: ['O/Perso'] } })
+    loadSections()
+    expect((await issue('o/perso', `besoin\n${TR}`)).status).toBe(200)
+    expect(posted.length).toBe(1)
+  })
+  it('liste invalide : config refusée', async () => {
+    expect((await call('PUT', '/api/config', { body: { ...BASE, basecamp: { repos: 'o/x' } } })).status).toBe(422)
   })
 })

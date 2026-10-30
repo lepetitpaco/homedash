@@ -16,6 +16,8 @@ server/                   TypeScript « effaçable » : lancé tel quel en dev, 
   github.ts               données GitHub d'un compte (cache ETag), seule écriture : createIssue
   basecamp.ts             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
                           publié en commentaire (seule écriture) ; html.ts lit leur HTML
+  trello.ts               Trello : clé d'API + jeton collé, cartes ouvertes, notifications non lues
+                          (lecture), rapport d'issue publié en commentaire (seule écriture)
   localfile.ts            Mes sites : un fichier du dossier personnel servi en lecture seule
   favicons.ts             icônes de Mes sites relayées (la page les recadre), en cache
   perflog.ts              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
@@ -77,7 +79,14 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/basecamp/file?url=` | GET | Image jointe à une tâche, lue avec le jeton (adresse `…/blobs/…` du compte, formats d'image sûrs, sans SVG) |
 | `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
 | `/api/basecamp/dismiss` | POST | Écarter une issue liée sans publier son rapport (`undo` : la rétablir) ; rien n'est envoyé |
-| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp (repos suivis) |
+| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp ou une carte Trello (repos suivis, et choisis pour l'outil : `basecamp.repos` / `trello.repos`, absent = tous) |
+| `/api/trello`, `/api/trello/refresh` | GET, POST | Cartes ouvertes et notifs non lues, relecture |
+| `/api/trello/{auth,app,authorize,token}` | GET, PUT, POST, DELETE | Réglages : clé d'API, page d'autorisation, jeton collé, déconnexion |
+| `/api/trello/search?q=` | GET | Recherche Trello (barre de recherche), réponses gardées 1 min |
+| `/api/trello/card?url=` | GET | Description, listes et commentaires d'une carte |
+| `/api/trello/file?url=` | GET | Image déjà vue sur une carte (formats sûrs, sans SVG, 15 Mo au plus, coupée pendant la lecture) |
+| `/api/trello/report` | POST | Publier le rapport d'une issue liée en commentaire de sa carte (une fois) |
+| `/api/trello/dismiss` | POST | Écarter une issue liée sans publier ; rien n'est envoyé |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |
 | `/api/perf` | GET, POST, DELETE | Journal de performance : état et place prise, mesure de l'appli / action de la page, vider |
 | `/api/favicon?host=` | GET | Icône d'un site, via le service de favicons (ou le site, s'il est dans Mes sites) |
@@ -93,7 +102,7 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
 | `/api/export/full` | POST | Export complet chiffré (mot de passe, cookies des sites fournis par l'appli) → fichier `.homedash` |
 | `/api/import/preview`, `/api/import/apply` | POST | Export complet : aperçu sans secret, puis import (instantané avant, jetons remplacés gardés à part) |
-| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp connecté, comptes GitHub, version, accès navigateur |
+| `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp et Trello connectés, comptes GitHub, version, accès navigateur |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
 elle-même et envoyer du JSON.

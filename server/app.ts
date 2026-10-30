@@ -17,13 +17,14 @@ import * as errlog from './errlog.ts'
 import * as events from './events.ts'
 import * as favicons from './favicons.ts'
 import * as fullexport from './fullexport.ts'
-import { CannotWrite } from './github.ts'
+import { BC_LINK, CannotWrite, setIssueSources, TR_LINK } from './github.ts'
 import { escape } from './html.ts'
 import * as localfile from './localfile.ts'
 import * as localgit from './localgit.ts'
 import * as perflog from './perflog.ts'
 import * as perfreport from './perfreport.ts'
 import * as store from './store.ts'
+import * as trello from './trello.ts'
 import * as updates from './updates.ts'
 
 /** Un export complet emporte les cookies des sites : plus gros qu'une simple écriture de config. */
@@ -127,6 +128,7 @@ export function loadSections(): void {
   const local = cfg.local || {}
   localgit.configure({ ...local, enabled: store.featureOn(cfg, 'local') && local.enabled !== false })
   basecamp.setEnabled(store.featureOn(cfg, 'basecamp'))
+  trello.setEnabled(store.featureOn(cfg, 'trello'))
   // Journal de performance : désactivé par défaut (Réglages → Affichage).
   perflog.configure(cfg.ui?.perfLog === true)
   onConfig?.(cfg)
@@ -318,6 +320,14 @@ async function apiDelete(req: Req): Promise<Res> {
     basecamp.forget()
     return json(basecamp.status())
   }
+  if (p === '/api/trello/token') {
+    trello.disconnect()
+    return json(trello.status())
+  }
+  if (p === '/api/trello/app') {
+    trello.forget()
+    return json(trello.status())
+  }
   if (p.startsWith('/api/github/accounts/')) {
     const accId = decodeURIComponent(p.slice('/api/github/accounts/'.length))
     const problem = editAccounts((accs) => {
@@ -380,6 +390,30 @@ async function apiGet(req: Req): Promise<Res> {
     }
   }
   if (p === '/api/basecamp/auth') return json(basecamp.status())
+  if (p === '/api/trello') return json({ ...trello.payload(), github: accounts.trIssues(!!q(req, 'fresh')) })
+  if (p === '/api/trello/search') {
+    try {
+      return json({ items: await trello.search(q(req, 'q')) })
+    } catch (e) {
+      return err(req, 502, (e as Error).message)
+    }
+  }
+  if (p === '/api/trello/file') {
+    try {
+      const [ctype, data] = await trello.attachment(q(req, 'url'))
+      return send(200, data, ctype, 'private, max-age=3600')
+    } catch (e) {
+      return err(req, e instanceof RangeError ? 422 : 502, (e as Error).message)
+    }
+  }
+  if (p === '/api/trello/card') {
+    try {
+      return json(await trello.cardText(q(req, 'url')))
+    } catch (e) {
+      return err(req, e instanceof RangeError ? 422 : 502, (e as Error).message)
+    }
+  }
+  if (p === '/api/trello/auth') return json(trello.status())
   if (p === '/api/basecamp/callback') return basecampCallback(req)
   if (p === '/api/file') return fileOf(req, q(req, 'path'))
   if (p === '/api/favicon') return favicon(req, q(req, 'host'))
@@ -421,7 +455,7 @@ async function apiGet(req: Req): Promise<Res> {
     return json({ days, text: perfreport.text(days) })
   }
   if (p === '/api/health')
-    return json({ ok: true, github: accounts.enabled(), basecamp: basecamp.connected(), local: localgit.enabled(), accounts: accounts.allMods().length, version: updates.current(), browser_access: browserAccess })
+    return json({ ok: true, github: accounts.enabled(), basecamp: basecamp.connected(), trello: trello.connected(), local: localgit.enabled(), accounts: accounts.allMods().length, version: updates.current(), browser_access: browserAccess })
   return err(req, 404, 'route inconnue')
 }
 
@@ -565,6 +599,48 @@ async function apiWrite(req: Req, method: string): Promise<Res> {
     }
   }
   if (p === '/api/basecamp/refresh') return json({ ok: true, started: basecamp.kickoff() })
+  if (p === '/api/trello/app') {
+    try {
+      trello.setKey((body(req) || {}).api_key)
+    } catch (e) {
+      return err(req, 422, (e as Error).message)
+    }
+    return json(trello.status())
+  }
+  if (p === '/api/trello/authorize') {
+    try {
+      return json({ url: trello.authorizeUrl() })
+    } catch (e) {
+      return err(req, 422, (e as Error).message)
+    }
+  }
+  if (p === '/api/trello/token') {
+    try {
+      await trello.connect((body(req) || {}).token)
+    } catch (e) {
+      return err(req, 422, (e as Error).message)
+    }
+    trello.kickoff()
+    return json(trello.status())
+  }
+  if (p === '/api/trello/report' || p === '/api/trello/dismiss') {
+    // La page ne donne que l'issue : texte et carte viennent de ce que le serveur a lu.
+    const b = body(req) || {}
+    const mod = accounts.get(b.account)
+    const found = (mod ? mod.trIssues().issues : []).find((i) => i.repo === b.repo && i.number === b.number)
+    if (p.endsWith('/dismiss')) {
+      if (!found) return err(req, 404, 'Issue introuvable : relis GitHub puis réessaie.')
+      return json({ posted: trello.dismiss(found, !!b.undo) })
+    }
+    if (!found || !found.report) return err(req, 404, 'Pas de rapport pour cette issue : relis GitHub puis réessaie.')
+    try {
+      return json(await trello.publishReport(found))
+    } catch (e) {
+      errlog.record('serveur', 'rapport non publié sur Trello', (e as Error).message, 'POST /api/trello/report')
+      return json({ error: (e as Error).message }, 502)
+    }
+  }
+  if (p === '/api/trello/refresh') return json({ ok: true, started: trello.kickoff() })
   if (p === '/api/perf') {
     // Mesures de l'appli de bureau et actions de la page.
     const b = body(req)
@@ -611,7 +687,7 @@ async function apiWrite(req: Req, method: string): Promise<Res> {
     return json(store.bumpUsage(linkId, Date.now()))
   }
   if (p === '/api/github/issue') {
-    // Issue créée depuis une tâche Basecamp (seule écriture vers GitHub)
+    // Issue créée depuis une tâche Basecamp ou une carte Trello (seule écriture vers GitHub)
     const b = body(req) || {}
     const mod = acc(req, b.account)
     const title = String(b.title || '')
@@ -619,6 +695,11 @@ async function apiWrite(req: Req, method: string): Promise<Res> {
       .slice(0, 256)
     if (!mod) return err(req, 404, 'compte inconnu')
     if (!title) return err(req, 422, 'Il faut un titre.')
+    // Repos choisis pour l'outil (Réglages) : le serveur l'impose, pas seulement la page.
+    const text = String(b.body || '')
+    const tool = BC_LINK.test(text) ? 'basecamp' : TR_LINK.test(text) ? 'trello' : null
+    if (tool && !accounts.repoAllowed(tool, String(b.repo || '')))
+      return err(req, 422, `Ce repo n'est pas choisi pour ${tool === 'basecamp' ? 'Basecamp' : 'Trello'} : Réglages → ${tool === 'basecamp' ? 'Basecamp' : 'Trello'}.`)
     let made
     try {
       made = await mod.createIssue(b.repo, title, String(b.body || '').slice(0, 60000))
@@ -766,6 +847,9 @@ export function start(): void {
   backup.startAuto()
   updates.start()
   basecamp.start()
+  trello.start()
+  // issues liées : lues seulement si Basecamp ou Trello sert
+  setIssueSources(() => ({ basecamp: basecamp.active(), trello: trello.active() }))
   const connected = accounts.allMods().filter((m) => m.token())
   console.log(connected.length ? `ℹ GitHub : ${connected.length} compte(s) connecté(s)` : 'ℹ GitHub non connecté — Réglages → Compte')
   accounts.kickoffAll() // premier fetch au démarrage : la page n'attend pas

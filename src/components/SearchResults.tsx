@@ -4,6 +4,7 @@ import type { LocalData, LocalRepo } from '../lib/local'
 import type { CustomTab, FlatLink, Health, InfoGroup, InfoItem, RepoItem, ReposConfig } from '../types'
 import type { Visit } from '../lib/visits'
 import type { BcFound } from '../lib/basecamp'
+import type { TrFound } from '../lib/trello'
 import Favicon from './Favicon'
 import SearchPreview from './SearchPreview'
 
@@ -27,6 +28,8 @@ export type Hit =
   | { kind: 'cmd'; key: string; cmd: Command }
   /** Basecamp : une de mes tâches, ou un résultat de la recherche dans tout Basecamp. */
   | { kind: 'bc'; key: string; item: BcFound }
+  /** Trello : une de mes cartes, ou un résultat de la recherche Trello. */
+  | { kind: 'tr'; key: string; item: TrFound }
 
 /** Type Basecamp → icône et nom, pour la ligne et la carte. */
 export const BC_TYPES: Record<string, [string, string]> = {
@@ -41,6 +44,7 @@ export const BC_TYPES: Record<string, [string, string]> = {
   Todolist: ['📋', 'liste'],
 }
 export const BC_COLOR = '#2da562'
+export const TR_COLOR = '#0079bf'
 
 export type Command = {
   id: string
@@ -83,6 +87,15 @@ export function plainHit(hit: Hit): {
         action: 'Ouvrir dans Basecamp',
       }
     }
+    case 'tr':
+      return {
+        icon: '📋',
+        name: hit.item.title,
+        sub: [hit.item.board, hit.item.parent].filter(Boolean).join(' › '),
+        chip: hit.item.mine ? 'ma carte' : 'Trello',
+        color: TR_COLOR,
+        action: 'Ouvrir sur Trello',
+      }
     default:
       return null
   }
@@ -114,6 +127,9 @@ type Props = {
   onBcShow?: (item: BcFound) => void
   /** Basecamp : la fiche de la tâche (ses échanges), ouverte sur le commentaire trouvé. */
   onBcView?: (item: BcFound) => void
+  onTrIssue?: (item: TrFound) => void
+  onTrShow?: (item: TrFound) => void
+  onTrView?: (item: TrFound) => void
 }
 
 export default function SearchResults({
@@ -139,6 +155,9 @@ export default function SearchResults({
   onBcIssue,
   onBcShow,
   onBcView,
+  onTrIssue,
+  onTrShow,
+  onTrView,
 }: Props) {
   if (hits.length === 0) {
     return (
@@ -351,6 +370,9 @@ export default function SearchResults({
         onBcIssue={onBcIssue}
         onBcShow={onBcShow}
         onBcView={onBcView}
+        onTrIssue={onTrIssue}
+        onTrShow={onTrShow}
+        onTrView={onTrView}
       />
     </div>
   )

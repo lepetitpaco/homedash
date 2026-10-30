@@ -296,6 +296,7 @@ export function normalizeConfig(raw: Config): Normalized {
     github: featureOn(raw, 'github'),
     basecamp: featureOn(raw, 'basecamp'),
     local: featureOn(raw, 'local'),
+    trello: featureOn(raw, 'trello'),
   }
   const has = {
     infos: !!infos,

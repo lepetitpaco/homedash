@@ -55,7 +55,7 @@ export default function SetupCard({ steps, onHide, onFeatures }: Props) {
         ))}
       </ol>
       <p className="setup-foot">
-        Tu ne te sers pas de GitHub, de Basecamp ou de tes dossiers de code ?{' '}
+        Tu ne te sers pas de GitHub, de Basecamp, de Trello ou de tes dossiers de code ?{' '}
         <button className="setup-link" onClick={onFeatures}>
           Décoche-les dans Fonctionnalités
         </button>{' '}
