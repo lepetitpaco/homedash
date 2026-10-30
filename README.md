@@ -1,7 +1,7 @@
 # homedash
 
 Ta page d'accueil de bureau : tes liens et notes, ton code (GitHub et dépôts locaux), Basecamp, et tes
-sites (Gmail, Chat, Claude…) dans une barre façon Discord, avec leurs non-lus. Pour Mac et Windows,
+sites (Gmail, Chat, Claude…) dans une barre à gauche, avec leurs non-lus. Pour Mac et Windows,
 mise à jour automatique.
 
 ![homedash : un site ouvert dans l'appli, barre de gauche et non-lus](docs/screenshots/site-dans-un-onglet.jpg)
