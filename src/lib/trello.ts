@@ -102,6 +102,9 @@ export type TrStatus = {
   error: string | null
 }
 
+/** Réglages → Trello prévient la page qu'une connexion a changé : l'onglet apparaît sans attendre. */
+export const TR_CHANGED = 'homedash:trello-changed'
+
 export function useTrello(foreground: boolean) {
   const [data, setData] = useState<TrData | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -148,6 +151,10 @@ export function useTrello(foreground: boolean) {
   }, [])
 
   const reload = useCallback(() => setPulse((p) => p + 1), [])
+  useEffect(() => {
+    window.addEventListener(TR_CHANGED, reload)
+    return () => window.removeEventListener(TR_CHANGED, reload)
+  }, [reload])
   return { data, error, refresh, reload }
 }
 

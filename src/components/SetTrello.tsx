@@ -7,6 +7,7 @@ import {
   trForget,
   trSetKey,
   trStatus,
+  TR_CHANGED,
   type TrStatus,
 } from '../lib/trello'
 import { confirmDialog } from './ConfirmHost'
@@ -25,6 +26,12 @@ export default function SetTrello() {
   const [error, setError] = useState('')
   const [editing, setEditing] = useState(false)
 
+  /** Nouvel état : affiché ici, et annoncé à la page (onglet Trello). */
+  const apply = (next: TrStatus) => {
+    setSt(next)
+    window.dispatchEvent(new Event(TR_CHANGED))
+  }
+
   const load = () => {
     trStatus()
       .then(setSt)
@@ -37,7 +44,7 @@ export default function SetTrello() {
     setError('')
     trSetKey(key.trim())
       .then((next) => {
-        setSt(next)
+        apply(next)
         setKey('')
         setEditing(false)
       })
@@ -59,7 +66,7 @@ export default function SetTrello() {
     setError('')
     trConnect(token.trim())
       .then((next) => {
-        setSt(next)
+        apply(next)
         setToken('')
       })
       .catch((e: unknown) => setError(shown('Trello', e)))
@@ -78,7 +85,7 @@ export default function SetTrello() {
       if (!ok) return
       setBusy(true)
       trDisconnect()
-        .then(setSt)
+        .then(apply)
         .catch((e: unknown) => setError(shown('Trello', e)))
         .finally(() => setBusy(false))
     })
@@ -94,7 +101,7 @@ export default function SetTrello() {
       if (!ok) return
       setBusy(true)
       trForget()
-        .then(setSt)
+        .then(apply)
         .catch((e: unknown) => setError(shown('Trello', e)))
         .finally(() => setBusy(false))
     })
@@ -106,7 +113,7 @@ export default function SetTrello() {
   return (
     <div className="set-connect">
       <p className="set-hint">
-        🔒 <strong>Lecture seule</strong> : homedash lit tes cartes assignées et tes notifications non lues, et
+        🔒 <strong>Lecture seule</strong> : homedash lit tes tableaux, tes cartes et tes notifications non lues, et
         n'affiche que des liens. Il ne coche rien, ne marque rien comme lu et ne poste un commentaire sur une carte
         que lorsque tu publies le rapport d'une issue.
       </p>
@@ -166,10 +173,13 @@ export default function SetTrello() {
                 <a href={ADMIN} target="_blank" rel="noreferrer" data-outside>
                   trello.com/power-ups/admin
                 </a>{' '}
-                (connecté à ton Trello), crée un Power-Up au nom <code>homedash</code> s'il n'existe pas.
+                (connecté à ton Trello) et crée une application <code>homedash</code> : coche{' '}
+                <em>« n'utilise pas les fonctionnalités Power-up »</em>, visibilité <em>confidentielle</em>. Aucune URL ni
+                callback à remplir.
               </li>
               <li>
-                Onglet <em>API key</em> : génère une clé et colle-la ci-dessous, puis <strong>Enregistrer la clé</strong>.
+                Onglet <em>Clé API</em> : génère la clé, colle-la ci-dessous, puis <strong>Enregistrer la clé</strong>. Le{' '}
+                <em>secret</em> ne sert pas.
               </li>
               <li>
                 Clique <strong>Se connecter à Trello</strong> et autorise. Trello affiche un jeton : copie-le dans le
