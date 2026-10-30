@@ -38,10 +38,10 @@ devient un réglage.
 
 **Une vague = une branche, un push = une version.** On travaille sur une branche locale (`vague/<sujet>`)
 et on y commite librement, sans toucher au `CHANGELOG.md` ni aux versions. Une fois la vague testée :
-retour sur `main`, synchronisation (ci-dessous), **une** entrée de CHANGELOG pour toute la vague, fusion,
-tag, push. Trois commits poussés ensemble = une seule version, jamais une par commit.
+pull request vers `main`, approuvée par le propriétaire du dépôt (CODEOWNERS), puis **une** entrée de
+CHANGELOG pour toute la vague et le tag. Trois commits poussés ensemble = une seule version, jamais une par commit.
 
-**Avant de pousser sur `main`** (chacun pousse directement) :
+**Avant la pull request** (on ne pousse plus directement sur `main`) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
   `CHANGELOG.md` **après** synchronisation, et un tag déjà pris ne se réutilise pas.
 - Typecheck et tests au vert (commandes ci-dessous) ; page testée à la main si l'écran change.
@@ -75,6 +75,24 @@ tag, push. Trois commits poussés ensemble = une seule version, jamais une par c
   `documentation` (doc seulement). `accessibility` est réservée à l'accès des personnes en situation de
   handicap, pas à l'ergonomie. Une issue ouverte par quelqu'un d'autre sans étiquette : on la lui donne.
 
+## Depuis la 1.x (transition 2.0)
+
+La 1.x (serveur Python dans Docker, `backend/`, `tests/*.py`) **n'existe plus**. Une demande, une branche
+ou une doc qui parle de `backend/*.py`, de `docker compose up` sur :7777 ou de `git pull` pour mettre à
+jour vient de la 1.x : traduis-la vers la 2.0 au lieu de la recréer.
+
+| 1.x | 2.0 |
+| --- | --- |
+| `backend/<x>.py` | `server/<x>.ts` (mêmes routes, mêmes fichiers dans `data/`) |
+| `tests/test_<x>.py` | `tests-ts/<x>.test.ts` (Vitest) |
+| `docker compose up` sur :7777 | dev : `docker-compose.dev.yml` sur :7778 ; utilisateurs : l'appli |
+| `git pull` pour mettre à jour | tag `vX.Y.Z` → Release → mise à jour dans l'appli |
+
+Exemple de portage : Trello (PR #65), du Python vers `server/trello.ts` sur le modèle de `server/basecamp.ts`.
+L'historique de `main` a été réécrit (e-mails retirés) : une ancienne branche locale se reprend par
+cherry-pick sur `origin/main`, jamais par merge. Un utilisateur qui ne développe pas n'a besoin que de
+l'appli : [docs/MIGRATION-2.0.md](docs/MIGRATION-2.0.md).
+
 ## Commandes
 
 Node n'est pas requis sur l'hôte, tout passe par Docker :
@@ -99,7 +117,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
    `readSync`, `lstat`), sans sous-processus ni commande git (même `git status` écrit). Les commandes
    affichées sont du texte à copier. Testé contre git (`tests-ts/gitread.test.ts`).
 3. **« 🗑 à supprimer » exige `safety.level` dans `SAFE_LEVELS`** (contenu présent ailleurs). Jamais de
-   suppression sur la branche courante ni une protégée. `_commands()` filtre sur `delete`. Testé.
+   suppression sur la branche courante ni une protégée. `localgit.commands()` filtre sur `delete`. Testé.
 4. **Basecamp est en lecture seule, à une exception.** `basecamp.ts` lit par GET (`apiGet`) ; l'échange
    de jeton POSTe vers Launchpad ; seule écriture : `publishReport()`, le rapport d'une issue liée en
    commentaire de sa tâche, au clic, une fois par rapport, texte et tâche lus par le serveur (jamais
@@ -131,7 +149,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Une instance `GitHubAccount` **par compte** (`accounts.configure`) : pas d'état partagé entre
   comptes. `localgit` importe `accounts` sous le nom `github` (même API, agrégée).
 - Repos écrits `propriétaire/repo` ; `configure()` les ramène au nom court (clé partout) et garde le
-  propriétaire dans `_OWNERS`. Deux repos de même nom ne peuvent donc pas être suivis ensemble.
+  propriétaire dans `owners`. Deux repos de même nom ne peuvent donc pas être suivis ensemble.
 - Le cache ETag est vital : sans lui ~16 800 appels/h pour un plafond de 5 000. Les 304 sont gratuits.
 - Attribution d'une branche : PR dont `head.ref` == branche, puis auteurs des commits propres, puis auteur
   du tip si déjà mergée. **Jamais** de filtrage par préfixe de nom.
@@ -203,17 +221,17 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Chaque site chargé dans l'appli = un processus de 100 à 400 Mo : montés au démarrage seulement si
   `preloads()` (sites à non-lus), sinon au premier clic ; `sleep` les décharge.
 - Sondages : arrêt page cachée (`usePageVisible`), et `sameOr()` (pas de `setData` si rien n'a changé :
-  sinon toute la page se redessine). GitHub sans page : `accounts._slow_loop` (3 min).
-- `github.remote_version()` ne bouge que si le distant change : chaque nouvelle version relance un
+  sinon toute la page se redessine). GitHub sans page : `accounts.SLOW_EVERY` (3 min).
+- `accounts.remoteVersion()` ne bouge que si le distant change : chaque nouvelle version relance un
   scan Local complet du disque.
-- Une écriture de config déclenche `reload_all()` (relecture GitHub) : ne pas écrire à chaque
+- Une écriture de config déclenche `reloadAll()` (relecture GitHub) : ne pas écrire à chaque
   navigation (cf. éphémères gardés).
 
 **Front**
 - Erreurs : jamais de jargon à l'écran (nom de fichier, code HTTP, `Failed to fetch`). `shown(où, e)`
   (`src/lib/errors.ts`) donne la phrase lisible et note le détail au journal (`errlog.ts`,
   Réglages → Aide → Journal d'erreurs). Serveur injoignable = passager : la page réessaie seule.
-- `reload_all()` est le seul chemin après une écriture de config côté serveur.
+- `reloadAll()` est le seul chemin après une écriture de config côté serveur.
 - Tout déclenchement manuel du polling relance la boucle (`pulse`), pas seulement `load()`.
 - Couleurs de signal via `--sig-*` (lisibles en thème clair) ; pas de teinte claire en dur dans `color:`.
 - Champs login/jeton : `autoComplete="off"` + `data-1p-ignore` / `data-bwignore` / `data-lpignore`.

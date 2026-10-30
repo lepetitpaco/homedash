@@ -69,8 +69,7 @@ même sans aucun site : son **＋** ajoute le premier.
 
 ## 💻 Appli de bureau
 
-homedash dans sa propre fenêtre, sur Mac et Windows. Depuis la 2.0, l'appli **est** homedash : elle
-contient tout, sans Docker. Elle n'ouvre aucun port ; tes données sont dans
+homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; tes données sont dans
 `~/Library/Application Support/homedash/data` (Mac) ou `%APPDATA%\homedash\data` (Windows).
 
 ![Clic droit sur un lien, dans un site](docs/screenshots/clic-droit-sur-un-lien.jpg)
@@ -95,18 +94,9 @@ contient tout, sans Docker. Elle n'ouvre aucun port ; tes données sont dans
 
 #### Installer et mettre à jour
 
-- **Installer** : télécharge l'appli sur la page des
-  [versions](https://github.com/lepetitpaco/homedash/releases/latest) : le `.dmg` sur Mac (`arm64` pour
-  Apple Silicon, `x64` pour Intel), le `setup.exe` sous Windows. Elle n'est pas signée : au premier
-  lancement, macOS la bloque. Clique *Terminé*, puis *Réglages Système → Confidentialité et sécurité*,
-  tout en bas : *Ouvrir quand même*. Windows prévient aussi (*Informations complémentaires → Exécuter
-  quand même*). Une seule fois : les mises à jour passent ensuite sans rien demander.
-- **Tu avais homedash avec Docker** : au premier lancement, l'appli propose de reprendre ses données
-  (le dossier `data` du projet). Elles sont **copiées**, l'original n'est pas touché. Ensuite, arrête
-  l'ancien container (`docker compose down` dans le dossier du projet).
-- **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli télécharge
-  la nouvelle version, vérifie qu'elle n'a pas été abîmée, sauvegarde tes données, puis se remplace et se
-  relance. Rien d'autre à télécharger.
+- **Installer** : voir le [README](README.md#installer) (une autorisation au premier lancement, une seule fois).
+- **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli
+  télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance.
 - **Ouvrir homedash dans un navigateur** : *Réglages → Affichage → Accès depuis le navigateur*, puis
   **http://localhost:7777**, tant que l'appli tourne. Désactivé par défaut.
 
@@ -162,11 +152,13 @@ version).
 
 Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
-![L'onglet GitHub](docs/screenshots/12-github.jpg)
+![L'onglet GitHub](docs/screenshots/github.jpg)
 
 - **GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) : 🌿 branches actives avec leur
   PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir).
 - **Local** : tes clones, branche par branche, avec un verdict.
+
+![L'onglet Local](docs/screenshots/local.jpg)
 
 | Verdict | Ce que ça veut dire |
 | --- | --- |
@@ -189,60 +181,32 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 ## 🏕 Basecamp
 
 Tes tâches Basecamp sans ouvrir Basecamp. **Lecture seule** : homedash ne coche rien et ne poste que
-les rapports d'issues que tu publies (ci-dessous).
+les rapports que tu publies.
 
-![L'onglet Basecamp](docs/screenshots/13-basecamp.jpg)
+![L'onglet Basecamp](docs/screenshots/basecamp.jpg)
 
-- **🔥 À traiter** : tout ce qui est en retard ou dû dans les 7 jours.
-- **Un projet** (à gauche) : ses tableaux et ses to-dos. Les pastilles du haut masquent un projet.
-- **Se connecter** (une fois, pas besoin d'être admin) : le pas-à-pas est dans *Réglages → Basecamp*.
-  Dans l'appli, *Se connecter à Basecamp* ouvre une fenêtre : autorise, c'est tout. Le jeton se
-  renouvelle ensuite tout seul.
+- **🔥 À traiter** : ce qui est en retard ou dû dans les 7 jours. À gauche, un projet : ses tableaux et to-dos.
+- **Se connecter** (une fois, pas besoin d'être admin) : pas-à-pas dans *Réglages → Basecamp*.
+- **Lire une tâche** : 💬 au survol (ou clic droit → *Voir la tâche et ses échanges*) : description,
+  étapes, issues liées, échanges avec leurs captures.
 
-**Lire une tâche sans ouvrir Basecamp** : 💬 au survol (ou clic droit → *Voir la tâche et ses
-échanges*) ouvre sa fiche : description, étapes, issues liées, et tous les échanges, le plus récent en
-haut, captures affichées. **🐙 issue sur cet échange** en fait une issue : le commentaire devient la demande, la tâche le
-contexte. La recherche y mène aussi (**💬 Voir la tâche**, ou l'échange trouvé).
+#### D'une tâche à une issue GitHub, et retour
 
-**D'une tâche à une issue GitHub, et retour** (homedash n'écrit que l'issue que tu crées, et le rapport
-que tu publies) :
+1. **Créer l'issue** : 🐙＋ au survol d'une tâche (ou clic droit, ou *🐙 issue sur cet échange* dans sa
+   fiche). Choisis le repo (retenu pour ce projet), complète le *Besoin*, coche les échanges à inclure,
+   puis **Créer sur GitHub** (⌘ Entrée). *Ouvrir le formulaire* passe plutôt par github.com.
+2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
+   colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
+   (`<!-- homedash:bc-report -->`), fermer l'issue.
+3. **Publier le rapport** : la cloche sonne (*📤 Rapport prêt*). **📤 publier sur BC**, à côté de la
+   tâche ou dans **🐙 Issues GitHub**, le poste en commentaire de la tâche, à ton nom, une seule fois.
+   ✕ écarte une issue sans rien envoyer.
 
-1. **🐙＋ au survol d'une tâche** (ou clic droit → *Créer une issue GitHub…*) : une fenêtre propose le
-   repo, le titre de la tâche et un champ *Besoin*. Le repo choisi est retenu pour le projet Basecamp :
-   la fois suivante, il est déjà sélectionné. Si la tâche a déjà une issue ouverte, la fenêtre le
-   signale. **Créer sur GitHub** (ou ⌘ Entrée) la crée aussitôt avec le compte GitHub de homedash (pas
-   besoin d'être connecté à github.com), et elle apparaît tout de suite sur la tâche ; **Ouvrir le
-   formulaire** ouvre plutôt celui de GitHub, pré-rempli (dans l'appli de bureau, **↗ navigateur**
-   l'ouvre dans ton navigateur, où tu es connecté à GitHub). Le *Besoin* reprend la description, les
-   étapes de la tâche (une capture y devient un lien 🖼 vers Basecamp, ouvrable seulement connecté à
-   Basecamp) ; dessous, **ses échanges, une case chacun** : seuls ceux cochés vont dans l'issue (les 5
-   plus récents le sont d'office, *tout* / *aucun* pour aller vite). Le lien vers la tâche est ajouté
-   tout seul. Marche aussi au
-   clic droit sur un lien de tâche dans le site Basecamp de l'appli.
-2. **Donne l'issue à Claude Code** : à la création, une commande est copiée toute seule, par exemple
-   `cd ~/dev/api && claude '…'` ; colle-la dans un terminal, Claude Code démarre dans le repo avec
-   l'issue. (Si le repo n'est pas cloné dans un dossier de l'onglet Local, c'est le prompt seul qui
-   est copié, à coller dans Claude Code.) La consigne est dans l'issue : tirer de la conversation
-   Basecamp le vrai besoin et la solution, reformulés en termes techniques (en commentaire de l'issue
-   si ce n'est pas limpide), lui donner ses étiquettes (parmi celles du repo), faire le travail, poster un
-   commentaire de rapport qui commence par `<!-- homedash:bc-report -->`, puis fermer l'issue.
-3. **La cloche sonne quand le rapport est prêt** (*📤 Rapport prêt*) ; un clic ouvre **🐙 Issues
-   GitHub**. **📤 publier sur BC** apparaît aussi à côté de la tâche (et dans **🐙 Issues GitHub**, à gauche, avec le
-   rapport à relire) : un clic, une confirmation, et le rapport est posté en commentaire de la tâche, à
-   ton nom (ceux qui la suivent sont notifiés). Le bouton devient *✓ publié*, lien vers le commentaire.
-   Un rapport ne part qu'une fois ; publié, l'issue disparaît de la tâche et de la liste.
-   **▶ prompt de départ** (sur chaque issue ouverte de **🐙 Issues GitHub**) recopie ce qui a été copié
-   à la création, si tu ne l'as pas collé tout de suite.
-   **📝 rapport final** (sur chaque issue de **🐙 Issues GitHub**, terminées comprises) : tes précisions
-   (facultatives : « insiste sur… », « ne parle pas de… »), puis **Copier le prompt** ; colle-le dans la
-   session Claude Code qui a fait le travail : il vérifie tout, poste le rapport final et ferme l'issue. Le dernier
-   rapport posté fait foi : il remplace le précédent et redevient publiable, même si l'ancien l'a été.
-4. **Pas de rapport à publier ?** ✕ écarte l'issue sans rien envoyer. Une issue **fermée sans rapport**
-   est écartée d'office (abandonnée). Les terminées se retrouvent avec *afficher les terminées*, en bas
-   de **🐙 Issues GitHub** ; *rétablir* y remet une issue écartée.
+Dans **🐙 Issues GitHub** : *▶ prompt de départ* recopie la commande ; *📝 rapport final* donne un prompt
+pour faire réécrire le rapport ; *afficher les terminées* et *rétablir* retrouvent les issues écartées.
 
-Le jeton GitHub doit pouvoir lire les issues (*Issues : Read-only* pour un jeton fine-grained), et les
-écrire pour *Créer sur GitHub* (*Issues : Read and write* ; un jeton classic `repo` le fait déjà).
+Le jeton GitHub doit pouvoir lire les issues, et les écrire pour *Créer sur GitHub* (*Issues : Read and
+write* en fine-grained ; un jeton classic `repo` suffit).
 
 ## 🔎 Recherche
 
@@ -317,13 +281,13 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | --- | --- |
 | « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, quitte et relance l'appli |
 | « homedash n'a pas pu démarrer » | Le serveur de l'appli s'est arrêté : quitte et relance homedash. Si ça recommence, *Aide → Signaler un problème* |
-| Accès navigateur : « le port 7777 est déjà pris » | L'ancien homedash Docker tourne encore : `docker compose down` dans son dossier |
+| Accès navigateur : « le port 7777 est déjà pris » | Un autre programme l'utilise (un ancien homedash ?) : ferme-le |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
 | Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion*, le pas-à-pas « Comment créer un jeton » y est ouvert |
 | Un repo n'est pas proposé | Repo d'un collègue où tu es collaborateur : onglet *Partagés avec toi*. Sinon le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
 | Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dossier personnel, ou 💽 ailleurs sur le disque) |
 | Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
-| Des lettres au lieu des icônes | *Réglages → Affichage → Favicons* doit être coché |
+| Des lettres au lieu des icônes | *Réglages → Affichage → Icônes des sites* doit être coché |
 | Un site boude (captcha refusé, page qui tourne en boucle) | Clic droit sur son icône → *Effacer les données de ce site*, puis reconnecte-toi. Sinon ↗ l'ouvre dans ton navigateur |
 | Rien sur l'icône du Dock | *Pastilles de l'app* désactivé dans macOS : voir *Notifications* ci-dessus |
 

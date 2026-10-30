@@ -12,3 +12,6 @@ sa prochaine mise à jour. On continue ? » N'écris rien sans un « oui » expl
 
 Une vague de travail = une branche locale ; un push = une seule version dans CHANGELOG.md (et un tag),
 écrite au moment de fusionner, jamais une par commit.
+
+La 1.x (Python, `backend/`, Docker sur :7777) n'existe plus : tout le serveur est dans `server/*.ts`.
+Une demande qui parle de la 1.x se traduit vers la 2.0 (voir « Depuis la 1.x » dans @CLAUDE.md).

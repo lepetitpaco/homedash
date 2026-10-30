@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>homedash</title>
+  <meta name="description" content="Ta page d'accueil de bureau : liens, notes, GitHub, Basecamp et tes sites avec leurs non-lus. Pour Mac et Windows.">
+  <link rel="icon" href="icon.png">
+  <style>
+    :root {
+      --bg: #0a0b10; --panel: #12141c; --line: #232634; --text: #e8e9ef; --muted: #9096a8;
+      --accent: #7c6cff; --accent2: #4ea1ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", sans-serif; }
+    a { color: var(--accent2); }
+    .wrap { max-width: 1120px; margin: 0 auto; padding: 0 20px; }
+    header { padding: 72px 0 40px; text-align: center; background: radial-gradient(60% 80% at 50% 0%, #2a2160 0%, transparent 70%); }
+    .logo { width: 72px; height: 72px; border-radius: 18px; }
+    h1 { font-size: clamp(36px, 6vw, 56px); margin: 16px 0 8px; letter-spacing: -0.02em; }
+    .lead { font-size: clamp(17px, 2.2vw, 20px); color: var(--muted); max-width: 680px; margin: 0 auto 28px; }
+    .dl { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 13px 22px; border-radius: 12px; font-weight: 600;
+      text-decoration: none; color: var(--text); background: var(--panel); border: 1px solid var(--line); }
+    .btn.main { background: linear-gradient(135deg, var(--accent), var(--accent2)); border: 0; color: #fff; }
+    .small { color: var(--muted); font-size: 14px; margin-top: 12px; }
+    .hero-shot { margin: 40px auto 0; border-radius: 14px; border: 1px solid var(--line); box-shadow: 0 30px 80px #0008; width: 100%; display: block; }
+    section { padding: 56px 0; border-top: 1px solid var(--line); }
+    h2 { font-size: 28px; margin: 0 0 24px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .card { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; overflow: hidden; }
+    .card img { width: 100%; display: block; border-bottom: 1px solid var(--line); }
+    .card div { padding: 14px 18px 18px; }
+    .card h3 { margin: 0 0 4px; font-size: 18px; }
+    .card p { margin: 0; color: var(--muted); font-size: 15px; }
+    ol { padding-left: 20px; } ol li { margin: 8px 0; }
+    .os { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; }
+    .os .card div { padding: 18px; }
+    kbd { background: #1d2030; border: 1px solid var(--line); border-radius: 5px; padding: 1px 6px; font-size: 14px; }
+    footer { padding: 32px 0 48px; color: var(--muted); font-size: 14px; text-align: center; border-top: 1px solid var(--line); }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <img class="logo" src="icon.png" alt="">
+      <h1>homedash</h1>
+      <p class="lead">Ta page d'accueil de bureau : tes liens et notes, ton code, Basecamp, et tes sites
+        (Gmail, Chat, Claude…) avec leurs non-lus, dans une seule appli.</p>
+      <div class="dl">
+        <a class="btn main" id="dl-main" href="https://github.com/lepetitpaco/homedash/releases/latest">Télécharger</a>
+        <a class="btn" id="dl-other" href="https://github.com/lepetitpaco/homedash/releases/latest">Autres versions</a>
+      </div>
+      <p class="small" id="dl-note">Mac (Apple Silicon et Intel) et Windows · gratuit · mise à jour automatique</p>
+      <img class="hero-shot" src="screenshots/site-dans-un-onglet.jpg" alt="Un site ouvert dans homedash, avec la barre de gauche et les non-lus">
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <h2>Tout au même endroit</h2>
+      <div class="grid">
+        <div class="card"><img src="screenshots/accueil.jpg" alt="" loading="lazy"><div><h3>Raccourcis</h3><p>Tes liens, les plus utilisés, des notes, les infos à copier (Wi-Fi, IP…).</p></div></div>
+        <div class="card"><img src="screenshots/github.jpg" alt="" loading="lazy"><div><h3>GitHub</h3><p>Tes branches, PRs et CI, sur un ou plusieurs comptes.</p></div></div>
+        <div class="card"><img src="screenshots/local.jpg" alt="" loading="lazy"><div><h3>Ton disque</h3><p>Les branches qui peuvent partir sans risque. Rien n'est modifié : les commandes sont à copier.</p></div></div>
+        <div class="card"><img src="screenshots/basecamp.jpg" alt="" loading="lazy"><div><h3>Basecamp</h3><p>Tes tâches en retard ou à venir ; une tâche devient une issue GitHub.</p></div></div>
+        <div class="card"><img src="screenshots/cloche.jpg" alt="" loading="lazy"><div><h3>La cloche</h3><p>CI cassée ou réparée, PR mergée, message Basecamp, nouvelle version.</p></div></div>
+        <div class="card"><img src="screenshots/recherche.jpg" alt="" loading="lazy"><div><h3>Recherche</h3><p><kbd>/</kbd> ou <kbd>⌘K</kbd> : liens, sites, repos, tâches, notes… et le web.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Installer</h2>
+      <div class="os">
+        <div class="card"><div>
+          <h3>Mac</h3>
+          <ol>
+            <li>Ouvre le <code>.dmg</code> et glisse homedash dans <b>Applications</b>.</li>
+            <li>Au premier lancement, macOS prévient : clique <b>Terminé</b>.</li>
+            <li><i>Réglages Système → Confidentialité et sécurité</i>, tout en bas : <b>Ouvrir quand même</b>.</li>
+          </ol>
+          <p>Une seule fois : l'appli n'est pas signée par Apple. Les mises à jour passent ensuite toutes seules.</p>
+        </div></div>
+        <div class="card"><div>
+          <h3>Windows</h3>
+          <ol>
+            <li>Lance le <code>setup.exe</code>.</li>
+            <li>« Windows a protégé votre ordinateur » : <b>Informations complémentaires</b>.</li>
+            <li><b>Exécuter quand même</b>.</li>
+          </ol>
+          <p>Ensuite, la carte <i>Pour commencer</i> de l'accueil te guide pas à pas.</p>
+        </div></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Tes données restent chez toi</h2>
+      <div class="grid">
+        <div class="card"><div><h3>Rien n'est collecté</h3><p>Ni compte, ni statistiques, ni pisteur. Tout reste sur ta machine, sauvegardé chaque jour. <a href="https://github.com/lepetitpaco/homedash/blob/main/PRIVACY.md">Le détail</a>.</p></div></div>
+        <div class="card"><div><h3>Jetons protégés</h3><p>Tes accès GitHub et Basecamp ne quittent jamais l'appli.</p></div></div>
+        <div class="card"><div><h3>Rien sans toi</h3><p>homedash lit, il ne modifie rien : ni tes dossiers, ni tes tâches, sauf ce que tu publies toi-même.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      <a href="https://github.com/lepetitpaco/homedash">Code source</a> ·
+      <a href="https://github.com/lepetitpaco/homedash/blob/main/GUIDE.md">Mode d'emploi</a> ·
+      <a href="https://github.com/lepetitpaco/homedash/blob/main/CHANGELOG.md">Nouveautés</a> ·
+      <a href="https://github.com/lepetitpaco/homedash/blob/main/PRIVACY.md">Confidentialité</a> ·
+      <a href="https://github.com/lepetitpaco/homedash/issues/new">Signaler un problème</a> ·
+      <a href="https://github.com/lepetitpaco/homedash/blob/main/DEVELOPING.md">Développer</a>
+    </div>
+  </footer>
+
+  <script>
+    // Le bon fichier pour cette machine, d'après la dernière Release.
+    (async () => {
+      const ua = navigator.userAgent
+      const win = /Windows/.test(ua)
+      const mac = /Mac/.test(ua)
+      if (!win && !mac) return
+      let arm = false
+      try {
+        const hint = await navigator.userAgentData?.getHighEntropyValues?.(['architecture'])
+        arm = hint?.architecture === 'arm'
+      } catch {}
+      // Safari ne dit pas l'architecture : un Mac récent est Apple Silicon
+      if (mac && !navigator.userAgentData) arm = true
+      try {
+        const res = await fetch('https://api.github.com/repos/lepetitpaco/homedash/releases/latest')
+        if (!res.ok) return
+        const rel = await res.json()
+        const want = win ? /setup\.exe$/ : arm ? /arm64\.dmg$/ : /x64\.dmg$/
+        const asset = (rel.assets || []).find((a) => want.test(a.name))
+        if (!asset) return
+        const main = document.getElementById('dl-main')
+        main.href = asset.browser_download_url
+        main.textContent = `Télécharger pour ${win ? 'Windows' : arm ? 'Mac (Apple Silicon)' : 'Mac (Intel)'}`
+        document.getElementById('dl-note').textContent = `Version ${rel.tag_name.replace(/^v/, '')} · gratuit · mise à jour automatique`
+      } catch {}
+    })()
+  </script>
+</body>
+</html>
