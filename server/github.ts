@@ -230,6 +230,9 @@ export function groupByVersion(items: any[]): { version: string; items: any[]; g
 export const BC_LINK = /<!--\s*homedash:bc\s+(https?:\/\/\S+?)\s*-->/
 /** Le rapport à reporter sur la tâche commence par `<!-- homedash:bc-report -->`. */
 const BC_REPORT = /^\s*<!--\s*homedash:bc-report\s*-->\s*/
+/** Même chose pour une carte Trello. Listes et événements séparés : une issue Basecamp ne change pas de sens. */
+export const TR_LINK = /<!--\s*homedash:tr\s+(https?:\/\/\S+?)\s*-->/
+const TR_REPORT = /^\s*<!--\s*homedash:tr-report\s*-->\s*/
 /** Issues relues par repo, les plus récemment modifiées. */
 const BC_ISSUES_SCAN = 100
 
@@ -252,6 +255,23 @@ export function bcReport(comments: any[] | null | undefined): Record<string, unk
   return null
 }
 
+/** Dernier commentaire-rapport Trello, marqueur retiré ; null s'il n'y en a pas. */
+export function trReport(comments: any[] | null | undefined): Record<string, unknown> | null {
+  for (const c of [...(comments || [])].reverse()) {
+    const body: string = c.body || ''
+    if (TR_REPORT.test(body)) {
+      return {
+        id: c.id ?? null,
+        url: c.html_url || '',
+        body: body.replace(TR_REPORT, '').trim(),
+        author: c.user?.login || '',
+        ts: c.updated_at || c.created_at || '',
+      }
+    }
+  }
+  return null
+}
+
 /** GitHub refuse la création : jeton en lecture seule, ou repo sans issues. */
 export class CannotWrite extends Error {}
 
@@ -259,9 +279,17 @@ const prKey = (p: any) => `${p.repo}#${p.number}`
 const byKey = (items: any[] | undefined) => new Map((items || []).map((p) => [prKey(p), p]))
 const ciState = (p: any) => p?.ci?.state
 
+type Sources = { basecamp: boolean; trello: boolean }
+/** Outils actifs (Basecamp, Trello), relus à chaque passe : sans eux, la section `issues` ne lit rien. */
+let issueSources: () => Sources = () => ({ basecamp: true, trello: true })
+
+export function setIssueSources(fn: () => Sources): void {
+  issueSources = fn
+}
+
 export const SECTIONS = ['branches', 'prs', 'renovate', 'merged', 'issues'] as const
 
-type Data = { branches: any[]; prs: any[]; renovate: any[]; renovate_merged: any[]; merged: any[]; issues: any[] }
+type Data = { branches: any[]; prs: any[]; renovate: any[]; renovate_merged: any[]; merged: any[]; issues: any[]; tr_issues: any[] }
 
 export class GitHubAccount {
   ACCOUNT = { id: 'main', label: '' }
@@ -277,7 +305,7 @@ export class GitHubAccount {
   private remoteVer = 0
   /** Sections déjà vues, et pour quel utilisateur : la première passe ne notifie rien. */
   private seeded = { user: null as string | null, sections: new Set<string>() }
-  data: Data = { branches: [], prs: [], renovate: [], renovate_merged: [], merged: [], issues: [] }
+  data: Data = { branches: [], prs: [], renovate: [], renovate_merged: [], merged: [], issues: [], tr_issues: [] }
   private state = { ts: 0, building: false, user: null as string | null, error: null as string | null }
 
   /** Applique les réglages du compte. Rechargeable à chaud. */
@@ -716,7 +744,13 @@ export class GitHubAccount {
     return out.slice(0, count)
   }
 
-  private async fetchBcIssues(tok: string): Promise<any[]> {
+  /**
+   * Issues liées à Basecamp (`homedash:bc`) et à Trello (`homedash:tr`) : une
+   * seule liste par repo, triée ensuite. Rien n'est lu pour un outil inactif.
+   */
+  private async fetchLinkedIssues(tok: string): Promise<[any[], any[]]> {
+    const sources = issueSources()
+    if (!sources.basecamp && !sources.trello) return [[], []]
     const tasks = (
       await pmap(this.CFG.repos || [], MAX_WORKERS, async (repo: string) => {
         const items = await this.gh(`/repos/${this.owner(repo)}/${repo}/issues`, tok, {
@@ -725,41 +759,47 @@ export class GitHubAccount {
           direction: 'desc',
           per_page: BC_ISSUES_SCAN,
         })
-        const out: [string, any, string][] = []
+        const out: [string, any, string, string][] = []
         for (const it of Array.isArray(items) ? items : []) {
-          const m = BC_LINK.exec(it.body || '')
-          if (m && !it.pull_request) out.push([repo, it, m[1]])
+          if (it.pull_request) continue
+          const bc = sources.basecamp ? BC_LINK.exec(it.body || '') : null
+          const tr = sources.trello ? TR_LINK.exec(it.body || '') : null
+          if (bc || tr) out.push([repo, it, bc?.[1] || '', tr?.[1] || ''])
         }
         return out
       })
     ).flat()
-    const out = await pmap(tasks, MAX_WORKERS, async ([repo, it, bcUrl]) => {
-      let report = null
+    const found = await pmap(tasks, MAX_WORKERS, async ([repo, it, bcUrl, trUrl]) => {
+      let comments: any[] = []
       const n = it.comments || 0
       if (n) {
         // le rapport arrive en dernier : la dernière page suffit
-        const comments = await this.gh(
+        const got = await this.gh(
           `/repos/${this.owner(repo)}/${repo}/issues/${it.number}/comments`,
           tok,
           { per_page: 100, page: Math.floor((n - 1) / 100) + 1 },
           true,
           'application/vnd.github.full+json',
         )
-        report = bcReport(Array.isArray(comments) ? comments : [])
+        comments = Array.isArray(got) ? got : []
       }
-      return {
+      const base = {
         repo: `${this.owner(repo)}/${repo}`,
         number: it.number,
         title: it.title || '',
         url: it.html_url || '',
         state: it.state || 'open',
-        bc_url: bcUrl,
         updated_at: it.updated_at || '',
-        report,
+      }
+      return {
+        bc: bcUrl ? { ...base, bc_url: bcUrl, report: n ? bcReport(comments) : null } : null,
+        tr: trUrl ? { ...base, tr_url: trUrl, report: n ? trReport(comments) : null } : null,
       }
     })
-    out.sort((a, b) => (b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0))
-    return out
+    const recent = (a: any, b: any) => (b.updated_at > a.updated_at ? 1 : b.updated_at < a.updated_at ? -1 : 0)
+    const bc = found.map((f) => f.bc).filter(Boolean).sort(recent)
+    const tr = found.map((f) => f.tr).filter(Boolean).sort(recent)
+    return [bc, tr]
   }
 
   /**
@@ -783,15 +823,22 @@ export class GitHubAccount {
     if ([403, 404, 410].includes(res.status)) throw new CannotWrite(`HTTP ${res.status}`)
     if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const it: any = await res.json()
+    const made = { repo: full, number: it.number, title: it.title || title, url: it.html_url || '', state: 'open', updated_at: it.updated_at || '', report: null }
+    const others = (list: any[]) => list.filter((x) => !(x.repo === full && x.number === it.number))
+    // visible tout de suite sur sa tâche (ou sa carte), sans attendre la prochaine relecture
     const m = BC_LINK.exec(body || '')
-    if (m) {
-      // visible tout de suite sur sa tâche, sans attendre la prochaine relecture
-      this.data.issues = [
-        { repo: full, number: it.number, title: it.title || title, url: it.html_url || '', state: 'open', bc_url: m[1], updated_at: it.updated_at || '', report: null },
-        ...this.data.issues.filter((x) => !(x.repo === full && x.number === it.number)),
-      ]
-    }
+    if (m) this.data.issues = [{ ...made, bc_url: m[1] }, ...others(this.data.issues)]
+    const tm = TR_LINK.exec(body || '')
+    if (tm) this.data.tr_issues = [{ ...made, tr_url: tm[1] }, ...others(this.data.tr_issues)]
     return { number: it.number, url: it.html_url || '' }
+  }
+
+  /** Issues liées à Trello et repos où en créer. Liste distincte de `bcIssues`. */
+  trIssues(): { issues: any[]; repos: string[] } {
+    return {
+      issues: this.data.tr_issues,
+      repos: (this.CFG.repos || []).filter((r: string) => this.owner(r)).map((r: string) => `${this.owner(r)}/${r}`),
+    }
   }
 
   /** Issues liées à Basecamp et repos où en créer, pour l'onglet Basecamp. */
@@ -963,6 +1010,21 @@ export class GitHubAccount {
             }),
           )
       }
+      const oldTr = new Map((before.tr_issues || []).map((i) => [`${i.repo}#${i.number}`, i.report]))
+      for (const i of after.tr_issues || []) {
+        const rep = i.report
+        const was = oldTr.get(`${i.repo}#${i.number}`)
+        if (rep && (!was || was.id !== rep.id))
+          out.push(
+            ev('tr-report', 'ok', 'trello', `📤 Rapport prêt — ${i.repo} #${i.number}`, {
+              body: `${i.title} · à publier sur la carte Trello`,
+              repo: i.repo,
+              url: i.url,
+              tag: `trrep:${i.repo}#${i.number}`,
+              sticky: true,
+            }),
+          )
+      }
     }
     return out
   }
@@ -1001,7 +1063,7 @@ export class GitHubAccount {
         prs: () => this.fetchPrs(tok, user),
         renovate: () => this.fetchRenovate(tok),
         merged: () => this.fetchMerged(tok, user),
-        issues: () => this.fetchBcIssues(tok),
+        issues: () => this.fetchLinkedIssues(tok),
       }
       const results = await Promise.all(todo.map((name) => jobs[name]()))
       // Instantané d'avant : les listes sont remplacées, jamais mutées.
@@ -1011,6 +1073,10 @@ export class GitHubAccount {
           const [opens, merged] = results[i] as [any[], any[]]
           this.data.renovate = opens
           this.data.renovate_merged = merged
+        } else if (name === 'issues') {
+          const [bc, tr] = results[i] as [any[], any[]]
+          this.data.issues = bc
+          this.data.tr_issues = tr
         } else {
           ;(this.data as Record<string, unknown>)[name] = results[i]
         }

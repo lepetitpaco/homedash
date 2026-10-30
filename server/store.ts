@@ -28,6 +28,8 @@ export const USAGE = 'usage.json'
 export const EVENTS = 'events.json'
 /** Rapports d'issues déjà publiés sur Basecamp (id du commentaire GitHub → lien). */
 export const BC_POSTED = 'bc_posted.json'
+/** Rapports d'issues déjà publiés sur Trello (id du commentaire GitHub → lien). */
+export const TR_POSTED = 'tr_posted.json'
 /**
  * Jetons saisis dans Réglages. Fichier à part, en 600, jamais servi au
  * navigateur ni inclus dans les sauvegardes simples : config.json, lui,
@@ -172,7 +174,7 @@ export function backupConfig(): void {
 
 // ── Validation de config.json ──────────────────────────────────────────────────
 /** Fonctionnalités qu'on peut couper (Réglages → Fonctionnalités) : clé absente = active. */
-export const FEATURES = ['github', 'basecamp', 'local'] as const
+export const FEATURES = ['github', 'basecamp', 'local', 'trello'] as const
 
 type Obj = Record<string, unknown>
 const isObj = (v: unknown): v is Obj => typeof v === 'object' && v !== null && !Array.isArray(v)
@@ -288,6 +290,16 @@ export function validateConfig(cfg: unknown): string | null {
     if (!isObj(bc)) return '"basecamp" doit être un objet'
     const hidden = bc.hidden
     if (hidden !== undefined && hidden !== null && !strList(hidden)) return '"basecamp.hidden" doit être une liste de textes'
+    const repos = bc.repos
+    if (repos !== undefined && repos !== null && !strList(repos)) return '"basecamp.repos" doit être une liste de textes'
+  }
+  const tr = cfg.trello
+  if (tr !== undefined && tr !== null) {
+    if (!isObj(tr)) return '"trello" doit être un objet'
+    const hidden = tr.hidden
+    if (hidden !== undefined && hidden !== null && !strList(hidden)) return '"trello.hidden" doit être une liste de textes'
+    const repos = tr.repos
+    if (repos !== undefined && repos !== null && !strList(repos)) return '"trello.repos" doit être une liste de textes'
   }
   const loc = cfg.local
   if (loc !== undefined && loc !== null) {

@@ -32,6 +32,8 @@ import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type Re
 import { confirmDialog } from './ConfirmHost'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
+import SetTrello from './SetTrello'
+import SetToolRepos from './SetToolRepos'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
@@ -73,6 +75,7 @@ const SECTIONS = [
   { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'GitHub' },
   { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
+  { id: 'set-trello', icon: '📋', label: 'Trello', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
@@ -84,6 +87,7 @@ const SECTION_FEATURE: Record<string, Feature> = {
   'set-github': 'github',
   'set-local': 'local',
   'set-basecamp': 'basecamp',
+  'set-trello': 'trello',
 }
 
 /** Réglages → Fonctionnalités : ce que chacune ajoute à la page. */
@@ -91,6 +95,7 @@ const FEATURE_LIST: { id: Feature; icon: string; label: string; hint: string }[]
   { id: 'github', icon: '🐙', label: 'GitHub', hint: 'onglet GitHub (branches, PRs, CI, Renovate), carte Repos de l’accueil, recherche dans les repos' },
   { id: 'local', icon: '💻', label: 'Local', hint: 'onglet Local : les dépôts de ton disque et leurs branches à nettoyer' },
   { id: 'basecamp', icon: '🏕', label: 'Basecamp', hint: 'onglet Basecamp (tes tâches), ses non-lus dans la cloche, recherche dans Basecamp' },
+  { id: 'trello', icon: '📋', label: 'Trello', hint: 'onglet Trello (tes cartes), ses non-lus dans la cloche, recherche dans Trello' },
 ]
 
 /** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
@@ -421,6 +426,12 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }
   const tracked = [...new Set([...uses.prs, ...uses.branches, ...uses.github, ...uses.home])].sort()
   const nameOf = (k: string) => k.split('/').pop() ?? k
+  // Repos où créer une issue depuis Basecamp ou Trello : ceux des PRs, tous comptes confondus (comme le serveur).
+  const followed = [...new Set(accList.flatMap((a) => asList(a.repos)).filter((r) => r.includes('/')))].sort()
+  const setToolRepos = (tool: 'basecamp' | 'trello', list: string[]) => {
+    const { repos: _old, ...rest } = (draft[tool] ?? {}) as { repos?: string[] }
+    setDraft({ ...draft, [tool]: list.length ? { ...rest, repos: list } : rest })
+  }
 
   const itemOf = (key: string): RepoItem => {
     const [owner, name] = key.split('/', 2)
@@ -800,6 +811,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         {active === 'set-basecamp' ? (
         <Card id="set-basecamp" icon="🏕" title="Basecamp">
           <SetBasecamp />
+          <SetToolRepos tool="Basecamp" followed={followed} chosen={asList(draft.basecamp?.repos)} onChange={(l) => setToolRepos('basecamp', l)} />
+        </Card>
+        ) : null}
+        {active === 'set-trello' ? (
+        <Card id="set-trello" icon="📋" title="Trello">
+          <SetTrello />
+          <SetToolRepos tool="Trello" followed={followed} chosen={asList(draft.trello?.repos)} onChange={(l) => setToolRepos('trello', l)} />
         </Card>
         ) : null}
         {active === 'set-tabs' ? (
@@ -1118,7 +1136,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           <span className="set-actions-note">
             {dirty
               ? '● Modifications non enregistrées'
-              : '✓ Tout est enregistré. Les connexions (GitHub, Basecamp) et les sauvegardes s’appliquent dès le clic ; le reste attend « Enregistrer ».'}
+              : '✓ Tout est enregistré. Les connexions (GitHub, Basecamp, Trello) et les sauvegardes s’appliquent dès le clic ; le reste attend « Enregistrer ».'}
           </span>
           <button className="set-cancel" onClick={() => setDraft(config)} disabled={saving || !dirty}>
             Annuler

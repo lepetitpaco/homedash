@@ -26,7 +26,7 @@ let scans = new Map<string, number>()
 let timedOps = new Map<string, [number, number, number]>()
 
 /** Au-delà, une opération a sa propre ligne « slow ». */
-const SLOW: Record<string, number> = { github: 20.0, local: 3.0, basecamp: 10.0, config: 3.0 }
+const SLOW: Record<string, number> = { github: 20.0, local: 3.0, basecamp: 10.0, trello: 10.0, config: 3.0 }
 /** Au-delà, c'est la machine mise en veille : ligne « asleep », hors du cumul. */
 export const ASLEEP = 300.0
 

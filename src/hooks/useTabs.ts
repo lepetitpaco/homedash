@@ -6,7 +6,7 @@ import { draftSaver } from '../lib/settingsNav'
 import { confirmDialog } from '../components/ConfirmHost'
 
 const TAB_KEY = 'homedash:tab'
-const TABS = ['links', 'github', 'basecamp', 'local', 'settings'] as const
+const TABS = ['links', 'github', 'basecamp', 'trello', 'local', 'settings'] as const
 
 /** Onglet connu, ou onglet perso (`x:…`) : son existence se vérifie à l'affichage. */
 const known = (id: string) => (TABS as readonly string[]).includes(id) || id.startsWith('x:')
@@ -104,6 +104,7 @@ export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
           links: 'Raccourcis',
           github: 'GitHub',
           basecamp: 'Basecamp',
+          trello: 'Trello',
           events: 'Activité',
           local: 'Local',
           settings: 'Réglages',

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState, type RefObject } from 'react
 import type { Command, Hit } from '../components/SearchResults'
 import { useBcSearch, type BcFound, type BcTask } from '../lib/basecamp'
 import { bcKey } from '../lib/bcIssues'
+import { useTrSearch, type TrCard, type TrFound } from '../lib/trello'
+import { trKey } from '../lib/trIssues'
 import type { Normalized } from '../lib/config'
 import type { GithubData } from '../lib/ghboard'
 import type { LocalData } from '../lib/local'
@@ -11,7 +13,7 @@ import { asUrl, ENGINES, visits } from '../lib/visits'
 import type { CustomTab, FlatLink } from '../types'
 
 /** Où chercher : partout (défaut) ou dans une seule partie de homedash (issue #38). */
-export type SearchScope = 'all' | 'links' | 'sites' | 'code' | 'basecamp' | 'web'
+export type SearchScope = 'all' | 'links' | 'sites' | 'code' | 'basecamp' | 'trello' | 'web'
 type ScopeDef = { id: SearchScope; icon: string; label: string; kinds: Hit['kind'][] }
 export const SEARCH_SCOPES: ScopeDef[] = [
   { id: 'all', icon: '⌕', label: 'Partout', kinds: [] },
@@ -19,6 +21,7 @@ export const SEARCH_SCOPES: ScopeDef[] = [
   { id: 'sites', icon: '🗂', label: 'Mes sites', kinds: ['tab', 'page', 'go'] },
   { id: 'code', icon: '🐙', label: 'GitHub & Local', kinds: ['repo', 'local', 'pr', 'branch'] },
   { id: 'basecamp', icon: '🏕', label: 'Basecamp', kinds: ['bc'] },
+  { id: 'trello', icon: '📋', label: 'Trello', kinds: ['tr'] },
   { id: 'web', icon: '🔎', label: 'Le web', kinds: ['web', 'go'] },
 ]
 
@@ -33,6 +36,10 @@ type Options = {
   bcTasks: BcTask[]
   /** Basecamp connecté : chercher aussi dans tout Basecamp (après une pause de frappe). */
   bcSearch: boolean
+  /** Mes cartes Trello (déjà chargées). */
+  trCards: TrCard[]
+  /** Trello connecté : chercher aussi dans Trello (après une pause de frappe). */
+  trSearch: boolean
   searchRef: RefObject<HTMLInputElement | null>
   /** Une modale est ouverte : le clavier lui appartient. */
   paused: boolean
@@ -58,6 +65,8 @@ export function useSearch({
   local,
   bcTasks,
   bcSearch,
+  trCards,
+  trSearch,
   searchRef,
   paused,
   track,
@@ -74,6 +83,7 @@ export function useSearch({
   const [activeIndex, setActiveIndex] = useState(0)
   // Recherche dans tout Basecamp (réseau) : seulement si Basecamp est dans la portée.
   const bcFound = useBcSearch(query, bcSearch && (scope === 'all' || scope === 'basecamp')).items
+  const trFound = useTrSearch(query, trSearch && (scope === 'all' || scope === 'trello')).items
 
   const infoItems = useMemo(() => {
     if (!cfg?.infos) return []
@@ -192,6 +202,35 @@ export function useSearch({
       .slice(0, 10)
       .map((item) => ({ kind: 'bc', key: `bc:${item.url}`, item }))
 
+    const trMine: TrFound[] = trCards.filter((c) => c.mine !== false).map((c) => ({
+      id: c.id,
+      type: 'card',
+      title: c.title,
+      url: c.url,
+      board: c.board,
+      parent: c.list,
+      due: c.due,
+      creator: '',
+      excerpt: '',
+      updated_at: '',
+      mine: true,
+    }))
+    const trMineHits: Hit[] = rank(
+      trMine,
+      (t) => [
+        [t.title, 1],
+        [t.board, 0.5],
+        [t.parent, 0.5],
+      ],
+      q,
+      6,
+    ).map((item) => ({ kind: 'tr', key: `tr:${item.url}`, item }))
+    const shownTr = new Set(trMineHits.map((h) => (h.kind === 'tr' ? trKey(h.item.url) ?? h.item.url : '')))
+    const trHits: Hit[] = trFound
+      .filter((item) => !shownTr.has(trKey(item.url) ?? item.url))
+      .slice(0, 10)
+      .map((item) => ({ kind: 'tr', key: `tr:${item.url}`, item }))
+
     const infoHits: Hit[] = rank(
       infoItems,
       ({ group, item }) => [
@@ -271,14 +310,16 @@ export function useSearch({
       ...prHits,
       ...branchHits,
       ...bcMineHits,
+      ...trMineHits,
       ...infoHits,
       ...noteHits,
       // en dernier : ils arrivent après les autres, la liste au-dessus ne bouge pas
       ...bcHits,
+      ...trHits,
       ...pageHits,
       ...googleHits,
     ].filter((h) => !kinds.length || kinds.includes(h.kind))
-  }, [query, scope, links, repoItems, local, gh, bcTasks, bcFound, infoItems, notes, tabs, commands])
+  }, [query, scope, links, repoItems, local, gh, bcTasks, bcFound, trCards, trFound, infoItems, notes, tabs, commands])
 
   useEffect(() => setActiveIndex(0), [query, scope])
 
@@ -302,9 +343,9 @@ export function useSearch({
         void copy(hit.key, hit.item.value)
         return
       }
-      if (hit.kind === 'go' || hit.kind === 'web' || hit.kind === 'page' || hit.kind === 'bc') {
+      if (hit.kind === 'go' || hit.kind === 'web' || hit.kind === 'page' || hit.kind === 'bc' || hit.kind === 'tr') {
         setQuery('')
-        open(hit.kind === 'page' ? hit.visit.url : hit.kind === 'bc' ? hit.item.url : hit.url)
+        open(hit.kind === 'page' ? hit.visit.url : hit.kind === 'bc' || hit.kind === 'tr' ? hit.item.url : hit.url)
         return
       }
       if (hit.kind === 'tab') {

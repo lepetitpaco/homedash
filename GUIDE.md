@@ -8,9 +8,9 @@ Guide**, une partie par pastille.
 Ta page d'accueil : tes liens, des notes, des infos à copier.
 
 **Premier lancement** : la carte **👋 Pour commencer**, en haut, liste ce qu'il reste à brancher (tes sites,
-GitHub, tes dossiers de code, Basecamp, la taille de ton écran). Chaque bouton mène au bon réglage, avec
+GitHub, tes dossiers de code, Basecamp, Trello, la taille de ton écran). Chaque bouton mène au bon réglage, avec
 le pas-à-pas ; une étape faite se coche toute seule. La carte disparaît quand tout est fait, ou avec
-*Masquer* (*Réglages → Affichage → Pour commencer* la remet). Tu ne te sers pas de GitHub, de Basecamp ou
+*Masquer* (*Réglages → Affichage → Pour commencer* la remet). Tu ne te sers pas de GitHub, de Basecamp, de Trello ou
 de l'onglet Local ? Décoche-les dans *Réglages → Fonctionnalités* : leur étape disparaît.
 
 ![L'onglet Raccourcis](docs/screenshots/accueil.jpg)
@@ -123,7 +123,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 
 ## 🔔 Notifications
 
-La cloche, en haut à droite : ce qui s'est passé (CI, PRs, branches à nettoyer, Basecamp, nouvelle
+La cloche, en haut à droite : ce qui s'est passé (CI, PRs, branches à nettoyer, Basecamp, Trello, nouvelle
 version).
 
 ![La cloche ouverte](docs/screenshots/cloche.jpg)
@@ -131,10 +131,10 @@ version).
 #### Comment faire
 
 - **Voir** : clic sur la cloche ; *Tout voir* ouvre l'historique. Une seule liste, la plus récente en
-  haut ; filtres *Tout*, *GitHub & Local*, *Basecamp*.
+  haut ; filtres *Tout*, *GitHub & Local*, *Basecamp*, *Trello* (ces deux derniers quand le service est connecté).
 - **Notifs Basecamp** : les non lues en tête (« non lue »), puis celles déjà vues, qui **restent** une
   fois lues dans Basecamp : tu peux y revenir.
-- **Tout actualiser** : ⟳ à côté de la cloche relit GitHub, Basecamp, tes dépôts, la cloche et les
+- **Tout actualiser** : ⟳ à côté de la cloche relit GitHub, Basecamp, Trello, tes dépôts, la cloche et les
   non-lus de tes sites (ceux en veille sont réveillés).
 - **Notifications du système** : *activer* en bas de la cloche (coupées au départ).
 - **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications*.
@@ -143,8 +143,8 @@ version).
 
 #### Bon à savoir
 
-- Ouvrir la cloche efface ses nouveautés. Une notif Basecamp reste comptée tant qu'elle n'est pas lue
-  dans Basecamp.
+- Ouvrir la cloche efface ses nouveautés. Une notif Basecamp ou Trello reste comptée tant qu'elle n'est
+  pas lue dans Basecamp ou Trello.
 - **🧹 Branche mergée** : annoncée une seule fois, en une ligne même si elle est dans plusieurs dépôts ;
   un clic ouvre l'onglet Local et sa commande.
 - **Rien sur l'icône du Dock ?** macOS l'affiche seulement si *Pastilles de l'app* est activé pour
@@ -207,8 +207,34 @@ les rapports que tu publies.
 Dans **🐙 Issues GitHub** : *▶ prompt de départ* recopie la commande ; *📝 rapport final* donne un prompt
 pour faire réécrire le rapport ; *afficher les terminées* et *rétablir* retrouvent les issues écartées.
 
+**Repos où créer les issues** (*Réglages → Basecamp*, et pareil dans *Réglages → Trello*) : coche les
+repos qui peuvent recevoir une issue depuis cet outil, par exemple les repos du travail pour Basecamp et
+tes repos perso pour Trello. Seuls ceux-là sont proposés, et homedash refuse les autres. Aucun coché =
+tous les repos suivis.
+
 Le jeton GitHub doit pouvoir lire les issues, et les écrire pour *Créer sur GitHub* (*Issues : Read and
 write* en fine-grained ; un jeton classic `repo` suffit).
+
+## 📋 Trello
+
+Les cartes ouvertes de tes tableaux Trello, dans les mêmes colonnes que sur Trello. **Lecture seule** :
+homedash ne coche rien, ne déplace aucune carte, et ne poste que le rapport d'une issue, quand tu le
+demandes. Les notifications ne sont jamais marquées lues. Les listes archivées ne sont pas affichées.
+
+- **Se connecter** (une fois) : sur trello.com/power-ups/admin, crée une application *homedash*
+  (« n'utilise pas les fonctionnalités Power-up », confidentielle, aucune URL à remplir), copie sa
+  **clé API** dans *Réglages → Trello*, puis *Se connecter à Trello* : autorise, et colle le jeton
+  affiché. Le jeton reste dans l'appli.
+- L'onglet apparaît dès que la clé est enregistrée. À gauche : **🔥 À traiter** (tes cartes, échéance
+  dépassée ou dans les 7 jours), **🐙 Issues GitHub**, puis un tableau par tableau. Un tableau montre
+  toutes ses cartes visibles, pas seulement les tiennes. Un tableau se masque ; un nouveau tableau
+  est montré.
+- **💬** ouvre la carte (description, cases, échanges). **🐙＋** crée une issue GitHub liée à la carte,
+  comme pour Basecamp, dans un des repos choisis pour Trello (*Réglages → Trello*, *Repos où créer les
+  issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
+  ✕ écarte une issue sans rien envoyer.
+- La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
+  de Mes sites : le site refuse ce cadre.
 
 ## 🔎 Recherche
 
@@ -216,7 +242,7 @@ write* en fine-grained ; un jeton classic `repo` suffit).
 
 - **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
 - **Chercher à un seul endroit** : clic sur la loupe, à gauche de la barre → *Raccourcis*, *Mes sites*,
-  *GitHub & Local*, *Basecamp* ou *Le web*. La loupe s'allume tant que la recherche est limitée ;
+  *GitHub & Local*, *Basecamp*, *Trello* ou *Le web*. La loupe s'allume tant que la recherche est limitée ;
   *Partout* revient à la recherche complète (elle l'est aussi à chaque rechargement).
 - **Basecamp** (s'il est connecté) : tes tâches tout de suite, puis, un instant après ta frappe, tout
   Basecamp : to-dos, cartes, messages, commentaires, documents (sans les archivés). La carte à droite
@@ -224,6 +250,9 @@ write* en fine-grained ; un jeton classic `repo` suffit).
   un de ses commentaires : **💬 Voir la tâche** (sa fiche, ouverte sur l'échange trouvé), **🐙 Créer une
   issue** (ou *Issue sur cet échange*), et **Voir dans le dash** si elle t'est assignée (son tableau
   dans l'onglet Basecamp, la tâche mise en évidence).
+- **Trello** (s'il est connecté) : tes cartes tout de suite, puis, un instant après ta frappe, cartes,
+  tableaux et commentaires Trello. Entrée ouvre l'élément sur Trello. **💬 Voir la carte**, **🐙 Créer
+  une issue**, et **Voir dans le dash** pour une de tes cartes.
 - **Fautes de frappe** : les mots se cherchent dans n'importe quel ordre, une faute par mot tolérée
   (« shopping diag » trouve « Assistant Shoping interne (Diag) »). La recherche dans tout Basecamp,
   elle, ne les tolère pas.
@@ -244,10 +273,11 @@ garde tes modifications en brouillon, retrouvées au retour.
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
-| 🧩 Fonctionnalités | Couper GitHub, Local ou Basecamp si tu ne t'en sers pas |
+| 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas |
 | 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
-| 🏕 Basecamp | La connexion |
+| 🏕 Basecamp | La connexion, les repos où créer les issues |
+| 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |

@@ -44,7 +44,7 @@ describe('lecture', () => {
       calls.push([p, accept])
       return p.endsWith('/comments') ? [comment(10, 'ok'), comment(11, "<!-- homedash:bc-report -->\nC'est fait.")] : issues
     }
-    const got = await gh.fetchBcIssues('t')
+    const [got] = await gh.fetchLinkedIssues('t')
     expect(got.length).toBe(1)
     expect([got[0].repo, got[0].number, got[0].bc_url]).toEqual(['org/api', 1, TASK])
     expect(got[0].report.body).toBe("C'est fait.")
