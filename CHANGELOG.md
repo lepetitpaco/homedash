@@ -4,6 +4,21 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.1.0 — 2026-10-30
+Appli de bureau : 2.1.0
+
+- **Trello dans homedash** : *Réglages → Trello* (clé d'API puis jeton collé, une fois) ouvre un onglet
+  Trello avec tes tableaux tels qu'ils sont sur Trello, colonnes et fond compris, **🔥 À traiter** pour
+  tes cartes en retard ou proches, la cloche pour tes notifications, et la recherche. Lecture seule :
+  rien n'est coché, déplacé ni marqué lu.
+- **D'une carte Trello à une issue GitHub**, comme pour Basecamp : 🐙＋ sur une carte crée l'issue, et
+  son rapport se publie en commentaire de la carte, une fois, quand tu le demandes.
+- **Repos où créer les issues** : dans *Réglages → Basecamp* et *Réglages → Trello*, coche les repos qui
+  peuvent recevoir une issue depuis cet outil (le travail d'un côté, le perso de l'autre). Rien coché =
+  tous les repos suivis, comme avant.
+- **Moins d'appels à GitHub** : les issues liées ne sont lues qu'une fois par repo, et plus du tout si
+  ni Basecamp ni Trello n'est connecté.
+
 ## 2.0.1 — 2026-10-29
 Appli de bureau : 2.0.1
 
