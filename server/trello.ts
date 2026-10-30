@@ -139,10 +139,7 @@ async function call(method: string, url: string, opts: { body?: string; key?: st
   }
   const hdrs: Record<string, string> = {}
   res.headers.forEach((v, k) => (hdrs[k.toLowerCase()] = v))
-  if (opts.raw) {
-    const buf = Buffer.from(await res.arrayBuffer())
-    return [res.status, buf.length > ATTACH_MAX ? Buffer.alloc(ATTACH_MAX + 1) : buf, hdrs]
-  }
+  if (opts.raw) return [res.status, await capped(res), hdrs]
   const text = await res.text()
   let body: any = {}
   try {
@@ -152,6 +149,29 @@ async function call(method: string, url: string, opts: { body?: string; key?: st
   }
   if (!res.ok && (body === null || typeof body !== 'object')) body = {}
   return [res.status, body, hdrs]
+}
+
+/** Corps d'une image, lu par morceaux : au-delà de `ATTACH_MAX`, null sans lire la suite. */
+async function capped(res: Response): Promise<Buffer | null> {
+  if (Number(res.headers.get('content-length') || 0) > ATTACH_MAX) {
+    await res.body?.cancel().catch(() => undefined)
+    return null
+  }
+  if (!res.body) return Buffer.alloc(0)
+  const parts: Buffer[] = []
+  let size = 0
+  const reader = res.body.getReader()
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    size += value.length
+    if (size > ATTACH_MAX) {
+      await reader.cancel().catch(() => undefined)
+      return null
+    }
+    parts.push(Buffer.from(value))
+  }
+  return Buffer.concat(parts)
 }
 
 /** État pour Réglages. Jamais de clé ni de jeton : seulement leur présence. */

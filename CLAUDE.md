@@ -124,8 +124,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
    fournis par la page). Jamais de tâche cochée ni de notif marquée lue. Testé.
    **Trello, pareil** (`trello.ts`) : GET seulement, scope `read,write` (jamais `account`), jeton en
    en-tête OAuth, jamais dans l'adresse ; seule écriture, `publishReport()`. Testé.
-   GitHub : seule écriture, `GitHubAccount.createIssue()` (onglet Basecamp, à la demande, repos suivis
-   seulement). Testé.
+   GitHub : seule écriture, `GitHubAccount.createIssue()` (onglets Basecamp et Trello, à la demande, repos suivis
+   et choisis pour l'outil : `basecamp.repos` / `trello.repos`, imposé par `/api/github/issue`). Testé.
 5. **Les jetons ne sortent jamais de `data/secrets.json`** (600) : ni dans `config.json` (servi entier à
    la page, inclus dans les sauvegardes), ni dans une réponse d'API. Seule sortie : l'export complet
    (`fullexport.ts`), **chiffré** par un mot de passe (scrypt + AES-256-GCM). Testé. Un proxy d'image ne

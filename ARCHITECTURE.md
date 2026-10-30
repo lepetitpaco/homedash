@@ -79,12 +79,12 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/basecamp/file?url=` | GET | Image jointe à une tâche, lue avec le jeton (adresse `…/blobs/…` du compte, formats d'image sûrs, sans SVG) |
 | `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
 | `/api/basecamp/dismiss` | POST | Écarter une issue liée sans publier son rapport (`undo` : la rétablir) ; rien n'est envoyé |
-| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp ou une carte Trello (repos suivis) |
+| `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp ou une carte Trello (repos suivis, et choisis pour l'outil : `basecamp.repos` / `trello.repos`, absent = tous) |
 | `/api/trello`, `/api/trello/refresh` | GET, POST | Cartes ouvertes et notifs non lues, relecture |
 | `/api/trello/{auth,app,authorize,token}` | GET, PUT, POST, DELETE | Réglages : clé d'API, page d'autorisation, jeton collé, déconnexion |
 | `/api/trello/search?q=` | GET | Recherche Trello (barre de recherche), réponses gardées 1 min |
 | `/api/trello/card?url=` | GET | Description, listes et commentaires d'une carte |
-| `/api/trello/file?url=` | GET | Image déjà vue sur une carte (formats sûrs, sans SVG) |
+| `/api/trello/file?url=` | GET | Image déjà vue sur une carte (formats sûrs, sans SVG, 15 Mo au plus, coupée pendant la lecture) |
 | `/api/trello/report` | POST | Publier le rapport d'une issue liée en commentaire de sa carte (une fois) |
 | `/api/trello/dismiss` | POST | Écarter une issue liée sans publier ; rien n'est envoyé |
 | `/api/basecamp/callback` | GET | Retour d'autorisation Basecamp (`state` vérifié) |

@@ -253,6 +253,36 @@ describe('lecture', () => {
     fake.files['https://trello.com/1/cards/sl1/a.png'] = ['image/png', Buffer.alloc(16 * 1024 * 1024)]
     await expect(trello.attachment('https://trello.com/1/cards/sl1/a.png')).rejects.toThrow()
   })
+  it('image annoncée trop grosse : refusée sans lire le corps', async () => {
+    connect()
+    fake.cardBody = { attachments: [{ name: 'a.png', url: 'https://trello.com/1/cards/sl1/a.png', mimeType: 'image/png' }] }
+    await trello.cardText('https://trello.com/c/sl1')
+    let pulled = 0
+    const body = new ReadableStream({
+      pull(c) {
+        pulled += 1
+        c.enqueue(new Uint8Array(1024 * 1024))
+      },
+    })
+    trello.setOpen(async () => new Response(body, { headers: { 'content-type': 'image/png', 'content-length': String(20 * 1024 * 1024) } }))
+    await expect(trello.attachment('https://trello.com/1/cards/sl1/a.png')).rejects.toThrow()
+    expect(pulled).toBeLessThanOrEqual(1)
+  })
+  it('image sans longueur annoncée : lecture coupée au plafond', async () => {
+    connect()
+    fake.cardBody = { attachments: [{ name: 'a.png', url: 'https://trello.com/1/cards/sl1/a.png', mimeType: 'image/png' }] }
+    await trello.cardText('https://trello.com/c/sl1')
+    let pulled = 0
+    const body = new ReadableStream({
+      pull(c) {
+        pulled += 1
+        c.enqueue(new Uint8Array(1024 * 1024))
+      },
+    })
+    trello.setOpen(async () => new Response(body, { headers: { 'content-type': 'image/png' } }))
+    await expect(trello.attachment('https://trello.com/1/cards/sl1/a.png')).rejects.toThrow()
+    expect(pulled).toBeLessThan(20)
+  })
   it('une redirection hors de Trello n’est pas suivie (le jeton ne part pas)', async () => {
     fake.cardBody = { attachments: [{ name: 'a.png', url: 'https://trello.com/1/cards/sl1/a.png', mimeType: 'image/png' }] }
     await trello.cardText('https://trello.com/c/sl1')
