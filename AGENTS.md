@@ -14,5 +14,7 @@ L'essentiel, au cas où :
   les jetons ne quittent jamais `data/secrets.json` ; `data/` n'est jamais écrasé ni versionné.
 - Une vague de travail = une branche locale ; un push = **une** version (une entrée de `CHANGELOG.md`,
   un tag), écrite au moment de fusionner, jamais une par commit.
-- Avant de pousser : `git pull --rebase`, `git fetch --tags`, typecheck et tests au vert ; jamais de
-  `push --force`.
+- Pas de push direct sur `main` : une pull request, approuvée par le propriétaire. Avant :
+  `git pull --rebase`, `git fetch --tags`, typecheck et tests au vert ; jamais de `push --force`.
+- La 1.x (Python, `backend/`, Docker sur :7777) n'existe plus : traduis vers `server/*.ts` au lieu de la
+  recréer. Correspondances dans `CLAUDE.md` (« Depuis la 1.x ») et `docs/MIGRATION-2.0.md`.
