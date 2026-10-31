@@ -264,7 +264,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   barre de gauche = onglets perso et éphémères **sans** espace. Espace disparu = éphémère seul.
 
 **Performance** (revue du 2026-10-20)
-- Chaque site chargé dans l'appli = un processus de 100 à 400 Mo : montés au démarrage seulement si
+- Chaque site chargé dans l'appli = un processus de 100 à 400 Mo : montés au démarrage, un par un, seulement si
   `preloads()` (sites à non-lus), sinon au premier clic ; `sleep` les décharge.
 - Sondages : arrêt page cachée (`usePageVisible`), et `sameOr()` (pas de `setData` si rien n'a changé :
   sinon toute la page se redessine). GitHub sans page : `accounts.SLOW_EVERY` (3 min).

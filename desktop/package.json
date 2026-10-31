@@ -1,7 +1,7 @@
 {
   "name": "homedash-desktop",
   "productName": "homedash",
-  "version": "2.1.0",
+  "version": "2.2.0",
   "description": "homedash, appli de bureau autonome : front, serveur et onglets perso",
   "private": true,
   "main": "main.js",
