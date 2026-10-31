@@ -9,6 +9,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Réglages → Mes sites : mémoire de chaque site et bouton 💤 Libérer.
 - Fiche d'un site : réglages rares sous « Plus d'options », libellés plus clairs.
 - Vocabulaire : « onglet temporaire » partout, plus d'« éphémère » à l'écran ni sur le site.
+- Catalogue de sites : plus de sites, icônes prêtes, réglage recommandé par site, raccourcis vers les messageries (Instagram Direct, Messages X…).
 - Accueil : Notes et Infos se replient, et restent repliés.
 - `⌘K` : actions sur chaque site (libérer, recharger, son, notifications, effacer les données), Tout actualiser, Réglages de Mes sites.
 - Appli de dev : menu Branche, Journal du dev et nettoyage des branches fusionnées.

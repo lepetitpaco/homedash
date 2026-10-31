@@ -22,7 +22,7 @@ import { confirmDialog } from './ConfirmHost'
 import SiteIcon, { isImageIcon } from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
-import { CATALOG, type CatalogSite } from '../lib/catalog'
+import { CATALOG, catalogHint, catalogTab, type CatalogSite } from '../lib/catalog'
 import { keys } from '../lib/keys'
 import { shown } from '../lib/errors'
 
@@ -131,10 +131,10 @@ export default function SetTabs({
     return () => window.removeEventListener(EDIT_TAB_EVENT, on)
   }, [])
 
-  /** Un site du catalogue : ajouté, affiché dans homedash, son éditeur ouvert. */
+  /** Un site du catalogue : ajouté avec son réglage recommandé, son éditeur ouvert. */
   const addSite = (site: CatalogSite) => {
     const id = newTabId(tabs.map((t) => t.id))
-    onChange([...tabs, { id, label: site.label, url: site.url, embed: true }])
+    onChange([...tabs, { id, ...catalogTab(site) }])
     setOpen(id)
     setBrowsing(false)
   }
@@ -675,21 +675,27 @@ export default function SetTabs({
 
       {catalog ? (
         <div className="xs-catalog">
+          <p className="set-hint">
+            Chaque site arrive avec un réglage recommandé (chargement, veille, icône), modifiable ensuite : survole-le pour le voir.
+          </p>
           {CATALOG.map((g) => (
             <div key={g.title} className="xs-catalog-group">
               <h4>{g.title}</h4>
               <div className="xs-chips">
                 {g.sites.map((site) => {
-                  const has = tabs.some((t) => hostOf(t.url) === hostOf(site.url))
+                  // Un raccourci (Instagram Direct) et son site ont le même hôte : pas confondus.
+                  const has = tabs.some((t) =>
+                    site.shortcut ? t.url.startsWith(site.url) : t.capture !== false && hostOf(t.url) === hostOf(site.url),
+                  )
                   return (
                     <button
                       key={site.url}
                       type="button"
                       className={`xs-site${has ? ' is-on' : ''}`}
                       onClick={() => addSite(site)}
-                      title={has ? `${site.label} est déjà là : un clic en ajoute un autre (un autre compte, par exemple)` : site.url}
+                      title={has ? `${site.label} est déjà là : un clic en ajoute un autre (un autre compte, par exemple)` : catalogHint(site)}
                     >
-                      <SiteIcon url={site.url} name={site.label} />
+                      <SiteIcon url={site.url} name={site.label} image={catalogTab(site).icon} />
                       {site.label}
                       {has ? <em>✓</em> : null}
                     </button>

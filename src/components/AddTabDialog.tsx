@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
-import { CATALOG, type CatalogSite } from '../lib/catalog'
+import { CATALOG, catalogTab, type CatalogSite } from '../lib/catalog'
 import { hostOf } from '../lib/customTabs'
 import { withScheme } from '../lib/url'
 import type { CustomTab, TabFolder, TabSession } from '../types'
@@ -45,12 +45,16 @@ export default function AddTabDialog({
   const name = label.trim() || nameFrom(full)
   const ok = !!full && !!name
 
+  const [picked, setPicked] = useState<CatalogSite | null>(null)
   const pickSite = (s: CatalogSite) => {
     setUrl(s.url)
     setLabel(s.label)
     setDomains(s.domains)
+    setPicked(s)
   }
   const draft = (): Omit<CustomTab, 'id'> => ({
+    // Réglage recommandé du site choisi, tant que son adresse n'a pas été changée.
+    ...(picked?.url === full ? catalogTab(picked) : {}),
     label: name,
     url: full,
     embed,
