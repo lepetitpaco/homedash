@@ -292,3 +292,54 @@ describe('GitHub', () => {
     expect(posted).toBe(1)
   })
 })
+
+describe('carte En cours', () => {
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status })
+  const account = () => {
+    const gh = new GitHubAccount()
+    gh.configure({ id: 'main', repos: ['org/api'], me: 'moi' } as any)
+    return gh
+  }
+  afterEach(() => setFetch((i, init) => fetch(i, init)))
+
+  it('sert les runs en cours avec leurs jobs, jamais un run fini', async () => {
+    const asked: string[] = []
+    setFetch(async (input) => {
+      const url = String(input)
+      asked.push(url)
+      if (url.includes('/actions/runs/7/jobs'))
+        return json({ jobs: [{ name: 'version', status: 'completed', conclusion: 'success' }, { name: 'build', status: 'in_progress', conclusion: null }] })
+      if (url.includes('/actions/runs'))
+        return json({ workflow_runs: [
+          { id: 7, name: 'release', status: 'in_progress', head_branch: 'main', display_title: 'Merge', html_url: 'u7' },
+          { id: 8, name: 'pages', status: 'completed', conclusion: 'success', head_branch: 'main' },
+        ] })
+      return json([])
+    })
+    const gh = account()
+    await gh.rebuild('tok', ['running'])
+    expect(gh.data.running.map((r) => [r.repo, r.workflow, r.branch, r.url])).toEqual([['api', 'release', 'main', 'u7']])
+    expect(gh.data.running[0].ci.checks.map((c: any) => [c.name, c.state])).toEqual([['version', 'pass'], ['build', 'pending']])
+    expect(asked.some((u) => u.includes('/runs/8/jobs'))).toBe(false)
+  })
+
+  it('rien en cours : liste vide, aucun job demandé', async () => {
+    const asked: string[] = []
+    setFetch(async (input) => {
+      asked.push(String(input))
+      return json({ workflow_runs: [{ id: 8, status: 'completed' }] })
+    })
+    const gh = account()
+    await gh.rebuild('tok', ['running'])
+    expect(gh.data.running).toEqual([])
+    expect(asked.some((u) => u.includes('/jobs'))).toBe(false)
+  })
+
+  it('accès refusé : liste vide, sans erreur pour le reste', async () => {
+    setFetch(async () => json({ message: 'non' }, 403))
+    const gh = account()
+    await gh.rebuild('tok', ['running'])
+    expect(gh.data.running).toEqual([])
+    expect((gh as any).state.error).toBeNull()
+  })
+})

@@ -1,3 +1,4 @@
+import GhRunning from './GhRunning'
 import GhToolbar, { AccountSwitch } from './GhToolbar'
 import Masonry from './Masonry'
 import Section, { type SectionCtx } from './Section'
@@ -33,6 +34,7 @@ export default function GithubView({ ctx, onSettings }: { ctx: SectionCtx; onSet
         />
       ) : null}
       {gh.busyScope ? <div className="gh-progress" /> : null}
+      {gh.data?.enabled && gh.data.running?.length ? <GhRunning runs={gh.data.running} /> : null}
       <Masonry
         className="gh-page"
         columns={cfg.ui.cardColumns}
