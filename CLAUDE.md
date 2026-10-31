@@ -36,16 +36,44 @@ Même chose si la demande contredit une règle absolue : la signaler, proposer u
 Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
 devient un réglage.
 
-**Une vague = une branche, un push = une version.** On travaille sur une branche locale (`vague/<sujet>`)
-et on y commite librement, sans toucher au `CHANGELOG.md` ni aux versions. Une fois la vague testée :
-pull request vers `main`, approuvée par le propriétaire du dépôt (CODEOWNERS), puis **une** entrée de
-CHANGELOG pour toute la vague et le tag. Trois commits poussés ensemble = une seule version, jamais une par commit.
+**Une branche par sujet ; `preprod` les réunit ; `main` = une version.** Branches : `<qui>/<type>/<nom>` (ci-dessous),
+sans toucher au `CHANGELOG.md` ni aux versions. Une fois la branche testée : pull request vers `preprod`, sans approbation
+(chaque collaborateur fusionne), et la branche est supprimée toute seule. On teste l'ensemble sur `preprod`. Quand
+tout est validé : sur `preprod`, **une** entrée de CHANGELOG et la version de `desktop/package.json`, puis pull
+request vers `main`, **commit de fusion obligatoire** (jamais de squash), approuvée par le propriétaire
+(CODEOWNERS). À la fusion, GitHub Actions pose le tag et publie la Release : aucun tag à la main. Du code sur `main`
+sans nouvelle version fait échouer le run ; la doc seule ne publie rien. `main` et `preprod` ne sont jamais
+supprimées. Branche refusée en preprod : `git revert` de sa fusion. Correctif urgent : branche depuis `main`, puis
+`main` refusionnée dans `preprod`.
 
-**Avant la pull request** (on ne pousse plus directement sur `main`) :
+**Nom d'une branche : `<qui>/<type>/<nom>`**, par exemple `paco/feature/catalogue-sites` ou `paul/fix/pastille-trello`.
+`<qui>` : ton prénom, en minuscules. `<nom>` : le sujet en quelques mots, minuscules et tirets. `<type>`, un seul :
+
+| Type | Pour |
+| --- | --- |
+| `feature` | Une nouvelle possibilité |
+| `fix` | Une correction de bug |
+| `refactor` | Le code change, pas ce qu'on voit (performance comprise si rien d'autre ne bouge) |
+| `docs` | La documentation seule |
+| `chore` | L'outillage : CI, dépendances, scripts |
+
+**Pour une IA** : crée toujours la branche sous ce format, avec le prénom de la personne qui te le demande (demande-le
+s'il n'est pas connu), et jamais directement sur `main` ou `preprod`.
+
+**Avant la pull request** (on ne pousse directement ni sur `main` ni sur `preprod`) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
   `CHANGELOG.md` **après** synchronisation, et un tag déjà pris ne se réutilise pas.
 - Typecheck et tests au vert (commandes ci-dessous) ; page testée à la main si l'écran change.
 - Jamais de `push --force`, de réécriture de l'historique de `main` ni de tag déplacé.
+
+**Journal du dev** (`CHANGELOG-dev.md`) : chaque branche y note ce qu'elle apporte, sous le nom de sa branche,
+dès son premier commit. C'est le seul journal qu'on touche sur une branche. À la version, ses lignes
+deviennent l'entrée du `CHANGELOG.md` (écrite pour l'utilisateur) et quittent ce fichier.
+
+**À chaque version, revue de toute la doc, avant la pull request vers `main`.** Relire chacun, le corriger si besoin, et dire dans la
+pull request ce qui a changé ou « rien à changer » : `README.md`, `GUIDE.md`, `DEVELOPING.md`, `ARCHITECTURE.md`,
+`PRIVACY.md`, `CLAUDE.md`, `AGENTS.md`, `.cursor/`, `aidd_docs/`, `docs/` (site GitHub Pages) et les captures
+`docs/screenshots/` (refaites si l'écran a changé : `sh docs/demo/capture.sh`).
 
 **À chaque livraison :**
 - Ce qui change pour l'utilisateur → **entrée en tête de `CHANGELOG.md`** (`## X.Y.Z — AAAA-MM-JJ`
@@ -60,12 +88,11 @@ CHANGELOG pour toute la vague et le tag. Trois commits poussés ensemble = une s
   | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
 
   Depuis la 2.0, l'appli embarque tout : **chaque version** monte `desktop/package.json` à la même
-  version que le CHANGELOG (le workflow de Release refuse un tag où les deux diffèrent). Le tag `vX.Y.Z`
-  poussé déclenche GitHub Actions, qui construit l'appli et publie la Release que les applis installées
-  proposent.
+  version que le CHANGELOG (le workflow de Release échoue si les deux diffèrent). Une nouvelle version
+  arrivée sur `main` déclenche GitHub Actions, qui pose le tag `vX.Y.Z`, construit l'appli et publie la
+  Release que les applis installées proposent.
 
-  Plusieurs changements livrés ensemble (une vague, un push) = une seule version. Après le commit : `git tag -a vX.Y.Z -m
-  "X.Y.Z"` puis `git push --follow-tags`.
+  Plusieurs changements livrés ensemble (tout ce que `preprod` apporte à `main`) = une seule version.
 - Comportement visible modifié → `GUIDE.md` à jour.
 - Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
   cause, la solution et la version qui la livre ; fermée avec le hash du commit. Une issue déjà ouverte
@@ -183,14 +210,17 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
 **Trello**
+- `tr-*` et `bc-*` restent séparés. Une classe ne sert qu'à une chose : `tr-card-actions` sur les boutons d'une fenêtre
+  les rendait invisibles, `tr-issue` sur une fenêtre et une ligne faisait passer la ligne en plein écran.
 - Le tableau affiché vient de `GET /boards/{id}?lists=open&cards=visible` (toutes les cartes des listes
   ouvertes). `/members/me/cards` ne donne que les cartes du membre, y compris sur une liste archivée :
   ça ne sert qu'au drapeau `mine` (À traiter, pastille, cloche). `cards=visible` sur la collection
   `/members/me/boards` ne renvoie aucune carte.
 - Le fond du tableau n'est gardé que s'il est `https` sur `trello-backgrounds.s3.amazonaws.com`. La page
   le charge en CSS. Jamais le proxy d'images : celui-ci envoie le jeton, et cet hôte n'est pas le sien.
-- La zone du tableau est sombre, comme Trello, même en thème clair. Le texte des cartes n'utilise pas
-  `--text` : sur ce fond fixe, `--text` en thème clair deviendrait illisible.
+- Le tableau suit le thème, avec les couleurs de Trello : variables `--tr-*` (`trello.css`), pas `--text` ni `--panel`.
+- Photos de profil : `members()` ne garde que `https` sur l'hôte des photos Trello ; chargées par la page, jamais
+  par le proxy d'images (qui envoie le jeton).
 - Filtre « GitHub & Local » de la cloche : sources `github` et `local` seulement. Une source nouvelle a
   son propre filtre ; elle n'est pas « tout sauf Basecamp ».
 

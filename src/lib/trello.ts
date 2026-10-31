@@ -24,9 +24,16 @@ export type TrCard = {
   comments: number
   checks: number
   checks_done: number
+  /** Étiquettes : absentes d'un cache écrit avant leur ajout. */
+  labels?: { name: string; color: string }[]
+  member_ids?: string[]
+  has_desc?: boolean
+  cover?: string
   /** Carte où le compte connecté est membre. Absent : on la traite comme sienne. */
   mine?: boolean
 }
+
+export type TrMember = { id: string; initials: string; name: string; avatar: string }
 
 export type TrBoard = {
   id: string
@@ -34,6 +41,7 @@ export type TrBoard = {
   url: string
   background?: string
   background_brightness?: string
+  members?: TrMember[]
   lists: { id: string; name: string; pos: number }[]
 }
 

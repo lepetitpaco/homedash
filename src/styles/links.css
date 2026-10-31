@@ -143,6 +143,11 @@
   align-items: stretch;
 }
 
+/* Replier Notes et Infos : même flèche que les catégories. */
+.fold-btn {
+  margin-left: auto;
+}
+
 /* repliée, une bande n'est plus qu'un bandeau de titre */
 .board > .card.is-collapsed {
   grid-template-columns: 1fr;

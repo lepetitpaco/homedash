@@ -63,6 +63,10 @@ même sans aucun site : son **＋** ajoute le premier.
   site. Il se ferme au redémarrage ou après 3 h sans y aller ; clic droit → *Garder dans Mes sites* pour
   le conserver, ou *Fermer tous les onglets temporaires*.
 - **⋯ au survol** d'un lien, d'une tuile ou d'une catégorie : le même menu que le clic droit.
+- **Catalogue** (*Réglages → Mes sites*) : un clic ajoute un site avec son icône et un réglage recommandé
+  (messageries chargées au démarrage, réseaux sociaux en veille, musique sans veille), et des raccourcis directs
+  comme Instagram Direct. Tout se change ensuite dans la fiche du site. Pour les sites déjà là : ✨ *Configuration
+  recommandée*, qui montre ce qui change avant d'appliquer.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -114,9 +118,9 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 
 #### Bon à savoir
 
-- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
-  Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller (durée dans
-  *Réglages → Mes sites*).
+- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés, l'un après l'autre (leurs pastilles arrivent dans les premières secondes) ; les autres au premier clic.
+  *Réglages → Mes sites* affiche ce que consomme chaque site : 💤 *Libérer* le décharge tout de suite, jusqu'au
+  prochain clic. Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller.
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.
@@ -238,7 +242,8 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
 
 ## 🔎 Recherche
 
-`/` ou `⌘K` : tout retrouver, et ouvrir une adresse.
+`/` ou `⌘K` : tout retrouver, ouvrir une adresse, et agir sur un site sans passer par le clic droit : tape
+« libérer discord », « recharger gmail », « couper le son de youtube »… Dans « Partout » seulement.
 
 - **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
 - **Chercher à un seul endroit** : clic sur la loupe, à gauche de la barre → *Raccourcis*, *Mes sites*,

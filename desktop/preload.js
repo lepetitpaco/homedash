@@ -29,6 +29,8 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     'reload-swap',
     'basecamp-connect',
     'full-export',
+    // Mémoire de chaque site (Réglages → Mes sites).
+    'tab-memory',
   ],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
@@ -63,6 +65,8 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
    * (`host`) ou de tout le compte (sans `host`). Résout true si c'est fait.
    */
   clearData: (partition, host) => ipcRenderer.invoke('homedash:clear-data', { partition, host }),
+  /** Mémoire de l'appli et de chaque site chargé : { total_mb, tabs: { id de webview: { mb, pid } } }. */
+  tabMemory: () => ipcRenderer.invoke('homedash:tab-memory'),
   /** Réglages de notifications du système, sur la page de homedash (pastille de l'icône). */
   openNotificationSettings: () => ipcRenderer.send('homedash:notif-settings'),
   /** Ouvre une adresse http(s) dans le navigateur par défaut. */

@@ -35,6 +35,8 @@ branchée sur le Docker de dev, avec son propre profil. Elle cohabite avec l'app
 
 ```bash
 sh desktop/build-local.sh --dev --install             # Mac : « homedash dev » dans Applications
+# Dans cette appli, le menu « Branche » change la branche du dépôt : le container suit à chaud
+# (npm ci et redémarrage si package-lock.json change). Modifications non commitées : refusé.
 ```
 
 Console : *Présentation → Outils de développement* (⌥⌘I).
@@ -47,15 +49,36 @@ docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm
 
 ## Livrer
 
-1. Une branche par sujet (`vague/<sujet>`), commits libres, sans toucher au CHANGELOG.
-2. Pull request vers `main`, relue et approuvée.
-3. Pour publier : une entrée en tête de `CHANGELOG.md`, la **même version** dans
-   `desktop/package.json`, puis `git tag -a vX.Y.Z -m "X.Y.Z" && git push --follow-tags`.
-4. Le tag lance GitHub Actions : il construit l'appli (Mac arm64 + x64, Windows) et publie la Release,
-   que les applis installées proposent en mise à jour.
+1. Une branche par sujet (`<qui>/<type>/<nom>`, ci-dessous), commits libres, sans toucher au CHANGELOG ; ce qu'elle apporte va
+   dans `CHANGELOG-dev.md`.
+2. Pull request vers `preprod`, sans approbation : fusionnée, la branche se supprime toute seule. On teste
+   l'ensemble sur `preprod` (menu *Branche* de l'appli de dev).
+3. Pour publier : sur `preprod`, une entrée en tête de `CHANGELOG.md`, la **même version** dans
+   `desktop/package.json`, la revue de la doc (checklist de la pull request), puis pull request vers `main`,
+   approuvée par le propriétaire, fusionnée par un commit de fusion.
+4. La fusion lance GitHub Actions : il pose le tag, construit l'appli (Mac arm64 + x64, Windows) et publie la
+   Release, que les applis installées proposent en mise à jour. Aucun tag à la main.
 
-Doc, tests ou refactor seuls : pas de version. Le détail (quel numéro, issues, étiquettes) est dans
+Doc seule : pas de version. Du code sur `main` sans nouvelle version fait échouer le run. Le détail (quel numéro, issues, étiquettes) est dans
 [CLAUDE.md](CLAUDE.md).
+
+## Nommer une branche
+
+`<qui>/<type>/<nom>`, par exemple `paco/feature/catalogue-sites` ou `paul/fix/pastille-trello`.
+
+- `<qui>` : ton prénom, en minuscules.
+- `<nom>` : le sujet en quelques mots, minuscules et tirets.
+- `<type>`, un seul :
+
+| Type | Pour |
+| --- | --- |
+| `feature` | Une nouvelle possibilité |
+| `fix` | Une correction de bug |
+| `refactor` | Le code change, pas ce qu'on voit (performance comprise si rien d'autre ne bouge) |
+| `docs` | La documentation seule |
+| `chore` | L'outillage : CI, dépendances, scripts |
+
+`main` et `preprod` sont les seules branches qui restent : les autres se suppriment à la fusion.
 
 ## Captures
 

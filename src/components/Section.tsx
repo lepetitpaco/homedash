@@ -42,6 +42,10 @@ export type SectionCtx = {
   infoPanelMenu: (e: React.MouseEvent) => void
 }
 
+/** Clés de pliage (mêmes préférences que les catégories) : `:` les distingue d'un nom de catégorie. */
+const NOTES_FOLD = ':notes'
+const INFOS_FOLD = ':infos'
+
 /** Un bloc de page : carte GitHub, infos, repos, notes, stats ou catégorie de liens. */
 export default function Section({ section, ctx }: { section: ResolvedSection; ctx: SectionCtx }) {
   const { cfg, gh, local, links, health, track } = ctx
@@ -93,6 +97,8 @@ export default function Section({ section, ctx }: { section: ResolvedSection; ct
         onContextItem={ctx.infoMenu}
         onContextGroup={ctx.infoGroupMenu}
         onAdd={ctx.infoPanelMenu}
+        collapsed={ctx.collapsed[INFOS_FOLD] ?? false}
+        onToggle={() => ctx.toggleGroup(INFOS_FOLD, ctx.collapsed[INFOS_FOLD] ?? false)}
       />
     ) : null
   }
@@ -110,6 +116,8 @@ export default function Section({ section, ctx }: { section: ResolvedSection; ct
         setNotes={ctx.setNotes}
         openId={ctx.openNoteId}
         setOpenId={ctx.setOpenNoteId}
+        collapsed={ctx.collapsed[NOTES_FOLD] ?? false}
+        onToggle={() => ctx.toggleGroup(NOTES_FOLD, ctx.collapsed[NOTES_FOLD] ?? false)}
       />
     )
   }

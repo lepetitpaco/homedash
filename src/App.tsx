@@ -58,7 +58,7 @@ import {
   tabKey,
 } from './lib/customTabs'
 import { perfEvent, setPerfLog } from './lib/perf'
-import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, REFRESH_DATA, RELOAD_TAB, reloadSwap, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
+import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, REFRESH_DATA, RELOAD_TAB, reloadSwap, SLEEP_TAB, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -80,6 +80,9 @@ const TEMP_IDLE_MS = 3 * 3600_000
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
 /** Dernières pastilles des onglets perso, par `tabKey`. */
 const TAB_COUNTS_KEY = 'homedash:tab-counts'
+/** Écart entre deux sites chargés au démarrage. */
+const WARM_STEP_MS = 1500
+const WARM_GIVE_UP_MS = 20_000
 
 /** Éphémère, simple ou gardé : rangé en bas, son adresse suit la navigation. */
 const isTemp = (t: CustomTab) => !!t.kept || t.id.startsWith('tmp-')
@@ -197,10 +200,10 @@ export default function App() {
     w.__homedashMenu = (m: GuestMenu) => menuRef.current(m)
     // Journal de performance (main.js) : nom et compte de l'onglet de chaque webview.
     w.__homedashTabs = () => {
-      const out: Record<number, { label: string; account: string | null }> = {}
+      const out: Record<number, { id: string; label: string; account: string | null }> = {}
       for (const [id, tid] of guestTab.current) {
         const t = allTabsRef.current.find((x) => x.id === tid)
-        if (t) out[id] = { label: t.label, account: sessionsRef.current.find((s) => s.id === t.session)?.name ?? null }
+        if (t) out[id] = { id: t.id, label: t.label, account: sessionsRef.current.find((s) => s.id === t.session)?.name ?? null }
       }
       return out
     }
@@ -388,6 +391,26 @@ export default function App() {
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
+  // Sites à non-lus : chargés un par un au démarrage. Tous d'un coup, ils se
+  // disputent le processeur et le réseau (X : 13 s au lieu de 2).
+  const [warmed, setWarmed] = useState(0)
+  const warmable = desktop ? allTabs.filter((t) => t.embed && preloads(t)).map(tabKey) : []
+  const warmingDone = warmed >= warmable.length
+  useEffect(() => {
+    if (warmingDone) return
+    const id = window.setTimeout(() => setWarmed((n) => n + 1), warmed ? WARM_STEP_MS : 0)
+    return () => window.clearTimeout(id)
+  }, [warmed, warmingDone])
+  // Anneau sur les icônes : en attente ou en cours de chargement. Un site qui
+  // n'aboutit jamais ne le garde pas : tout s'arrête 20 s après le dernier lancé.
+  const [warmLoaded, setWarmLoaded] = useState<string[]>([])
+  const [warmOver, setWarmOver] = useState(false)
+  useEffect(() => {
+    if (!warmingDone || !warmed) return
+    const id = window.setTimeout(() => setWarmOver(true), WARM_GIVE_UP_MS)
+    return () => window.clearTimeout(id)
+  }, [warmingDone, warmed])
+  const warming = warmOver ? [] : warmable.filter((k) => !warmLoaded.includes(k) && !asleep.includes(k))
   // Fenêtre « Nouvel onglet » (＋ de la barre de gauche).
   const [adding, setAdding] = useState(false)
   // « Tout actualiser » en cours (⟳ de la barre du haut).
@@ -530,6 +553,19 @@ export default function App() {
   const allTabsRef = useRef(allTabs)
   allTabsRef.current = allTabs
   const sleepMinutes = cfg?.ui.tabSleepMinutes ?? 5
+  // Réglages → Mes sites : libérer un site maintenant (fermé proprement, comme la veille).
+  useEffect(() => {
+    const on = (e: Event) => {
+      const key = (e as CustomEvent<string>).detail
+      window.dispatchEvent(new CustomEvent<string[]>(UNLOAD_TAB, { detail: [key] }))
+      window.setTimeout(() => {
+        perfEvent('sleep', { tabs: allTabsRef.current.filter((t) => tabKey(t) === key).map((t) => t.label) })
+        setAsleep((a) => (a.includes(key) || key === tabRef.current ? a : [...a, key]))
+      }, 1500)
+    }
+    window.addEventListener(SLEEP_TAB, on)
+    return () => window.removeEventListener(SLEEP_TAB, on)
+  }, [])
   useEffect(() => {
     const id = window.setInterval(() => {
       const now = Date.now()
@@ -621,6 +657,12 @@ export default function App() {
   // les actions de homedash. `openTempRef` : défini plus bas, avec les éphémères.
   const iconRef = useRef<Record<string, React.ReactNode>>({})
   const openTempRef = useRef<(url: string) => void>(() => undefined)
+  const siteActionsRef = useRef<Record<'mute' | 'notify' | 'clear', (t: CustomTab) => void>>({
+    mute: () => undefined,
+    notify: () => undefined,
+    clear: () => undefined,
+  })
+  const refreshAllRef = useRef<() => void>(() => undefined)
   const searchTabs = useMemo(
     () => allTabs.map((t) => ({ tab: t, icon: () => iconRef.current[t.id] ?? '🌐' })),
     [allTabs],
@@ -640,6 +682,17 @@ export default function App() {
       ...(on.trello && tr.data?.configured
         ? [{ id: 'trello', icon: '📋', label: 'Trello', keywords: 'cartes tableaux', run: () => selectTab('trello') }]
         : []),
+      { id: 'refresh', icon: '⟳', label: 'Tout actualiser', keywords: 'recharger rafraîchir données', run: () => refreshAllRef.current() },
+      {
+        id: 'settings-sites',
+        icon: '🗂',
+        label: 'Réglages de Mes sites',
+        keywords: 'onglets mémoire veille',
+        run: () => {
+          showSettingsSection('set-tabs')
+          selectTab('settings')
+        },
+      },
       { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
       { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config', run: () => selectTab('settings') },
       ...(desktop
@@ -689,6 +742,61 @@ export default function App() {
           ? on.trello && !!tr.data?.enabled
           : true,
   )
+  // Actions sur chaque site, dans la recherche. Les fonctions sont définies plus bas (comme `openTempRef`).
+  const siteCommands: Command[] = allTabs
+    .filter((t) => t.embed && !isLocal(t.url))
+    .flatMap((t) => {
+      const key = tabKey(t)
+      const name = t.label
+      const mounted = !asleep.includes(key) && (visited.includes(key) || warmable.slice(0, warmed).includes(key))
+      return [
+        ...(mounted
+          ? [{
+              id: `reload:${t.id}`,
+              icon: '↻',
+              label: `Recharger ${name}`,
+              keywords: 'actualiser rafraîchir',
+              run: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: key })),
+            }]
+          : []),
+        ...(mounted && key !== tab
+          ? [{
+              id: `free:${t.id}`,
+              icon: '💤',
+              label: `Libérer ${name}`,
+              keywords: 'décharger veille mémoire',
+              hint: 'décharge le site jusqu’au prochain clic',
+              run: () => window.dispatchEvent(new CustomEvent(SLEEP_TAB, { detail: key })),
+            }]
+          : []),
+        ...(desktop
+          ? [
+              {
+                id: `mute:${t.id}`,
+                icon: muted[key] ? '🔊' : '🔇',
+                label: `${muted[key] ? 'Rétablir' : 'Couper'} le son de ${name}`,
+                keywords: 'audio silence',
+                run: () => siteActionsRef.current.mute(t),
+              },
+              {
+                id: `notify:${t.id}`,
+                icon: t.notify === false ? '🔔' : '🔕',
+                label: `${t.notify === false ? 'Rétablir' : 'Couper'} les notifications de ${name}`,
+                keywords: 'pastille notifs',
+                run: () => siteActionsRef.current.notify(t),
+              },
+              {
+                id: `clear:${t.id}`,
+                icon: '🧹',
+                label: `Effacer les données de ${name}`,
+                keywords: 'cookies cache déconnecter',
+                hint: 'demande confirmation',
+                run: () => siteActionsRef.current.clear(t),
+              },
+            ]
+          : []),
+      ]
+    })
   const search = useSearch({
     cfg,
     links,
@@ -711,7 +819,7 @@ export default function App() {
       search.setQuery('')
       selectTab(tabKey(t))
     },
-    commands,
+    commands: [...commands, ...siteCommands],
   })
   const currentScope = searchScopes.find((x) => x.id === search.scope) ?? SEARCH_SCOPES[0]
   // Portée devenue indisponible (fonctionnalité coupée) : on cherche partout.
@@ -1245,6 +1353,15 @@ export default function App() {
       },
     ]
   }
+  siteActionsRef.current = {
+    mute: toggleMute,
+    notify: toggleNotify,
+    clear: (t) => {
+      const item = clearItem(t)[0]
+      if (item && 'onSelect' in item) item.onSelect?.()
+    },
+  }
+  refreshAllRef.current = refreshAll
   const sleepItem = (t: CustomTab): MenuItem => ({
     icon: '💤',
     label: t.sleep ? 'Ne plus mettre en veille' : 'Mettre en veille si inutilisé',
@@ -1255,7 +1372,7 @@ export default function App() {
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
-      title: `${t.label} · ${t.kept ? 'onglet gardé' : 'onglet temporaire'}`,
+      title: `${t.label} · onglet temporaire${t.kept ? ', gardé' : ''}`,
       items: [
         { icon: '↗', label: 'Ouvrir dans le navigateur', onSelect: () => openOutside(tempUrl.current.get(t.id) ?? t.url) },
         copyItem(t),
@@ -1786,6 +1903,7 @@ export default function App() {
             [DASH, ...regularTabs.map(tabKey)].map((k) => [k === DASH ? 'links' : k, childrenOf(k).length]),
           )}
           asleep={asleep}
+          warming={warming}
           audible={audible}
           muted={muted}
           onToggleMute={toggleMute}
@@ -1849,12 +1967,15 @@ export default function App() {
       )}
 
       {allTabs
-        // Dans l'appli, tous dès le départ : leurs pastilles arrivent sans les ouvrir.
+        // Dans l'appli, chargés un par un dès le départ : leurs pastilles arrivent sans les ouvrir.
         // En veille : démontés (mémoire rendue), remontés au clic.
         // Montés : ceux déjà ouverts, et dans l'appli ceux dont on suit les non-lus
         // (`preloads`) ; chaque site chargé coûte 100 à 400 Mo de mémoire.
         .filter(
-          (t) => t.embed && (visited.includes(tabKey(t)) || (desktop && preloads(t))) && !asleep.includes(tabKey(t)),
+          (t) =>
+            t.embed &&
+            (visited.includes(tabKey(t)) || warmable.slice(0, warmed).includes(tabKey(t))) &&
+            !asleep.includes(tabKey(t)),
         )
         .map((t) => (
           <CustomTabView
@@ -1894,7 +2015,10 @@ export default function App() {
               }
             }}
             onCount={(n) => setCount(tabKey(t), n)}
-            onLoaded={(ms) => perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })}
+            onLoaded={(ms) => {
+              perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })
+              setWarmLoaded((l) => (l.includes(tabKey(t)) ? l : [...l, tabKey(t)]))
+            }}
             muted={!!muted[tabKey(t)]}
             merged={railOn && view === tabKey(t)}
           />

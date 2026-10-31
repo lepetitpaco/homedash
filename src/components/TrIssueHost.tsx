@@ -79,6 +79,15 @@ export default function TrIssueHost() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!req) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setReq(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [req])
+
   if (!req) return null
   const body = () => {
     const exchanges = needFromCard('', [], comments, picked)
@@ -109,11 +118,11 @@ export default function TrIssueHost() {
   }
 
   return createPortal(
-    <div className="tr-issue" role="dialog" aria-label="Nouvelle issue" onClick={() => setReq(null)}>
-      <div className="tr-issue-card" onClick={(e) => e.stopPropagation()}>
+    <div className="tr-sheet" role="dialog" aria-label="Nouvelle issue" onClick={() => setReq(null)}>
+      <div className="tr-sheet-card" onClick={(e) => e.stopPropagation()}>
         <header className="tr-card-top">
           <strong>Issue GitHub pour {req.card.title}</strong>
-          <button className="tr-card-actions" onClick={() => setReq(null)}>Fermer</button>
+          <button className="btn" onClick={() => setReq(null)}>Fermer</button>
         </header>
         {req.existing.filter((i) => i.state === 'open').length ? (
           <p className="set-hint">Cette carte a déjà une issue ouverte.</p>

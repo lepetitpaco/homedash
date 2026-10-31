@@ -36,6 +36,8 @@ type Props = {
   temps: CustomTab[]
   /** Onglets en veille (clés `x:…`) : grisés, 💤. */
   asleep: string[]
+  /** Sites en cours de chargement au démarrage (clés `x:…`) : un anneau sur l'icône. */
+  warming: string[]
   /** Son par onglet (clés `x:…`) : 🔊 joue, 🔇 coupé ; un clic sur l'icône bascule. */
   audible: Record<string, boolean>
   muted: Record<string, boolean>
@@ -85,6 +87,7 @@ export default function Rail({
   tabs,
   temps,
   asleep,
+  warming,
   audible,
   muted,
   onToggleMute,
@@ -216,11 +219,11 @@ export default function Rail({
       </>
     )
     const title = `${t.label}${own ? ` · compte ${own.name}` : ''}${t.embed ? '' : ' ↗'}${
-      asleep.includes(key) ? ' · 💤 en veille, se recharge au clic' : ''}`
+      asleep.includes(key) ? ' · 💤 en veille, se recharge au clic' : ''}${warming.includes(key) ? ' · chargement…' : ''}`
     return (
       <div
         key={t.id}
-        className={`rail-item${active === key ? ' is-active' : ''}${zone ? ` is-${zone}` : ''}${drag === t.id ? ' is-dragging' : ''}${asleep.includes(key) ? ' is-asleep' : ''}`}
+        className={`rail-item${active === key ? ' is-active' : ''}${zone ? ` is-${zone}` : ''}${drag === t.id ? ' is-dragging' : ''}${asleep.includes(key) ? ' is-asleep' : ''}${warming.includes(key) ? ' is-warming' : ''}`}
         draggable
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move'
