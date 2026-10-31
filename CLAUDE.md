@@ -234,8 +234,9 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   sessions des sites gardées). `HOMEDASH_PROFILE=/dossier` : profil à part (tests).
 - Mise à jour (`updater.js`) : dernière Release, fichier de la machine d'après `latest-mac.yml` /
   `latest.yml`, sha512 vérifié, instantané des données, puis remplacement par un processus détaché (Mac :
-  .app extrait par `ditto` ; Windows : installateur NSIS `/S --force-run`). Dépôt privé : jeton du premier
-  compte GitHub connecté. Pas de signature : `identity: '-'` (ad hoc) dans electron-builder.yml.
+  .app extrait par `ditto` ; Windows : installateur NSIS `/S --force-run`, étapes dans `update.log` de userData,
+  échec dit au démarrage suivant par `afterStart()`). Un code 0 de NSIS ne prouve rien (`Quit` en silencieux) :
+  le script compare aussi la version de l'exe. Dépôt privé : jeton du premier compte GitHub connecté. Pas de signature : `identity: '-'` (ad hoc) dans electron-builder.yml.
 - Identifiant d'appli `com.lepetitpaco.homedash` : **ne plus le changer** (autorisations, notifications,
   épingles de la barre des tâches y sont rattachées).
 - Fermer la fenêtre la cache (Mac et Windows, icône près de l'horloge) ; seul *Quitter* arrête l'appli et

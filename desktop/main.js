@@ -18,7 +18,7 @@ const { execFile, execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 const server = require('./server')
-const { runUpdate } = require('./updater')
+const { afterStart, runUpdate } = require('./updater')
 
 // Profil à part (tests, seconde instance) : HOMEDASH_PROFILE=/un/dossier. Sans
 // lui, ~/Library/Application Support/homedash (Mac), %APPDATA%\homedash (Windows).
@@ -1279,6 +1279,7 @@ if (!app.requestSingleInstanceLock()) {
     setupTray()
     createWindow()
     if (failed) void win.loadURL(fallbackPage(failed))
+    if (!DEV) void afterStart(win).catch(() => undefined)
     postPerf({ kind: 'event', event: 'start', version: app.getVersion(), electron: process.versions.electron })
     win.on('hide', () => postPerf({ kind: 'event', event: 'hide' }))
     win.on('show', () => postPerf({ kind: 'event', event: 'show' }))

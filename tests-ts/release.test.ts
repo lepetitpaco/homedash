@@ -60,3 +60,55 @@ describe('mise à jour', () => {
     fs.rmSync(dir, { recursive: true })
   })
 })
+
+describe('mise à jour Windows', () => {
+  const args = { pid: 42, appDir: 'C:\\Users\\d’Arc\\homedash', appExe: 'C:\\Users\\d’Arc\\homedash\\homedash.exe', staged: "C:\\T\\o'k\\setup.exe", logFile: 'C:\\L\\update.log', version: '2.3.0' }
+  const log = (...steps: string[]) => steps.map((s) => `2026-11-01T10:00:00 ${s}`).join('\r\n') + '\r\n'
+  const pending = { from: '2.2.0', to: '2.3.0', at: 1000 }
+
+  it('le script double toutes les apostrophes, typographiques comprises', () => {
+    const script = release.winUpdateScript(args)
+    expect(script).toContain("'C:\\T\\o''k\\setup.exe'")
+    expect(script).toContain("d’’Arc")
+    expect(script).toContain("homedash\\'") // séparateur final : « homedash-dev » n'est pas ce dossier
+  })
+
+  it("le script attend avec WaitForExit, pas Start-Process -Wait (qui attendrait l'appli relancée)", () => {
+    const script = release.winUpdateScript(args)
+    expect(script).toContain('WaitForExit(')
+    expect(script).not.toMatch(/Start-Process[^;]*-Wait\b(?!ingDirectory)/)
+  })
+
+  it('une version plus récente : réussie, même si le journal parle mal', () => {
+    expect(release.updateOutcome({ pending, logText: '', version: '2.3.0', now: 2000 }).state).toBe('done')
+  })
+
+  it('pas de tentative : rien à dire', () => {
+    expect(release.updateOutcome({ pending: null, logText: '', version: '2.2.0' }).state).toBe('none')
+  })
+
+  it('appli ouverte à la main pendant l\'installation : on attend', () => {
+    expect(release.updateOutcome({ pending, logText: log('start', 'launched'), version: '2.2.0', now: 2000 }).state).toBe('running')
+  })
+
+  it('journal sans fin, délai passé : échec', () => {
+    const r = release.updateOutcome({ pending, logText: log('start'), version: '2.2.0', now: 1000 + release.WIN_MAX_MS + 1 })
+    expect(r.state).toBe('failed')
+  })
+
+  it.each([
+    [[], "n'a pas démarré"],
+    [['start', 'waited', 'launch-failed Accès refusé', 'relaunch', 'end'], "n'a pas pu se lancer"],
+    [['start', 'waited', 'launched', 'exit-timeout', 'end'], "pas fini à temps"],
+    [['start', 'waited', 'launched', 'exit 2', 'version 2.2.0', 'relaunch', 'end'], '(code 2)'],
+    [['start', 'waited', 'launched', 'exit 0', 'version 2.2.0', 'relaunch', 'end'], 'sans remplacer'],
+  ])('version inchangée : la raison suit le journal (%j)', (steps, text) => {
+    const r = release.updateOutcome({ pending, logText: steps.length ? log(...steps) : '', version: '2.2.0', now: 2000 })
+    expect(r.state).toBe('failed')
+    expect(r.reason).toContain(text)
+  })
+
+  it('le BOM ajouté par PowerShell ne gêne pas la lecture du journal', () => {
+    expect(release.parseUpdateLog('\uFEFF2026-11-01T10:00:00 start\r\n')).toEqual([{ step: 'start', detail: '' }])
+  })
+})
