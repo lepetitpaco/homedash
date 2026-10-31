@@ -144,6 +144,19 @@ export function ciSummary(runs: any[] | null | undefined): Record<string, any> {
   return { state, label, total: n, checks }
 }
 
+/** Un workflow en cours et ses jobs, pour la carte « En cours ». Un job se lit comme un check. */
+export function runningRun(repo: string, run: any, jobs: any[]): Record<string, any> {
+  return {
+    repo,
+    id: run.id,
+    workflow: run.name ?? '?',
+    title: emojify(run.display_title ?? ''),
+    branch: run.head_branch ?? '',
+    url: run.html_url ?? '',
+    ci: ciSummary(jobs),
+  }
+}
+
 /** Un commit dont l'email n'est lié à aucun compte reste non attribué. */
 function commitAuthor(c: any): string | null {
   return c?.author?.login || c?.committer?.login || null
@@ -287,9 +300,9 @@ export function setIssueSources(fn: () => Sources): void {
   issueSources = fn
 }
 
-export const SECTIONS = ['branches', 'prs', 'renovate', 'merged', 'issues'] as const
+export const SECTIONS = ['branches', 'prs', 'renovate', 'merged', 'issues', 'running'] as const
 
-type Data = { branches: any[]; prs: any[]; renovate: any[]; renovate_merged: any[]; merged: any[]; issues: any[]; tr_issues: any[] }
+type Data = { branches: any[]; prs: any[]; renovate: any[]; renovate_merged: any[]; merged: any[]; issues: any[]; tr_issues: any[]; running: any[] }
 
 export class GitHubAccount {
   ACCOUNT = { id: 'main', label: '' }
@@ -305,7 +318,7 @@ export class GitHubAccount {
   private remoteVer = 0
   /** Sections déjà vues, et pour quel utilisateur : la première passe ne notifie rien. */
   private seeded = { user: null as string | null, sections: new Set<string>() }
-  data: Data = { branches: [], prs: [], renovate: [], renovate_merged: [], merged: [], issues: [], tr_issues: [] }
+  data: Data = { branches: [], prs: [], renovate: [], renovate_merged: [], merged: [], issues: [], tr_issues: [], running: [] }
   private state = { ts: 0, building: false, user: null as string | null, error: null as string | null }
 
   /** Applique les réglages du compte. Rechargeable à chaud. */
@@ -719,6 +732,20 @@ export class GitHubAccount {
     }))
   }
 
+  /** Workflows en cours sur les repos suivis, toutes branches. Les jobs ne sont lus que pour eux. */
+  private async fetchRunning(tok: string): Promise<any[]> {
+    const tasks = (
+      await pmap(this.CFG.repos || [], MAX_WORKERS, async (repo: string) => {
+        const data = await this.gh(`/repos/${this.owner(repo)}/${repo}/actions/runs`, tok, { per_page: 20 })
+        return (data?.workflow_runs || []).filter((run: any) => run.status !== 'completed').map((run: any) => [repo, run] as [string, any])
+      })
+    ).flat()
+    return pmap(tasks, MAX_WORKERS, async ([repo, run]) => {
+      const data = await this.gh(`/repos/${this.owner(repo)}/${repo}/actions/runs/${run.id}/jobs`, tok, { per_page: 100 })
+      return runningRun(repo, run, data?.jobs || [])
+    })
+  }
+
   private async fetchMerged(tok: string, user: string): Promise<any[]> {
     const count = this.CFG.merged_count ?? 10
     if (!count) return []
@@ -1064,6 +1091,7 @@ export class GitHubAccount {
         renovate: () => this.fetchRenovate(tok),
         merged: () => this.fetchMerged(tok, user),
         issues: () => this.fetchLinkedIssues(tok),
+        running: () => this.fetchRunning(tok),
       }
       const results = await Promise.all(todo.map((name) => jobs[name]()))
       // Instantané d'avant : les listes sont remplacées, jamais mutées.
@@ -1157,6 +1185,7 @@ export class GitHubAccount {
       branches: { active: d.branches.filter((b) => !b.merged), stale: d.branches.filter((b) => b.merged) },
       prs: d.prs,
       merged: d.merged,
+      running: d.running,
       renovate: {
         upstream_open: upOpen,
         upstream_merged: upMerged,

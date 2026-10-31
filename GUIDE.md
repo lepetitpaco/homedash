@@ -163,7 +163,8 @@ Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 ![L'onglet GitHub](docs/screenshots/github.jpg)
 
 - **GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) : 🌿 branches actives avec leur
-  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir).
+  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir). Quand un workflow
+  tourne sur un repo suivi, ⚙️ *En cours* apparaît en haut avec le détail de ses jobs, puis disparaît à la fin.
 - **Local** : tes clones, branche par branche, avec un verdict.
 
 ![L'onglet Local](docs/screenshots/local.jpg)

@@ -24,7 +24,7 @@ Uniquement vers les services que tu branches, avec tes propres accès :
 
 | Vers | Pourquoi |
 | --- | --- |
-| GitHub (`api.github.com`) | Tes repos, branches, PRs ; la création d'une issue quand tu la demandes ; la recherche de mises à jour (Releases de homedash) |
+| GitHub (`api.github.com`) | Tes repos, branches, PRs, workflows en cours ; la création d'une issue quand tu la demandes ; la recherche de mises à jour (Releases de homedash) |
 | Basecamp (`launchpad.37signals.com`, `*.basecampapi.com`) | Tes tâches, en lecture ; le rapport que tu publies, au clic |
 | Trello (`api.trello.com`), si branché | Tes tableaux, en lecture ; le rapport que tu publies, au clic |
 | Le service d'icônes (Google Favicons par défaut) | Le nom de domaine de tes liens, pour afficher leur icône. Désactivable : *Réglages → Affichage → Icônes des sites* |
