@@ -41,6 +41,8 @@ export type Pr = {
   ci: Ci
 }
 
+export type Run = { repo: string; id: number; workflow: string; title: string; branch: string; url: string; ci: Ci }
+
 export type Gate = { cls: 'ready' | 'running' | 'blocked' | 'open'; icon: string; title: string; detail: string }
 
 export type VersionGroup = { version: string; items: Pr[]; gate?: Gate | null }
@@ -56,6 +58,8 @@ export type GithubData = {
   branches: { active: Branch[]; stale: Branch[] }
   prs: Pr[]
   merged: Pr[]
+  /** Workflows en cours sur les repos suivis : vide la plupart du temps. */
+  running: Run[]
   renovate: {
     upstream_open: Pr[]
     upstream_merged: Pr[]

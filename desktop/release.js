@@ -70,7 +70,16 @@ function psQuote(s) {
 }
 
 /**
- * Script du PowerShell détaché : attend que l'appli soit fermée, lance
+ * Expression PowerShell : `$v`, la ProductVersion de l'exe, est-elle `version` ?
+ * Windows l'écrit sur quatre chiffres (2.2.4.0). [version] ne s'en sort pas :
+ * [version]'2.2.4.0' et [version]'2.2.4' diffèrent. Vide (exe illisible) : faux.
+ */
+function winSameVersion(version) {
+  return `(($v -replace '^(\\d+\\.\\d+\\.\\d+)\\.0$', '$1') -eq ${psQuote(version)})`
+}
+
+/**
+ * Script du PowerShell lancé par le relais : attend que l'appli soit fermée, lance
  * l'installateur, vérifie la version installée et rouvre l'appli si elle n'a pas
  * été remplacée. Chaque étape est notée au journal (une ligne `date étape détail`).
  * Installateur encore en cours après le délai : pas de réouverture, il la fermerait.
@@ -90,7 +99,7 @@ function winUpdateScript({ pid, appDir, appExe, staged, logFile, pendingFile, ve
     `if (-not (Test-Path -LiteralPath ${psQuote(pendingFile)})) { Note 'cancelled'; exit }`,
     `$ok = $false`,
     `$hung = $false`,
-    `try { $p = Start-Process -FilePath ${psQuote(staged)} -ArgumentList '/S','--updated','--force-run' -PassThru -ErrorAction Stop; $null = $p.Handle; Note 'launched'; if ($p.WaitForExit(${WIN_INSTALL_MS})) { Note ('exit ' + $p.ExitCode); $v = (Get-Item -LiteralPath $exe -ErrorAction SilentlyContinue).VersionInfo.ProductVersion; Note ('version ' + $v); $ok = (($p.ExitCode -eq 0) -and ($v -eq ${psQuote(version)})) } else { Note 'exit-timeout'; $hung = $true } } catch { Note ('launch-failed ' + $_.Exception.Message) }`,
+    `try { $p = Start-Process -FilePath ${psQuote(staged)} -ArgumentList '/S','--updated','--force-run' -PassThru -ErrorAction Stop; $null = $p.Handle; Note 'launched'; if ($p.WaitForExit(${WIN_INSTALL_MS})) { Note ('exit ' + $p.ExitCode); $v = (Get-Item -LiteralPath $exe -ErrorAction SilentlyContinue).VersionInfo.ProductVersion; Note ('version ' + $v); $ok = (($p.ExitCode -eq 0) -and ${winSameVersion(version)}) } else { Note 'exit-timeout'; $hung = $true } } catch { Note ('launch-failed ' + $_.Exception.Message) }`,
     `if ((-not $ok) -and (-not $hung)) { try { Start-Process -FilePath $exe -WorkingDirectory ${psQuote(appDir)} -ErrorAction Stop; Note 'relaunch' } catch { Note ('relaunch-failed ' + $_.Exception.Message) } }`,
     `Note 'end'`,
   ].join('; ')
@@ -172,4 +181,4 @@ function updateOutcome({ pending, logText, version, now = Date.now() }) {
   return { state: 'failed', reason: explainFailure(steps) }
 }
 
-module.exports = { WIN_MAX_MS, explainFailure, matches, newer, parseLatest, parseUpdateLog, pick, psQuote, sha512Of, startWinScript, updateOutcome, winRelayCommand, winUpdateScript }
+module.exports = { WIN_MAX_MS, explainFailure, matches, newer, parseLatest, parseUpdateLog, pick, psQuote, sha512Of, startWinScript, updateOutcome, winRelayCommand, winSameVersion, winUpdateScript }

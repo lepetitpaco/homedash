@@ -83,6 +83,11 @@ describe('mise à jour Windows', () => {
     expect(release.winUpdateScript(args)).toContain("Test-Path -LiteralPath 'C:\\L\\update-pending.json'")
   })
 
+  it('la version comparée ignore le quatrième chiffre de Windows', () => {
+    expect(release.winUpdateScript(args)).toContain(release.winSameVersion('2.3.0'))
+    expect(release.winSameVersion('2.3.0')).toContain("'^(\\d+\\.\\d+\\.\\d+)\\.0$'")
+  })
+
   it('le relais ne dépend pas de detached et protège le chemin du script', () => {
     const cmd = release.winRelayCommand({ scriptFile: "C:\\T\\d’Arc é\\update.ps1", cwd: 'C:\\T\\d’Arc é' })
     expect(cmd).toContain('-WindowStyle Hidden')

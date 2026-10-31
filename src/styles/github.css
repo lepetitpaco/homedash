@@ -582,3 +582,55 @@ a.gh-badge:hover {
     grid-template-columns: minmax(0, 1fr);
   }
 }
+
+/* Carte « En cours » : posée au-dessus de la grille, absente quand rien ne tourne. */
+.gh-running {
+  margin-bottom: 0.75rem;
+}
+.gh-run {
+  padding: 0.35rem 0.7rem;
+  border-top: 1px solid var(--border-soft);
+  min-width: 0;
+}
+.gh-run:first-child {
+  border-top: 0;
+}
+.gh-run-head {
+  display: grid;
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.5rem;
+}
+.gh-run-jobs {
+  list-style: none;
+  margin: 0.2rem 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 0.1rem 0.75rem;
+  font-size: 0.72rem;
+}
+.gh-run-jobs li {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+.gh-run-jobs a {
+  color: inherit;
+  text-decoration: none;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gh-run-jobs a:hover {
+  text-decoration: underline;
+}
+.gh-run-jobs .is-pass {
+  color: var(--sig-ok);
+}
+.gh-run-jobs .is-fail {
+  color: var(--sig-bad);
+}
+.gh-run-jobs .is-pending {
+  color: var(--sig-warn);
+}

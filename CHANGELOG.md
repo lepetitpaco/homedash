@@ -4,6 +4,15 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.3.0 — 2026-11-01
+Appli de bureau : 2.3.0
+
+- **Voir ce qui tourne, dans l'onglet GitHub** : quand un workflow GitHub Actions tourne sur un repo suivi, quelle que
+  soit la branche, une carte *En cours* apparaît en haut avec le détail de ses jobs. Elle disparaît à la fin.
+- **La mise à jour sous Windows marche avec le bouton**, vérifié sur un vrai PC. Si tu es en 2.2.2 ou avant, installe
+  `homedash-2.3.0-setup.exe` à la main une fois, depuis la page des versions.
+- **Corrigé** : sous Windows, une mise à jour réussie n'est plus prise pour un échec par le script d'installation.
+
 ## 2.2.4 — 2026-11-01
 Appli de bureau : 2.2.4
 
