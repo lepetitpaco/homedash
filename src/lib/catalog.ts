@@ -124,7 +124,8 @@ export const CATALOG: CatalogGroup[] = [
     title: 'Réseaux sociaux',
     sites: [
       { label: 'X', url: 'https://x.com/', icon: 'x-light', use: 'nap' },
-      { label: 'Instagram', url: 'https://www.instagram.com/', icon: 'instagram', use: 'nap' },
+      // Ses messages : au démarrage, pour la pastille (un seul onglet suffit, Direct est la même appli).
+      { label: 'Instagram', url: 'https://www.instagram.com/', icon: 'instagram', use: 'live' },
       { label: 'Facebook', url: 'https://www.facebook.com/', icon: 'facebook', use: 'nap' },
       { label: 'LinkedIn', url: 'https://www.linkedin.com/', icon: 'linkedin', use: 'nap' },
       { label: 'TikTok', url: 'https://www.tiktok.com/', icon: 'tiktok', use: 'nap' },

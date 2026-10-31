@@ -14,6 +14,8 @@ describe('catalogue de sites', () => {
     expect(tab('Gmail')).toMatchObject({ embed: true, preload: true })
     expect(tab('Gmail').sleep).toBeUndefined()
     expect(tab('Reddit')).toMatchObject({ preload: false, sleep: true })
+    expect(tab('Instagram')).toMatchObject({ preload: true })
+    expect(tab('Instagram').sleep).toBeUndefined()
     expect(tab('Spotify').preload).toBe(false)
     expect(tab('Spotify').sleep).toBeUndefined()
   })
