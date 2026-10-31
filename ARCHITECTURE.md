@@ -44,7 +44,7 @@ desktop/                  l'appli (Electron)
                           reprise des données Docker au premier lancement
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)
-  updater.js              mise à jour par la dernière Release (sha512 vérifié, données sauvegardées)
+  updater.js              mise à jour par la dernière Release (sha512 vérifié, données sauvegardées, journal Windows)
   assemble.sh             assemble desktop/app/ (coquille + server/ + public/ + CHANGELOG, GUIDE)
   electron-builder.yml    .dmg / .zip Mac (arm64, x64), setup.exe Windows, latest*.yml
   build-local.sh          l'appli construite sur ce Mac pour l'essayer (Docker + codesign ad hoc)
@@ -124,7 +124,8 @@ elle-même et envoyer du JSON.
   dans le navigateur ne peut joindre l'API. Le port n'existe que si on l'active (« Accès depuis le
   navigateur »).
 - **Mise à jour par les Releases.** Une nouvelle version sur `main` pose le tag et construit l'appli (Actions) ; l'appli télécharge son fichier,
-  vérifie le sha512 publié, sauvegarde les données et se remplace. Sans signature : le compte GitHub est
+  vérifie le sha512 publié, sauvegarde les données et se remplace. Sous Windows, un PowerShell détaché installe, note ses
+  étapes dans `<userData>/update.log` et rouvre l'appli en cas d'échec ; le démarrage suivant le signale. Sans signature : le compte GitHub est
   la seule protection (double authentification indispensable).
 - **Le serveur tient le journal.** Il tourne en continu, voit tout même page fermée, et c'est le seul
   endroit qui décide ce qui est un événement : la cloche et les notifications ne font qu'afficher.

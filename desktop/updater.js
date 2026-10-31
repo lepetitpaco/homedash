@@ -6,14 +6,15 @@
  *   2. téléchargement, empreinte vérifiée : un fichier abîmé ou modifié est refusé ;
  *   3. sauvegarde des données (instantané, Réglages → Sauvegardes) ;
  *   4. l'appli se ferme et se remplace : Mac, le .app extrait du .zip ; Windows,
- *      l'installateur en silencieux. Puis elle se relance.
+ *      l'installateur en silencieux, étapes notées dans `update.log` (dossier de
+ *      l'appli dans userData). Puis elle se relance.
  *
  * Même chemin sur Mac et Windows, sans dépendance. Dépôt privé : le jeton du
  * premier compte GitHub connecté sert au téléchargement (jamais envoyé ailleurs
  * qu'à api.github.com). La page ne demande qu'« une mise à jour » ; une fenêtre
  * du système demande confirmation. L'avancement remonte à la page.
  */
-const { app, dialog } = require('electron')
+const { app, dialog, shell } = require('electron')
 const { spawn } = require('node:child_process')
 const crypto = require('node:crypto')
 const fs = require('node:fs')
@@ -21,7 +22,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { Readable } = require('node:stream')
 const { pipeline } = require('node:stream/promises')
-const { matches, newer, parseLatest, pick } = require('./release')
+const { WIN_MAX_MS, matches, newer, parseLatest, pick, updateOutcome, winUpdateScript } = require('./release')
 
 const isWin = process.platform === 'win32'
 const isMac = process.platform === 'darwin'
@@ -106,23 +107,99 @@ function run(cmd, args) {
   })
 }
 
+const logFile = () => path.join(app.getPath('userData'), 'update.log')
+const pendingFile = () => path.join(app.getPath('userData'), 'update-pending.json')
+
+/**
+ * Windows : confie l'installation à un PowerShell détaché. Se résout quand il a
+ * démarré ; s'il ne démarre pas, l'erreur remonte et l'appli ne quitte pas.
+ * NSIS d'electron-builder : /S = silencieux, --force-run = relancer après.
+ * Lancé hors du dossier de l'appli, qu'il va remplacer.
+ */
+function handOverWin(staged, rel) {
+  const script = winUpdateScript({
+    pid: process.pid,
+    appDir: path.dirname(process.execPath),
+    appExe: process.execPath,
+    staged,
+    logFile: logFile(),
+    version: rel.version,
+  })
+  fs.rmSync(logFile(), { force: true })
+  fs.writeFileSync(pendingFile(), JSON.stringify({ from: app.getVersion(), to: rel.version, url: rel.url, at: Date.now() }))
+  return new Promise((resolve, reject) => {
+    const p = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
+      cwd: path.dirname(staged),
+      detached: true,
+      stdio: 'ignore',
+      windowsHide: true,
+    })
+    p.once('spawn', () => {
+      p.unref()
+      resolve()
+    })
+    p.once('error', (e) => {
+      fs.rmSync(pendingFile(), { force: true })
+      reject(e)
+    })
+  })
+}
+
+/**
+ * Au démarrage sous Windows : dit si la dernière mise à jour a échoué (version
+ * inchangée), et retire les téléchargements des tentatives passées. Les dossiers
+ * récents restent : une installation peut encore s'en servir.
+ */
+async function afterStart(win) {
+  if (!isWin || !app.isPackaged) return
+  for (const name of fs.readdirSync(os.tmpdir()).filter((n) => n.startsWith('homedash-update-'))) {
+    const dir = path.join(os.tmpdir(), name)
+    try {
+      if (Date.now() - fs.statSync(dir).mtimeMs > WIN_MAX_MS) fs.rmSync(dir, { recursive: true, force: true })
+    } catch {
+      /* encore utilisé : au prochain démarrage */
+    }
+  }
+  let pending = null
+  try {
+    pending = JSON.parse(fs.readFileSync(pendingFile(), 'utf8'))
+  } catch {
+    return
+  }
+  let logText = ''
+  try {
+    logText = fs.readFileSync(logFile(), 'utf8')
+  } catch {
+    /* journal absent : PowerShell n'a jamais démarré */
+  }
+  const outcome = updateOutcome({ pending, logText, version: app.getVersion() })
+  if (outcome.state === 'running') return
+  fs.rmSync(pendingFile(), { force: true })
+  if (outcome.state !== 'failed') return
+  const r = await dialog.showMessageBox(win, {
+    type: 'warning',
+    message: "La mise à jour n'a pas été installée",
+    detail:
+      `Tu as toujours la ${pending.from}, la ${pending.to} n'a pas pu s'installer.\n\n${outcome.reason}\n\n` +
+      `Tes données n'ont pas changé. Tu peux réessayer, ou installer la nouvelle version à la main depuis la page des versions.\n\nDétail : ${logFile()}`,
+    buttons: ['Ouvrir la page des versions', 'Plus tard'],
+    defaultId: 0,
+    cancelId: 1,
+  })
+  if (r.response === 0 && pending.url) void shell.openExternal(pending.url)
+}
+
 /**
  * Remplace l'appli une fois fermée, puis la relance. Un processus détaché s'en
  * charge : l'appli ne s'écrase pas elle-même pendant qu'elle tourne.
  */
-function swapAndRelaunch(staged) {
-  if (isWin) {
-    // NSIS d'electron-builder : /S = silencieux, --force-run = relancer après.
-    const q = (s) => s.replace(/'/g, "''")
-    const ps = `while (Get-Process -Id ${process.pid} -ErrorAction SilentlyContinue) { Start-Sleep -Milliseconds 500 }; Start-Process -FilePath '${q(staged)}' -ArgumentList '/S','--updated','--force-run'`
-    spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', ps], { detached: true, stdio: 'ignore', windowsHide: true }).unref()
-  } else {
-    // homedash.app qui tourne : …/homedash.app/Contents/MacOS/homedash
-    const bundle = path.resolve(process.execPath, '..', '..', '..')
-    const q = (s) => `'${s.replace(/'/g, `'\\''`)}'`
-    const script = `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done; rm -rf ${q(bundle)} && mv ${q(staged)} ${q(bundle)}; open ${q(bundle)}`
-    spawn('/bin/sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref()
-  }
+function swapAndRelaunch(staged, rel) {
+  if (isWin) return handOverWin(staged, rel)
+  // homedash.app qui tourne : …/homedash.app/Contents/MacOS/homedash
+  const bundle = path.resolve(process.execPath, '..', '..', '..')
+  const q = (s) => `'${s.replace(/'/g, `'\\''`)}'`
+  const script = `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done; rm -rf ${q(bundle)} && mv ${q(staged)} ${q(bundle)}; open ${q(bundle)}`
+  spawn('/bin/sh', ['-c', script], { detached: true, stdio: 'ignore' }).unref()
 }
 
 /**
@@ -196,7 +273,7 @@ async function runUpdate({ win, repo, call, dataDir, send, beforeQuit }) {
       }
     }
     log("homedash se ferme, se remplace et se relance…", 'done')
-    swapAndRelaunch(staged)
+    await swapAndRelaunch(staged, rel)
     handedOver = true
     await beforeQuit()
     setTimeout(() => app.quit(), 300)
@@ -211,4 +288,4 @@ async function runUpdate({ win, repo, call, dataDir, send, beforeQuit }) {
   }
 }
 
-module.exports = { checkRelease, runUpdate }
+module.exports = { afterStart, checkRelease, runUpdate }
