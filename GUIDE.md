@@ -101,7 +101,8 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 
 - **Installer** : voir le [README](README.md#installer) (une autorisation au premier lancement, une seule fois).
 - **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli
-  télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance.
+  télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance. Sous Windows, si
+  l'installation échoue, homedash se rouvre et te le dit.
 - **homedash n'existe que dans l'appli** : elle n'ouvre aucun port, et http://localhost:7777 dans un
   navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Affichage →
   Accès depuis le navigateur* ; http://localhost:7777 marche alors, sur ta machine seulement, tant que
@@ -321,6 +322,7 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | Ce que tu vois | Quoi faire |
 | --- | --- |
 | « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, quitte et relance l'appli |
+| « La mise à jour n'a pas été installée » (Windows) | Tes données n'ont pas changé. Réessaie, ou installe la nouvelle version à la main depuis la page des versions. Si ça recommence, *Aide → Signaler un problème* en joignant le fichier `update.log` indiqué dans le message |
 | « homedash n'a pas pu démarrer » | Le serveur de l'appli s'est arrêté : quitte et relance homedash. Si ça recommence, *Aide → Signaler un problème* |
 | http://localhost:7777 ne montre rien dans le navigateur | Normal : coche *Réglages → Affichage → Accès depuis le navigateur*, l'appli ouverte |
 | Accès navigateur : « le port 7777 est déjà pris » | Un autre programme l'utilise (un ancien homedash ?) : ferme-le |
