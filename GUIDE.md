@@ -65,7 +65,8 @@ même sans aucun site : son **＋** ajoute le premier.
 - **⋯ au survol** d'un lien, d'une tuile ou d'une catégorie : le même menu que le clic droit.
 - **Catalogue** (*Réglages → Mes sites*) : un clic ajoute un site avec son icône et un réglage recommandé
   (messageries chargées au démarrage, réseaux sociaux en veille, musique sans veille), et des raccourcis directs
-  comme Instagram Direct. Tout se change ensuite dans la fiche du site.
+  comme Instagram Direct. Tout se change ensuite dans la fiche du site. Pour les sites déjà là : ✨ *Configuration
+  recommandée*, qui montre ce qui change avant d'appliquer.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.

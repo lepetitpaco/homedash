@@ -22,7 +22,7 @@ import { confirmDialog } from './ConfirmHost'
 import SiteIcon, { isImageIcon } from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
-import { CATALOG, catalogHint, catalogTab, type CatalogSite } from '../lib/catalog'
+import { adviceFor, CATALOG, catalogHint, catalogTab, type CatalogSite } from '../lib/catalog'
 import { keys } from '../lib/keys'
 import { shown } from '../lib/errors'
 
@@ -163,6 +163,24 @@ export default function SetTabs({
         ),
       )
     })
+
+  /** Configuration recommandée de tous les sites connus : montrée d'abord, à enregistrer ensuite. */
+  const applyAdvice = () => {
+    const advised = tabs.flatMap((t) => {
+      const advice = adviceFor(t)
+      return advice ? [{ t, advice }] : []
+    })
+    void confirmDialog({
+      title: `Configuration recommandée pour ${advised.length} site${advised.length > 1 ? 's' : ''} ?`,
+      body: [
+        ...advised.map(({ t, advice }) => `${t.label} : ${advice.changes.join(', ')}`),
+        'Noms, adresses, dossiers, comptes et icônes déjà choisies ne bougent pas. Un site chargé au 1er clic ou en veille n’a plus de pastille à jour tant qu’il n’est pas ouvert. Rien n’est gardé avant « Enregistrer ».',
+      ],
+      confirmLabel: 'Appliquer',
+    }).then((ok) => {
+      if (ok) onChange(tabs.map((t) => ({ ...t, ...adviceFor(t)?.patch })))
+    })
+  }
 
   const addFolder = async (tid?: string) => {
     const r = await askNameColor({ title: 'Nouveau dossier', name: `Dossier ${folders.length + 1}` })
@@ -558,6 +576,16 @@ export default function SetTabs({
             Supprimer l'onglet
           </button>
           <span className="set-spacer" />
+          {adviceFor(t) ? (
+            <button
+              type="button"
+              className="xs-btn"
+              title={`Recommandé : ${adviceFor(t)?.changes.join(', ')}`}
+              onClick={() => patch(t.id, adviceFor(t)?.patch ?? {})}
+            >
+              ✨ Réglage recommandé
+            </button>
+          ) : null}
           <button type="button" className="xs-btn" onClick={() => setOpen(null)}>
             Fermer
           </button>
@@ -658,6 +686,11 @@ export default function SetTabs({
           Des sites ou des fichiers de ton disque, à côté des onglets de homedash. Sur chaque ligne, seuls les
           réglages inhabituels apparaissent ; ▾ pour tout régler.
         </p>
+        {tabs.some((t) => adviceFor(t)) ? (
+          <button type="button" className="xs-btn" onClick={applyAdvice} title="Chargement, veille et icône conseillés pour les sites que homedash connaît">
+            ✨ Configuration recommandée
+          </button>
+        ) : null}
         <button type="button" className={`xs-btn${catalog ? ' is-on' : ''}`} onClick={() => setCatalog(!catalog)}>
           ☰ Catalogue
         </button>

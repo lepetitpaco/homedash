@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { CATALOG, catalogTab } from '../src/lib/catalog.ts'
+import { adviceFor, CATALOG, catalogTab } from '../src/lib/catalog.ts'
 
 const sites = CATALOG.flatMap((g) => g.sites)
 
@@ -16,6 +16,26 @@ describe('catalogue de sites', () => {
     expect(tab('Reddit')).toMatchObject({ preload: false, sleep: true })
     expect(tab('Spotify').preload).toBe(false)
     expect(tab('Spotify').sleep).toBeUndefined()
+  })
+
+  it('conseille un onglet existant sans toucher à son nom, son adresse ni son icône', () => {
+    const facebook = { id: 'x-1', label: 'Mon FB', url: 'https://www.facebook.com/', embed: true, icon: '📘' }
+    const advice = adviceFor(facebook)!
+    expect(advice.patch).toEqual({ preload: false, sleep: true })
+    expect(advice.changes).toEqual(['chargé au 1er clic', 'mise en veille'])
+    expect(adviceFor({ id: 'x-2', label: 'Gmail', url: 'https://mail.google.com/', embed: true })?.patch).toEqual({ icon: catalogTab(sites.find((s) => s.label === 'Gmail')!).icon })
+  })
+
+  it('reste muet si rien ne change, ou si le site est inconnu', () => {
+    const gmail = catalogTab(sites.find((s) => s.label === 'Gmail')!)
+    expect(adviceFor({ id: 'x-3', ...gmail })).toBeNull()
+    expect(adviceFor({ id: 'x-4', label: 'Maison', url: 'https://exemple.test/', embed: true })).toBeNull()
+    expect(adviceFor({ id: 'x-5', label: 'FB', url: 'https://www.facebook.com/', embed: false })).toBeNull()
+  })
+
+  it('reconnaît un raccourci avant son site', () => {
+    const direct = { id: 'x-6', label: 'DM', url: 'https://www.instagram.com/direct/inbox/', embed: true, icon: 'x' }
+    expect(adviceFor(direct)).toBeNull()
   })
 
   it('un raccourci ne capte pas les liens de son site', () => {

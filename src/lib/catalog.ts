@@ -1,4 +1,5 @@
 import type { CustomTab } from '../types'
+import { hostOf, preloads } from './customTabs'
 
 /**
  * Sites courants proposés dans Réglages → Mes sites : un clic les ajoute, avec un
@@ -45,6 +46,46 @@ export function catalogHint(site: CatalogSite): string {
   if (site.use === 'live') return 'Chargé au démarrage, pour ses non-lus'
   if (site.use === 'click') return 'Chargé au premier clic, sans mise en veille'
   return 'Chargé au premier clic, mis en veille si tu n’y vas plus'
+}
+
+/** Le site du catalogue d'un onglet existant : raccourci d'abord (même hôte que son site). */
+function siteOf(t: CustomTab): CatalogSite | undefined {
+  const all = CATALOG.flatMap((g) => g.sites)
+  const host = hostOf(t.url)
+  return (
+    all.find((s) => s.shortcut && t.url.startsWith(s.url)) ??
+    (host ? all.find((s) => !s.shortcut && hostOf(s.url) === host) : undefined)
+  )
+}
+
+export type Advice = { patch: Partial<CustomTab>; changes: string[] }
+
+/**
+ * Ce que le réglage recommandé changerait sur un onglet existant ; null si rien.
+ * Son nom et son adresse ne bougent jamais, et une icône choisie reste.
+ */
+export function adviceFor(t: CustomTab): Advice | null {
+  if (!t.embed || t.kept) return null
+  const site = siteOf(t)
+  if (!site) return null
+  const patch: Partial<CustomTab> = {}
+  const changes: string[] = []
+  const live = site.use === 'live'
+  if (preloads(t) !== live) {
+    patch.preload = live
+    changes.push(live ? 'chargé au démarrage' : 'chargé au 1er clic')
+  }
+  const sleep = site.use === 'nap'
+  if (!!t.sleep !== sleep) {
+    patch.sleep = sleep ? true : undefined
+    changes.push(sleep ? 'mise en veille' : 'plus de mise en veille')
+  }
+  const icon = catalogTab(site).icon
+  if (icon && !t.icon) {
+    patch.icon = icon
+    changes.push('icône')
+  }
+  return changes.length ? { patch, changes } : null
 }
 
 export const CATALOG: CatalogGroup[] = [
