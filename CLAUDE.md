@@ -210,14 +210,17 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
 **Trello**
+- `tr-*` et `bc-*` restent séparés. Une classe ne sert qu'à une chose : `tr-card-actions` sur les boutons d'une fenêtre
+  les rendait invisibles, `tr-issue` sur une fenêtre et une ligne faisait passer la ligne en plein écran.
 - Le tableau affiché vient de `GET /boards/{id}?lists=open&cards=visible` (toutes les cartes des listes
   ouvertes). `/members/me/cards` ne donne que les cartes du membre, y compris sur une liste archivée :
   ça ne sert qu'au drapeau `mine` (À traiter, pastille, cloche). `cards=visible` sur la collection
   `/members/me/boards` ne renvoie aucune carte.
 - Le fond du tableau n'est gardé que s'il est `https` sur `trello-backgrounds.s3.amazonaws.com`. La page
   le charge en CSS. Jamais le proxy d'images : celui-ci envoie le jeton, et cet hôte n'est pas le sien.
-- La zone du tableau est sombre, comme Trello, même en thème clair. Le texte des cartes n'utilise pas
-  `--text` : sur ce fond fixe, `--text` en thème clair deviendrait illisible.
+- Le tableau suit le thème, avec les couleurs de Trello : variables `--tr-*` (`trello.css`), pas `--text` ni `--panel`.
+- Photos de profil : `members()` ne garde que `https` sur l'hôte des photos Trello ; chargées par la page, jamais
+  par le proxy d'images (qui envoie le jeton).
 - Filtre « GitHub & Local » de la cloche : sources `github` et `local` seulement. Une source nouvelle a
   son propre filtre ; elle n'est pas « tout sauf Basecamp ».
 

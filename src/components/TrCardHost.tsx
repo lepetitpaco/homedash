@@ -51,6 +51,15 @@ export default function TrCardHost() {
     }
   }, [])
 
+  useEffect(() => {
+    if (!req) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setReq(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [req])
+
   if (!req) return null
   const body = text.replace(/!\[([^\]]*)\]\((https?:\/\/[^)\s]+)\)/g, (all, name: string, url: string) => {
     const hit = Object.entries(images).find(([, link]) => link === url)
@@ -64,10 +73,10 @@ export default function TrCardHost() {
             <strong>{req.title}</strong>
             {req.where ? <div className="set-hint">{req.where}</div> : null}
           </div>
-          <div className="tr-card-actions">
-            <button onClick={() => req.onOpen(req.url)}>Ouvrir sur Trello</button>
-            {req.onIssue ? <button onClick={() => req.onIssue?.()}>🐙 Créer une issue</button> : null}
-            <button onClick={() => setReq(null)}>Fermer</button>
+          <div className="tr-dialog-actions">
+            <button className="btn" onClick={() => req.onOpen(req.url)}>Ouvrir sur Trello</button>
+            {req.onIssue ? <button className="btn" onClick={() => req.onIssue?.()}>🐙 Créer une issue</button> : null}
+            <button className="btn" onClick={() => setReq(null)}>Fermer</button>
           </div>
         </header>
         {error ? <p className="set-hint set-bad">{error}</p> : null}
@@ -93,7 +102,7 @@ export default function TrCardHost() {
               <strong>{c.who}</strong> <span className="set-hint">{c.date}</span>
               <Markdown text={c.text} />
               {req.onIssue ? (
-                <button onClick={() => req.onIssue?.(c.id)}>🐙 issue sur cet échange</button>
+                <button className="btn" onClick={() => req.onIssue?.(c.id)}>🐙 issue sur cet échange</button>
               ) : null}
             </article>
           )) : <p className="set-hint">Aucun échange.</p>}

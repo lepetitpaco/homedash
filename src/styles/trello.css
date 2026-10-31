@@ -1,11 +1,45 @@
 /* Onglet Trello. Classes tr-* seulement : ne pas réutiliser bc-* (Basecamp). */
 
+/* Les couleurs du tableau, comme sur Trello, en sombre puis en clair. */
+.tr-layout {
+  --tr-board: #1d2125;
+  --tr-list: #101204;
+  --tr-card: #22272b;
+  --tr-text: #b6c2cf;
+  --tr-sub: #9fadbc;
+  --tr-strong: #fff;
+  --tr-action: #1d2125;
+  --tr-action-hover: #2c333a;
+  --tr-scroll: #454f59;
+  --tr-member: #454f59;
+  --tr-late-bg: #5d1f1a;
+  --tr-late: #fd9891;
+}
+:root[data-theme='light'] .tr-layout {
+  --tr-board: #e2e4e9;
+  --tr-list: #f1f2f4;
+  --tr-card: #fff;
+  --tr-text: #172b4d;
+  --tr-sub: #44546f;
+  --tr-strong: #091e42;
+  --tr-action: #f1f2f4;
+  --tr-action-hover: #dcdfe4;
+  --tr-scroll: #b3b9c4;
+  --tr-member: #dcdfe4;
+  --tr-late-bg: #ffeceb;
+  --tr-late: #ae2e24;
+}
+:root[data-theme='light'] .tr-card {
+  box-shadow: 0 1px 1px rgb(9 30 66 / 0.25);
+}
+
 .tr-layout {
   display: flex;
   align-items: stretch;
   gap: 0;
   min-height: 280px;
-  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 36px);
+  /* 69 px : la barre d'onglets et les marges de la page */
+  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 69px);
 }
 .tr-nav {
   flex: 0 0 auto;
@@ -47,6 +81,17 @@
   display: flex;
   flex-direction: column;
 }
+.tr-head {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 4px 12px;
+}
+.tr-head h2 {
+  margin: 0 8px 0 0;
+  font-size: 1.15rem;
+}
 .tr-main.is-board {
   overflow: hidden;
 }
@@ -61,7 +106,7 @@
   overflow-y: hidden;
   padding: 8px;
   border-radius: 12px;
-  background-color: #1d2125;
+  background-color: var(--tr-board);
   background-position: center;
   background-size: cover;
 }
@@ -88,8 +133,8 @@
   gap: 8px;
   padding: 8px;
   border-radius: 12px;
-  background: #101204cc;
-  color: #b6c2cf;
+  background: var(--tr-list);
+  color: var(--tr-text);
 }
 .tr-list h3 {
   display: flex;
@@ -98,7 +143,7 @@
   margin: 0;
   font-size: 0.95rem;
   font-weight: 600;
-  color: #b6c2cf;
+  color: var(--tr-text);
 }
 .tr-list-title {
   min-width: 0;
@@ -107,10 +152,12 @@
 .tr-list-count {
   margin-left: auto;
   font-weight: 400;
-  color: #9fadbc;
+  color: var(--tr-sub);
 }
 .tr-list-cards {
   overflow: auto;
+  scrollbar-width: thin;
+  scrollbar-color: var(--tr-scroll) transparent;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -119,8 +166,8 @@
 }
 .tr-card {
   position: relative;
-  background: #22272b;
-  color: #b6c2cf;
+  background: var(--tr-card);
+  color: var(--tr-text);
   border: 0;
   border-radius: 8px;
   padding: 8px 10px;
@@ -136,13 +183,105 @@
   outline: 2px solid var(--sig-info, #93c5fd);
 }
 .tr-card-title {
-  color: #b6c2cf;
+  color: var(--tr-text);
   font-weight: 500;
   text-decoration: none;
   overflow-wrap: anywhere;
 }
 .tr-card-title:hover {
-  color: #fff;
+  color: var(--tr-strong);
+}
+.tr-labels {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+.tr-label {
+  width: 36px;
+  height: 8px;
+  border-radius: 4px;
+  background: #5a6670;
+}
+.tr-color-green { background: #216e4e; }
+.tr-color-yellow { background: #7f5f01; }
+.tr-color-orange { background: #a54800; }
+.tr-color-red { background: #ae2e24; }
+.tr-color-purple { background: #803fa5; }
+.tr-color-blue { background: #0055cc; }
+.tr-color-sky { background: #206a83; }
+.tr-color-lime { background: #4c6b1f; }
+.tr-color-pink { background: #943d73; }
+.tr-color-black { background: #596773; }
+.tr-cover {
+  display: block;
+  height: 36px;
+  margin: -8px -10px 0;
+  border-radius: 8px 8px 0 0;
+}
+.tr-card-title.is-done {
+  color: var(--tr-sub);
+}
+.tr-card-title svg {
+  margin-right: 4px;
+  color: #4bce97;
+  vertical-align: -2px;
+}
+.tr-badge,
+.tr-due {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.tr-due {
+  padding: 2px 6px;
+  margin-left: -6px;
+  border-radius: 4px;
+}
+.tr-due.is-late {
+  margin-left: 0;
+  background: var(--tr-late-bg);
+  color: var(--tr-late);
+}
+.tr-due.is-soon {
+  margin-left: 0;
+  background: #f5cd47;
+  color: #172b4d;
+}
+.tr-due.is-done {
+  margin-left: 0;
+  background: #94c748;
+  color: #172b4d;
+}
+.tr-badge.is-complete {
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: #94c748;
+  color: #172b4d;
+}
+.tr-members {
+  display: inline-flex;
+  gap: 2px;
+  margin-left: auto;
+}
+.tr-member {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  overflow: hidden;
+  border-radius: 50%;
+  background: var(--tr-member);
+  color: var(--tr-strong);
+  font-size: 0.625rem;
+  font-weight: 600;
+}
+.tr-member img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 .tr-card-foot {
   display: flex;
@@ -150,7 +289,7 @@
   flex-wrap: wrap;
   gap: 8px;
   font-size: 0.75rem;
-  color: #9fadbc;
+  color: var(--tr-sub);
 }
 .tr-card-foot:empty {
   display: none;
@@ -161,6 +300,8 @@
   right: 4px;
   display: flex;
   gap: 4px;
+  padding-left: 6px;
+  background: var(--tr-card); /* le titre passe dessous sans se mélanger aux boutons */
   visibility: hidden;
 }
 .tr-card:hover .tr-card-actions,
@@ -168,13 +309,24 @@
   visibility: visible;
 }
 .tr-card-actions button {
-  background: #1d2125;
-  color: #b6c2cf;
+  flex: 0 0 auto;
+  min-width: 26px;
+  padding: 3px 6px;
+  font-size: 0.75rem;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: var(--tr-action);
+  color: var(--tr-text);
   border: 0;
   border-radius: 4px;
   cursor: pointer;
 }
+.tr-card-actions button:hover {
+  background: var(--tr-action-hover);
+  color: var(--tr-strong);
+}
 .tr-mine {
+  margin-left: auto;
   font-size: 0.75rem;
   opacity: 0.85;
 }
@@ -195,11 +347,11 @@
 .tr-issue a:hover {
   text-decoration: underline;
 }
-.tr-sheet,
-.tr-issue {
+/* Au-dessus de la barre de gauche (45), comme les autres fenêtres. */
+.tr-sheet {
   position: fixed;
   inset: 0;
-  z-index: 40;
+  z-index: 70;
   background: rgba(0, 0, 0, 0.45);
   display: flex;
   align-items: flex-start;
@@ -207,9 +359,9 @@
   padding: 48px 16px;
   overflow: auto;
 }
-.tr-sheet-card,
-.tr-issue-card {
+.tr-sheet-card {
   width: min(720px, 100%);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.12));
   background: var(--bg, #111);
   color: inherit;
   border-radius: 14px;
@@ -217,6 +369,21 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+.tr-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tr-card-top > :first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.tr-dialog-actions {
+  flex: 0 0 auto;
+  display: flex;
+  gap: 6px;
 }
 .tr-check {
   display: flex;
@@ -226,4 +393,47 @@
 .tr-comment {
   border-top: 1px solid var(--line, rgba(255, 255, 255, 0.12));
   padding-top: 8px;
+}
+
+/* En clair : les couleurs vives des étiquettes de Trello. */
+:root[data-theme='light'] .tr-color-green { background: #4bce97; }
+:root[data-theme='light'] .tr-color-yellow { background: #f5cd47; }
+:root[data-theme='light'] .tr-color-orange { background: #fea362; }
+:root[data-theme='light'] .tr-color-red { background: #f87168; }
+:root[data-theme='light'] .tr-color-purple { background: #9f8fef; }
+:root[data-theme='light'] .tr-color-blue { background: #579dff; }
+:root[data-theme='light'] .tr-color-sky { background: #6cc3e0; }
+:root[data-theme='light'] .tr-color-lime { background: #94c748; }
+:root[data-theme='light'] .tr-color-pink { background: #e774bb; }
+:root[data-theme='light'] .tr-color-black { background: #8590a2; }
+
+/* Petit écran : les tableaux en bande au-dessus, le tableau prend toute la largeur. */
+@media (max-width: 860px) {
+  .tr-layout {
+    flex-direction: column;
+    height: auto;
+  }
+  .tr-nav {
+    flex-direction: row;
+    width: auto !important;
+    overflow-x: auto;
+  }
+  .tr-nav button {
+    width: auto;
+    flex: 0 0 auto;
+    white-space: nowrap;
+  }
+  .tr-nav .tr-count {
+    margin-left: 4px;
+  }
+  .tr-main.is-board {
+    flex: none;
+    height: 70vh;
+  }
+  .tr-card-top {
+    flex-direction: column;
+  }
+  .tr-dialog-actions {
+    flex-wrap: wrap;
+  }
 }

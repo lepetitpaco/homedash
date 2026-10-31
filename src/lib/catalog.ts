@@ -17,7 +17,7 @@ import { hostOf, preloads } from './customTabs'
 export type CatalogSite = {
   label: string
   url: string
-  /** Nom sur dashboardicons.com ; absent = le favicon du site (pas d'icône, ou noire, illisible sur le thème sombre). */
+  /** Nom sur dashboardicons.com ; absent = le favicon du site (pas d'icône, ou d'une seule teinte, illisible sur le thème sombre ou le clair). */
   icon?: string
   use: 'live' | 'click' | 'nap'
   shortcut?: boolean
@@ -109,7 +109,7 @@ export const CATALOG: CatalogGroup[] = [
       { label: 'WhatsApp', url: 'https://web.whatsapp.com/', icon: 'whatsapp', use: 'live' },
       { label: 'Messenger', url: 'https://www.messenger.com/', icon: 'facebook-messenger', use: 'live' },
       { label: 'Instagram Direct', url: 'https://www.instagram.com/direct/inbox/', icon: 'instagram', use: 'live', shortcut: true },
-      { label: 'Messages X', url: 'https://x.com/messages', icon: 'x-light', use: 'live', shortcut: true },
+      { label: 'Messages X', url: 'https://x.com/messages', use: 'live', shortcut: true },
       { label: 'Messagerie LinkedIn', url: 'https://www.linkedin.com/messaging/', icon: 'linkedin', use: 'live', shortcut: true },
       { label: 'Chat Reddit', url: 'https://www.reddit.com/chat/', icon: 'reddit', use: 'live', shortcut: true },
       { label: 'Telegram', url: 'https://web.telegram.org/', icon: 'telegram', use: 'live' },
@@ -123,7 +123,7 @@ export const CATALOG: CatalogGroup[] = [
   {
     title: 'Réseaux sociaux',
     sites: [
-      { label: 'X', url: 'https://x.com/', icon: 'x-light', use: 'nap' },
+      { label: 'X', url: 'https://x.com/', use: 'nap' },
       // Ses messages : au démarrage, pour la pastille (un seul onglet suffit, Direct est la même appli).
       { label: 'Instagram', url: 'https://www.instagram.com/', icon: 'instagram', use: 'live' },
       { label: 'Facebook', url: 'https://www.facebook.com/', icon: 'facebook', use: 'nap' },
@@ -131,7 +131,7 @@ export const CATALOG: CatalogGroup[] = [
       { label: 'TikTok', url: 'https://www.tiktok.com/', icon: 'tiktok', use: 'nap' },
       { label: 'Reddit', url: 'https://www.reddit.com/', icon: 'reddit', use: 'nap' },
       { label: 'Bluesky', url: 'https://bsky.app/', icon: 'bluesky', use: 'nap' },
-      { label: 'Threads', url: 'https://www.threads.net/', icon: 'threads-light', use: 'nap' },
+      { label: 'Threads', url: 'https://www.threads.net/', use: 'nap' },
       { label: 'Mastodon', url: 'https://mastodon.social/', icon: 'mastodon', use: 'nap' },
       { label: 'Pinterest', url: 'https://www.pinterest.com/', icon: 'pinterest', use: 'nap' },
       { label: 'Snapchat', url: 'https://web.snapchat.com/', icon: 'snapchat', use: 'nap' },
@@ -186,7 +186,7 @@ export const CATALOG: CatalogGroup[] = [
   {
     title: 'Dev',
     sites: [
-      { label: 'GitHub', url: 'https://github.com/', icon: 'github-light', use: 'nap' },
+      { label: 'GitHub', url: 'https://github.com/', use: 'nap' },
       { label: 'GitLab', url: 'https://gitlab.com/', icon: 'gitlab', use: 'nap' },
       { label: 'Linear', url: 'https://linear.app/', use: 'nap' },
       { label: 'Vercel', url: 'https://vercel.com/dashboard', use: 'nap' },

@@ -30,7 +30,7 @@ const ATTACH_MAX = 15 * 1024 * 1024
 
 export const MEMBER = API + '/members/me?fields=fullName,username'
 /** Cartes où le membre est inscrit : « À traiter » et la cloche. L'onglet montre toutes les cartes visibles. */
-export const CARDS = API + '/members/me/cards?filter=open&fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges'
+export const CARDS = API + '/members/me/cards?filter=open&fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges,labels'
 export const BOARDS = API + '/members/me/boards?filter=open&fields=id,name,shortUrl,url'
 export const NOTIFS = API + '/members/me/notifications?read_filter=unread&limit=50&memberCreator=true&display=true&memberCreator_fields=fullName'
 const BOARD_ID = /^[A-Za-z0-9]{1,32}$/
@@ -230,7 +230,8 @@ function boardUrl(bid: string): string {
   return (
     `${API}/boards/${encodeURIComponent(bid)}?fields=name,shortUrl,url,prefs` +
     '&lists=open&list_fields=name,pos' +
-    '&cards=visible&card_fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges'
+    '&cards=visible&card_fields=name,url,shortUrl,shortLink,due,dueComplete,closed,pos,idBoard,idList,badges,labels,idMembers,cover' +
+    '&members=all&member_fields=initials,fullName,avatarUrl'
   )
 }
 
@@ -284,6 +285,10 @@ function card(c: unknown, byBoard?: Map<string, Obj>, byList?: Map<string, Obj>,
     comments: badges.comments || 0,
     checks: badges.checkItems || 0,
     checks_done: badges.checkItemsChecked || 0,
+    member_ids: Array.isArray(c.idMembers) ? c.idMembers.map(String) : [],
+    has_desc: !!badges.description,
+    cover: isObj(c.cover) && typeof c.cover.color === 'string' ? c.cover.color : '',
+    labels: (Array.isArray(c.labels) ? c.labels : []).map((l: Obj) => ({ name: String(l.name || ''), color: String(l.color || '') })),
     mine,
   }
 }
@@ -320,6 +325,22 @@ export function background(detail: Obj): [string, string] {
   return [url, bright]
 }
 
+const AVATAR_HOST = 'trello-members.s3.amazonaws.com'
+
+/** Membres d'un tableau. Photo gardée seulement en https sur l'hôte des photos Trello ; sinon les initiales. */
+export function members(detail: Obj): Obj[] {
+  return (Array.isArray(detail.members) ? detail.members : []).filter(isObj).map((m: Obj) => {
+    let avatar = ''
+    try {
+      const u = new URL(String(m.avatarUrl || ''))
+      if (u.protocol === 'https:' && u.hostname === AVATAR_HOST && !u.username && !u.password) avatar = `${u.origin}${u.pathname}/50.png`
+    } catch {
+      /* pas de photo */
+    }
+    return { id: String(m.id || ''), initials: String(m.initials || '?').slice(0, 3), name: String(m.fullName || ''), avatar }
+  })
+}
+
 /** Colonnes ouvertes, dans l'ordre Trello, et les cartes qu'on y voit. */
 function boardView(detail: Obj, mineIds: Set<string>): [Obj, Obj[]] {
   const bid = String(detail.id || '')
@@ -339,7 +360,7 @@ function boardView(detail: Obj, mineIds: Set<string>): [Obj, Obj[]] {
     if (c) cards.push(c)
   }
   const [bg, brightness] = background(detail)
-  return [{ id: bid, name: detail.name || 'Sans tableau', url: detail.shortUrl || detail.url || '', background: bg, background_brightness: brightness, lists }, cards]
+  return [{ id: bid, name: detail.name || 'Sans tableau', url: detail.shortUrl || detail.url || '', background: bg, background_brightness: brightness, members: members(detail), lists }, cards]
 }
 
 function ts(iso: unknown): number {
