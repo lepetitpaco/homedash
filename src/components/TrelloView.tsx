@@ -332,6 +332,7 @@ export default function TrelloView({
         ) : null}
         {view === ISSUES ? (
           <div>
+            {!active.length ? <GhEmpty>Rien en attente : tous les rapports sont publiés ou écartés. 🎉</GhEmpty> : null}
             {active.map((i) => (
               <IssueRow key={issueKey(i)} i={i} posted={posted} busy={busy} cloneOf={cloneOf} notes={notes[issueKey(i)] ?? ''}
                 onNotes={(v) => setNotes((m) => ({ ...m, [issueKey(i)]: v }))} onSend={() => void send(i)} onCopy={copy}
@@ -340,7 +341,11 @@ export default function TrelloView({
                   onRefresh()
                 }} />
             ))}
-            <button className="btn" onClick={() => setShowDone((v) => !v)}>{showDone ? 'masquer les terminées' : 'afficher les terminées'}</button>
+            {finished.length ? (
+              <button className="btn" onClick={() => setShowDone((v) => !v)}>
+                {showDone ? 'masquer les terminées' : finished.length > 1 ? `afficher les ${finished.length} terminées` : 'afficher la terminée'}
+              </button>
+            ) : null}
             {showDone ? finished.map((i) => (
               <IssueRow key={issueKey(i)} i={i} posted={posted} busy={busy} cloneOf={cloneOf} notes={notes[issueKey(i)] ?? ''}
                 onNotes={(v) => setNotes((m) => ({ ...m, [issueKey(i)]: v }))} onSend={() => void send(i)} onCopy={copy}

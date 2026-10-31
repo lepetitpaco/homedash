@@ -137,7 +137,7 @@ export default function IssueHost() {
   const copy = (what: 'command' | 'prompt', text: string) =>
     navigator.clipboard?.writeText(text).then(
       () => setCopied(what),
-      () => undefined,
+      () => setCopied('failed'),
     )
 
   const create = async () => {

@@ -130,6 +130,8 @@ export default function IssueComposer(p: Props) {
                 ? 'Cette commande est copiée : colle-la dans un terminal, Claude Code démarre dans le repo avec l’issue.'
                 : p.copied === 'prompt'
                   ? 'Ce prompt est copié : colle-le dans Claude Code.'
+                  : p.copied === 'failed'
+                    ? 'La copie a échoué : sélectionne le texte ci-dessous pour le copier.'
                   : 'Pour la confier à Claude Code :'}
             </p>
             <pre className="issue-prompt">{p.command || p.prompt}</pre>
