@@ -1,0 +1,14 @@
+# Journal du dev
+
+Où en est le dev : ce qui est fait sur les branches et pas encore publié. Ce fichier n'est pas livré dans
+l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque livraison ».
+
+## vague/perf-ux (2026-10-31)
+
+- Démarrage : sites à non-lus chargés un par un, anneau sur l'icône pendant le chargement.
+- Réglages → Mes sites : mémoire de chaque site et bouton 💤 Libérer.
+- Fiche d'un site : réglages rares sous « Plus d'options », libellés plus clairs.
+- Vocabulaire : « onglet temporaire » partout, plus d'« éphémère » à l'écran ni sur le site.
+- Accueil : Notes et Infos se replient, et restent repliés.
+- `⌘K` : actions sur chaque site (libérer, recharger, son, notifications, effacer les données), Tout actualiser, Réglages de Mes sites.
+- Appli de dev : menu Branche, et Journal du dev dans ce menu.

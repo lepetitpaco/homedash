@@ -657,6 +657,12 @@ export default function App() {
   // les actions de homedash. `openTempRef` : défini plus bas, avec les éphémères.
   const iconRef = useRef<Record<string, React.ReactNode>>({})
   const openTempRef = useRef<(url: string) => void>(() => undefined)
+  const siteActionsRef = useRef<Record<'mute' | 'notify' | 'clear', (t: CustomTab) => void>>({
+    mute: () => undefined,
+    notify: () => undefined,
+    clear: () => undefined,
+  })
+  const refreshAllRef = useRef<() => void>(() => undefined)
   const searchTabs = useMemo(
     () => allTabs.map((t) => ({ tab: t, icon: () => iconRef.current[t.id] ?? '🌐' })),
     [allTabs],
@@ -676,6 +682,17 @@ export default function App() {
       ...(on.trello && tr.data?.configured
         ? [{ id: 'trello', icon: '📋', label: 'Trello', keywords: 'cartes tableaux', run: () => selectTab('trello') }]
         : []),
+      { id: 'refresh', icon: '⟳', label: 'Tout actualiser', keywords: 'recharger rafraîchir données', run: () => refreshAllRef.current() },
+      {
+        id: 'settings-sites',
+        icon: '🗂',
+        label: 'Réglages de Mes sites',
+        keywords: 'onglets mémoire veille',
+        run: () => {
+          showSettingsSection('set-tabs')
+          selectTab('settings')
+        },
+      },
       { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
       { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config', run: () => selectTab('settings') },
       ...(desktop
@@ -725,6 +742,61 @@ export default function App() {
           ? on.trello && !!tr.data?.enabled
           : true,
   )
+  // Actions sur chaque site, dans la recherche. Les fonctions sont définies plus bas (comme `openTempRef`).
+  const siteCommands: Command[] = allTabs
+    .filter((t) => t.embed && !isLocal(t.url))
+    .flatMap((t) => {
+      const key = tabKey(t)
+      const name = t.label
+      const mounted = !asleep.includes(key) && (visited.includes(key) || warmable.slice(0, warmed).includes(key))
+      return [
+        ...(mounted
+          ? [{
+              id: `reload:${t.id}`,
+              icon: '↻',
+              label: `Recharger ${name}`,
+              keywords: 'actualiser rafraîchir',
+              run: () => window.dispatchEvent(new CustomEvent(RELOAD_TAB, { detail: key })),
+            }]
+          : []),
+        ...(mounted && key !== tab
+          ? [{
+              id: `free:${t.id}`,
+              icon: '💤',
+              label: `Libérer ${name}`,
+              keywords: 'décharger veille mémoire',
+              hint: 'décharge le site jusqu’au prochain clic',
+              run: () => window.dispatchEvent(new CustomEvent(SLEEP_TAB, { detail: key })),
+            }]
+          : []),
+        ...(desktop
+          ? [
+              {
+                id: `mute:${t.id}`,
+                icon: muted[key] ? '🔊' : '🔇',
+                label: `${muted[key] ? 'Rétablir' : 'Couper'} le son de ${name}`,
+                keywords: 'audio silence',
+                run: () => siteActionsRef.current.mute(t),
+              },
+              {
+                id: `notify:${t.id}`,
+                icon: t.notify === false ? '🔔' : '🔕',
+                label: `${t.notify === false ? 'Rétablir' : 'Couper'} les notifications de ${name}`,
+                keywords: 'pastille notifs',
+                run: () => siteActionsRef.current.notify(t),
+              },
+              {
+                id: `clear:${t.id}`,
+                icon: '🧹',
+                label: `Effacer les données de ${name}`,
+                keywords: 'cookies cache déconnecter',
+                hint: 'demande confirmation',
+                run: () => siteActionsRef.current.clear(t),
+              },
+            ]
+          : []),
+      ]
+    })
   const search = useSearch({
     cfg,
     links,
@@ -747,7 +819,7 @@ export default function App() {
       search.setQuery('')
       selectTab(tabKey(t))
     },
-    commands,
+    commands: [...commands, ...siteCommands],
   })
   const currentScope = searchScopes.find((x) => x.id === search.scope) ?? SEARCH_SCOPES[0]
   // Portée devenue indisponible (fonctionnalité coupée) : on cherche partout.
@@ -1281,6 +1353,15 @@ export default function App() {
       },
     ]
   }
+  siteActionsRef.current = {
+    mute: toggleMute,
+    notify: toggleNotify,
+    clear: (t) => {
+      const item = clearItem(t)[0]
+      if (item && 'onSelect' in item) item.onSelect?.()
+    },
+  }
+  refreshAllRef.current = refreshAll
   const sleepItem = (t: CustomTab): MenuItem => ({
     icon: '💤',
     label: t.sleep ? 'Ne plus mettre en veille' : 'Mettre en veille si inutilisé',

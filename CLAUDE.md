@@ -47,6 +47,15 @@ CHANGELOG pour toute la vague et le tag. Trois commits poussés ensemble = une s
 - Typecheck et tests au vert (commandes ci-dessous) ; page testée à la main si l'écran change.
 - Jamais de `push --force`, de réécriture de l'historique de `main` ni de tag déplacé.
 
+**Journal du dev** (`CHANGELOG-dev.md`) : chaque vague y note ce qu'elle apporte, sous le nom de sa branche,
+dès son premier commit. C'est le seul journal qu'on touche sur une branche. À la version, ses lignes
+deviennent l'entrée du `CHANGELOG.md` (écrite pour l'utilisateur) et quittent ce fichier.
+
+**À chaque version, revue de toute la doc, avant le tag.** Relire chacun, le corriger si besoin, et dire dans la
+pull request ce qui a changé ou « rien à changer » : `README.md`, `GUIDE.md`, `DEVELOPING.md`, `ARCHITECTURE.md`,
+`PRIVACY.md`, `CLAUDE.md`, `AGENTS.md`, `.cursor/`, `aidd_docs/`, `docs/` (site GitHub Pages) et les captures
+`docs/screenshots/` (refaites si l'écran a changé : `sh docs/demo/capture.sh`).
+
 **À chaque livraison :**
 - Ce qui change pour l'utilisateur → **entrée en tête de `CHANGELOG.md`** (`## X.Y.Z — AAAA-MM-JJ`
   puis des puces écrites pour l'utilisateur). Chaque nouvelle version déclenche « mise à jour

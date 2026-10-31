@@ -544,6 +544,7 @@ function branchMenu() {
       })),
       { type: 'separator' },
       { label: 'Récupérer les branches de GitHub', click: () => void fetchBranches() },
+      { label: 'Journal du dev', click: () => void shell.openPath(path.join(REPO_DIR, 'CHANGELOG-dev.md')) },
     ],
   }
 }

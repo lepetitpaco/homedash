@@ -238,7 +238,8 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
 
 ## 🔎 Recherche
 
-`/` ou `⌘K` : tout retrouver, et ouvrir une adresse.
+`/` ou `⌘K` : tout retrouver, ouvrir une adresse, et agir sur un site sans passer par le clic droit : tape
+« libérer discord », « recharger gmail », « couper le son de youtube »… Dans « Partout » seulement.
 
 - **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
 - **Chercher à un seul endroit** : clic sur la loupe, à gauche de la barre → *Raccourcis*, *Mes sites*,
