@@ -49,6 +49,7 @@ desktop/                  l'appli (Electron)
   electron-builder.yml    .dmg / .zip Mac (arm64, x64), setup.exe Windows, latest*.yml
   build-local.sh          l'appli construite sur ce Mac pour l'essayer (Docker + codesign ad hoc)
 .github/workflows/        release.yml : nouvelle version arrivée sur main → tag, appli construite, Release publiée
+                          windows.yml : mise à jour Windows testée sur un vrai Windows (pull requests qui y touchent)
 tests-ts/                 Vitest (gitread comparé à git, verdicts Local, Basecamp lecture seule, API…)
 scripts/                  parity.mjs (compare deux serveurs), perf-report.mjs
 docker-compose.dev.yml    le dev : Vite + serveur en --watch, homedash-dev.localhost:7778
@@ -124,8 +125,8 @@ elle-même et envoyer du JSON.
   dans le navigateur ne peut joindre l'API. Le port n'existe que si on l'active (« Accès depuis le
   navigateur »).
 - **Mise à jour par les Releases.** Une nouvelle version sur `main` pose le tag et construit l'appli (Actions) ; l'appli télécharge son fichier,
-  vérifie le sha512 publié, sauvegarde les données et se remplace. Sous Windows, un PowerShell détaché installe, note ses
-  étapes dans `<userData>/update.log` et rouvre l'appli en cas d'échec ; le démarrage suivant le signale. Sans signature : le compte GitHub est
+  vérifie le sha512 publié, sauvegarde les données et se remplace. Sous Windows, un PowerShell lancé par un relais installe, note ses
+  étapes dans `<userData>/update.log` et rouvre l'appli en cas d'échec ; le démarrage suivant le signale. L'appli ne quitte qu'une fois sa ligne `start` écrite. Sans signature : le compte GitHub est
   la seule protection (double authentification indispensable).
 - **Le serveur tient le journal.** Il tourne en continu, voit tout même page fermée, et c'est le seul
   endroit qui décide ce qui est un événement : la cloche et les notifications ne font qu'afficher.
