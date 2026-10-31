@@ -17,6 +17,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Tâches et cartes (Basecamp et Trello) : une seule fenêtre. Un clic les ouvre ; « Créer une issue » ouvre le formulaire à côté, on coche ce qui part (description, messages, tout, rien), avec un aperçu.
 - Trello : cartes comme sur Trello (étiquettes, couvertures de couleur, échéances colorées, checklist finie, photos de profil, icônes) ; le tableau suit le thème clair ou sombre.
 - Trello : fenêtres de carte et d'issue réparées (boutons invisibles, fenêtre décalée sous la barre, Échap), en-tête lisible, liens Trello bien affichés.
+- Local : les lignes de branche s'empilent dans une carte étroite, au lieu de masquer le nom. Pied de page : « 1 lien ».
 - Accueil : Notes et Infos se replient, et restent repliés.
 - `⌘K` : actions sur chaque site (libérer, recharger, son, notifications, effacer les données), Tout actualiser, Réglages de Mes sites.
 - Appli de dev : menu Branche, Journal du dev et nettoyage des branches fusionnées.

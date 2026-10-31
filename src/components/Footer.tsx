@@ -34,7 +34,7 @@ export default function Footer({ count }: { count: number }) {
         <kbd>↵</kbd> ouvrir / copier
       </span>
       <span>clic droit : modifier</span>
-      <span className="footer-right">{count} liens</span>
+      <span className="footer-right">{count} lien{count > 1 ? 's' : ''}</span>
     </footer>
   )
 }
