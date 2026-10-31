@@ -22,7 +22,7 @@ const os = require('node:os')
 const path = require('node:path')
 const { Readable } = require('node:stream')
 const { pipeline } = require('node:stream/promises')
-const { WIN_MAX_MS, matches, newer, parseLatest, pick, updateOutcome, winUpdateScript } = require('./release')
+const { WIN_MAX_MS, matches, newer, parseLatest, pick, startWinScript, updateOutcome, winUpdateScript } = require('./release')
 
 const isWin = process.platform === 'win32'
 const isMac = process.platform === 'darwin'
@@ -111,38 +111,30 @@ const logFile = () => path.join(app.getPath('userData'), 'update.log')
 const pendingFile = () => path.join(app.getPath('userData'), 'update-pending.json')
 
 /**
- * Windows : confie l'installation à un PowerShell détaché. Se résout quand il a
- * démarré ; s'il ne démarre pas, l'erreur remonte et l'appli ne quitte pas.
+ * Windows : confie l'installation à un PowerShell qui survit à l'appli (voir
+ * `startWinScript`). Se résout quand il tourne ; sinon l'erreur remonte, et la
+ * tentative est annulée (fichier retiré) : l'appli ne quitte pas.
  * NSIS d'electron-builder : /S = silencieux, --force-run = relancer après.
  * Lancé hors du dossier de l'appli, qu'il va remplacer.
  */
-function handOverWin(staged, rel) {
+async function handOverWin(staged, rel) {
   const script = winUpdateScript({
     pid: process.pid,
     appDir: path.dirname(process.execPath),
     appExe: process.execPath,
     staged,
     logFile: logFile(),
+    pendingFile: pendingFile(),
     version: rel.version,
   })
   fs.rmSync(logFile(), { force: true })
   fs.writeFileSync(pendingFile(), JSON.stringify({ from: app.getVersion(), to: rel.version, url: rel.url, at: Date.now() }))
-  return new Promise((resolve, reject) => {
-    const p = spawn('powershell.exe', ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-Command', script], {
-      cwd: path.dirname(staged),
-      detached: true,
-      stdio: 'ignore',
-      windowsHide: true,
-    })
-    p.once('spawn', () => {
-      p.unref()
-      resolve()
-    })
-    p.once('error', (e) => {
-      fs.rmSync(pendingFile(), { force: true })
-      reject(e)
-    })
-  })
+  try {
+    await startWinScript({ script, dir: path.dirname(staged), logFile: logFile() })
+  } catch (e) {
+    fs.rmSync(pendingFile(), { force: true })
+    throw e
+  }
 }
 
 /**

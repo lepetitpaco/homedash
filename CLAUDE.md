@@ -235,7 +235,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Mise à jour (`updater.js`) : dernière Release, fichier de la machine d'après `latest-mac.yml` /
   `latest.yml`, sha512 vérifié, instantané des données, puis remplacement par un processus détaché (Mac :
   .app extrait par `ditto` ; Windows : installateur NSIS `/S --force-run`, étapes dans `update.log` de userData,
-  échec dit au démarrage suivant par `afterStart()`). Un code 0 de NSIS ne prouve rien (`Quit` en silencieux) :
+  échec dit au démarrage suivant par `afterStart()`). Jamais `detached` pour powershell.exe : il sort en code 0 sans
+  rien exécuter (#82), d'où le relais et l'attente de la ligne `start`. Un code 0 de NSIS ne prouve rien (`Quit` en silencieux) :
   le script compare aussi la version de l'exe. Dépôt privé : jeton du premier compte GitHub connecté. Pas de signature : `identity: '-'` (ad hoc) dans electron-builder.yml.
 - Identifiant d'appli `com.lepetitpaco.homedash` : **ne plus le changer** (autorisations, notifications,
   épingles de la barre des tâches y sont rattachées).
