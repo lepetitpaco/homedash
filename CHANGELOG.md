@@ -4,6 +4,16 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.2.1 — 2026-10-31
+Appli de bureau : 2.2.1
+
+- **Corrigé, en cours de vérification : la mise à jour sous Windows.** Elle pouvait fermer homedash sans installer la
+  nouvelle version ni redémarrer. L'installation attend maintenant que homedash soit entièrement fermé. Si elle
+  échoue, homedash se rouvre et te le dit, avec la raison et un lien vers la page des versions.
+- **Pour passer à cette version sous Windows** : le bouton utilise encore l'ancienne méthode et peut échouer. Dans ce
+  cas, télécharge `homedash-2.2.1-setup.exe` sur la page des versions et lance-le. Tes données sont conservées.
+- Sous Windows, les téléchargements laissés par les mises à jour précédentes sont supprimés au démarrage.
+
 ## 2.2.0 — 2026-10-31
 Appli de bureau : 2.2.0
 
