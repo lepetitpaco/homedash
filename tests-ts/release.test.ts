@@ -62,7 +62,7 @@ describe('mise à jour', () => {
 })
 
 describe('mise à jour Windows', () => {
-  const args = { pid: 42, appDir: 'C:\\Users\\d’Arc\\homedash', appExe: 'C:\\Users\\d’Arc\\homedash\\homedash.exe', staged: "C:\\T\\o'k\\setup.exe", logFile: 'C:\\L\\update.log', version: '2.3.0' }
+  const args = { pid: 42, appDir: 'C:\\Users\\d’Arc\\homedash', appExe: 'C:\\Users\\d’Arc\\homedash\\homedash.exe', staged: "C:\\T\\o'k\\setup.exe", logFile: 'C:\\L\\update.log', pendingFile: 'C:\\L\\update-pending.json', version: '2.3.0' }
   const log = (...steps: string[]) => steps.map((s) => `2026-11-01T10:00:00 ${s}`).join('\r\n') + '\r\n'
   const pending = { from: '2.2.0', to: '2.3.0', at: 1000 }
 
@@ -77,6 +77,16 @@ describe('mise à jour Windows', () => {
     const script = release.winUpdateScript(args)
     expect(script).toContain('WaitForExit(')
     expect(script).not.toMatch(/Start-Process[^;]*-Wait\b(?!ingDirectory)/)
+  })
+
+  it("le script s'arrête si l'appli a annulé la tentative", () => {
+    expect(release.winUpdateScript(args)).toContain("Test-Path -LiteralPath 'C:\\L\\update-pending.json'")
+  })
+
+  it('le relais ne dépend pas de detached et protège le chemin du script', () => {
+    const cmd = release.winRelayCommand({ scriptFile: "C:\\T\\d’Arc é\\update.ps1", cwd: 'C:\\T\\d’Arc é' })
+    expect(cmd).toContain('-WindowStyle Hidden')
+    expect(cmd).toContain(`'"C:\\T\\d’’Arc é\\update.ps1"'`)
   })
 
   it('une version plus récente : réussie, même si le journal parle mal', () => {

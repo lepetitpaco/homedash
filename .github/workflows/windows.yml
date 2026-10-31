@@ -1,0 +1,26 @@
+# La mise à jour Windows essayée sur un vrai Windows : ses bugs ne se voient nulle part
+# ailleurs (#82). Droits minimaux ; actions figées par empreinte de commit, pas par tag.
+name: windows
+
+on:
+  pull_request:
+    paths:
+      - desktop/release.js
+      - desktop/updater.js
+      - tests-ts/winupdate.test.ts
+      - .github/workflows/windows.yml
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+      - run: npm ci --no-audit --no-fund
+      - run: npx vitest run tests-ts/winupdate.test.ts

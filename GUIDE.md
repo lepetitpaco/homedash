@@ -102,7 +102,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 - **Installer** : voir le [README](README.md#installer) (une autorisation au premier lancement, une seule fois).
 - **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli
   télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance. Sous Windows, si
-  l'installation échoue, homedash se rouvre et te le dit.
+  l'installation échoue, homedash reste ouvert ou se rouvre, et te le dit.
 - **homedash n'existe que dans l'appli** : elle n'ouvre aucun port, et http://localhost:7777 dans un
   navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Affichage →
   Accès depuis le navigateur* ; http://localhost:7777 marche alors, sur ta machine seulement, tant que
