@@ -35,7 +35,7 @@ docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "
   if [ -n '$DEV' ]; then
     node scripts/icon-dev.mjs public/icon-512.png desktop/build/icon-dev.png >/dev/null &&
     cp desktop/build/icon-dev.png desktop/app/icon.png &&
-    printf '{ \"devUrl\": \"http://localhost:7778\" }\n' > desktop/app/dev.json
+    printf '{ \"devUrl\": \"http://localhost:7778\", \"repoDir\": \"$PWD\" }\n' > desktop/app/dev.json
   fi &&
   cd desktop && npx -y @electron/packager@18 app '$NAME' --platform=darwin --arch=$ARCH \
     --electron-version=$ELECTRON --app-version=$VERSION --out=dist.noindex --overwrite \

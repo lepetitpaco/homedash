@@ -20,8 +20,7 @@ import {
   type TrCard,
   type TrData,
   type TrIssue,
-  type TrPosted,
-} from '../lib/trello'
+  type TrPosted, type TrMember } from '../lib/trello'
 
 const SOON = 7
 const URGENT = 'urgent'
@@ -96,9 +95,47 @@ function group(cards: TrCard[], catalog: TrBoard[], hidden: string[]): Board[] {
   return out
 }
 
+const ICONS = {
+  clock: 'M12 2.5a9.5 9.5 0 1 1 0 19 9.5 9.5 0 0 1 0-19Zm0 2a7.5 7.5 0 1 0 0 15 7.5 7.5 0 0 0 0-15ZM13 7v4.6l3.5 2-1 1.7L11 12.7V7h2Z',
+  desc: 'M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h10v2H4v-2Z',
+  comment: 'M4 4h16a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H9l-5 4V5a1 1 0 0 1 1-1Zm1 2v10.8L8.3 15H19V6H5Z',
+  check: 'M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2Zm0 2v14h14V5H5Zm5.5 11L7 12.5 8.4 11l2.1 2.1 5.1-5.1L17 9.4 10.5 16Z',
+  done: 'M12 2a10 10 0 1 0 0 20 10 10 0 0 0 0-20Zm-1.5 14.5L6 12l1.5-1.5 3 3 6-6L18 9l-7.5 7.5Z',
+}
+const Icon = ({ d }: { d: keyof typeof ICONS }) => (
+  <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true">
+    <path fillRule="evenodd" d={ICONS[d]} />
+  </svg>
+)
+
+/** Échéance comme sur Trello : rouge en retard, jaune sous 24 h, verte si terminée. */
 function Due({ c }: { c: TrCard }) {
-  const due = cardDue(c)
-  return due ? <span className={`gh-badge ${due.cls}`}>{due.label}</span> : null
+  if (!c.due) return null
+  const when = new Date(c.due)
+  if (Number.isNaN(when.getTime())) return null
+  const hours = (when.getTime() - Date.now()) / 3_600_000
+  const cls = c.due_complete ? ' is-done' : hours < 0 ? ' is-late' : hours < 24 ? ' is-soon' : ''
+  return (
+    <span className={`tr-due${cls}`} title={c.due_complete ? 'Terminée' : cardDue(c)?.label}>
+      <Icon d="clock" />
+      {when.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+    </span>
+  )
+}
+
+function Members({ c, known }: { c: TrCard; known: Map<string, TrMember> }) {
+  const list = (c.member_ids ?? []).flatMap((id) => known.get(id) ?? [])
+  if (!list.length) return null
+  return (
+    <span className="tr-members">
+      {list.map((m) => (
+        <span key={m.id} className="tr-member" title={m.name}>
+          {m.initials}
+          {m.avatar ? <img src={m.avatar} alt="" loading="lazy" referrerPolicy="no-referrer" onError={(e) => e.currentTarget.remove()} /> : null}
+        </span>
+      ))}
+    </span>
+  )
 }
 
 export default function TrelloView({
@@ -108,7 +145,6 @@ export default function TrelloView({
   focus,
   onHidden,
   onRefresh,
-  onNewIssue,
   onShowCard,
   onTaskMenu,
   cloneOf,
@@ -120,7 +156,6 @@ export default function TrelloView({
   focus?: string | null
   onHidden: (hidden: string[]) => void
   onRefresh: () => void
-  onNewIssue?: (c: TrCard, comment?: string) => void
   onShowCard?: (c: TrCard) => void
   onTaskMenu?: (e: React.MouseEvent, c: TrCard) => void
   cloneOf?: (repo: string) => string | null
@@ -129,6 +164,7 @@ export default function TrelloView({
   const boards = useMemo(() => group(data?.cards ?? [], data?.boards ?? [], hidden), [data, hidden])
   const [view, setView] = useState(URGENT)
   const [width, setWidth] = useState(260)
+  const known = useMemo(() => new Map((data?.boards ?? []).flatMap((b) => b.members ?? []).map((m) => [m.id, m])), [data?.boards])
   const [showDone, setShowDone] = useState(false)
   const [notes, setNotes] = useState<Record<string, string>>({})
   const [busy, setBusy] = useState<number | null>(null)
@@ -256,11 +292,11 @@ export default function TrelloView({
         ))}
       </nav>
       <div className={`tr-main${board ? ' is-board' : ''}`}>
-        <header className="group-head">
+        <header className="tr-head">
           <h2>{view === URGENT ? 'À traiter' : view === ISSUES ? 'Issues GitHub' : board?.name ?? 'Trello'}</h2>
-          <button onClick={onRefresh} disabled={data.building}>{data.building ? '…' : '↻'}</button>
+          <button className="btn" title="Actualiser" onClick={onRefresh} disabled={data.building}>{data.building ? '…' : '↻'}</button>
           {board ? (
-            <button onClick={() => onHidden([...hidden, board.id])}>Masquer ce tableau</button>
+            <button className="btn" onClick={() => onHidden([...hidden, board.id])}>Masquer ce tableau</button>
           ) : null}
         </header>
         {error || data.error || msg ? <p className="gh-empty">⚠ {error || data.error || msg}</p> : null}
@@ -269,8 +305,7 @@ export default function TrelloView({
           urgent.length ? (
             <div className="tr-pile">
               {urgent.map((c) => (
-                <Card key={c.id} c={c} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}
-                  onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
+                <Card key={c.id} c={c} known={known} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}  onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
               ))}
             </div>
           ) : <GhEmpty>Rien en retard ni d'échéance dans les {SOON} jours.</GhEmpty>
@@ -288,8 +323,7 @@ export default function TrelloView({
                 </h3>
                 <div className="tr-list-cards">
                   {l.cards.map((c) => (
-                    <Card key={c.id} c={c} flash={flash} showMine issues={byCard.get(c.short_link) ?? []} posted={posted}
-                      onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
+                    <Card key={c.id} c={c} known={known} flash={flash} showMine issues={byCard.get(c.short_link) ?? []} posted={posted}  onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
                   ))}
                 </div>
               </section>
@@ -298,6 +332,7 @@ export default function TrelloView({
         ) : null}
         {view === ISSUES ? (
           <div>
+            {!active.length ? <GhEmpty>Rien en attente : tous les rapports sont publiés ou écartés. 🎉</GhEmpty> : null}
             {active.map((i) => (
               <IssueRow key={issueKey(i)} i={i} posted={posted} busy={busy} cloneOf={cloneOf} notes={notes[issueKey(i)] ?? ''}
                 onNotes={(v) => setNotes((m) => ({ ...m, [issueKey(i)]: v }))} onSend={() => void send(i)} onCopy={copy}
@@ -306,7 +341,11 @@ export default function TrelloView({
                   onRefresh()
                 }} />
             ))}
-            <button onClick={() => setShowDone((v) => !v)}>{showDone ? 'masquer les terminées' : 'afficher les terminées'}</button>
+            {finished.length ? (
+              <button className="btn" onClick={() => setShowDone((v) => !v)}>
+                {showDone ? 'masquer les terminées' : finished.length > 1 ? `afficher les ${finished.length} terminées` : 'afficher la terminée'}
+              </button>
+            ) : null}
             {showDone ? finished.map((i) => (
               <IssueRow key={issueKey(i)} i={i} posted={posted} busy={busy} cloneOf={cloneOf} notes={notes[issueKey(i)] ?? ''}
                 onNotes={(v) => setNotes((m) => ({ ...m, [issueKey(i)]: v }))} onSend={() => void send(i)} onCopy={copy}
@@ -330,14 +369,14 @@ function doneOf(i: TrIssue, posted: Record<string, TrPosted>): 'posted' | 'dismi
 }
 
 function Card({
-  c, flash, showMine, issues, posted, onNewIssue, onShowCard, onTaskMenu, onSend, busy,
+  c, known, flash, showMine, issues, posted, onShowCard, onTaskMenu, onSend, busy,
 }: {
   c: TrCard
   flash: string | null
   showMine?: boolean
+  known: Map<string, TrMember>
   issues: TrIssue[]
   posted: Record<string, TrPosted>
-  onNewIssue?: (c: TrCard) => void
   onShowCard?: (c: TrCard) => void
   onTaskMenu?: (e: React.MouseEvent, c: TrCard) => void
   onSend: (i: TrIssue) => void
@@ -349,22 +388,47 @@ function Card({
     <article
       className={`tr-card${(dayDiff(c) ?? 1) < 0 ? ' is-late' : ''}${flash === c.short_link ? ' is-focus' : ''}`}
       onContextMenu={(e) => onTaskMenu?.(e, c)}
+      onClick={onShowCard ? (e) => !(e.target as HTMLElement).closest('button') && !e.defaultPrevented && onShowCard(c) : undefined}
     >
-      <a className="tr-card-title" href={c.url} target="_blank" rel="noreferrer">{c.title}</a>
-      <span className="tr-card-actions">
-        {onShowCard ? <button title="Voir la carte et ses échanges" onClick={() => onShowCard(c)}>💬</button> : null}
-        {onNewIssue ? <button title="Créer une issue GitHub" onClick={() => onNewIssue(c)}>🐙＋</button> : null}
-      </span>
-      {showMine && c.mine || c.checks || c.comments || cardDue(c) ? (
+      {c.cover ? <span className={`tr-cover tr-color-${c.cover.split('_')[0]}`} /> : null}
+      {c.labels?.length ? (
+        <span className="tr-labels">
+          {c.labels.map((l, i) => (
+            <i key={i} className={`tr-label tr-color-${l.color.split('_')[0] || 'none'}`} title={l.name || undefined} />
+          ))}
+        </span>
+      ) : null}
+      <a
+        className={`tr-card-title${c.due_complete ? ' is-done' : ''}`}
+        href={c.url}
+        target="_blank"
+        rel="noreferrer"
+        // Un clic ouvre la carte ici ; ⌘ clic, le site.
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!onShowCard || e.metaKey || e.ctrlKey || e.shiftKey) return
+          e.preventDefault()
+          onShowCard(c)
+        }}
+      >
+        {c.due_complete ? <Icon d="done" /> : null}
+        {c.title}
+      </a>
+      {showMine && c.mine || c.checks || c.comments || c.due || c.has_desc || c.member_ids?.length ? (
         <div className="tr-card-foot">
-          {showMine && c.mine ? <span className="tr-mine">toi</span> : null}
-          {c.checks ? <span>✓ {c.checks_done}/{c.checks}</span> : null}
-          {c.comments ? <span>💬 {c.comments}</span> : null}
           <Due c={c} />
+          {c.has_desc ? <span className="tr-badge" title="Cette carte a une description"><Icon d="desc" /></span> : null}
+          {c.comments ? <span className="tr-badge" title="Commentaires"><Icon d="comment" />{c.comments}</span> : null}
+          {c.checks ? (
+            <span className={`tr-badge${c.checks_done === c.checks ? ' is-complete' : ''}`} title="Checklist">
+              <Icon d="check" />{c.checks_done}/{c.checks}
+            </span>
+          ) : null}
+          {c.member_ids?.length && known.size ? <Members c={c} known={known} /> : showMine && c.mine ? <span className="tr-mine">toi</span> : null}
         </div>
       ) : null}
       {ready ? (
-        <button disabled={busy === ready.number} onClick={() => onSend(ready)}>📤 publier sur Trello</button>
+        <button className="btn" disabled={busy === ready.number} onClick={() => onSend(ready)}>📤 publier sur Trello</button>
       ) : null}
     </article>
   )

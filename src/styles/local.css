@@ -186,6 +186,39 @@
   padding: 0.42rem 0.9rem;
   gap: 0.7rem;
 }
+/* Carte étroite (peu importe la fenêtre : c'est la colonne qui compte) : tout s'empile,
+   sinon le nom de la branche n'a plus de place entre la conclusion et l'état. */
+.masonry-item:has(.loc-row) {
+  container-type: inline-size;
+}
+@container (max-width: 640px) {
+  .gh-page .loc-row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.3rem;
+  }
+  .loc-row .loc-action {
+    justify-self: start;
+    width: auto;
+  }
+  .loc-row .gh-line {
+    flex-wrap: wrap;
+  }
+  .loc-row .gh-branch {
+    overflow-wrap: anywhere;
+  }
+  .loc-row .gh-meta {
+    white-space: normal;
+  }
+  .loc-row .gh-right {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 0.4rem;
+    text-align: left;
+  }
+}
 .loc-action {
   font-size: 0.7rem;
   font-weight: 600;

@@ -1,5 +1,5 @@
 {
   "extends": "../server/tsconfig.json",
-  "compilerOptions": { "noEmit": true, "rootDir": "..", "noUnusedLocals": false },
+  "compilerOptions": { "noEmit": true, "rootDir": "..", "noUnusedLocals": false, "moduleResolution": "bundler", "module": "esnext", "jsx": "react-jsx" },
   "include": ["*.ts", "../server/*.ts"]
 }

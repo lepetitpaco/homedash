@@ -391,4 +391,12 @@ describe('issues GitHub liées à Trello', () => {
     expect(gh.bcIssues().issues).toEqual([])
     setFetch((i, init) => fetch(i, init))
   })
+
+  it('photos de profil : https sur l\'hôte Trello seulement, sinon les initiales', () => {
+    const avatar = (avatarUrl: unknown) => trello.members({ members: [{ id: 'm', initials: 'AB', avatarUrl }] })[0].avatar
+    expect(avatar('https://trello-members.s3.amazonaws.com/m/abc')).toBe('https://trello-members.s3.amazonaws.com/m/abc/50.png')
+    for (const bad of ['http://trello-members.s3.amazonaws.com/m/abc', 'https://evil.test/m/abc', 'https://u:p@trello-members.s3.amazonaws.com/m', null])
+      expect(avatar(bad)).toBe('')
+  })
+
 })

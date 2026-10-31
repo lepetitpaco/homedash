@@ -14,6 +14,7 @@
  * posé par preload.js) et choisit seule webview ou iframe.
  */
 const { app, BrowserWindow, Menu, Notification, Tray, clipboard, dialog, nativeImage, session, shell, ipcMain, webContents } = require('electron')
+const { execFile, execFileSync } = require('node:child_process')
 const fs = require('node:fs')
 const path = require('node:path')
 const server = require('./server')
@@ -83,6 +84,14 @@ function devUrl() {
 }
 
 const DEV = devUrl()
+/** Dossier du dépôt, posé par `build-local.sh --dev` : le menu Branche n'existe que dans l'appli de dev. */
+const REPO_DIR = (() => {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(__dirname, 'dev.json'), 'utf8')).repoDir || ''
+  } catch {
+    return ''
+  }
+})()
 const HOME = DEV || server.ORIGIN
 // Mode dev : un profil à part (`homedash-dev`), pour tourner à côté de l'appli de tous les jours
 // sans partager ses connexions ni son verrou « une seule instance ».
@@ -448,6 +457,126 @@ function setupTabsSession(partition) {
   s.setPermissionCheckHandler((_wc, permission) => allowed.has(permission))
 }
 
+// ── Appli de dev : changer de branche ───────────────────────────────────────
+// Le container sert le dossier du dépôt à chaud : changer de branche ici suffit.
+const git = (...args) => new Promise((resolve, reject) => {
+  execFile('/usr/bin/git', args, { cwd: REPO_DIR }, (err, out, errOut) => (err ? reject(new Error(errOut.trim() || err.message)) : resolve(out.trim())))
+})
+
+function branchList() {
+  try {
+    const current = execFileSync('/usr/bin/git', ['branch', '--show-current'], { cwd: REPO_DIR, encoding: 'utf8' }).trim()
+    const refs = execFileSync('/usr/bin/git', ['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes/origin'], { cwd: REPO_DIR, encoding: 'utf8' })
+    const names = refs
+      .split('\n')
+      .filter((r) => r && r !== 'refs/remotes/origin/HEAD')
+      .map((r) => r.replace(/^refs\/(heads|remotes\/origin)\//, ''))
+    return { current, names: [...new Set(names)].sort((a, b) => a.localeCompare(b)) }
+  } catch {
+    return { current: '', names: [] }
+  }
+}
+
+const branchError = (message, detail) => dialog.showMessageBox(win, { type: 'warning', message, detail, buttons: ['OK'] })
+
+/** Attend que le container réponde de nouveau (il refait `npm ci` à son redémarrage). */
+async function waitForDev(ms = 180_000) {
+  const end = Date.now() + ms
+  while (Date.now() < end) {
+    await new Promise((r) => setTimeout(r, 2000))
+    try {
+      if ((await fetch(HOME)).ok) return true
+    } catch {
+      /* pas encore */
+    }
+  }
+  return false
+}
+
+async function switchBranch(name) {
+  try {
+    // Rien de mis de côté automatiquement : un travail en cours reste où il est.
+    const dirty = await git('status', '--porcelain', '--untracked-files=no')
+    if (dirty) return void branchError('Branche non changée', `Des modifications ne sont pas commitées :\n\n${dirty}\n\nCommite-les d'abord.`)
+    const before = await git('rev-parse', 'HEAD')
+    await git('switch', name)
+    const changed = (await git('diff', '--name-only', before, 'HEAD')).split('\n')
+    if (changed.includes('package-lock.json')) {
+      // Dépendances différentes : le container les réinstalle en redémarrant.
+      await new Promise((resolve, reject) => {
+        const env = { ...process.env, PATH: `/usr/local/bin:/opt/homebrew/bin:${process.env.PATH || ''}` }
+        execFile('docker', ['compose', '-f', 'docker-compose.dev.yml', 'restart'], { cwd: REPO_DIR, env }, (err) => (err ? reject(err) : resolve()))
+      })
+      if (!(await waitForDev())) throw new Error('Le container de dev ne répond pas après son redémarrage.')
+    } else {
+      await new Promise((r) => setTimeout(r, 2000)) // le temps que le serveur se relance (`node --watch`)
+    }
+    await reloadHome()
+    if (changed.some((f) => f.startsWith('desktop/')))
+      void branchError(`Branche ${name}`, "Cette branche change aussi l'appli elle-même (desktop/) : pour le tester, sh desktop/build-local.sh --dev --install.")
+  } catch (e) {
+    void branchError('Branche non changée', e.message)
+  }
+  setupMenu()
+}
+
+/** Branches locales disparues de GitHub (fusionnées, donc supprimées là-bas), jamais main, preprod ni la branche en cours. */
+async function cleanBranches() {
+  try {
+    await git('fetch', '--prune', 'origin')
+    const { current } = branchList()
+    const refs = await git('for-each-ref', '--format=%(refname:short) %(upstream:track)', 'refs/heads')
+    const gone = refs
+      .split('\n')
+      .filter((l) => l.endsWith('[gone]'))
+      .map((l) => l.split(' ')[0])
+      .filter((n) => !['main', 'preprod', current].includes(n))
+    if (!gone.length) return void branchError('Rien à nettoyer', 'Aucune branche locale disparue de GitHub.')
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'question',
+      message: `Supprimer ${gone.length} branche(s) locale(s) ?`,
+      detail: `Elles n'existent plus sur GitHub :\n\n${gone.join('\n')}`,
+      buttons: ['Annuler', 'Supprimer'],
+      defaultId: 1,
+      cancelId: 0,
+    })
+    if (response === 1) await git('branch', '-D', ...gone)
+  } catch (e) {
+    void branchError('Nettoyage impossible', e.message)
+  }
+  setupMenu()
+}
+
+async function fetchBranches() {
+  try {
+    await git('fetch', '--prune', 'origin')
+  } catch (e) {
+    void branchError('Impossible de joindre GitHub', e.message)
+  }
+  setupMenu()
+}
+
+function branchMenu() {
+  const { current, names } = branchList()
+  return {
+    label: `Branche : ${current || 'détachée'}`,
+    submenu: [
+      ...names.map((name) => ({
+        label: name,
+        type: 'radio',
+        checked: name === current,
+        click: () => {
+          if (name !== current) void switchBranch(name)
+        },
+      })),
+      { type: 'separator' },
+      { label: 'Récupérer les branches de GitHub', click: () => void fetchBranches() },
+      { label: 'Nettoyer les branches fusionnées…', click: () => void cleanBranches() },
+      { label: 'Journal du dev', click: () => void shell.openPath(path.join(REPO_DIR, 'CHANGELOG-dev.md')) },
+    ],
+  }
+}
+
 function setupMenu() {
   const askUrl = async () => {
     const choice = await dialog.showMessageBox(win, {
@@ -542,6 +671,7 @@ function setupMenu() {
       ],
     },
   ]
+  if (REPO_DIR) template.splice(3, 0, branchMenu())
   Menu.setApplicationMenu(Menu.buildFromTemplate(template))
 }
 
@@ -715,6 +845,21 @@ ipcMain.on('homedash:guest', (e, msg) => {
  * → tout `google.com`), ou toute la session d'un compte. Déconnecte de ce site.
  * Seules les sessions d'onglets sont acceptées, jamais celle de homedash.
  */
+ipcMain.handle('homedash:tab-memory', (e) => {
+  if (!fromHome(e)) return null
+  const metrics = app.getAppMetrics()
+  const byPid = new Map(metrics.map((m) => [m.pid, m]))
+  const tabs = {}
+  for (const id of guests) {
+    const g = webContents.fromId(id)
+    if (!g || g.isDestroyed()) continue
+    const pid = g.getOSProcessId()
+    const m = byPid.get(pid)
+    if (m) tabs[id] = { mb: Math.round(m.memory.workingSetSize / 1024), pid } // Ko → Mo
+  }
+  return { total_mb: Math.round(metrics.reduce((s, m) => s + m.memory.workingSetSize / 1024, 0)), tabs }
+})
+
 ipcMain.handle('homedash:clear-data', async (e, req) => {
   if (!fromHome(e)) return false
   const partition = String(req?.partition || '')
@@ -1129,6 +1274,8 @@ if (!app.requestSingleInstanceLock()) {
     }
     setupTabsSession(PARTITION)
     setupMenu()
+    // Une branche changée dans le terminal : le menu suit au retour sur l'appli.
+    if (REPO_DIR) app.on('browser-window-focus', () => setupMenu())
     setupTray()
     createWindow()
     if (failed) void win.loadURL(fallbackPage(failed))

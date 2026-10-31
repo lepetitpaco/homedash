@@ -8,13 +8,15 @@ type Props = {
   onContextItem: (e: React.MouseEvent, ref: InfoRef) => void
   onContextGroup: (e: React.MouseEvent, index: number) => void
   onAdd: (e: React.MouseEvent) => void
+  collapsed: boolean
+  onToggle: () => void
 }
 
 /**
  * Valeurs à copier d'un clic. Tout s'édite comme les liens : clic droit sur une
  * ligne ou un titre de groupe, ou le ＋ de l'en-tête.
  */
-export default function InfoPanel({ infos, onContextItem, onContextGroup, onAdd }: Props) {
+export default function InfoPanel({ infos, onContextItem, onContextGroup, onAdd, collapsed, onToggle }: Props) {
   // Volontairement non persisté : au prochain chargement, les secrets sont masqués.
   const [revealed, setRevealed] = useState(false)
   const [copied, setCopied] = useState<string | null>(null)
@@ -32,7 +34,7 @@ export default function InfoPanel({ infos, onContextItem, onContextGroup, onAdd 
   const hasSecret = infos.groups.some((g) => g.items.some((i) => i.secret))
 
   return (
-    <section className="card info-card" style={{ ['--accent' as string]: infos.color ?? '#38bdf8' }}>
+    <section className={`card info-card${collapsed ? ' is-collapsed' : ''}`} style={{ ['--accent' as string]: infos.color ?? '#38bdf8' }}>
       <header className="group-head" onContextMenu={onAdd}>
         <div className="group-toggle static">
           <span className="group-icon" aria-hidden="true">
@@ -47,51 +49,56 @@ export default function InfoPanel({ infos, onContextItem, onContextGroup, onAdd 
           <button className="reveal-btn info-add" onClick={onAdd} title="Ajouter une info ou un groupe">
             ＋
           </button>
+          <button className="reveal-btn fold-btn" onClick={onToggle} aria-expanded={!collapsed} title={collapsed ? 'Déplier' : 'Replier'}>
+            {collapsed ? '▸' : '▾'}
+          </button>
         </div>
       </header>
-      <div className="info-body">
-        {infos.groups.map((group, gi) => (
-          <div
-            className="info-group"
-            key={gi}
-            style={{ ['--accent' as string]: group.color ?? infos.color ?? '#8b93a3' }}
-          >
+      {collapsed ? null : (
+        <div className="info-body">
+          {infos.groups.map((group, gi) => (
             <div
-              className="info-group-title"
-              onContextMenu={(e) => onContextGroup(e, gi)}
-              title="Clic droit : ajouter, modifier, supprimer"
+              className="info-group"
+              key={gi}
+              style={{ ['--accent' as string]: group.color ?? infos.color ?? '#8b93a3' }}
             >
-              <span aria-hidden="true">{group.icon}</span> {group.title}
-            </div>
-            {group.items.length === 0 ? (
-              <button className="info-empty" onClick={(e) => onContextGroup(e, gi)}>
-                ＋ ajouter une info
-              </button>
-            ) : null}
-            {group.items.map((item, ii) => {
-              const key = `${gi}:${ii}`
-              const masked = item.secret && !revealed
-              return (
-                <button
-                  className="info-row"
-                  key={key}
-                  onClick={() => void copy(key, item.value)}
-                  onContextMenu={(e) => onContextItem(e, { group: gi, index: ii })}
-                  title={`Copier ${item.label} — clic droit pour modifier`}
-                >
-                  <span className="info-label">
-                    {item.label}
-                    {item.note ? <em className="info-note">{item.note}</em> : null}
-                  </span>
-                  <span className={`info-value${masked ? ' is-masked' : ''}`}>
-                    {copied === key ? '✓ copié' : masked ? '••••••••' : item.value}
-                  </span>
+              <div
+                className="info-group-title"
+                onContextMenu={(e) => onContextGroup(e, gi)}
+                title="Clic droit : ajouter, modifier, supprimer"
+              >
+                <span aria-hidden="true">{group.icon}</span> {group.title}
+              </div>
+              {group.items.length === 0 ? (
+                <button className="info-empty" onClick={(e) => onContextGroup(e, gi)}>
+                  ＋ ajouter une info
                 </button>
-              )
-            })}
-          </div>
-        ))}
-      </div>
+              ) : null}
+              {group.items.map((item, ii) => {
+                const key = `${gi}:${ii}`
+                const masked = item.secret && !revealed
+                return (
+                  <button
+                    className="info-row"
+                    key={key}
+                    onClick={() => void copy(key, item.value)}
+                    onContextMenu={(e) => onContextItem(e, { group: gi, index: ii })}
+                    title={`Copier ${item.label} — clic droit pour modifier`}
+                  >
+                    <span className="info-label">
+                      {item.label}
+                      {item.note ? <em className="info-note">{item.note}</em> : null}
+                    </span>
+                    <span className={`info-value${masked ? ' is-masked' : ''}`}>
+                      {copied === key ? '✓ copié' : masked ? '••••••••' : item.value}
+                    </span>
+                  </button>
+                )
+              })}
+            </div>
+          ))}
+        </div>
+      )}
     </section>
   )
 }
