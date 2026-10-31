@@ -55,7 +55,7 @@ de liens.
 
 ![L'onglet GitHub](screenshots/github.jpg)
 
-Tes branches actives avec leur PR et leur CI, les PRs ouvertes, les mergées.
+Tes branches actives avec leur PR et leur CI, les PRs ouvertes, les mergées, et les builds pendant qu'ils tournent.
 
 ## Local
 
