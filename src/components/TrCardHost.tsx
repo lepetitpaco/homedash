@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { shown } from '../lib/errors'
 import { Markdown } from '../lib/markdown'
+import Thread from './Thread'
 import { cardText, type TrComment } from '../lib/trIssues'
 import type { TrIssue } from '../lib/trello'
 
@@ -97,15 +98,23 @@ export default function TrCardHost() {
         ))}
         <section>
           <h3>Échanges</h3>
-          {comments.length ? comments.map((c) => (
-            <article key={c.id} className={`tr-comment${req.comment === c.id ? ' is-focus' : ''}`}>
-              <strong>{c.who}</strong> <span className="set-hint">{c.date}</span>
-              <Markdown text={c.text} />
-              {req.onIssue ? (
-                <button className="btn" onClick={() => req.onIssue?.(c.id)}>🐙 issue sur cet échange</button>
-              ) : null}
-            </article>
-          )) : <p className="set-hint">Aucun échange.</p>}
+          {comments.length ? (
+            <Thread
+              messages={[...comments].reverse()}
+              focus={req.comment}
+              action={
+                req.onIssue
+                  ? (m) => (
+                      <button className="th-issue" title="Créer une issue GitHub à partir de cet échange" onClick={() => req.onIssue?.(String(m.id))}>
+                        🐙 issue
+                      </button>
+                    )
+                  : undefined
+              }
+            />
+          ) : (
+            <p className="set-hint">Aucun échange.</p>
+          )}
         </section>
         {req.issues.length ? (
           <p className="set-hint">{req.issues.length} issue(s) GitHub liée(s).</p>

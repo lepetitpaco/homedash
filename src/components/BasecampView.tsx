@@ -489,7 +489,7 @@ export function showBcTask(url: string) {
 /** « À traiter » : en retard, ou dû dans les 7 jours. */
 const SOON_DAYS = 7
 
-type Entry = { key: string; label: string; icon: string; count: number; late: number }
+type Entry = { key: string; label: string; icon: string; count: number; late: number; kind?: string }
 
 function lateIn(tasks: BcTask[]): number {
   return tasks.filter((t) => dueOf(t.due_on)?.rank === 0).length
@@ -500,11 +500,11 @@ function entriesOf(p: Project): Entry[] {
   const todos = p.lists.flatMap((l) => l.tasks)
   return [
     ...(todos.length
-      ? [{ key: `${p.key}::todos`, label: 'To-dos', icon: '☑', count: todos.length, late: lateIn(todos) }]
+      ? [{ key: `${p.key}::todos`, label: 'To-dos', icon: '☑', kind: '', count: todos.length, late: lateIn(todos) }]
       : []),
     ...p.boards.map((b) => {
       const cards = b.columns.flatMap((c) => c.tasks)
-      return { key: `${p.key}::${b.key}`, label: b.title, icon: '▦', count: cards.length, late: lateIn(cards) }
+      return { key: `${p.key}::${b.key}`, label: b.title, icon: '▦', kind: 'Kanban', count: cards.length, late: lateIn(cards) }
     }),
   ]
 }
@@ -990,6 +990,7 @@ export default function BasecampView({
                   >
                     <span aria-hidden="true">{e.icon}</span>
                     <span className="bc-nav-label">{e.label}</span>
+                    {e.kind ? <span className="bc-nav-kind">{e.kind}</span> : null}
                     {e.late ? <span className="bc-nav-late">{e.late}</span> : null}
                     <span className="bc-nav-count">{e.count}</span>
                   </button>

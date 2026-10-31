@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react'
-import { createPortal } from 'react-dom'
 import { shown } from '../lib/errors'
 import {
   cardText,
@@ -17,7 +16,7 @@ import {
   type TrComment,
 } from '../lib/trIssues'
 import type { TrIssue } from '../lib/trello'
-import Pick from './Pick'
+import IssueComposer from './IssueComposer'
 
 export type TrIssueRequest = {
   repos: IssueRepo[]
@@ -48,6 +47,8 @@ export default function TrIssueHost() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
   const [made, setMade] = useState<{ number: number; url: string; repo: string } | null>(null)
+  const [copied, setCopied] = useState('')
+  const [reading, setReading] = useState(false)
 
   useEffect(() => {
     show = (r) => {
@@ -62,6 +63,8 @@ export default function TrIssueHost() {
       setBusy(false)
       setError('')
       setMade(null)
+      setCopied('')
+      setReading(true)
       cardText(r.card.url)
         .then((got) => {
           const recent = got.comments.slice(-RECENT_COMMENTS).map((c) => c.id)
@@ -73,20 +76,12 @@ export default function TrIssueHost() {
           setNeed(needFromCard(got.text, got.checklists, [], new Set()))
         })
         .catch((e: unknown) => setError(shown('Trello', e)))
+        .finally(() => setReading(false))
     }
     return () => {
       show = null
     }
   }, [])
-
-  useEffect(() => {
-    if (!req) return
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') setReq(null)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [req])
 
   if (!req) return null
   const body = () => {
@@ -94,12 +89,14 @@ export default function TrIssueHost() {
     const prose = need.trim() || needFromCard(desc, lists, [], new Set())
     return issueBody(req.card, [prose, exchanges].filter(Boolean).join('\n\n'))
   }
-  const copyCommand = async (repoName: string, number: number) => {
-    const prompt = claudePrompt(repoName, number)
-    const dir = req.cloneOf(repoName)
-    const text = dir ? claudeCommand(dir, prompt) : prompt
-    if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text)
-  }
+  const prompt = made ? claudePrompt(made.repo, made.number) : ''
+  const clone = made ? req.cloneOf(made.repo) : null
+  const command = clone ? claudeCommand(clone, prompt) : ''
+  const copy = (what: 'command' | 'prompt', text: string) =>
+    navigator.clipboard?.writeText(text).then(
+      () => setCopied(what),
+      () => undefined,
+    )
   const create = async () => {
     if (!repo || !title.trim()) return
     setBusy(true)
@@ -108,7 +105,10 @@ export default function TrIssueHost() {
       rememberRepo(repo, req.card.board)
       const madeIssue = await createIssue(repo.account, repo.repo, title.trim(), body())
       setMade({ ...madeIssue, repo: repo.repo })
-      await copyCommand(repo.repo, madeIssue.number)
+      // déjà dans le presse-papiers : il n'y a plus qu'à coller dans un terminal (ou Claude Code)
+      const p = claudePrompt(repo.repo, madeIssue.number)
+      const dir = req.cloneOf(repo.repo)
+      void (dir ? copy('command', claudeCommand(dir, p)) : copy('prompt', p))
       req.onMade?.()
     } catch (e) {
       setError(shown('GitHub', e))
@@ -117,79 +117,52 @@ export default function TrIssueHost() {
     }
   }
 
-  return createPortal(
-    <div className="tr-sheet" role="dialog" aria-label="Nouvelle issue" onClick={() => setReq(null)}>
-      <div className="tr-sheet-card" onClick={(e) => e.stopPropagation()}>
-        <header className="tr-card-top">
-          <strong>Issue GitHub pour {req.card.title}</strong>
-          <button className="btn" onClick={() => setReq(null)}>Fermer</button>
-        </header>
-        {req.existing.filter((i) => i.state === 'open').length ? (
-          <p className="set-hint">Cette carte a déjà une issue ouverte.</p>
-        ) : null}
-        <label className="set-field">
-          <span>Repo</span>
-          <Pick
-            value={repo ? `${repo.account} ${repo.repo}` : ''}
-            options={req.repos.map((r) => ({ value: `${r.account} ${r.repo}`, label: r.repo }))}
-            onChange={(id) => setRepo(req.repos.find((r) => `${r.account} ${r.repo}` === id) ?? null)}
-          />
-        </label>
-        <label className="set-field">
-          <span>Titre</span>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </label>
-        <label className="set-field">
-          <span>Besoin</span>
-          <textarea rows={8} value={need} onChange={(e) => setNeed(e.target.value)} />
-        </label>
-        {comments.length ? (
-          <div>
-            <div className="set-add">
-              <span>Échanges</span>
-              <button onClick={() => setPicked(new Set(comments.map((c) => c.id)))}>tout</button>
-              <button onClick={() => setPicked(new Set())}>aucun</button>
-            </div>
-            {comments.map((c) => (
-              <label key={c.id} className="tr-check">
-                <input
-                  type="checkbox"
-                  checked={picked.has(c.id)}
-                  onChange={() => {
-                    const next = new Set(picked)
-                    if (next.has(c.id)) next.delete(c.id)
-                    else next.add(c.id)
-                    setPicked(next)
-                  }}
-                />
-                <span>{c.who} — {c.text.slice(0, 160)}</span>
-              </label>
-            ))}
-          </div>
-        ) : null}
-        {error ? <p className="set-hint set-bad">{error}</p> : null}
-        {made ? (
-          <p className="set-ok">Issue #{made.number} créée. La commande est dans le presse-papiers si le navigateur l'autorise.</p>
-        ) : (
-          <div className="set-add">
-            <button className="btn btn-primary" disabled={busy || !repo || !title.trim()} onClick={() => void create()}>
-              Créer sur GitHub
-            </button>
-            <button
-              disabled={!repo}
-              onClick={() => repo && req.onOpen(newIssueUrl(repo.repo, title.trim(), body()))}
-            >
-              Ouvrir le formulaire
-            </button>
-            {req.onOpenOutside && repo ? (
-              <button onClick={() => req.onOpenOutside?.(newIssueUrl(repo.repo, title.trim(), body()))}>
-                ↗ navigateur
-              </button>
-            ) : null}
-          </div>
-        )}
-      </div>
-    </div>,
-    document.body,
+  const openForm = (outside: boolean) => {
+    if (!repo) return
+    const url = newIssueUrl(repo.repo, title.trim(), body())
+    if (outside) req.onOpenOutside?.(url)
+    else req.onOpen(url)
+    setReq(null)
+  }
+  const toggle = (id: string) => {
+    const next = new Set(picked)
+    if (!next.delete(id)) next.add(id)
+    setPicked(next)
+  }
+
+  return (
+    <IssueComposer
+      noun="la carte"
+      service="Trello"
+      sourceTitle={req.card.title}
+      repos={req.repos}
+      repo={repo}
+      onRepo={setRepo}
+      title={title}
+      onTitle={setTitle}
+      need={need}
+      onNeed={setNeed}
+      reading={reading}
+      comments={comments}
+      isPicked={(id) => picked.has(id as string)}
+      onToggle={(id) => toggle(id as string)}
+      onPick={(ids) => setPicked(new Set(ids as string[]))}
+      recent={RECENT_COMMENTS}
+      from={req.comment}
+      existing={req.existing.filter((i) => i.state === 'open')}
+      body={body}
+      busy={busy}
+      error={error}
+      made={made}
+      copied={copied}
+      prompt={prompt}
+      command={command}
+      onCopy={(what, text) => void copy(what, text)}
+      onCreate={() => void create()}
+      onForm={openForm}
+      onSee={(outside) => (outside ? req.onOpenOutside?.(made!.url) : req.onOpen(made!.url))}
+      hasOutside={!!req.onOpenOutside}
+      onClose={() => setReq(null)}
+    />
   )
 }

@@ -3,6 +3,7 @@ import type { BcIssue } from '../lib/basecamp'
 import { taskText, type BcComment, type IssueTask } from '../lib/bcIssues'
 import { shown } from '../lib/errors'
 import { Markdown } from '../lib/markdown'
+import Thread from './Thread'
 
 /**
  * Fiche d'une tâche Basecamp, lue dans homedash sans ouvrir Basecamp :
@@ -127,32 +128,25 @@ export default function TaskHost() {
               </section>
               <div className="task-sub">
                 Échanges · {comments.length}
-                {comments.length > 1 ? <span className="set-hint"> (le plus récent en haut)</span> : null}
               </div>
-              {!comments.length ? <p className="set-hint">Aucun échange.</p> : null}
-              {[...comments].reverse().map((c) => (
-                <article
-                  key={c.id}
-                  data-comment={c.id}
-                  className={`task-comment${req.comment === c.id ? ' is-focus' : ''}`}
-                >
-                  <header>
-                    <strong>{c.who}</strong>
-                    <span className="set-hint">{new Date(c.date).toLocaleDateString('fr-FR')}</span>
-                    <span className="set-spacer" />
-                    {req.onIssue ? (
-                      <button
-                        className="bc-send is-done"
-                        title="Créer une issue GitHub à partir de cet échange (la tâche en contexte)"
-                        onClick={() => req.onIssue?.(c.id)}
-                      >
-                        🐙 issue sur cet échange
-                      </button>
-                    ) : null}
-                  </header>
-                  <Markdown text={render(c.text, images)} />
-                </article>
-              ))}
+              {comments.length ? (
+                <Thread
+                  messages={comments}
+                  focus={req.comment}
+                  render={(t) => render(t, images)}
+                  action={
+                    req.onIssue
+                      ? (m) => (
+                          <button className="th-issue" title="Créer une issue GitHub à partir de cet échange" onClick={() => req.onIssue?.(m.id as number)}>
+                            🐙 issue
+                          </button>
+                        )
+                      : undefined
+                  }
+                />
+              ) : (
+                <p className="set-hint">Aucun échange.</p>
+              )}
             </>
           ) : null}
         </div>

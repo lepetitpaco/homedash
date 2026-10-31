@@ -12,6 +12,9 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Catalogue de sites : plus de sites, icônes prêtes, réglage recommandé par site, raccourcis vers les messageries (Instagram Direct, Messages X…).
 - Mes sites : ✨ Configuration recommandée pour les onglets existants, sur tous d'un coup ou site par site.
 - Branches : nommées `<qui>/<type>/<nom>`, au lieu de `vague/<sujet>`.
+- Échanges (Basecamp et Trello) : lecture façon messagerie, du plus ancien au plus récent, regroupés par jour et par personne.
+- Basecamp : pastille « Kanban » dans le menu de gauche.
+- Nouvelle issue (Basecamp et Trello) : une seule fenêtre, la conversation à gauche, l'issue à droite, avec un aperçu.
 - Trello : cartes comme sur Trello (étiquettes, couvertures de couleur, échéances colorées, checklist finie, photos de profil, icônes) ; le tableau suit le thème clair ou sombre.
 - Trello : fenêtres de carte et d'issue réparées (boutons invisibles, fenêtre décalée sous la barre, Échap), en-tête lisible, liens Trello bien affichés.
 - Accueil : Notes et Infos se replient, et restent repliés.
