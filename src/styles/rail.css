@@ -511,6 +511,23 @@ body {
   color: #fff;
 }
 
+/* Site en cours de chargement au démarrage : un anneau discret, qui respire. */
+.rail-item.is-warming .rail-icon {
+  outline: 2px solid var(--accent, #60a5fa);
+  outline-offset: 1px;
+  animation: rail-warming 1.4s ease-in-out infinite;
+}
+@keyframes rail-warming {
+  50% {
+    outline-color: transparent;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .rail-item.is-warming .rail-icon {
+    animation: none;
+  }
+}
+
 /* Onglet en veille : grisé, 💤 dans le coin ; un clic le recharge. */
 .rail-item.is-asleep .rail-icon > :first-child,
 .rail-item.is-asleep .rail-icon > img {

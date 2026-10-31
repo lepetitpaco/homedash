@@ -13,6 +13,7 @@ export type Desktop = {
   onMenu?: (cb: (target: string) => void) => () => void
   /** Effacer les données d'un site ou d'un compte (`clear-data` dans features, ≥ 1.5.2). */
   clearData?: (partition: string, host?: string) => Promise<boolean>
+  tabMemory?: () => Promise<{ total_mb: number; tabs: Record<string, { mb: number; pid: number }> } | null>
   /** Réglages de notifications du système (`notif-settings` dans features, ≥ 1.5.1). */
   openNotificationSettings?: () => void
   /** Connexion à Basecamp dans une fenêtre de l'appli (`basecamp-connect`, 2.0). */
@@ -84,6 +85,8 @@ export const hasSessions = !!desktop?.features?.includes('sessions')
 
 /** L'appli dit-elle si un lien de site a été ⌘cliqué (⇧cliqué) ? (appli ≥ 1.5.6) */
 export const hasLinkFlip = !!desktop?.features?.includes('link-flip')
+/** L'appli sait donner la mémoire de chaque site. */
+export const hasTabMemory = !!desktop?.features?.includes('tab-memory')
 
 /** `Pro Été` → `persist:homedash-tabs-pro-ete` ; vide = la session commune. */
 export function partitionOf(name: string | undefined): string {
@@ -119,6 +122,9 @@ export function navKey(e: KeyboardEvent): 'back' | 'forward' | null {
  * connexion), avant que la webview soit retirée.
  */
 export const UNLOAD_TAB = 'homedash:unload-tab'
+
+/** Mettre un onglet en veille tout de suite (détail : sa clé), sans attendre le délai. */
+export const SLEEP_TAB = 'homedash:sleep-tab'
 
 /** `<webview>` d'Electron : ce dont la page se sert. */
 export type WebviewEl = HTMLElement & {

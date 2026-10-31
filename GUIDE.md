@@ -114,9 +114,9 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 
 #### Bon à savoir
 
-- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
-  Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller (durée dans
-  *Réglages → Mes sites*).
+- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés, l'un après l'autre (leurs pastilles arrivent dans les premières secondes) ; les autres au premier clic.
+  *Réglages → Mes sites* affiche ce que consomme chaque site : 💤 *Libérer* le décharge tout de suite, jusqu'au
+  prochain clic. Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller.
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.

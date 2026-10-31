@@ -13,7 +13,9 @@ import {
   refusesEmbed,
   sessionOf,
 } from '../lib/customTabs'
-import { desktop, hasLinkFlip, hasSessions, partitionOf, RELOAD_TAB } from '../lib/desktop'
+import { desktop, hasLinkFlip, hasSessions, partitionOf, RELOAD_TAB, SLEEP_TAB } from '../lib/desktop'
+import { formatMb } from '../lib/tabMemory'
+import { useTabMemory } from '../hooks/useTabMemory'
 import { EDIT_TAB_EVENT, EDIT_TAB_KEY, NEW_TAB_EVENT, NEW_TAB_KEY } from '../lib/settingsNav'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 import { confirmDialog } from './ConfirmHost'
@@ -42,6 +44,8 @@ type Props = {
 
 /** Délais proposés en un clic à côté du champ de mise en veille. */
 const SLEEP_PRESETS = [5, 15, 30, 60]
+/** Au-delà, la mémoire d'un site est mise en avant. */
+const HEAVY_MB = 400
 
 /** Nom proposé d'après l'adresse : `mail.google.com` → `mail.google.com`, `~/doc/a.pdf` → `a`. */
 const nameFrom = (url: string) =>
@@ -72,6 +76,7 @@ export default function SetTabs({
   const [browsing, setBrowsing] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  const memory = useTabMemory()
   const patch = (id: string, p: Partial<CustomTab>) => onChange(tabs.map((t) => (t.id === id ? { ...t, ...p } : t)))
 
   const add = () => {
@@ -231,6 +236,14 @@ export default function SetTabs({
   }
 
   const isWeb = (t: CustomTab) => !!t.url && !isLocal(t.url)
+  /** Réglages de « Plus d'options » qui s'écartent du défaut. */
+  const changedOptions = (t: CustomTab) =>
+    [
+      !!t.sleep,
+      isWeb(t) && t.preload !== undefined && t.preload !== preloads({ ...t, preload: undefined }),
+      isWeb(t) && t.notify === false,
+      isWeb(t) && (t.capture === false || !!t.domains?.length),
+    ].filter(Boolean).length
   /** Pastille d'un réglage sur la ligne : allumée ou non, un clic bascule. */
   const opt = (on: boolean, label: string, title: string, toggle: () => void) => (
     <button type="button" className={`xs-opt${on ? ' is-on' : ''}`} aria-pressed={on} title={title} onClick={toggle}>
@@ -360,148 +373,6 @@ export default function SetTabs({
           ) : null}
         </div>
 
-        {t.embed ? (
-          <div className="xs-field xs-wide">
-            <span>Mise en veille</span>
-            <span className="xs-seg" role="radiogroup">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!t.sleep}
-                className={t.sleep ? '' : 'is-on'}
-                onClick={() => patch(t.id, { sleep: undefined })}
-              >
-                Jamais
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!!t.sleep}
-                className={t.sleep ? 'is-on' : ''}
-                onClick={() => patch(t.id, { sleep: true })}
-              >
-                Après {sleepMinutes} min sans y aller
-              </button>
-            </span>
-            <em className="xs-note">
-              En veille, l'onglet est déchargé (mémoire libérée) et rechargé quand tu cliques dessus ; il ne reçoit
-              plus de notifications ni de non-lus entre-temps.
-            </em>
-          </div>
-        ) : null}
-
-        {web && t.embed && desktop ? (
-          <div className="xs-field xs-wide">
-            <span>Au démarrage de l'appli</span>
-            <span className="xs-seg" role="radiogroup">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={preloads(t)}
-                className={preloads(t) ? 'is-on' : ''}
-                onClick={() => patch(t.id, { preload: true })}
-              >
-                Charger tout de suite
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={!preloads(t)}
-                className={preloads(t) ? '' : 'is-on'}
-                onClick={() => patch(t.id, { preload: false })}
-              >
-                Au premier clic
-              </button>
-            </span>
-            <em className="xs-note">
-              Chargé tout de suite, ses non-lus arrivent sans l'ouvrir ; au premier clic, il ne prend pas de
-              mémoire avant. Par défaut : tout de suite pour les mails, messageries et réseaux sociaux.
-            </em>
-          </div>
-        ) : null}
-
-        {web && t.embed ? (
-          <div className="xs-field xs-wide">
-            <span>Notifications</span>
-            <span className="xs-seg" role="radiogroup">
-              <button
-                type="button"
-                role="radio"
-                aria-checked={t.notify !== false}
-                className={t.notify !== false ? 'is-on' : ''}
-                onClick={() => patch(t.id, { notify: undefined })}
-              >
-                🔔 Actives
-              </button>
-              <button
-                type="button"
-                role="radio"
-                aria-checked={t.notify === false}
-                className={t.notify === false ? 'is-on' : ''}
-                onClick={() => patch(t.id, { notify: false })}
-              >
-                🔕 Coupées
-              </button>
-            </span>
-            <em className="xs-note">
-              Coupées : pas de pastille de non-lus (ni dans le total du Dock), et le site ne peut plus afficher
-              de notification depuis sa page. Aussi au clic droit sur l'icône.
-            </em>
-          </div>
-        ) : null}
-
-        {web && t.embed ? (
-          <div className="xs-field xs-wide">
-            <span>Liens vers ce site, cliqués dans un autre onglet</span>
-            <span className="xs-inline xs-capture">
-              <span className="xs-seg" role="radiogroup">
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={t.capture !== false}
-                  className={t.capture !== false ? 'is-on' : ''}
-                  onClick={() => patch(t.id, { capture: undefined })}
-                >
-                  S'ouvrent ici
-                </button>
-                <button
-                  type="button"
-                  role="radio"
-                  aria-checked={t.capture === false}
-                  className={t.capture === false ? 'is-on' : ''}
-                  onClick={() => patch(t.id, { capture: false })}
-                >
-                  Dans le navigateur
-                </button>
-              </span>
-              {t.capture !== false ? (
-                <input
-                  // lu à la sortie du champ : en direct, la virgule tapée disparaîtrait
-                  key={(t.domains ?? []).join(',')}
-                  defaultValue={(t.domains ?? []).join(', ')}
-                  placeholder="autres domaines : twitter.com, …"
-                  title="Liens vers ces domaines aussi ouverts dans cet onglet, séparés par des virgules"
-                  onBlur={(e) => {
-                    const domains = e.target.value
-                      .split(/[,\s]+/)
-                      .map((d) => d.trim())
-                      .filter(Boolean)
-                    patch(t.id, { domains: domains.length ? domains : undefined })
-                  }}
-                  autoComplete="off"
-                  data-1p-ignore
-                />
-              ) : null}
-            </span>
-            {t.capture !== false ? (
-              <em className="xs-note">
-                Liens qui ouvrent ce site : {domainsOf(t).join(', ')}.{' '}
-                {desktop ? '' : "(Dans l'appli de bureau seulement.)"}
-              </em>
-            ) : null}
-          </div>
-        ) : null}
-
         <div className="xs-wide xs-pair">
         <div className="xs-field">
           <span>Dossier</span>
@@ -530,6 +401,157 @@ export default function SetTabs({
           </div>
         ) : null}
         </div>
+
+        {t.embed ? (
+          <details className="xs-more xs-wide" open={changedOptions(t) > 0}>
+            <summary>
+              Plus d'options
+              {changedOptions(t) ? <em> · {changedOptions(t)} modifiée{changedOptions(t) > 1 ? 's' : ''}</em> : null}
+            </summary>
+          {t.embed ? (
+            <div className="xs-field xs-wide">
+              <span>Mise en veille</span>
+              <span className="xs-seg" role="radiogroup">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!t.sleep}
+                  className={t.sleep ? '' : 'is-on'}
+                  onClick={() => patch(t.id, { sleep: undefined })}
+                >
+                  Jamais
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!!t.sleep}
+                  className={t.sleep ? 'is-on' : ''}
+                  onClick={() => patch(t.id, { sleep: true })}
+                >
+                  Après {sleepMinutes} min sans y aller
+                </button>
+              </span>
+              <em className="xs-note">
+                En veille, l'onglet est déchargé (mémoire libérée) et rechargé quand tu cliques dessus ; il ne reçoit
+                plus de notifications ni de non-lus entre-temps.
+              </em>
+            </div>
+          ) : null}
+
+          {web && t.embed && desktop ? (
+            <div className="xs-field xs-wide">
+              <span>Au démarrage de l'appli</span>
+              <span className="xs-seg" role="radiogroup">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={preloads(t)}
+                  className={preloads(t) ? 'is-on' : ''}
+                  onClick={() => patch(t.id, { preload: true })}
+                >
+                  Charger tout de suite
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!preloads(t)}
+                  className={preloads(t) ? '' : 'is-on'}
+                  onClick={() => patch(t.id, { preload: false })}
+                >
+                  Au premier clic
+                </button>
+              </span>
+              <em className="xs-note">
+                Chargé tout de suite, ses non-lus arrivent sans l'ouvrir ; au premier clic, il ne prend pas de
+                mémoire avant. Par défaut : tout de suite pour les mails, messageries et réseaux sociaux.
+              </em>
+            </div>
+          ) : null}
+
+          {web && t.embed ? (
+            <div className="xs-field xs-wide">
+              <span>Notifications</span>
+              <span className="xs-seg" role="radiogroup">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={t.notify !== false}
+                  className={t.notify !== false ? 'is-on' : ''}
+                  onClick={() => patch(t.id, { notify: undefined })}
+                >
+                  🔔 Actives
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={t.notify === false}
+                  className={t.notify === false ? 'is-on' : ''}
+                  onClick={() => patch(t.id, { notify: false })}
+                >
+                  🔕 Coupées
+                </button>
+              </span>
+              <em className="xs-note">
+                Coupées : pas de pastille de non-lus (ni dans le total du Dock), et le site ne peut plus afficher
+                de notification depuis sa page. Aussi au clic droit sur l'icône.
+              </em>
+            </div>
+          ) : null}
+
+          {web && t.embed ? (
+            <div className="xs-field xs-wide">
+              <span>Liens vers ce site, cliqués dans un autre onglet</span>
+              <span className="xs-inline xs-capture">
+                <span className="xs-seg" role="radiogroup">
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={t.capture !== false}
+                    className={t.capture !== false ? 'is-on' : ''}
+                    onClick={() => patch(t.id, { capture: undefined })}
+                  >
+                    S'ouvrent ici
+                  </button>
+                  <button
+                    type="button"
+                    role="radio"
+                    aria-checked={t.capture === false}
+                    className={t.capture === false ? 'is-on' : ''}
+                    onClick={() => patch(t.id, { capture: false })}
+                  >
+                    Dans le navigateur
+                  </button>
+                </span>
+                {t.capture !== false ? (
+                  <input
+                    // lu à la sortie du champ : en direct, la virgule tapée disparaîtrait
+                    key={(t.domains ?? []).join(',')}
+                    defaultValue={(t.domains ?? []).join(', ')}
+                    placeholder="autres domaines : twitter.com, …"
+                    title="Liens vers ces domaines aussi ouverts dans cet onglet, séparés par des virgules"
+                    onBlur={(e) => {
+                      const domains = e.target.value
+                        .split(/[,\s]+/)
+                        .map((d) => d.trim())
+                        .filter(Boolean)
+                      patch(t.id, { domains: domains.length ? domains : undefined })
+                    }}
+                    autoComplete="off"
+                    data-1p-ignore
+                  />
+                ) : null}
+              </span>
+              {t.capture !== false ? (
+                <em className="xs-note">
+                  Liens qui ouvrent ce site : {domainsOf(t).join(', ')}.{' '}
+                  {desktop ? '' : "(Dans l'appli de bureau seulement.)"}
+                </em>
+              ) : null}
+            </div>
+          ) : null}
+
+          </details>
+        ) : null}
 
         <div className="xs-actions xs-wide">
           <button type="button" className="set-danger-link" onClick={() => remove(t)}>
@@ -623,7 +645,7 @@ export default function SetTabs({
             ))}
           </span>
           <em className="xs-note">
-            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site ci-dessus (▾).
+            {mine.filter((t) => t.embed && t.sleep).length} onglet(s) concerné(s) — à régler site par site dans la liste des sites (▾, Plus d'options).
           </em>
         </label>
       </div>
@@ -643,6 +665,13 @@ export default function SetTabs({
           ＋ Ajouter un site
         </button>
       </div>
+
+      {memory ? (
+        <p className="set-hint xs-mem-total">
+          Mémoire : <strong>{formatMb(memory.total)}</strong> pour homedash, dont {formatMb(memory.sites)} pour les sites
+          chargés. Un site gourmand que tu utilises peu : 💤 <em>Libérer</em> le décharge jusqu'au prochain clic.
+        </p>
+      ) : null}
 
       {catalog ? (
         <div className="xs-catalog">
@@ -708,6 +737,28 @@ export default function SetTabs({
                     interrupteurs à leur valeur par défaut sur chaque ligne noyaient
                     l'exception. Tous sont dans l'éditeur (▾). */}
                 <span className="xs-opts">
+                  {t.embed && memory ? (
+                    memory.tabs[t.id] ? (
+                      <>
+                        <span
+                          className={`xs-mem${memory.tabs[t.id].mb >= HEAVY_MB ? ' is-heavy' : ''}`}
+                          title={memory.tabs[t.id].shared ? 'Mémoire partagée avec un autre onglet du même site' : 'Mémoire utilisée par ce site'}
+                        >
+                          {formatMb(memory.tabs[t.id].mb)}
+                        </span>
+                        <button
+                          type="button"
+                          className="xs-opt"
+                          title="Décharger ce site maintenant ; il se recharge quand tu cliques dessus. Plus de non-lus entre-temps."
+                          onClick={() => window.dispatchEvent(new CustomEvent(SLEEP_TAB, { detail: tabKey(t) }))}
+                        >
+                          💤 Libérer
+                        </button>
+                      </>
+                    ) : (
+                      <span className="xs-mem is-off">pas chargé</span>
+                    )
+                  ) : null}
                   {t.embed ? null : opt(
                     !!t.embed,
                     t.embed ? '▣ homedash' : '↗ navigateur',
@@ -717,7 +768,7 @@ export default function SetTabs({
                   {t.embed && t.sleep
                     ? opt(
                         !!t.sleep,
-                        `💤 ${t.sleep ? `${sleepMinutes} min` : 'jamais'}`,
+                        `💤 veille après ${sleepMinutes} min`,
                         t.sleep ? 'En veille après ' + sleepMinutes + ' min sans y aller : clic pour ne plus la mettre' : 'Jamais en veille : clic pour la mettre après ' + sleepMinutes + ' min sans y aller',
                         () => patch(t.id, { sleep: t.sleep ? undefined : true }),
                       )
@@ -725,7 +776,7 @@ export default function SetTabs({
                   {isWeb(t) && t.embed && t.notify === false
                     ? opt(
                         t.notify !== false,
-                        t.notify !== false ? '🔔 notifs' : '🔕 coupées',
+                        t.notify !== false ? '🔔 notifs' : '🔕 notifs coupées',
                         t.notify !== false
                           ? 'Pastille de non-lus et notifications du site : clic pour les couper'
                           : 'Ni pastille ni notifications : clic pour les rétablir',
@@ -735,7 +786,7 @@ export default function SetTabs({
                   {isWeb(t) && t.embed && desktop && t.preload !== undefined && t.preload !== preloads({ ...t, preload: undefined })
                     ? opt(
                         preloads(t),
-                        preloads(t) ? '⚡ au démarrage' : '⚡ au 1er clic',
+                        preloads(t) ? '⚡ chargé au démarrage' : '⚡ chargé au 1er clic',
                         preloads(t) ? 'Chargé au démarrage de l’appli : clic pour attendre le premier clic' : 'Chargé au premier clic : clic pour le charger au démarrage',
                         () => patch(t.id, { preload: !preloads(t) }),
                       )
@@ -743,7 +794,7 @@ export default function SetTabs({
                   {isWeb(t) && t.embed && t.capture === false
                     ? opt(
                         t.capture !== false,
-                        t.capture !== false ? '🔗 ses liens ici' : '🔗 ses liens au navigateur',
+                        t.capture !== false ? '🔗 ses liens ici' : '🔗 liens vers le navigateur',
                         t.capture !== false
                           ? `Les liens vers ${domainsOf(t).join(', ')} s’ouvrent ici : clic pour les envoyer au navigateur`
                           : 'Les liens vers ce site s’ouvrent dans le navigateur : clic pour les ouvrir ici',
@@ -775,11 +826,11 @@ export default function SetTabs({
       {kept.length ? (
         <section className="xs-group">
           <header>
-            <h3 className="set-sub">Onglets gardés</h3>
+            <h3 className="set-sub">Onglets temporaires gardés</h3>
           </header>
           <p className="set-hint">
-            Ouverts depuis un lien, puis clic droit → « Garder ouvert » : ils sont rouverts au redémarrage, rangés avec les
-            onglets temporaires, sans capter les liens des autres onglets.
+            Ouverts depuis un lien, puis gardés : ils sont rouverts au redémarrage, rangés avec les autres onglets
+            temporaires, sans capter les liens des autres onglets.
           </p>
           <ul className="xs-kept">
             {kept.map((t) => (

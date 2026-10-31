@@ -35,6 +35,8 @@ branchée sur le Docker de dev, avec son propre profil. Elle cohabite avec l'app
 
 ```bash
 sh desktop/build-local.sh --dev --install             # Mac : « homedash dev » dans Applications
+# Dans cette appli, le menu « Branche » change la branche du dépôt : le container suit à chaud
+# (npm ci et redémarrage si package-lock.json change). Modifications non commitées : refusé.
 ```
 
 Console : *Présentation → Outils de développement* (⌥⌘I).
