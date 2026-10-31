@@ -19,7 +19,7 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 
 ## GitHub et Local
 
-- Comptes, branches, PR, CI, Renovate ; verdicts de Local, commandes à copier.
+- Comptes, branches, PR, CI, carte En cours (si un workflow tourne), Renovate ; verdicts de Local, commandes à copier.
 - Local à 800 px : le nom de la branche reste visible, les pastilles ne se chevauchent pas.
 
 ## Basecamp
