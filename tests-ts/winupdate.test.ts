@@ -39,6 +39,17 @@ function setup(code: number) {
 }
 
 describe.runIf(process.platform === 'win32')('mise à jour Windows, en vrai', () => {
+  it.each([
+    ['2.2.4.0', true],
+    ['2.2.4', true],
+    ['2.2.5.0', false],
+    ['2.2.4.1', false],
+    ['', false],
+  ])('version de l\'exe %j comparée à 2.2.4 : %j', (v, same) => {
+    const out = execFileSync('powershell.exe', ['-NoProfile', '-Command', `$v = ${release.psQuote(v)}; ${release.winSameVersion('2.2.4')}`], { encoding: 'utf8' })
+    expect(out.trim()).toBe(same ? 'True' : 'False')
+  })
+
   it("le script survit au processus qui l'a lancé, et va au bout", async () => {
     const t = setup(0)
     const child = `require(${JSON.stringify(releasePath)}).startWinScript(${JSON.stringify({ script: t.script, dir: t.dir, logFile: t.logFile })}).then(()=>process.exit(0),(e)=>{console.error(e);process.exit(1)})`
