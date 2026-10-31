@@ -49,14 +49,17 @@ docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm
 
 ## Livrer
 
-1. Une branche par sujet (`vague/<sujet>`), commits libres, sans toucher au CHANGELOG.
-2. Pull request vers `main`, relue et approuvée.
-3. Pour publier : une entrée en tête de `CHANGELOG.md`, la **même version** dans
-   `desktop/package.json`, puis `git tag -a vX.Y.Z -m "X.Y.Z" && git push --follow-tags`.
-4. Le tag lance GitHub Actions : il construit l'appli (Mac arm64 + x64, Windows) et publie la Release,
-   que les applis installées proposent en mise à jour.
+1. Une branche par sujet (`vague/<sujet>`), commits libres, sans toucher au CHANGELOG ; ce qu'elle apporte va
+   dans `CHANGELOG-dev.md`.
+2. Pull request vers `preprod`, sans approbation : fusionnée, la branche se supprime toute seule. On teste
+   l'ensemble sur `preprod` (menu *Branche* de l'appli de dev).
+3. Pour publier : sur `preprod`, une entrée en tête de `CHANGELOG.md`, la **même version** dans
+   `desktop/package.json`, la revue de la doc (checklist de la pull request), puis pull request vers `main`,
+   approuvée par le propriétaire, fusionnée par un commit de fusion.
+4. La fusion lance GitHub Actions : il pose le tag, construit l'appli (Mac arm64 + x64, Windows) et publie la
+   Release, que les applis installées proposent en mise à jour. Aucun tag à la main.
 
-Doc, tests ou refactor seuls : pas de version. Le détail (quel numéro, issues, étiquettes) est dans
+Doc seule : pas de version. Du code sur `main` sans nouvelle version fait échouer le run. Le détail (quel numéro, issues, étiquettes) est dans
 [CLAUDE.md](CLAUDE.md).
 
 ## Captures

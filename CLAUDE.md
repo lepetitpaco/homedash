@@ -36,12 +36,17 @@ Même chose si la demande contredit une règle absolue : la signaler, proposer u
 Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
 devient un réglage.
 
-**Une vague = une branche, un push = une version.** On travaille sur une branche locale (`vague/<sujet>`)
-et on y commite librement, sans toucher au `CHANGELOG.md` ni aux versions. Une fois la vague testée :
-pull request vers `main`, approuvée par le propriétaire du dépôt (CODEOWNERS), puis **une** entrée de
-CHANGELOG pour toute la vague et le tag. Trois commits poussés ensemble = une seule version, jamais une par commit.
+**Une vague = une branche ; `preprod` les réunit ; `main` = une version.** On travaille sur `vague/<sujet>`, sans
+toucher au `CHANGELOG.md` ni aux versions. Une fois la vague testée : pull request vers `preprod`, sans approbation
+(chaque collaborateur fusionne), et la branche est supprimée toute seule. On teste l'ensemble sur `preprod`. Quand
+tout est validé : sur `preprod`, **une** entrée de CHANGELOG et la version de `desktop/package.json`, puis pull
+request vers `main`, **commit de fusion obligatoire** (jamais de squash), approuvée par le propriétaire
+(CODEOWNERS). À la fusion, GitHub Actions pose le tag et publie la Release : aucun tag à la main. Du code sur `main`
+sans nouvelle version fait échouer le run ; la doc seule ne publie rien. `main` et `preprod` ne sont jamais
+supprimées. Vague refusée en preprod : `git revert` de sa fusion. Correctif urgent : branche depuis `main`, puis
+`main` refusionnée dans `preprod`.
 
-**Avant la pull request** (on ne pousse plus directement sur `main`) :
+**Avant la pull request** (on ne pousse directement ni sur `main` ni sur `preprod`) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
   `CHANGELOG.md` **après** synchronisation, et un tag déjà pris ne se réutilise pas.
 - Typecheck et tests au vert (commandes ci-dessous) ; page testée à la main si l'écran change.
@@ -51,7 +56,7 @@ CHANGELOG pour toute la vague et le tag. Trois commits poussés ensemble = une s
 dès son premier commit. C'est le seul journal qu'on touche sur une branche. À la version, ses lignes
 deviennent l'entrée du `CHANGELOG.md` (écrite pour l'utilisateur) et quittent ce fichier.
 
-**À chaque version, revue de toute la doc, avant le tag.** Relire chacun, le corriger si besoin, et dire dans la
+**À chaque version, revue de toute la doc, avant la pull request vers `main`.** Relire chacun, le corriger si besoin, et dire dans la
 pull request ce qui a changé ou « rien à changer » : `README.md`, `GUIDE.md`, `DEVELOPING.md`, `ARCHITECTURE.md`,
 `PRIVACY.md`, `CLAUDE.md`, `AGENTS.md`, `.cursor/`, `aidd_docs/`, `docs/` (site GitHub Pages) et les captures
 `docs/screenshots/` (refaites si l'écran a changé : `sh docs/demo/capture.sh`).
@@ -69,12 +74,11 @@ pull request ce qui a changé ou « rien à changer » : `README.md`, `GUIDE.md`
   | Doc, tests, refactor, commentaires (rien de visible) | **aucune** : pas d'entrée, pas de version |
 
   Depuis la 2.0, l'appli embarque tout : **chaque version** monte `desktop/package.json` à la même
-  version que le CHANGELOG (le workflow de Release refuse un tag où les deux diffèrent). Le tag `vX.Y.Z`
-  poussé déclenche GitHub Actions, qui construit l'appli et publie la Release que les applis installées
-  proposent.
+  version que le CHANGELOG (le workflow de Release échoue si les deux diffèrent). Une nouvelle version
+  arrivée sur `main` déclenche GitHub Actions, qui pose le tag `vX.Y.Z`, construit l'appli et publie la
+  Release que les applis installées proposent.
 
-  Plusieurs changements livrés ensemble (une vague, un push) = une seule version. Après le commit : `git tag -a vX.Y.Z -m
-  "X.Y.Z"` puis `git push --follow-tags`.
+  Plusieurs changements livrés ensemble (tout ce que `preprod` apporte à `main`) = une seule version.
 - Comportement visible modifié → `GUIDE.md` à jour.
 - Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
   cause, la solution et la version qui la livre ; fermée avec le hash du commit. Une issue déjà ouverte

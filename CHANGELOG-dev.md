@@ -11,4 +11,5 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Vocabulaire : « onglet temporaire » partout, plus d'« éphémère » à l'écran ni sur le site.
 - Accueil : Notes et Infos se replient, et restent repliés.
 - `⌘K` : actions sur chaque site (libérer, recharger, son, notifications, effacer les données), Tout actualiser, Réglages de Mes sites.
-- Appli de dev : menu Branche, et Journal du dev dans ce menu.
+- Appli de dev : menu Branche, Journal du dev et nettoyage des branches fusionnées.
+- Flux : `preprod` entre les branches et `main` ; le tag et la Release partent seuls à l'arrivée d'une nouvelle version sur `main`.

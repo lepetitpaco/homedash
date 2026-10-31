@@ -520,6 +520,33 @@ async function switchBranch(name) {
   setupMenu()
 }
 
+/** Branches locales disparues de GitHub (fusionnées, donc supprimées là-bas), jamais main, preprod ni la branche en cours. */
+async function cleanBranches() {
+  try {
+    await git('fetch', '--prune', 'origin')
+    const { current } = branchList()
+    const refs = await git('for-each-ref', '--format=%(refname:short) %(upstream:track)', 'refs/heads')
+    const gone = refs
+      .split('\n')
+      .filter((l) => l.endsWith('[gone]'))
+      .map((l) => l.split(' ')[0])
+      .filter((n) => !['main', 'preprod', current].includes(n))
+    if (!gone.length) return void branchError('Rien à nettoyer', 'Aucune branche locale disparue de GitHub.')
+    const { response } = await dialog.showMessageBox(win, {
+      type: 'question',
+      message: `Supprimer ${gone.length} branche(s) locale(s) ?`,
+      detail: `Elles n'existent plus sur GitHub :\n\n${gone.join('\n')}`,
+      buttons: ['Annuler', 'Supprimer'],
+      defaultId: 1,
+      cancelId: 0,
+    })
+    if (response === 1) await git('branch', '-D', ...gone)
+  } catch (e) {
+    void branchError('Nettoyage impossible', e.message)
+  }
+  setupMenu()
+}
+
 async function fetchBranches() {
   try {
     await git('fetch', '--prune', 'origin')
@@ -544,6 +571,7 @@ function branchMenu() {
       })),
       { type: 'separator' },
       { label: 'Récupérer les branches de GitHub', click: () => void fetchBranches() },
+      { label: 'Nettoyer les branches fusionnées…', click: () => void cleanBranches() },
       { label: 'Journal du dev', click: () => void shell.openPath(path.join(REPO_DIR, 'CHANGELOG-dev.md')) },
     ],
   }
