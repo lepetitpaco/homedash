@@ -4,6 +4,12 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.2.2 — 2026-10-31
+Appli de bureau : 2.2.2
+
+- **Aucune nouveauté** : cette version sert à vérifier la mise à jour sous Windows corrigée en 2.2.1. Sous Windows,
+  mets à jour avec le bouton. Si l'installation échoue, homedash se rouvre et te dit quoi faire.
+
 ## 2.2.1 — 2026-10-31
 Appli de bureau : 2.2.1
 
