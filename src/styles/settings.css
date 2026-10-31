@@ -465,6 +465,13 @@
 }
 
 /* Réglages → Aide → Journal de performance. */
+.perf .set-bk-bar > .btn {
+  flex: none;
+  white-space: nowrap;
+}
+.perf .set-bk-bar:has(> .perf-days) {
+  flex-wrap: wrap;
+}
 .perf-days {
   margin: 0;
   padding: 0;

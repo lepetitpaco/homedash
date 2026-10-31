@@ -233,10 +233,10 @@ function SendReport({ i }: { i: BcIssue }) {
  * en a un ; puis 🐙, au survol, pour en créer une.
  */
 function TaskIssues({ t }: { t: BcTask }) {
-  const { byTask, posted, onNewIssue, onShowTask } = useContext(IssuesCtx)
+  const { byTask, posted } = useContext(IssuesCtx)
   const key = bcKey(t.url)
   const issues = (key ? byTask.get(key) : undefined)?.filter((i) => !doneOf(i, posted)) ?? []
-  if (!issues.length && !onNewIssue && !onShowTask) return null
+  if (!issues.length) return null
   return (
     <span className="bc-issues">
       {issues.map((i) => (
@@ -253,16 +253,6 @@ function TaskIssues({ t }: { t: BcTask }) {
           {i.report ? <SendReport i={i} /> : null}
         </span>
       ))}
-      {onShowTask ? (
-        <button className="bc-new-issue" title="Voir la tâche et ses échanges" onClick={() => onShowTask(t)}>
-          💬
-        </button>
-      ) : null}
-      {onNewIssue ? (
-        <button className="bc-new-issue" title="Créer une issue GitHub pour cette tâche" onClick={() => onNewIssue(t)}>
-          🐙＋
-        </button>
-      ) : null}
     </span>
   )
 }
@@ -410,7 +400,7 @@ function IssueList({ issues }: { issues: BcIssue[] }) {
 }
 
 function Title({ t }: { t: Prio }) {
-  const { onTaskMenu } = useContext(IssuesCtx)
+  const { onTaskMenu, onShowTask } = useContext(IssuesCtx)
   return (
     <a
       className="gh-title"
@@ -418,6 +408,17 @@ function Title({ t }: { t: Prio }) {
       target="_blank"
       rel="noreferrer"
       title={t.title}
+      // Un clic ouvre la tâche ici ; ⌘ clic, le site.
+      onClick={
+        onShowTask
+          ? (e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey) return
+              e.preventDefault()
+              e.stopPropagation()
+              onShowTask(t)
+            }
+          : undefined
+      }
       onContextMenu={onTaskMenu ? (e) => onTaskMenu(e, t) : undefined}
     >
       {t.prio ? (
@@ -489,7 +490,7 @@ export function showBcTask(url: string) {
 /** « À traiter » : en retard, ou dû dans les 7 jours. */
 const SOON_DAYS = 7
 
-type Entry = { key: string; label: string; icon: string; count: number; late: number }
+type Entry = { key: string; label: string; icon: string; count: number; late: number; kind?: string }
 
 function lateIn(tasks: BcTask[]): number {
   return tasks.filter((t) => dueOf(t.due_on)?.rank === 0).length
@@ -500,11 +501,11 @@ function entriesOf(p: Project): Entry[] {
   const todos = p.lists.flatMap((l) => l.tasks)
   return [
     ...(todos.length
-      ? [{ key: `${p.key}::todos`, label: 'To-dos', icon: '☑', count: todos.length, late: lateIn(todos) }]
+      ? [{ key: `${p.key}::todos`, label: 'To-dos', icon: '☑', kind: '', count: todos.length, late: lateIn(todos) }]
       : []),
     ...p.boards.map((b) => {
       const cards = b.columns.flatMap((c) => c.tasks)
-      return { key: `${p.key}::${b.key}`, label: b.title, icon: '▦', count: cards.length, late: lateIn(cards) }
+      return { key: `${p.key}::${b.key}`, label: b.title, icon: '▦', kind: 'Kanban', count: cards.length, late: lateIn(cards) }
     }),
   ]
 }
@@ -990,6 +991,7 @@ export default function BasecampView({
                   >
                     <span aria-hidden="true">{e.icon}</span>
                     <span className="bc-nav-label">{e.label}</span>
+                    {e.kind ? <span className="bc-nav-kind">{e.kind}</span> : null}
                     {e.late ? <span className="bc-nav-late">{e.late}</span> : null}
                     <span className="bc-nav-count">{e.count}</span>
                   </button>

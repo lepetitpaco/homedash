@@ -32,7 +32,8 @@ server/                   TypeScript « effaçable » : lancé tel quel en dev, 
 src/
   App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
-  components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…)
+  components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…) ; IssueComposer :
+                          la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
                           tabCount (pastilles de Mes sites)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
@@ -47,13 +48,15 @@ desktop/                  l'appli (Electron)
   assemble.sh             assemble desktop/app/ (coquille + server/ + public/ + CHANGELOG, GUIDE)
   electron-builder.yml    .dmg / .zip Mac (arm64, x64), setup.exe Windows, latest*.yml
   build-local.sh          l'appli construite sur ce Mac pour l'essayer (Docker + codesign ad hoc)
-.github/workflows/        release.yml : tag vX.Y.Z → appli construite et Release publiée
+.github/workflows/        release.yml : nouvelle version arrivée sur main → tag, appli construite, Release publiée
 tests-ts/                 Vitest (gitread comparé à git, verdicts Local, Basecamp lecture seule, API…)
 scripts/                  parity.mjs (compare deux serveurs), perf-report.mjs
 docker-compose.dev.yml    le dev : Vite + serveur en --watch, homedash-dev.localhost:7778
 CLAUDE.md                 règles du code et fonctionnalités principales (fait foi, pour humains et IA)
 AGENTS.md, .cursor/rules/ les mêmes règles pour Cursor et les autres IA (renvoient à CLAUDE.md)
 CHANGELOG.md              une entrée par version (un tag = une Release) ; la première = version installée
+CHANGELOG-dev.md          ce qui est fait sur les branches, pas encore publié ; non livré dans l'appli
+RELEASE.md                les étapes de livraison : flux, tests, preprod, version, prod
 GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
 docs/screenshots/         captures (instance de démo) : README, GUIDE, et servies sous /guide/
 data/                     (non versionné, dev) ; dans l'appli : <userData>/data
@@ -120,7 +123,7 @@ elle-même et envoyer du JSON.
   même origine qu'en 1.x (réglages de la page et connexions gardés, contexte sûr), mais aucun site ouvert
   dans le navigateur ne peut joindre l'API. Le port n'existe que si on l'active (« Accès depuis le
   navigateur »).
-- **Mise à jour par les Releases.** Un tag construit l'appli (Actions) ; l'appli télécharge son fichier,
+- **Mise à jour par les Releases.** Une nouvelle version sur `main` pose le tag et construit l'appli (Actions) ; l'appli télécharge son fichier,
   vérifie le sha512 publié, sauvegarde les données et se remplace. Sans signature : le compte GitHub est
   la seule protection (double authentification indispensable).
 - **Le serveur tient le journal.** Il tourne en continu, voit tout même page fermée, et c'est le seul

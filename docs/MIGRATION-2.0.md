@@ -34,7 +34,7 @@ Export complet*, et importe le fichier sur la nouvelle.
 | `backend/*.py` (Python) | `server/*.ts` (TypeScript, Node seul). Mêmes routes, mêmes fichiers dans `data/` |
 | `tests/*.py` | `tests-ts/*.test.ts` (Vitest) |
 | `docker compose up -d --build` sur :7777 | Dev : `docker compose -f docker-compose.dev.yml up -d` sur :7778 ([DEVELOPING.md](../DEVELOPING.md)) |
-| Mise à jour : `git pull` + compose | Tag `vX.Y.Z` → GitHub Actions publie la Release → les applis se mettent à jour |
+| Mise à jour : `git pull` + compose | Nouvelle version sur `main` → GitHub Actions pose le tag et publie la Release → les applis se mettent à jour |
 
 Une branche partie de la 1.x : reprends le front (`src/`) tel quel, porte le Python dans `server/` sur
 le modèle du module voisin (Trello a suivi `server/basecamp.ts`, voir la PR #65), et les tests dans

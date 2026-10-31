@@ -28,6 +28,8 @@ Uniquement vers les services que tu branches, avec tes propres accès :
 | Basecamp (`launchpad.37signals.com`, `*.basecampapi.com`) | Tes tâches, en lecture ; le rapport que tu publies, au clic |
 | Trello (`api.trello.com`), si branché | Tes tableaux, en lecture ; le rapport que tu publies, au clic |
 | Le service d'icônes (Google Favicons par défaut) | Le nom de domaine de tes liens, pour afficher leur icône. Désactivable : *Réglages → Affichage → Icônes des sites* |
+| jsDelivr (`cdn.jsdelivr.net`) | Les icônes des sites ajoutés depuis le catalogue, ou ceux auxquels tu appliques la configuration recommandée |
+| Trello (`trello-members.s3.amazonaws.com`), si branché | Les photos de profil des membres de tes tableaux |
 | Tes sites et tes liens | Comme un navigateur : quand tu les ouvres, ou pour le voyant d'un lien *surveillé* |
 
 Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en dehors de ce tableau.

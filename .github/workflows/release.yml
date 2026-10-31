@@ -1,8 +1,8 @@
-# Une Release à chaque tag vX.Y.Z : l'appli construite pour Mac (Apple Silicon et
-# Intel) et Windows, publiée avec les empreintes dont l'appli se sert pour se
-# mettre à jour (latest-mac.yml, latest.yml).
-#
-#   git tag -a v2.0.1 -m "2.0.1" && git push --follow-tags
+# Une Release à chaque nouvelle version arrivée sur main : l'appli construite pour
+# Mac (Apple Silicon et Intel) et Windows, publiée avec les empreintes dont l'appli
+# se sert pour se mettre à jour (latest-mac.yml, latest.yml). Le tag vX.Y.Z se pose
+# tout seul, d'après la tête du CHANGELOG. Du code arrivé sur main sans nouvelle
+# version fait échouer le run ; la doc seule ne publie rien.
 #
 # Lancé à la main (Actions → release → Run workflow), il construit l'appli sans
 # rien publier : les fichiers se téléchargent depuis le run (artefacts), pour
@@ -14,7 +14,7 @@ name: release
 
 on:
   push:
-    tags: ['v*.*.*']
+    branches: [main]
   workflow_dispatch:
 
 permissions:
@@ -25,7 +25,38 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  version:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.read.outputs.tag }}
+      build: ${{ steps.read.outputs.build }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+      - name: Version à publier
+        id: read
+        run: |
+          app=$(node -p "require('./desktop/package.json').version")
+          log=$(sed -n 's/^## \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' CHANGELOG.md | head -1)
+          if [ "$GITHUB_EVENT_NAME" = workflow_dispatch ]; then
+            echo "build=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          [ "$app" = "$log" ] || { echo "desktop/package.json $app, CHANGELOG $log : à aligner"; exit 1; }
+          if git rev-parse -q --verify "refs/tags/v$log" >/dev/null; then
+            changed=$(git diff --name-only "v$log" HEAD -- src server desktop public index.html package-lock.json)
+            [ -z "$changed" ] || { echo "Du code est arrivé sur main sans nouvelle version (CHANGELOG et desktop/package.json) :"; echo "$changed"; exit 1; }
+            echo "Rien à publier : v$log existe déjà."
+            exit 0
+          fi
+          echo "tag=v$log" >> "$GITHUB_OUTPUT"
+          echo "build=true" >> "$GITHUB_OUTPUT"
+
   build:
+    needs: version
+    if: needs.version.outputs.build == 'true'
     strategy:
       fail-fast: true
       matrix:
@@ -44,15 +75,6 @@ jobs:
           cache-dependency-path: |
             package-lock.json
             desktop/package-lock.json
-
-      - name: Version du tag = version de l'appli
-        if: startsWith(github.ref, 'refs/tags/')
-        shell: bash
-        run: |
-          tag="${GITHUB_REF_NAME#v}"
-          app=$(node -p "require('./desktop/package.json').version")
-          log=$(sed -n 's/^## \([0-9]*\.[0-9]*\.[0-9]*\).*/\1/p' CHANGELOG.md | head -1)
-          [ "$tag" = "$app" ] && [ "$tag" = "$log" ] || { echo "tag $tag, desktop/package.json $app, CHANGELOG $log : à aligner"; exit 1; }
 
       - name: Front et serveur
         shell: bash
@@ -87,8 +109,8 @@ jobs:
             desktop/dist.noindex/latest*.yml
 
   publish:
-    needs: build
-    if: startsWith(github.ref, 'refs/tags/')
+    needs: [version, build]
+    if: needs.version.outputs.tag != ''
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -101,8 +123,9 @@ jobs:
       - name: Release
         env:
           GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.version.outputs.tag }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="${TAG#v}"
           # Notes : l'entrée du CHANGELOG pour cette version.
           awk -v v="$version" '$0 ~ "^## "v" " {on=1; next} /^## / {on=0} on' CHANGELOG.md > notes.md
-          gh release create "$GITHUB_REF_NAME" out/* --title "homedash $version" --notes-file notes.md --verify-tag
+          gh release create "$TAG" out/* --target "$GITHUB_SHA" --title "homedash $version" --notes-file notes.md

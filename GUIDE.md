@@ -23,6 +23,7 @@ de l'onglet Local ? Décoche-les dans *Réglages → Fonctionnalités* : leur é
   masquées — afficher ») les réaffiche.
 - **Épingler un lien** : clic droit → *Épingler*. Glisse une tuile par sa poignée ⠿ pour la déplacer.
 - **Copier une info** (Wi-Fi, IP…) : un clic. Une valeur secrète se copie sans s'afficher.
+- **Replier** : la flèche d'une catégorie, de *Notes* ou d'*Infos*. homedash s'en souvient.
 
 #### Bon à savoir
 
@@ -63,6 +64,10 @@ même sans aucun site : son **＋** ajoute le premier.
   site. Il se ferme au redémarrage ou après 3 h sans y aller ; clic droit → *Garder dans Mes sites* pour
   le conserver, ou *Fermer tous les onglets temporaires*.
 - **⋯ au survol** d'un lien, d'une tuile ou d'une catégorie : le même menu que le clic droit.
+- **Catalogue** (*Réglages → Mes sites*) : un clic ajoute un site avec son icône et un réglage recommandé
+  (messageries chargées au démarrage, réseaux sociaux en veille, musique sans veille), et des raccourcis directs
+  comme Instagram Direct. Tout se change ensuite dans la fiche du site. Pour les sites déjà là : ✨ *Configuration
+  recommandée*, qui montre ce qui change avant d'appliquer.
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -114,9 +119,9 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 
 #### Bon à savoir
 
-- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés ; les autres au premier clic.
-  Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller (durée dans
-  *Réglages → Mes sites*).
+- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés, l'un après l'autre (leurs pastilles arrivent dans les premières secondes) ; les autres au premier clic.
+  *Réglages → Mes sites* affiche ce que consomme chaque site : 💤 *Libérer* le décharge tout de suite, jusqu'au
+  prochain clic. Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller.
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.
@@ -189,14 +194,16 @@ les rapports que tu publies.
 
 - **🔥 À traiter** : ce qui est en retard ou dû dans les 7 jours. À gauche, un projet : ses tableaux et to-dos.
 - **Se connecter** (une fois, pas besoin d'être admin) : pas-à-pas dans *Réglages → Basecamp*.
-- **Lire une tâche** : 💬 au survol (ou clic droit → *Voir la tâche et ses échanges*) : description,
-  étapes, issues liées, échanges avec leurs captures.
+- **Lire une tâche** : un clic sur son titre (⌘ clic : Basecamp) : description, étapes, issues liées, échanges
+  avec leurs captures.
 
 #### D'une tâche à une issue GitHub, et retour
 
-1. **Créer l'issue** : 🐙＋ au survol d'une tâche (ou clic droit, ou *🐙 issue sur cet échange* dans sa
-   fiche). Choisis le repo (retenu pour ce projet), complète le *Besoin*, coche les échanges à inclure,
-   puis **Créer sur GitHub** (⌘ Entrée). *Ouvrir le formulaire* passe plutôt par github.com.
+1. **Créer l'issue** : *🐙 Créer une issue* dans la tâche (ou clic droit), ou *🐙 issue* au survol d'un message
+   pour partir de lui seul. Le formulaire s'ouvre à côté : coche ce qui part dans l'issue (description, messages ;
+   *Tout inclure*, *Rien inclure* ; tout est coché au départ), ajoute tes précisions, relis l'*Aperçu*, puis
+   **Créer sur GitHub** (⌘ Entrée).
+   *Ouvrir le formulaire* passe plutôt par github.com.
 2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
    colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
    (`<!-- homedash:bc-report -->`), fermer l'issue.
@@ -229,16 +236,18 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
   dépassée ou dans les 7 jours), **🐙 Issues GitHub**, puis un tableau par tableau. Un tableau montre
   toutes ses cartes visibles, pas seulement les tiennes. Un tableau se masque ; un nouveau tableau
   est montré.
-- **💬** ouvre la carte (description, cases, échanges). **🐙＋** crée une issue GitHub liée à la carte,
-  comme pour Basecamp, dans un des repos choisis pour Trello (*Réglages → Trello*, *Repos où créer les
-  issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
+- **Un clic sur une carte** l'ouvre (description, cases, échanges) ; ⌘ clic sur son titre : Trello. **🐙 Créer une
+  issue** ouvre le formulaire à côté, comme pour Basecamp, dans un des repos choisis pour Trello (*Réglages → Trello*,
+  *Repos où créer les issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
+- Le tableau suit le thème clair ou sombre, avec étiquettes, échéances en couleur et photos de profil.
   ✕ écarte une issue sans rien envoyer.
 - La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
   de Mes sites : le site refuse ce cadre.
 
 ## 🔎 Recherche
 
-`/` ou `⌘K` : tout retrouver, et ouvrir une adresse.
+`/` ou `⌘K` : tout retrouver, ouvrir une adresse, et agir sur un site sans passer par le clic droit : tape
+« libérer discord », « recharger gmail », « couper le son de youtube »… Dans « Partout » seulement.
 
 - **Un mot** : liens, onglets, repos, PRs, branches, infos, notes, pages déjà vues.
 - **Chercher à un seul endroit** : clic sur la loupe, à gauche de la barre → *Raccourcis*, *Mes sites*,
@@ -247,7 +256,7 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
 - **Basecamp** (s'il est connecté) : tes tâches tout de suite, puis, un instant après ta frappe, tout
   Basecamp : to-dos, cartes, messages, commentaires, documents (sans les archivés). La carte à droite
   montre un extrait, l'échéance, l'auteur ; Entrée ouvre l'élément dans Basecamp. Pour une tâche ou
-  un de ses commentaires : **💬 Voir la tâche** (sa fiche, ouverte sur l'échange trouvé), **🐙 Créer une
+  un de ses commentaires : **💬 Voir la tâche** (ouverte sur l'échange trouvé), **🐙 Créer une
   issue** (ou *Issue sur cet échange*), et **Voir dans le dash** si elle t'est assignée (son tableau
   dans l'onglet Basecamp, la tâche mise en évidence).
 - **Trello** (s'il est connecté) : tes cartes tout de suite, puis, un instant après ta frappe, cartes,

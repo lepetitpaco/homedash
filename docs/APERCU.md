@@ -14,7 +14,7 @@ l'ouvrir dans le navigateur, partager pour copier son lien, ⚙ pour le modifier
 
 ![Clic droit sur un lien dans un site](screenshots/clic-droit-sur-un-lien.jpg)
 
-Sur un lien, dans un site : l'ouvrir dans l'onglet de ce site, dans un **onglet éphémère** avec le compte
+Sur un lien, dans un site : l'ouvrir dans l'onglet de ce site, dans un **onglet temporaire** avec le compte
 de son choix, dans le navigateur, ou le copier. Sur du texte : copier, rechercher.
 
 | Sur une icône de la barre | Sur la barre elle-même |
@@ -22,11 +22,11 @@ de son choix, dans le navigateur, ou le copier. Sur du texte : copier, recherche
 | ![](screenshots/menu-d-un-onglet.jpg) | ![](screenshots/barre-clic-droit.jpg) |
 
 Sur une icône : copier le lien, dossier, compte, notifications, son, mise en veille, modifier, supprimer.
-Sur la barre : ajouter un site, un éphémère, la largeur, la cacher.
+Sur la barre : ajouter un site, un onglet temporaire, la largeur, la cacher.
 
-## Onglet éphémère
+## Onglet temporaire
 
-![Onglet éphémère avec sa barre d'adresse](screenshots/onglet-ephemere.jpg)
+![Onglet temporaire avec sa barre d'adresse](screenshots/onglet-ephemere.jpg)
 
 Un site le temps d'une recherche, en bas de la barre (contour pointillé), avec une barre d'adresse.
 Clic droit dessus : le garder, copier son lien, ou l'ajouter à *Mes sites*.
@@ -68,7 +68,7 @@ modifié : les commandes sont à copier.
 
 ![L'onglet Basecamp](screenshots/basecamp.jpg)
 
-Tes tâches en retard ou à venir ; une tâche devient une issue GitHub, et son rapport revient en commentaire.
+Tes tâches en retard ou à venir. Un clic ouvre la tâche et sa conversation ; coche ce qui part dans une issue GitHub, et son rapport revient en commentaire.
 
 ## Trello
 
@@ -89,22 +89,11 @@ issue GitHub.
 
 CI cassée ou réparée, PR mergée, Renovate, branche locale à nettoyer, nouvelle version de homedash.
 
-## GitHub et Basecamp
-
-![L'onglet GitHub](screenshots/12-github.jpg)
-
-Tes branches actives avec leur PR et leur CI, les PRs ouvertes, les mergées.
-
-![L'onglet Basecamp](screenshots/13-basecamp.jpg)
-
-Tes tâches en retard ou à venir, projet par projet, en lecture seule.
-
 ## Réglages
 
 ![Réglages → Mes sites](screenshots/reglages-onglets.jpg)
 
-Un site par ligne, ses réglages en pastilles ; un clic l'ouvre. Où s'ouvrent les liens et la mise en
-veille sont à part, dans *Liens & onglets*.
+Un site par ligne, avec sa mémoire ; un clic l'ouvre. Le catalogue ajoute un site déjà réglé.
 
 ![Réglages → Sauvegardes](screenshots/sauvegardes.jpg)
 

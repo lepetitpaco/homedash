@@ -242,7 +242,40 @@
   flex: 1 1 0;
   min-width: 0;
 }
-.xs-item > .xs-editor {
+.xs-item > .xs-mem {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-dim, #9ca3af);
+  white-space: nowrap;
+}
+.xs-mem.is-heavy {
+  color: var(--sig-warn, #f59e0b);
+  font-weight: 600;
+}
+.xs-mem.is-off {
+  opacity: 0.6;
+}
+.xs-mem-total strong {
+  color: var(--text);
+}
+.xs-more {
+  grid-column: 1 / -1;
+}
+.xs-more > summary {
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0;
+}
+.xs-more > summary em {
+  font-style: normal;
+  font-weight: 400;
+  opacity: 0.75;
+}
+.xs-more > .xs-field {
+  margin-top: 0.75rem;
+}
+.xs-editor {
   flex: 1 0 100%;
 }
 .xs-chevron {

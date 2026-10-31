@@ -284,7 +284,7 @@ export function useSearch({
         [c.keywords, 0.6],
       ],
       q,
-      5,
+      8,
     ).map((cmd) => ({ kind: 'cmd', key: `cmd:${cmd.id}`, cmd }))
 
     // Historique : les pages déjà vues dans les onglets (titre, adresse).
