@@ -145,7 +145,6 @@ export default function TrelloView({
   focus,
   onHidden,
   onRefresh,
-  onNewIssue,
   onShowCard,
   onTaskMenu,
   cloneOf,
@@ -157,7 +156,6 @@ export default function TrelloView({
   focus?: string | null
   onHidden: (hidden: string[]) => void
   onRefresh: () => void
-  onNewIssue?: (c: TrCard, comment?: string) => void
   onShowCard?: (c: TrCard) => void
   onTaskMenu?: (e: React.MouseEvent, c: TrCard) => void
   cloneOf?: (repo: string) => string | null
@@ -307,8 +305,7 @@ export default function TrelloView({
           urgent.length ? (
             <div className="tr-pile">
               {urgent.map((c) => (
-                <Card key={c.id} c={c} known={known} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}
-                  onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
+                <Card key={c.id} c={c} known={known} flash={flash} issues={byCard.get(c.short_link) ?? []} posted={posted}  onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
               ))}
             </div>
           ) : <GhEmpty>Rien en retard ni d'échéance dans les {SOON} jours.</GhEmpty>
@@ -326,8 +323,7 @@ export default function TrelloView({
                 </h3>
                 <div className="tr-list-cards">
                   {l.cards.map((c) => (
-                    <Card key={c.id} c={c} known={known} flash={flash} showMine issues={byCard.get(c.short_link) ?? []} posted={posted}
-                      onNewIssue={onNewIssue} onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
+                    <Card key={c.id} c={c} known={known} flash={flash} showMine issues={byCard.get(c.short_link) ?? []} posted={posted}  onShowCard={onShowCard} onTaskMenu={onTaskMenu} onSend={send} busy={busy} />
                   ))}
                 </div>
               </section>
@@ -368,7 +364,7 @@ function doneOf(i: TrIssue, posted: Record<string, TrPosted>): 'posted' | 'dismi
 }
 
 function Card({
-  c, known, flash, showMine, issues, posted, onNewIssue, onShowCard, onTaskMenu, onSend, busy,
+  c, known, flash, showMine, issues, posted, onShowCard, onTaskMenu, onSend, busy,
 }: {
   c: TrCard
   flash: string | null
@@ -376,7 +372,6 @@ function Card({
   known: Map<string, TrMember>
   issues: TrIssue[]
   posted: Record<string, TrPosted>
-  onNewIssue?: (c: TrCard) => void
   onShowCard?: (c: TrCard) => void
   onTaskMenu?: (e: React.MouseEvent, c: TrCard) => void
   onSend: (i: TrIssue) => void
@@ -388,6 +383,7 @@ function Card({
     <article
       className={`tr-card${(dayDiff(c) ?? 1) < 0 ? ' is-late' : ''}${flash === c.short_link ? ' is-focus' : ''}`}
       onContextMenu={(e) => onTaskMenu?.(e, c)}
+      onClick={onShowCard ? (e) => !(e.target as HTMLElement).closest('button') && !e.defaultPrevented && onShowCard(c) : undefined}
     >
       {c.cover ? <span className={`tr-cover tr-color-${c.cover.split('_')[0]}`} /> : null}
       {c.labels?.length ? (
@@ -397,14 +393,22 @@ function Card({
           ))}
         </span>
       ) : null}
-      <a className={`tr-card-title${c.due_complete ? ' is-done' : ''}`} href={c.url} target="_blank" rel="noreferrer">
+      <a
+        className={`tr-card-title${c.due_complete ? ' is-done' : ''}`}
+        href={c.url}
+        target="_blank"
+        rel="noreferrer"
+        // Un clic ouvre la carte ici ; ⌘ clic, le site.
+        onClick={(e) => {
+          e.stopPropagation()
+          if (!onShowCard || e.metaKey || e.ctrlKey || e.shiftKey) return
+          e.preventDefault()
+          onShowCard(c)
+        }}
+      >
         {c.due_complete ? <Icon d="done" /> : null}
         {c.title}
       </a>
-      <span className="tr-card-actions">
-        {onShowCard ? <button title="Voir la carte et ses échanges" onClick={() => onShowCard(c)}>💬</button> : null}
-        {onNewIssue ? <button title="Créer une issue GitHub" onClick={() => onNewIssue(c)}>🐙 +</button> : null}
-      </span>
       {showMine && c.mine || c.checks || c.comments || c.due || c.has_desc || c.member_ids?.length ? (
         <div className="tr-card-foot">
           <Due c={c} />

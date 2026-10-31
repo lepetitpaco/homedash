@@ -14,7 +14,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Branches : nommées `<qui>/<type>/<nom>`, au lieu de `vague/<sujet>`.
 - Échanges (Basecamp et Trello) : lecture façon messagerie, du plus ancien au plus récent, regroupés par jour et par personne.
 - Basecamp : pastille « Kanban » dans le menu de gauche.
-- Nouvelle issue (Basecamp et Trello) : une seule fenêtre, la conversation à gauche, l'issue à droite, avec un aperçu.
+- Tâches et cartes (Basecamp et Trello) : une seule fenêtre. Un clic les ouvre ; « Créer une issue » ouvre le formulaire à côté, on coche ce qui part (description, messages, tout, rien), avec un aperçu.
 - Trello : cartes comme sur Trello (étiquettes, couvertures de couleur, échéances colorées, checklist finie, photos de profil, icônes) ; le tableau suit le thème clair ou sombre.
 - Trello : fenêtres de carte et d'issue réparées (boutons invisibles, fenêtre décalée sous la barre, Échap), en-tête lisible, liens Trello bien affichés.
 - Accueil : Notes et Infos se replient, et restent repliés.

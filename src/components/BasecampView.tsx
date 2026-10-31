@@ -233,10 +233,10 @@ function SendReport({ i }: { i: BcIssue }) {
  * en a un ; puis 🐙, au survol, pour en créer une.
  */
 function TaskIssues({ t }: { t: BcTask }) {
-  const { byTask, posted, onNewIssue, onShowTask } = useContext(IssuesCtx)
+  const { byTask, posted } = useContext(IssuesCtx)
   const key = bcKey(t.url)
   const issues = (key ? byTask.get(key) : undefined)?.filter((i) => !doneOf(i, posted)) ?? []
-  if (!issues.length && !onNewIssue && !onShowTask) return null
+  if (!issues.length) return null
   return (
     <span className="bc-issues">
       {issues.map((i) => (
@@ -253,16 +253,6 @@ function TaskIssues({ t }: { t: BcTask }) {
           {i.report ? <SendReport i={i} /> : null}
         </span>
       ))}
-      {onShowTask ? (
-        <button className="bc-new-issue" title="Voir la tâche et ses échanges" onClick={() => onShowTask(t)}>
-          💬
-        </button>
-      ) : null}
-      {onNewIssue ? (
-        <button className="bc-new-issue" title="Créer une issue GitHub pour cette tâche" onClick={() => onNewIssue(t)}>
-          🐙＋
-        </button>
-      ) : null}
     </span>
   )
 }
@@ -410,7 +400,7 @@ function IssueList({ issues }: { issues: BcIssue[] }) {
 }
 
 function Title({ t }: { t: Prio }) {
-  const { onTaskMenu } = useContext(IssuesCtx)
+  const { onTaskMenu, onShowTask } = useContext(IssuesCtx)
   return (
     <a
       className="gh-title"
@@ -418,6 +408,17 @@ function Title({ t }: { t: Prio }) {
       target="_blank"
       rel="noreferrer"
       title={t.title}
+      // Un clic ouvre la tâche ici ; ⌘ clic, le site.
+      onClick={
+        onShowTask
+          ? (e) => {
+              if (e.metaKey || e.ctrlKey || e.shiftKey) return
+              e.preventDefault()
+              e.stopPropagation()
+              onShowTask(t)
+            }
+          : undefined
+      }
       onContextMenu={onTaskMenu ? (e) => onTaskMenu(e, t) : undefined}
     >
       {t.prio ? (

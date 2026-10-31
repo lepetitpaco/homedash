@@ -166,6 +166,7 @@
 }
 .tr-card {
   position: relative;
+  cursor: pointer;
   background: var(--tr-card);
   color: var(--tr-text);
   border: 0;
@@ -293,37 +294,6 @@
 }
 .tr-card-foot:empty {
   display: none;
-}
-.tr-card-actions {
-  position: absolute;
-  top: 4px;
-  right: 4px;
-  display: flex;
-  gap: 4px;
-  padding-left: 6px;
-  background: var(--tr-card); /* le titre passe dessous sans se mélanger aux boutons */
-  visibility: hidden;
-}
-.tr-card:hover .tr-card-actions,
-.tr-card:focus-within .tr-card-actions {
-  visibility: visible;
-}
-.tr-card-actions button {
-  flex: 0 0 auto;
-  min-width: 26px;
-  padding: 3px 6px;
-  font-size: 0.75rem;
-  line-height: 1.2;
-  white-space: nowrap;
-  background: var(--tr-action);
-  color: var(--tr-text);
-  border: 0;
-  border-radius: 4px;
-  cursor: pointer;
-}
-.tr-card-actions button:hover {
-  background: var(--tr-action-hover);
-  color: var(--tr-strong);
 }
 .tr-mine {
   margin-left: auto;

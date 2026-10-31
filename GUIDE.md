@@ -193,14 +193,15 @@ les rapports que tu publies.
 
 - **🔥 À traiter** : ce qui est en retard ou dû dans les 7 jours. À gauche, un projet : ses tableaux et to-dos.
 - **Se connecter** (une fois, pas besoin d'être admin) : pas-à-pas dans *Réglages → Basecamp*.
-- **Lire une tâche** : 💬 au survol (ou clic droit → *Voir la tâche et ses échanges*) : description,
-  étapes, issues liées, échanges avec leurs captures.
+- **Lire une tâche** : un clic sur son titre (⌘ clic : Basecamp) : description, étapes, issues liées, échanges
+  avec leurs captures. Sur Trello, un clic sur la carte fait pareil.
 
 #### D'une tâche à une issue GitHub, et retour
 
-1. **Créer l'issue** : 🐙＋ au survol d'une tâche (ou clic droit, ou *🐙 issue sur cet échange* dans sa
-   fiche). Choisis le repo (retenu pour ce projet), complète le *Besoin*, coche les échanges à inclure,
-   puis **Créer sur GitHub** (⌘ Entrée). *Ouvrir le formulaire* passe plutôt par github.com.
+1. **Créer l'issue** : *🐙 Créer une issue* dans la tâche (ou clic droit), ou *🐙 issue* au survol d'un message
+   pour partir de lui seul. Le formulaire s'ouvre à côté : coche ce qui part dans l'issue (description, messages ;
+   *Tout inclure*, *Rien inclure*), ajoute tes précisions, relis l'*Aperçu*, puis **Créer sur GitHub** (⌘ Entrée).
+   *Ouvrir le formulaire* passe plutôt par github.com.
 2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
    colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
    (`<!-- homedash:bc-report -->`), fermer l'issue.

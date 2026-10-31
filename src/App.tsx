@@ -4,7 +4,6 @@ import ContextMenu, { type MenuItem } from './components/ContextMenu'
 import EditDialog from './components/EditDialog'
 import BasecampView, { showBcIssues, showBcTask } from './components/BasecampView'
 import TrelloView, { showTrIssues, showTrTask } from './components/TrelloView'
-import TrCardHost, { showTrCard } from './components/TrCardHost'
 import TrIssueHost, { askTrIssue } from './components/TrIssueHost'
 import CustomTabView from './components/CustomTabView'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
@@ -40,7 +39,6 @@ import { bcKey, issuesByTask, whereOf, type IssueTask } from './lib/bcIssues'
 import { lateCount as trLateCount, useTrello, type TrCard } from './lib/trello'
 import { issuesByCard, trKey, whereOf as trWhere, type IssueCard } from './lib/trIssues'
 import IssueHost, { askIssue } from './components/IssueHost'
-import TaskHost, { showTask } from './components/TaskHost'
 import {
   capturesLink,
   folderOf,
@@ -1485,13 +1483,13 @@ export default function App() {
     const r = local.data?.repos?.find((x) => x.org?.toLowerCase() === own && x.repo?.toLowerCase() === name)
     return r?.display ?? null
   }
-  const newIssue = (task: IssueTask, comment?: number): boolean => {
-    const repos = bc.data?.github?.repos ?? []
-    if (!repos.length) return false
+  const openTask = (task: IssueTask, start: 'read' | 'issue', comment?: number) => {
     const key = bcKey(task.url)
     askIssue({
-      repos,
+      repos: bc.data?.github?.repos ?? [],
       task,
+      start,
+      onOpenSource: () => openLink(task.url),
       comment,
       existing: (key && issuesByTask(bc.data?.github?.issues ?? []).get(key)) || [],
       cloneOf,
@@ -1499,15 +1497,19 @@ export default function App() {
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: bc.reload,
     })
+  }
+  const newIssue = (task: IssueTask, comment?: number): boolean => {
+    if (!bc.data?.github?.repos?.length) return false
+    openTask(task, 'issue', comment)
     return true
   }
-  const newTrIssue = (card: IssueCard, comment?: string): boolean => {
-    const repos = tr.data?.github?.repos ?? []
-    if (!repos.length) return false
+  const openCard = (card: IssueCard, start: 'read' | 'issue', comment?: string) => {
     const key = trKey(card.url)
     askTrIssue({
-      repos,
+      repos: tr.data?.github?.repos ?? [],
       card,
+      start,
+      onOpenSource: () => openLink(card.url),
       comment,
       existing: (key && issuesByCard(tr.data?.github?.issues ?? []).get(key)) || [],
       cloneOf,
@@ -1515,33 +1517,17 @@ export default function App() {
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: tr.reload,
     })
+  }
+  const newTrIssue = (card: IssueCard, comment?: string): boolean => {
+    if (!tr.data?.github?.repos?.length) return false
+    openCard(card, 'issue', comment)
     return true
   }
   const trCardOf = (c: TrCard): IssueCard => ({ url: c.url, title: c.title, where: trWhere(c), board: c.board_id })
-  const viewTrCard = (card: IssueCard, comment?: string) => {
-    const key = trKey(card.url)
-    showTrCard({
-      url: card.url,
-      title: card.title,
-      where: card.where,
-      comment,
-      issues: (key && issuesByCard(tr.data?.github?.issues ?? []).get(key)) || [],
-      onOpen: openLink,
-      onIssue: tr.data?.github?.repos?.length ? (c) => void newTrIssue(card, c) : undefined,
-    })
-  }
+  const viewTrCard = (card: IssueCard, comment?: string) => openCard(card, 'read', comment)
   const bcTaskOf = (t: BcTask): IssueTask => ({ url: t.url, title: t.title, where: whereOf(t), project: t.project })
   /** Fiche d'une tâche (description, échanges), ouverte sur un échange s'il est donné. */
-  const viewTask = (task: IssueTask, comment?: number) => {
-    const key = bcKey(task.url)
-    showTask({
-      task,
-      comment,
-      issues: (key && issuesByTask(bc.data?.github?.issues ?? []).get(key)) || [],
-      onOpen: openLink,
-      onIssue: bc.data?.github?.repos?.length ? (c) => void newIssue(task, c) : undefined,
-    })
-  }
+  const viewTask = (task: IssueTask, comment?: number) => openTask(task, 'read', comment)
   /** Résultat de recherche Basecamp → sa tâche (un commentaire mène à la sienne) et l'échange visé. */
   const foundTask = (item: BcFound): [IssueTask, number | undefined] => {
     const comment = /#__recording_(\d+)/.exec(item.url)
@@ -2139,7 +2125,6 @@ export default function App() {
             }
             menus.openMenu({ x: e.clientX, y: e.clientY, title: c.title, items })
           }}
-          onNewIssue={tr.data?.github?.repos?.length ? (c) => void newTrIssue(trCardOf(c)) : undefined}
           onShowCard={(c) => viewTrCard(trCardOf(c))}
           cloneOf={cloneOf}
           onSettings={() => {
@@ -2266,9 +2251,7 @@ export default function App() {
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
       <ConfirmHost />
       <NameColorHost />
-      <TaskHost />
       <IssueHost />
-      <TrCardHost />
       <TrIssueHost />
       {adding ? (
         <AddTabDialog
