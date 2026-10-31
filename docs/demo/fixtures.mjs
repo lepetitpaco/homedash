@@ -150,6 +150,7 @@ const tc = (n, title, list, o = {}) => ({
   board_url: 'https://trello.com/b/demo/site-perso', list_id: list, list: { l1: 'Idées', l2: 'À faire', l3: 'En cours', l4: 'Fait' }[list],
   list_pos: { l1: 1, l2: 2, l3: 3, l4: 4 }[list], pos: n, due: o.due ?? null, due_complete: false, comments: o.comments ?? 0,
   checks: o.checks ?? 0, checks_done: o.done ?? 0, mine: o.mine ?? true,
+  labels: [[{ name: 'Site', color: 'green' }], [{ name: 'Urgent', color: 'red' }, { name: 'Design', color: 'blue' }], []][n % 3],
 })
 export const trello = {
   configured: true, enabled: true, account: 'Ada', username: 'ada', updated_at: now / 1000 - 20, building: false, error: null,

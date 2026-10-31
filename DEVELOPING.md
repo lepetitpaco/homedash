@@ -9,6 +9,7 @@ homedash sert à toute une équipe : ce qui arrive sur `main` et part en version
 | [CLAUDE.md](CLAUDE.md) | Règles du code, **fonctionnalités principales** à ne pas changer sans prévenir, livraison. Fait foi. |
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Fichiers, routes de l'API, choix techniques |
 | [AGENTS.md](AGENTS.md), `.cursor/rules/` | La même chose pour Cursor, Codex… (Claude Code lit `CLAUDE.md`) |
+| [RELEASE.md](RELEASE.md) | Le flux de livraison, étape par étape |
 | [docs/MIGRATION-2.0.md](docs/MIGRATION-2.0.md) | Ce qui a changé avec la 2.0 (Python → TypeScript, Docker → appli) |
 
 ## En deux mots
@@ -84,4 +85,4 @@ Doc seule : pas de version. Du code sur `main` sans nouvelle version fait échou
 
 `sh docs/demo/capture.sh` reprend les captures de `docs/screenshots/` : la vraie page, sur une instance
 de démo aux données fictives (`docs/demo/`), dans Docker. Celles des sites ouverts dans l'appli
-(`site-dans-un-onglet`, clics droits, éphémère, barre) se prennent à la main dans l'appli.
+(`site-dans-un-onglet`, clics droits, onglet temporaire, barre) se prennent à la main dans l'appli.

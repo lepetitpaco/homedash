@@ -4,6 +4,31 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.2.0 — 2026-10-31
+Appli de bureau : 2.2.0
+
+- **Lire une tâche ou une carte, et en faire une issue, dans une seule fenêtre** (Basecamp et Trello) : un clic
+  l'ouvre, comme sur le site. *Créer une issue* ouvre le formulaire à côté : coche ce qui part dans l'issue, la
+  description, chaque message, tout ou rien, ajoute tes précisions, et relis l'aperçu. ⌘ clic sur le titre ouvre
+  toujours le site. Les boutons 💬 et 🐙＋ au survol disparaissent.
+- **Les échanges se lisent comme une messagerie** : du plus ancien au plus récent, regroupés par jour et par personne.
+- **Le tableau Trello ressemble à Trello** : étiquettes, échéances en couleur, checklist finie en vert, photos de
+  profil, couvertures de couleur. Il suit le thème clair ou sombre.
+- **Mémoire visible** : *Réglages → Mes sites* montre ce que consomme chaque site, et 💤 *Libérer* le décharge
+  jusqu'au prochain clic.
+- **Démarrage plus fluide** : les sites à non-lus se chargent un par un, avec un anneau sur l'icône. Leurs pastilles
+  peuvent arriver quelques secondes plus tard.
+- **Catalogue de sites enrichi** : plus de sites, une icône et un réglage recommandé pour chacun, et des raccourcis
+  directs comme Instagram Direct. ✨ *Configuration recommandée* l'applique aussi à tes sites déjà là, après t'avoir
+  montré ce qui change. Fiche d'un site allégée : les réglages rares sont sous *Plus d'options*.
+- **`⌘K` agit sur tes sites** : « libérer discord », « recharger gmail », « couper le son de youtube »…
+- **Notes et Infos se replient**, et homedash s'en souvient. Pastille *Kanban* dans le menu de Basecamp.
+- **Corrigé** : sur Trello, les boutons invisibles dans les fenêtres, la fenêtre d'issue décalée sous la barre, et les
+  lignes de la liste Issues ; les liens Trello affichés en texte brut ; dans Local, le nom de branche masqué quand la
+  place manque ; « 1 lien » en bas de page.
+- **Vie privée** : les icônes du catalogue viennent de jsDelivr, et les photos de profil de Trello. Détail dans
+  la page *Confidentialité*.
+
 ## 2.1.0 — 2026-10-30
 Appli de bureau : 2.1.0
 

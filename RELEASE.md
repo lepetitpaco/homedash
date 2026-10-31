@@ -4,7 +4,7 @@ Recette suivie par `/test-app`, `/preprod`, `/version` et `/prod`. Le détail de
 
 ## Flux
 
-`/forge` → `/test-app` → commit → `/preprod` → `/test-app full` → `/version` → `/prod` → **toi : approuver et fusionner**
+`/forge` → `/test-app` → commit → `/preprod` → `/test-app full` → `/version` → `/prod` → **toi : fusionner**
 
 Branches : `<qui>/<type>/<nom>`. Le tag et la Release partent seuls à la fusion dans `main`.
 
@@ -36,5 +36,5 @@ Branches : `<qui>/<type>/<nom>`. Le tag et la Release partent seuls à la fusion
 
 1. `git fetch --tags --prune origin`. Arrêt si la tête de `CHANGELOG.md` sur `origin/preprod` n'est pas une nouvelle version, si `desktop/package.json` diffère, ou si `CHANGELOG-dev.md` a encore des lignes.
 2. PR de `preprod` vers `main` : titre `X.Y.Z`, corps = l'entrée du changelog.
-3. **S'arrêter. Réservé à la personne : approuver (compte `davidgennaoui`) et fusionner par commit de fusion.**
+3. **S'arrêter. Réservé à la personne : fusionner par commit de fusion, avec `lepetitpaco` (admin, passe outre l'approbation requise). Une PR ouverte par un autre compte s'approuve normalement.**
 4. Après sa fusion : vérifier que la Release existe et que `preprod` est toujours là.

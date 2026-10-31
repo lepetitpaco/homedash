@@ -23,6 +23,7 @@ de l'onglet Local ? Décoche-les dans *Réglages → Fonctionnalités* : leur é
   masquées — afficher ») les réaffiche.
 - **Épingler un lien** : clic droit → *Épingler*. Glisse une tuile par sa poignée ⠿ pour la déplacer.
 - **Copier une info** (Wi-Fi, IP…) : un clic. Une valeur secrète se copie sans s'afficher.
+- **Replier** : la flèche d'une catégorie, de *Notes* ou d'*Infos*. homedash s'en souvient.
 
 #### Bon à savoir
 
@@ -194,13 +195,14 @@ les rapports que tu publies.
 - **🔥 À traiter** : ce qui est en retard ou dû dans les 7 jours. À gauche, un projet : ses tableaux et to-dos.
 - **Se connecter** (une fois, pas besoin d'être admin) : pas-à-pas dans *Réglages → Basecamp*.
 - **Lire une tâche** : un clic sur son titre (⌘ clic : Basecamp) : description, étapes, issues liées, échanges
-  avec leurs captures. Sur Trello, un clic sur la carte fait pareil.
+  avec leurs captures.
 
 #### D'une tâche à une issue GitHub, et retour
 
 1. **Créer l'issue** : *🐙 Créer une issue* dans la tâche (ou clic droit), ou *🐙 issue* au survol d'un message
    pour partir de lui seul. Le formulaire s'ouvre à côté : coche ce qui part dans l'issue (description, messages ;
-   *Tout inclure*, *Rien inclure*), ajoute tes précisions, relis l'*Aperçu*, puis **Créer sur GitHub** (⌘ Entrée).
+   *Tout inclure*, *Rien inclure* ; tout est coché au départ), ajoute tes précisions, relis l'*Aperçu*, puis
+   **Créer sur GitHub** (⌘ Entrée).
    *Ouvrir le formulaire* passe plutôt par github.com.
 2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
    colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
@@ -234,9 +236,10 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
   dépassée ou dans les 7 jours), **🐙 Issues GitHub**, puis un tableau par tableau. Un tableau montre
   toutes ses cartes visibles, pas seulement les tiennes. Un tableau se masque ; un nouveau tableau
   est montré.
-- **💬** ouvre la carte (description, cases, échanges). **🐙＋** crée une issue GitHub liée à la carte,
-  comme pour Basecamp, dans un des repos choisis pour Trello (*Réglages → Trello*, *Repos où créer les
-  issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
+- **Un clic sur une carte** l'ouvre (description, cases, échanges) ; ⌘ clic sur son titre : Trello. **🐙 Créer une
+  issue** ouvre le formulaire à côté, comme pour Basecamp, dans un des repos choisis pour Trello (*Réglages → Trello*,
+  *Repos où créer les issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
+- Le tableau suit le thème clair ou sombre, avec étiquettes, échéances en couleur et photos de profil.
   ✕ écarte une issue sans rien envoyer.
 - La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
   de Mes sites : le site refuse ce cadre.
@@ -253,7 +256,7 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
 - **Basecamp** (s'il est connecté) : tes tâches tout de suite, puis, un instant après ta frappe, tout
   Basecamp : to-dos, cartes, messages, commentaires, documents (sans les archivés). La carte à droite
   montre un extrait, l'échéance, l'auteur ; Entrée ouvre l'élément dans Basecamp. Pour une tâche ou
-  un de ses commentaires : **💬 Voir la tâche** (sa fiche, ouverte sur l'échange trouvé), **🐙 Créer une
+  un de ses commentaires : **💬 Voir la tâche** (ouverte sur l'échange trouvé), **🐙 Créer une
   issue** (ou *Issue sur cet échange*), et **Voir dans le dash** si elle t'est assignée (son tableau
   dans l'onglet Basecamp, la tâche mise en évidence).
 - **Trello** (s'il est connecté) : tes cartes tout de suite, puis, un instant après ta frappe, cartes,
