@@ -36,15 +36,29 @@ Même chose si la demande contredit une règle absolue : la signaler, proposer u
 Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
 devient un réglage.
 
-**Une vague = une branche ; `preprod` les réunit ; `main` = une version.** On travaille sur `vague/<sujet>`, sans
-toucher au `CHANGELOG.md` ni aux versions. Une fois la vague testée : pull request vers `preprod`, sans approbation
+**Une branche par sujet ; `preprod` les réunit ; `main` = une version.** Branches : `<qui>/<type>/<nom>` (ci-dessous),
+sans toucher au `CHANGELOG.md` ni aux versions. Une fois la branche testée : pull request vers `preprod`, sans approbation
 (chaque collaborateur fusionne), et la branche est supprimée toute seule. On teste l'ensemble sur `preprod`. Quand
 tout est validé : sur `preprod`, **une** entrée de CHANGELOG et la version de `desktop/package.json`, puis pull
 request vers `main`, **commit de fusion obligatoire** (jamais de squash), approuvée par le propriétaire
 (CODEOWNERS). À la fusion, GitHub Actions pose le tag et publie la Release : aucun tag à la main. Du code sur `main`
 sans nouvelle version fait échouer le run ; la doc seule ne publie rien. `main` et `preprod` ne sont jamais
-supprimées. Vague refusée en preprod : `git revert` de sa fusion. Correctif urgent : branche depuis `main`, puis
+supprimées. Branche refusée en preprod : `git revert` de sa fusion. Correctif urgent : branche depuis `main`, puis
 `main` refusionnée dans `preprod`.
+
+**Nom d'une branche : `<qui>/<type>/<nom>`**, par exemple `paco/feature/catalogue-sites` ou `paul/fix/pastille-trello`.
+`<qui>` : ton prénom, en minuscules. `<nom>` : le sujet en quelques mots, minuscules et tirets. `<type>`, un seul :
+
+| Type | Pour |
+| --- | --- |
+| `feature` | Une nouvelle possibilité |
+| `fix` | Une correction de bug |
+| `refactor` | Le code change, pas ce qu'on voit (performance comprise si rien d'autre ne bouge) |
+| `docs` | La documentation seule |
+| `chore` | L'outillage : CI, dépendances, scripts |
+
+**Pour une IA** : crée toujours la branche sous ce format, avec le prénom de la personne qui te le demande (demande-le
+s'il n'est pas connu), et jamais directement sur `main` ou `preprod`.
 
 **Avant la pull request** (on ne pousse directement ni sur `main` ni sur `preprod`) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
@@ -52,7 +66,7 @@ supprimées. Vague refusée en preprod : `git revert` de sa fusion. Correctif ur
 - Typecheck et tests au vert (commandes ci-dessous) ; page testée à la main si l'écran change.
 - Jamais de `push --force`, de réécriture de l'historique de `main` ni de tag déplacé.
 
-**Journal du dev** (`CHANGELOG-dev.md`) : chaque vague y note ce qu'elle apporte, sous le nom de sa branche,
+**Journal du dev** (`CHANGELOG-dev.md`) : chaque branche y note ce qu'elle apporte, sous le nom de sa branche,
 dès son premier commit. C'est le seul journal qu'on touche sur une branche. À la version, ses lignes
 deviennent l'entrée du `CHANGELOG.md` (écrite pour l'utilisateur) et quittent ce fichier.
 

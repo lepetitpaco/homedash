@@ -49,7 +49,7 @@ docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm
 
 ## Livrer
 
-1. Une branche par sujet (`vague/<sujet>`), commits libres, sans toucher au CHANGELOG ; ce qu'elle apporte va
+1. Une branche par sujet (`<qui>/<type>/<nom>`, ci-dessous), commits libres, sans toucher au CHANGELOG ; ce qu'elle apporte va
    dans `CHANGELOG-dev.md`.
 2. Pull request vers `preprod`, sans approbation : fusionnée, la branche se supprime toute seule. On teste
    l'ensemble sur `preprod` (menu *Branche* de l'appli de dev).
@@ -61,6 +61,24 @@ docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm
 
 Doc seule : pas de version. Du code sur `main` sans nouvelle version fait échouer le run. Le détail (quel numéro, issues, étiquettes) est dans
 [CLAUDE.md](CLAUDE.md).
+
+## Nommer une branche
+
+`<qui>/<type>/<nom>`, par exemple `paco/feature/catalogue-sites` ou `paul/fix/pastille-trello`.
+
+- `<qui>` : ton prénom, en minuscules.
+- `<nom>` : le sujet en quelques mots, minuscules et tirets.
+- `<type>`, un seul :
+
+| Type | Pour |
+| --- | --- |
+| `feature` | Une nouvelle possibilité |
+| `fix` | Une correction de bug |
+| `refactor` | Le code change, pas ce qu'on voit (performance comprise si rien d'autre ne bouge) |
+| `docs` | La documentation seule |
+| `chore` | L'outillage : CI, dépendances, scripts |
+
+`main` et `preprod` sont les seules branches qui restent : les autres se suppriment à la fusion.
 
 ## Captures
 
