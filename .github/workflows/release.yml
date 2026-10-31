@@ -15,7 +15,6 @@ name: release
 on:
   push:
     branches: [main]
-    tags: ['v*.*.*']
   workflow_dispatch:
 
 permissions:
@@ -46,9 +45,7 @@ jobs:
             exit 0
           fi
           [ "$app" = "$log" ] || { echo "desktop/package.json $app, CHANGELOG $log : à aligner"; exit 1; }
-          if [ "$GITHUB_REF_TYPE" = tag ]; then
-            [ "${GITHUB_REF_NAME#v}" = "$log" ] || { echo "tag $GITHUB_REF_NAME, CHANGELOG $log : à aligner"; exit 1; }
-          elif git rev-parse -q --verify "refs/tags/v$log" >/dev/null; then
+          if git rev-parse -q --verify "refs/tags/v$log" >/dev/null; then
             changed=$(git diff --name-only "v$log" HEAD -- src server desktop public index.html package-lock.json)
             [ -z "$changed" ] || { echo "Du code est arrivé sur main sans nouvelle version (CHANGELOG et desktop/package.json) :"; echo "$changed"; exit 1; }
             echo "Rien à publier : v$log existe déjà."
