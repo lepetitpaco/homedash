@@ -3,8 +3,10 @@ import { folderOf, moveTab, sessionOf, srcOf, tabKey } from '../lib/customTabs'
 import { moveFolder, railEntries } from '../lib/railOrder'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 
-/** Largeur de la barre : icônes + noms, icônes seules, petites icônes, ou cachée. */
-export type RailMode = 'wide' | 'icons' | 'mini' | 'hidden'
+/** Taille des icônes de la barre : petites, normales ou grandes. */
+export type RailSize = 'mini' | 'icons' | 'large'
+/** Icônes seules, noms à droite, 1 à 3 colonnes avec le nom sous l'icône, ou noms seuls. */
+export type RailLabels = 'none' | 'right' | 'grid1' | 'grid2' | 'grid3' | 'text'
 
 const OPEN_KEY = 'homedash:rail-closed'
 
@@ -49,7 +51,11 @@ type Props = {
   sessions: TabSession[]
   /** Onglet perso ouvert (`x:…`), `settings`, ou null quand on est dans homedash. */
   active: string | null
-  mode: RailMode
+  size: RailSize
+  /** Présentation des noms, quelle que soit la taille des icônes. */
+  labels: RailLabels
+  /** Réduire la barre aux icônes ou la déplier ; absent si la disposition est déjà « icônes seules ». */
+  collapse?: { open: boolean; onToggle: () => void }
   icons: Record<string, ReactNode>
   counts: Record<string, number>
   /** Onglets ouverts dans chaque espace (`x:…`, `links` pour le dash) : visibles d'ici (issue #60). */
@@ -101,7 +107,9 @@ export default function Rail({
   folders,
   sessions,
   active,
-  mode,
+  size,
+  labels,
+  collapse,
   icons,
   counts,
   kids,
@@ -132,7 +140,12 @@ export default function Rail({
 
   const loose = tabs.filter((t) => !folderOf(t, folders))
   const inFolder = (f: TabFolder) => tabs.filter((t) => folderOf(t, folders) === f.id)
-  const wide = mode === 'wide'
+  const wide = labels !== 'none'
+  /** Noms seuls : plus d'image, mais les pastilles restent. */
+  const textOnly = labels === 'text'
+  // Une seule colonne : trop étroit pour écrire les boutons du bas.
+  const footText = wide && labels !== 'grid1'
+  const columns = labels === 'grid1' ? 1 : labels === 'grid2' ? 2 : labels === 'grid3' ? 3 : 0
   // Notifications coupées (`notify: false`) : pas de pastille.
   /** « 2 » en haut à droite : des onglets sont ouverts en haut de cet espace. */
   const kidsBadge = (key: string, name: string) => {
@@ -188,7 +201,7 @@ export default function Rail({
           className={`rail-icon${session ? ' has-session' : ''}`}
           style={session ? { ['--session' as string]: session.color } : undefined}
         >
-          {icons[t.id]}
+          {textOnly ? null : icons[t.id]}
           {/* Compte : sa lettre dans le coin, pour distinguer deux mêmes sites en icônes seules. */}
           {session ? (
             <span className="rail-session" aria-hidden="true">
@@ -305,7 +318,8 @@ export default function Rail({
   return (
     <nav
       ref={navRef}
-      className={`rail is-${mode}`}
+      className={`rail is-${size}${wide ? ' has-names' : ''}${columns ? ' has-grid' : ''}${columns === 1 ? ' is-one' : ''}${textOnly ? ' has-text' : ''}`}
+      style={columns ? { ['--rail-cols' as string]: columns } : undefined}
       aria-label="Mes sites"
       // Les icônes ont leur propre menu (elles l'ont déjà ouvert : defaultPrevented).
       onContextMenu={(e) => {
@@ -318,7 +332,8 @@ export default function Rail({
         <span className="rail-pill" aria-hidden="true" />
         <button className="rail-btn" onClick={onHome} title="homedash : Raccourcis, GitHub, Local…">
           <span className="rail-icon">
-            ⚡{kidsBadge('links', 'homedash')}
+            {textOnly ? null : '⚡'}
+            {kidsBadge('links', 'homedash')}
           </span>
           {wide ? <span className="rail-label">homedash</span> : null}
         </button>
@@ -385,12 +400,12 @@ export default function Rail({
                 >
                   {open || !kids.length ? (
                     <span className="rail-icon rail-folder-icon">
-                      {f.icon ? f.icon : <FolderGlyph color={color} />}
+                      {textOnly ? null : f.icon ? f.icon : <FolderGlyph color={color} />}
                     </span>
                   ) : (
                     // Replié : ses quatre premières icônes en miniature, comme Discord.
                     <span className="rail-icon rail-mini">
-                      {kids.slice(0, 4).map((t) => (
+                      {(textOnly ? [] : kids.slice(0, 4)).map((t) => (
                         <span key={t.id}>{icons[t.id]}</span>
                       ))}
                       {badge(sum)}
@@ -428,7 +443,7 @@ export default function Rail({
                       className={`rail-icon${session ? ' has-session' : ''}`}
                       style={session ? { ['--session' as string]: session.color } : undefined}
                     >
-                      {icons[t.id]}
+                      {textOnly ? null : icons[t.id]}
                       {badge(unread(t))}
                       {asleep.includes(key) ? <span className="rail-zz" aria-hidden="true">💤</span> : null}
                       {audible[key] || muted[key] ? (
@@ -466,16 +481,26 @@ export default function Rail({
         />
       </div>
 
-      <div className="rail-foot">
+      <div className={`rail-foot${footText ? '' : ' is-compact'}`}>
+        {collapse ? (
+          <button
+            className="rail-tool rail-collapse"
+            onClick={collapse.onToggle}
+            title={collapse.open ? 'Réduire la barre aux icônes' : 'Déplier la barre'}
+          >
+            {collapse.open ? '‹' : '›'}
+            {footText ? <span className="rail-label">Réduire</span> : null}
+          </button>
+        ) : null}
         <button className="rail-tool rail-add" onClick={onAdd} title="Ajouter un site">
-          ＋{wide ? <span className="rail-label">Ajouter</span> : null}
+          ＋{footText ? <span className="rail-label">Ajouter</span> : null}
         </button>
         <button
           className={`rail-tool rail-settings${active === 'settings' ? ' is-active' : ''}`}
           onClick={onSettings}
           title="Réglages · clic droit sur la barre : ajouter un site, onglet temporaire, largeur"
         >
-          ⚙{wide ? <span className="rail-label">Réglages</span> : null}
+          ⚙{footText ? <span className="rail-label">Réglages</span> : null}
         </button>
       </div>
     </nav>

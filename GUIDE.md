@@ -42,12 +42,15 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
+- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…*. Icônes, icônes et titres, titres,
+  ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre
+  aux icônes, **›** la redéplie.
 - **Tout le reste** : clic droit sur l'icône (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
-- **Largeur de la barre, la cacher** : clic droit sur la barre, hors d'une icône.
+- **Cacher la barre** : clic droit sur la barre, hors d'une icône.
 
 | Ajouter un site | Clic droit sur une icône |
 | --- | --- |
@@ -115,6 +118,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 | `⌘R` | `Ctrl+R` | Recharger le site ouvert (sur un onglet de homedash : relire ses données) |
 | `⇧⌘R` | `Ctrl+Maj+R` | Recharger tout homedash (tous les sites se rechargent) |
 | `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
+| `Ctrl+Tab` | `Ctrl+Tab` | Revenir au site d'avant. `Ctrl` gardé appuyé : tes sites s'affichent en tuiles. `Tab` ou `Maj+Tab` pour choisir, relâcher `Ctrl` ou cliquer pour ouvrir, `1` à `9` pour ouvrir directement, `Échap` pour rester (⌘Tab et Alt+Tab restent ceux du système) |
 | `⌘,` | `Ctrl+,` | Réglages |
 | `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : pastilles et cloche continuent |
 

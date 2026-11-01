@@ -1,8 +1,8 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { Markdown } from '../lib/markdown'
 import Pick from './Pick'
-import Thread from './Thread'
+import Thread, { hue, initials } from './Thread'
 
 type Repo = { account: string; repo: string }
 export type ComposerComment = { id: string | number; who: string; date: string; text: string }
@@ -11,6 +11,18 @@ const repoId = (r: Repo) => `${r.account} ${r.repo}`
 
 /** Pour l'aperçu : ce qu'on a choisi, sans le lien ni la consigne ajoutés autour. */
 const needOf = (body: string) => /## Besoin\n+([\s\S]*?)\n+---\n/.exec(body)?.[1] ?? body
+/** « Créée par » : avatar et nom dans la couleur de la personne (comme ses messages), puis la date. */
+function Author({ who, date }: { who: string; date: string }) {
+  const d = new Date(date)
+  const day = Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'long', year: 'numeric' })
+  return (
+    <div className="ic-author" style={{ '--hue': hue(who) } as CSSProperties}>
+      <span className="th-avatar" aria-hidden="true">{initials(who)}</span>
+      <span>Créée par <strong>{who}</strong></span>
+      {day ? <time>{day}</time> : null}
+    </div>
+  )
+}
 
 type Props = {
   /** « la tâche » ou « la carte », et le service, dans les phrases. */
@@ -22,6 +34,8 @@ type Props = {
   start: 'read' | 'issue'
   /** La description, telle qu'elle s'affiche. */
   description: string
+  /** Qui a créé la source, et quand (ISO) : en tête de la description. */
+  author?: { who: string; date: string } | null
   /** Ce qui l'accompagne : images, étapes. */
   extra?: ReactNode
   /** La description et ses étapes partent dans l'issue. */
@@ -173,11 +187,17 @@ export default function IssueComposer(p: Props) {
                       <strong>Description</strong>
                       {picking ? <span className="th-tick" aria-hidden="true">{p.descPicked ? '✓' : ''}</span> : null}
                     </div>
+                    {p.author ? <Author {...p.author} /> : null}
                     {p.description ? <div className="th-text"><Markdown text={p.description} /></div> : null}
                     {p.extra}
                   </div>
                 ) : null}
-                {!p.reading && !p.description && !p.extra && !picking ? <p className="set-hint ic-pad">Pas de description.</p> : null}
+                {!p.reading && !p.description && !p.extra && !picking ? (
+                  <div className="ic-pad">
+                    {p.author ? <Author {...p.author} /> : null}
+                    <p className="set-hint">Pas de description.</p>
+                  </div>
+                ) : null}
                 {p.comments.length ? (
                   <Thread
                     messages={p.comments}
