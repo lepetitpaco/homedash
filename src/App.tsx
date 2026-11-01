@@ -30,6 +30,7 @@ import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
 import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
+import { keepFolderPlaces } from './lib/railOrder'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
@@ -1919,7 +1920,13 @@ export default function App() {
           }}
           onAdd={addTab}
           onMenu={railMenu}
-          onTabs={(next) => saveTabs([...next, ...keptTabs])}
+          onTabs={(next) =>
+            saveTabs(
+              [...next, ...keptTabs],
+              keepFolderPlaces(regularTabs.filter((t) => !folderOf(t, tabFolders)), next, tabFolders, (t) => !folderOf(t, tabFolders)),
+            )
+          }
+          onFolders={(next) => saveTabs(customTabs, next)}
           onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
           onTabMenu={tabMenu}
           onFolderMenu={folderMenu}
