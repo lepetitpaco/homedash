@@ -10,6 +10,7 @@ import {
   rememberRepo,
   rememberedRepo,
   taskText,
+  type BcAuthor,
   type BcComment,
   type IssueRepo,
   type IssueTask,
@@ -81,6 +82,7 @@ export default function IssueHost() {
   const [text, setText] = useState('')
   const [images, setImages] = useState<Record<string, string>>({})
   const [comments, setComments] = useState<BcComment[]>([])
+  const [creator, setCreator] = useState<BcAuthor | null>(null)
   /** Ce qui part dans l'issue : la description, et les échanges cochés (ids). */
   const [descPicked, setDescPicked] = useState(true)
   const [picked, setPicked] = useState<Set<number>>(new Set())
@@ -99,6 +101,7 @@ export default function IssueHost() {
       setText('')
       setImages({})
       setComments([])
+      setCreator(null)
       setPicked(new Set())
       setDescPicked(!(r.start === 'issue' && r.comment))
       const n = ++asked.current
@@ -109,6 +112,7 @@ export default function IssueHost() {
           setText(got.text)
           setImages(got.images)
           setComments(got.comments)
+          setCreator(got.creator.who ? got.creator : null)
           // Tout est retenu par défaut, sauf une issue sur un échange précis : lui seul.
           setPicked(new Set(r.comment && r.start === 'issue' ? [r.comment] : got.comments.map((c) => c.id)))
         })
@@ -177,6 +181,7 @@ export default function IssueHost() {
       where={req.task.where}
       start={req.start}
       description={text ? render(text, images) : ''}
+      author={creator}
       descPicked={descPicked}
       onDescPicked={setDescPicked}
       renderText={(t) => render(t, images)}
