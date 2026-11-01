@@ -18,7 +18,7 @@ import * as errlog from './errlog.ts'
 import * as events from './events.ts'
 import * as favicons from './favicons.ts'
 import * as fullexport from './fullexport.ts'
-import { BC_LINK, CannotWrite, setIssueSources, TR_LINK } from './github.ts'
+import { BC_LINK, CannotWrite, setIssueSources, setRepoGone, TR_LINK } from './github.ts'
 import { escape } from './html.ts'
 import * as localfile from './localfile.ts'
 import * as localgit from './localgit.ts'
@@ -152,6 +152,40 @@ export function setOnConfig(fn: typeof onConfig): void {
 }
 
 /** Après toute écriture de config : recharge, vide les caches, réveille ce qui dormait. */
+/**
+ * Dépôts disparus de GitHub : retirés des listes du compte, de la carte Repos et des choix
+ * Basecamp / Trello. Instantané d'abord, et une ligne au journal : rien ne part en silence.
+ */
+export function removeGoneRepos(account: string, gone: string[]): void {
+  backup.snapshot('avant retrait depots')
+  // Pas d'await d'ici à l'écriture (règle 8).
+  const cfg = store.read(store.CONFIG, {}) as Record<string, any>
+  const isGone = (r: unknown) => gone.includes(String(r).toLowerCase())
+  const without = (l: unknown) => (Array.isArray(l) ? l.filter((r) => !isGone(r)) : l)
+  const accs: any[] = Array.isArray(cfg.github_accounts) ? cfg.github_accounts : []
+  for (const acc of accs.filter((a) => a?.id === account))
+    for (const key of ['repos', 'branch_repos', 'base_site_repos']) if (key in acc) acc[key] = without(acc[key])
+  // La carte et les choix sont communs : seulement si plus aucun compte ne suit ce dépôt.
+  const stillFollowed = new Set(accs.flatMap((a) => ['repos', 'branch_repos', 'base_site_repos'].flatMap((k) => (Array.isArray(a?.[k]) ? a[k] : []))).map((r: unknown) => String(r).toLowerCase()))
+  const orphan = (r: unknown) => isGone(r) && !stillFollowed.has(String(r).toLowerCase())
+  if (Array.isArray(cfg.repos?.items))
+    cfg.repos.items = cfg.repos.items.filter((i: any) => !orphan(`${i?.owner ?? cfg.repos.defaultOwner ?? ''}/${i?.name}`))
+  for (const tool of ['basecamp', 'trello'])
+    if (Array.isArray(cfg[tool]?.repos)) cfg[tool].repos = cfg[tool].repos.filter((r: unknown) => !orphan(r))
+  const invalid = store.validateConfig(cfg)
+  if (invalid) return void errlog.record('serveur', 'dépôts disparus non retirés', invalid, 'github')
+  store.write(store.CONFIG, cfg)
+  events.record(
+    gone.map((full) =>
+      events.event('repo_gone', 'warn', 'github', `Dépôt retiré : ${full}`, {
+        repo: full,
+        body: 'GitHub ne le trouve plus. Réglages → Sauvegardes garde la liste d’avant.',
+      }),
+    ),
+  )
+  reloadAll()
+}
+
 export function reloadAll(): void {
   const started = performance.now()
   loadSections()
@@ -848,6 +882,7 @@ function staticFile(req: Req): Res {
 // ── Démarrage des tâches de fond ────────────────────────────────────────────────
 export function start(): void {
   ensureConfig()
+  setRepoGone(removeGoneRepos)
   // Avant loadSections() : si la version a changé, les données sont sauvegardées telles quelles.
   updates.onStart()
   loadSections()

@@ -300,6 +300,18 @@ export function setIssueSources(fn: () => Sources): void {
   issueSources = fn
 }
 
+/** Dépôts confirmés disparus : app.ts les retire de la config. */
+let repoGone: (account: string, repos: string[]) => void = () => undefined
+let reposRemoved = 0
+export function setRepoGone(fn: (account: string, repos: string[]) => void): void {
+  repoGone = fn
+}
+
+/** Adresses qui répondent 404 si le dépôt n'est plus là. Pas `contents/…` ni `commits/…` : ceux-là manquent normalement. */
+const REPO_PATH = /^\/repos\/([\w.-]+\/[\w.-]+)(?:\/(?:pulls|branches|issues))?$/
+/** Passes de suite où GitHub dit 404 avant de retirer : un incident ne doit rien effacer. */
+const GONE_AFTER = 2
+
 export const SECTIONS = ['branches', 'prs', 'renovate', 'merged', 'issues', 'running'] as const
 
 type Data = { branches: any[]; prs: any[]; renovate: any[]; renovate_merged: any[]; merged: any[]; issues: any[]; tr_issues: any[]; running: any[] }
@@ -316,6 +328,9 @@ export class GitHubAccount {
   private branchFacts = new Map<string, any>()
   private remoteState = new Map<string, { default: string; branches: Record<string, string>; ts: number }>()
   private remoteVer = 0
+  /** Dépôts qui ont répondu 404 pendant cette passe, et passes de suite où c'est confirmé. */
+  private suspects = new Set<string>()
+  private strikes = new Map<string, number>()
   /** Sections déjà vues, et pour quel utilisateur : la première passe ne notifie rien. */
   private seeded = { user: null as string | null, sections: new Set<string>() }
   data: Data = { branches: [], prs: [], renovate: [], renovate_merged: [], merged: [], issues: [], tr_issues: [], running: [] }
@@ -378,6 +393,8 @@ export class GitHubAccount {
       this.etags.clear()
       this.authCache.clear()
       this.seeded.sections.clear()
+      this.suspects.clear()
+      this.strikes.clear()
       this.invalidate()
     }
   }
@@ -398,6 +415,7 @@ export class GitHubAccount {
   async probe(p: string, tok: string | null, params?: Record<string, unknown>): Promise<[number, any, Headers | null]> {
     try {
       const res = await fetcher(API + p + query(params), { headers: this.headers(tok || ''), signal: AbortSignal.timeout(12000) })
+      if (res.status === 404) this.noteMissing(p)
       const text = await res.text()
       let body: any = null
       try {
@@ -516,6 +534,45 @@ export class GitHubAccount {
     return null
   }
 
+  private noteMissing(p: string): void {
+    const full = REPO_PATH.exec(p)?.[1]
+    if (full) this.suspects.add(full.toLowerCase())
+  }
+
+  /**
+   * Fin de passe : un dépôt suivi qui répond 404 est revérifié directement. Il n'est retiré
+   * qu'après GONE_AFTER passes, jeton valide, et jamais si tous les dépôts suivis manquent :
+   * ce serait le jeton qui a perdu ses droits, pas les dépôts qui ont disparu.
+   */
+  private async settleMissing(tok: string): Promise<void> {
+    const suspects = [...this.suspects]
+    this.suspects.clear()
+    for (const known of [...this.strikes.keys()]) if (!suspects.includes(known)) this.strikes.delete(known)
+    if (!suspects.length) return
+    const followed = new Set(
+      ['repos', 'branch_repos', 'base_site_repos'].flatMap((k) => (this.CFG[k] || []) as string[]).map((r) => `${this.owner(r)}/${r}`.toLowerCase()),
+    )
+    const [me] = await this.probe('/user', tok)
+    if (me !== 200) return
+    const missing: string[] = []
+    for (const full of suspects.filter((x) => followed.has(x))) {
+      const [status] = await this.probe(`/repos/${full}`, tok)
+      this.suspects.delete(full)
+      if (status === 404) missing.push(full)
+      else this.strikes.delete(full)
+    }
+    if (missing.length >= followed.size) return
+    const gone = missing.filter((full) => {
+      const n = (this.strikes.get(full) ?? 0) + 1
+      this.strikes.set(full, n)
+      return n >= GONE_AFTER
+    })
+    if (!gone.length) return
+    for (const full of gone) this.strikes.delete(full)
+    reposRemoved += 1
+    repoGone(this.ACCOUNT.id, gone)
+  }
+
   // ── Appels API, avec requêtes conditionnelles ────────────────────────────────
   async gh(p: string, tok: string | null, params?: Record<string, unknown>, cache = true, accept = 'application/vnd.github+json'): Promise<any> {
     const url = API + p + query(params)
@@ -539,6 +596,7 @@ export class GitHubAccount {
       }
       if (!res.ok) {
         this.STATS.errors += 1
+        if (res.status === 404) this.noteMissing(p)
         console.error(`    ✗ ${p}: HTTP ${res.status}`)
         // GitHub indisponible un instant (5xx) : la dernière réponse connue plutôt qu'un vide.
         return cached && res.status >= 500 ? cached[1] : null
@@ -1128,6 +1186,7 @@ export class GitHubAccount {
         }
         events.record(found)
       }
+      await this.settleMissing(tok)
       this.state.ts = Date.now() / 1000
       this.state.error = null
       console.log(`✅ GitHub à jour — ${this.STATS.calls} appels, ${this.STATS.hits} 304`)
@@ -1182,6 +1241,7 @@ export class GitHubAccount {
       building: this.state.building,
       error: this.state.error,
       auto_refresh: this.CFG.auto_refresh ?? 15,
+      repos_removed: reposRemoved,
       branches: { active: d.branches.filter((b) => !b.merged), stale: d.branches.filter((b) => b.merged) },
       prs: d.prs,
       merged: d.merged,

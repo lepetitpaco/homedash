@@ -167,6 +167,9 @@ version).
 
 Ton code en ligne (GitHub) et sur ton disque (Local), côte à côte.
 
+Un dépôt que GitHub ne trouve plus (supprimé, ou tes droits retirés) est retiré tout seul de la liste au bout de quelques minutes :
+la cloche te le dit, et *Réglages → Sauvegardes* garde la liste d'avant.
+
 ![L'onglet GitHub](docs/screenshots/github.jpg)
 
 - **GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) : 🌿 branches actives avec leur

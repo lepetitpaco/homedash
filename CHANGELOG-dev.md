@@ -7,6 +7,10 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 
 - Réglages → Docker, désactivé par défaut : un dossier 🐳 dans la barre, une ligne par projet Compose ou container, reconnaissable à ses deux lettres et sa couleur. Autres ports au clic droit, éteints en plus fade et sans clic, en lecture seule (#104).
 
+## paco/fix/barre-finitions
+
+- GitHub : un dépôt disparu est retiré tout seul de la liste (sauvegarde avant, ligne dans la cloche), au lieu de consommer le quota.
+
 ## paco/feature/dossiers-deplacables
 
 - Mes sites : les dossiers se glissent n'importe où dans la barre, plus seulement en bas.

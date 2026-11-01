@@ -148,6 +148,11 @@ export default function App() {
   // Cadence GitHub : vive sur GitHub et Raccourcis (carte Repos), lente ailleurs.
   const [ghFront, setGhFront] = useState(true)
   const gh = useGithub(ghFront)
+  // Le serveur a retiré un dépôt disparu : sans relecture, la prochaine écriture serait refusée.
+  const reposRemoved = gh.data?.enabled ? gh.data.repos_removed : undefined
+  useEffect(() => {
+    if (reposRemoved) reload()
+  }, [reposRemoved, reload])
   const customTabs = useMemo(() => raw?.tabs ?? [], [raw])
   // Onglets éphémères (lien ouvert au clic droit) : dans la barre jusqu'à leur
   // fermeture ou au rechargement ; jamais dans la config, sauf « Garder ».

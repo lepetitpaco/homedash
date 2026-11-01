@@ -184,6 +184,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Le cache ETag est vital : sans lui ~16 800 appels/h pour un plafond de 5 000. Les 304 sont gratuits.
 - Attribution d'une branche : PR dont `head.ref` == branche, puis auteurs des commits propres, puis auteur
   du tip si déjà mergée. **Jamais** de filtrage par préfixe de nom.
+- Dépôt en 404 : retiré de la config par `removeGoneRepos()` (`settleMissing`), après 2 passes de suite, jeton valide, jamais si tous les dépôts manquent ; instantané d'abord, ligne au journal. Testé.
 - `applyToken()` vide caches et amorçage du journal : sinon le changement de jeton passe pour des nouveautés.
 
 **Onglet Local**
