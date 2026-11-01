@@ -582,11 +582,11 @@ body {
 /* Onglets ouverts en haut de cet espace (issue #60) : discret, en haut à droite. */
 .rail-open {
   position: absolute;
-  left: -5px;
+  left: -6px;
   bottom: -5px;
-  min-width: 16px;
+  min-width: 12px;
   height: 16px;
-  padding: 0 4px;
+  padding: 0 2px;
   border-radius: 9px;
   border: 2px solid color-mix(in srgb, var(--bg) 82%, #000);
   background: var(--sig-info);
@@ -599,14 +599,14 @@ body {
   pointer-events: none;
 }
 .rail.is-mini .rail-open {
-  left: -4px;
+  left: -5px;
   bottom: -4px;
-  min-width: 9px;
-  height: 12px;
-  padding: 0 2px;
+  min-width: 7px;
+  height: 11px;
+  padding: 0 1px;
   border-width: 1px;
-  font-size: 8px;
-  line-height: 12px;
+  font-size: 7px;
+  line-height: 11px;
 }
 
 /* Petites icônes avec leurs noms : lignes serrées, pour voir plus de sites (issue #103). */
@@ -1132,4 +1132,9 @@ body {
 /* Ctrl+Tab : le monogramme d'un site Docker, à la taille de la tuile. */
 .site-switcher-icon .docker-icon {
   font-size: 0.76rem;
+}
+
+/* Titres : le ✕ d'un onglet temporaire a sa place, à droite des pastilles. */
+.rail.has-text .rail-temp .rail-btn {
+  padding-right: 28px;
 }

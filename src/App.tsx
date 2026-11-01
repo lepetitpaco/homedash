@@ -35,7 +35,7 @@ import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
 import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
-import { keepFolderPlaces } from './lib/railOrder'
+import { keepFolderPlaces, placeForNew } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
@@ -1027,14 +1027,27 @@ export default function App() {
   iconRef.current = iconOf
   /** Onglets, dossiers et comptes de la barre de gauche : une écriture de config. */
   const saveTabs = (next: typeof customTabs, folders = tabFolders, sessions = tabSessions) =>
-    raw && persist({ ...raw, tabs: next, tabFolders: folders, tabSessions: sessions })
+    raw &&
+    persist({
+      ...raw,
+      tabs: next,
+      // Quoi qu'il arrive à un site, les dossiers placés devant lui restent à leur place.
+      tabFolders: keepFolderPlaces(
+        regularTabs.filter((t) => !folderOf(t, tabFolders)),
+        next,
+        folders,
+        (t) => !t.kept && !folderOf(t, folders),
+      ),
+      tabSessions: sessions,
+    })
   /** Nouveau dossier (nom + couleur demandés) contenant ces onglets, dans cet ordre. */
   const newFolder = async (ids: string[]) => {
     const r = await askNameColor({ title: 'Nouveau dossier', name: `Dossier ${tabFolders.length + 1}` })
     if (!r) return
     const id = newFolderId(tabFolders.map((f) => f.id))
     const next = ids.reduce((acc, tid) => moveTab(acc, tid, null, id), customTabs)
-    saveTabs(next, [...tabFolders, { id, name: r.name, color: r.color }])
+    const before = placeForNew(regularTabs.filter((t) => !folderOf(t, tabFolders)), ids)
+    saveTabs(next, [...tabFolders, { id, name: r.name, color: r.color, ...(before ? { before } : {}) }])
   }
   /** Nouveau compte de connexion, donné à cet onglet. */
   const newSession = async (tid: string) => {
@@ -2042,12 +2055,7 @@ export default function App() {
           }}
           onAdd={addTab}
           onMenu={railMenu}
-          onTabs={(next) =>
-            saveTabs(
-              [...next, ...keptTabs],
-              keepFolderPlaces(regularTabs.filter((t) => !folderOf(t, tabFolders)), next, tabFolders, (t) => !folderOf(t, tabFolders)),
-            )
-          }
+          onTabs={(next) => saveTabs([...next, ...keptTabs])}
           onFolders={(next) => saveTabs(customTabs, next)}
           onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
           onTabMenu={tabMenu}
@@ -2386,7 +2394,7 @@ export default function App() {
         <RailLayoutPicker
           x={railPicker.clientX}
           y={railPicker.clientY}
-          labels={shownLabels}
+          labels={railLabels}
           size={railSize}
           onLabels={changeRailLabels}
           onSize={changeRailSize}
