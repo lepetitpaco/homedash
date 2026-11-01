@@ -31,6 +31,8 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     'full-export',
     // Mémoire de chaque site (Réglages → Mes sites).
     'tab-memory',
+    // Ctrl+Tab : changer de site (#102).
+    'site-switch',
   ],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
@@ -88,6 +90,12 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     ipcRenderer.on('homedash:guest-down', handler)
     return () => ipcRenderer.removeListener('homedash:guest-down', handler)
   },
+  /** Ctrl+Tab : `next`, `prev`, puis `open` (Ctrl relâché), un rang (chiffre) ou `cancel`. Renvoie de quoi se désabonner. */
+  onSiteSwitch: (cb) => {
+    const handler = (_e, step) => cb(step)
+    ipcRenderer.on('homedash:site-switch', handler)
+    return () => ipcRenderer.removeListener('homedash:site-switch', handler)
+  },
   /** ⌘R (menu de l'appli ; ⇧⌘R avant la 2.0) : recharger l'onglet ouvert. Renvoie de quoi se désabonner. */
   onReloadTab: (cb) => {
     const handler = () => cb()
@@ -95,3 +103,14 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     return () => ipcRenderer.removeListener('homedash:reload-tab', handler)
   },
 })
+
+// Ctrl+Tab change de site (main.js) : Tab ne doit pas aussi déplacer le focus ici.
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.key !== 'Tab' || !e.ctrlKey || e.metaKey || e.altKey) return
+    e.preventDefault()
+    e.stopImmediatePropagation()
+  },
+  true,
+)

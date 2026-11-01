@@ -585,6 +585,27 @@ const TASK_COMMENTS = 200
 const TASK_PAGES = 10
 
 const TEXT_BLOCK = new Set(['p', 'div', 'h1', 'h2', 'h3', 'blockquote', 'pre', 'ul', 'ol'])
+const MENTION = 'application/vnd.basecamp.mention'
+
+/**
+ * Nom d'une mention d'après son `content` (HTML de `<bc-mention>`) : le titre de
+ * l'avatar (« Julian Boissy, Coordinateur… »), sinon le prénom affiché. Une
+ * description n'a que lui ; un commentaire a aussi une figure (alt = nom complet).
+ */
+function mentionName(html: string): string {
+  let title = ''
+  let text = ''
+  parse(html, {
+    start(tag, a) {
+      if (tag === 'img' && !title) title = (a.title || a.alt || '').split(',')[0].trim()
+    },
+    end() {},
+    data(t) {
+      text += t
+    },
+  })
+  return title || text.trim()
+}
 
 /** HTML de Basecamp (éditeur Trix) → [texte Markdown, pièces jointes [(sgid, lien, type)]]. */
 export function htmlParts(raw: string | null | undefined): [string, [string, string, string][]] {
@@ -592,8 +613,18 @@ export function htmlParts(raw: string | null | undefined): [string, [string, str
   const list: string[] = []
   const filesFound: [string, string, string][] = []
   let href: string | null = null
+  // Mention (@quelqu'un) : son nom complet (alt de l'avatar), à la place de l'avatar et du prénom
+  let mention: string | null = null
   parse(raw || '', {
     start(tag, a) {
+      if (mention !== null) {
+        if (tag === 'img' && !mention) mention = (a.alt || '').trim()
+        return
+      }
+      if (tag === 'bc-attachment' && a['content-type'] === MENTION) {
+        mention = mentionName(a.content || '')
+        return
+      }
       if (tag === 'br' || TEXT_BLOCK.has(tag)) out.push('\n')
       if (tag === 'ul' || tag === 'ol') list.push(tag)
       else if (tag === 'li') out.push('\n' + '  '.repeat(Math.max(0, list.length - 1)) + (list[list.length - 1] === 'ol' ? '1. ' : '- '))
@@ -613,6 +644,12 @@ export function htmlParts(raw: string | null | undefined): [string, [string, str
       }
     },
     end(tag) {
+      if (mention !== null) {
+        if (tag !== 'bc-attachment') return
+        out.push(`**@${mention || 'quelqu’un'}**`)
+        mention = null
+        return
+      }
       if ((tag === 'ul' || tag === 'ol') && list.length) list.pop()
       if (TEXT_BLOCK.has(tag)) out.push('\n')
       else if (tag === 'strong' || tag === 'b') out.push('**')
@@ -623,6 +660,11 @@ export function htmlParts(raw: string | null | undefined): [string, [string, str
       }
     },
     data(t) {
+      if (mention !== null) {
+        // pas d'avatar (alt vide) : le prénom affiché par Basecamp
+        if (!mention && t.trim()) mention = t.trim()
+        return
+      }
       out.push(t)
     },
   })
@@ -663,13 +705,16 @@ export async function taskText(url: unknown): Promise<Obj> {
       const [text, more] = htmlParts(c.content)
       filesFound.push(...more)
       for (const x of c.content_attachments || []) downloads.set(x.sgid, x.download_url)
-      if (text) comments.push({ id: c.id ?? null, who: c.creator?.name || '?', date: (c.created_at || '').slice(0, 10), text })
+      // date complète : la page affiche l'heure de chaque message
+      if (text) comments.push({ id: c.id ?? null, who: c.creator?.name || '?', date: c.created_at || '', text })
     }
   }
   // Images, pour la fiche : lien du texte → adresse à passer à `attachment()`
   const images: Record<string, string> = {}
   for (const [sgid, link, ctype] of filesFound) if (ctype.startsWith('image/') && downloads.get(sgid)) images[link] = downloads.get(sgid) as string
-  return { text: parts.join('\n\n'), comments: comments.slice(-TASK_COMMENTS), images }
+  // qui a créé la tâche, et quand
+  const creator = { who: body.creator?.name || '', date: body.created_at || '' }
+  return { text: parts.join('\n\n'), creator, comments: comments.slice(-TASK_COMMENTS), images }
 }
 
 // ── Image jointe, relayée pour la fiche d'une tâche ─────────────────────────────
