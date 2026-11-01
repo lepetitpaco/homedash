@@ -34,6 +34,8 @@ export type Desktop = {
   onAudio?: (cb: (state: { id: number; audible: boolean }) => void) => () => void
   /** Clic ou Échap dans un site (≥ 1.1.0) ; renvoie de quoi se désabonner. */
   onGuestDown?: (cb: (kind: 'click' | 'escape') => void) => () => void
+  /** Ctrl+Tab (`site-switch` dans features) ; un nombre = ouvrir la tuile de ce rang ; renvoie de quoi se désabonner. */
+  onSiteSwitch?: (cb: (step: 'next' | 'prev' | 'open' | 'cancel' | number) => void) => () => void
   /** ⇧⌘R du menu de l'appli (≥ 1.1.0) ; renvoie de quoi se désabonner. */
   onReloadTab?: (cb: () => void) => () => void
 }

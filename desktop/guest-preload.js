@@ -41,3 +41,14 @@ window.addEventListener(
   },
   true,
 )
+
+// Ctrl+Tab change de site (main.js) : Tab ne doit pas aussi déplacer le focus ici.
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (e.key !== 'Tab' || !e.ctrlKey || e.metaKey || e.altKey) return
+    e.preventDefault()
+    e.stopImmediatePropagation()
+  },
+  true,
+)
