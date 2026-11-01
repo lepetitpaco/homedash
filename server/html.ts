@@ -61,7 +61,8 @@ export function parse(html: string, h: Handler): void {
       i = end < 0 ? n : end + 1
       continue
     }
-    const m = /^<(\/)?([a-zA-Z][a-zA-Z0-9-]*)([^>]*)>/.exec(html.slice(lt, lt + 4096))
+    // un `>` entre guillemets ne ferme pas la balise : Basecamp met du HTML dans `content="…"` (mentions)
+    const m = /^<(\/)?([a-zA-Z][a-zA-Z0-9-]*)((?:[^>"']|"[^"]*"|'[^']*')*)>/.exec(html.slice(lt, lt + 4096))
     if (!m) {
       h.data('<')
       i = lt + 1

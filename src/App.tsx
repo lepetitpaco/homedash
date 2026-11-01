@@ -15,6 +15,7 @@ import UpdateProgress from './components/UpdateProgress'
 import DockHint from './components/DockHint'
 import Rail, { type RailLabels, type RailSize } from './components/Rail'
 import RailLayoutPicker from './components/RailLayoutPicker'
+import SiteSwitcher from './components/SiteSwitcher'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
@@ -31,6 +32,7 @@ import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
 import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
+import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
@@ -74,6 +76,7 @@ import SetupCard, { type SetupStep } from './components/SetupCard'
 import { updateGroup } from './lib/mutate'
 
 const RAIL_KEY = 'homedash:rail'
+const SWITCHER_DELAY_MS = 180
 /** Onglet temporaire fermé tout seul après ce temps sans y aller. */
 const TEMP_IDLE_MS = 3 * 3600_000
 const RAIL_WIDTH: Record<RailSize, string> = { mini: '50px', icons: '68px', large: '84px' }
@@ -426,6 +429,29 @@ export default function App() {
   )
   const shownLabels: RailLabels = railOpen ? railLabels : 'none'
   const [railPicker, setRailPicker] = useState<{ clientX: number; clientY: number } | null>(null)
+  // Ctrl+Tab : les sites, du plus récent au plus ancien, et celui qu'on vise (issue #102).
+  const recentSites = useRef<string[]>([])
+  const hereSite = spaceOf(tab) ?? (tab.startsWith('x:') ? tab : null)
+  useEffect(() => {
+    if (hereSite) recentSites.current = touchRecent(recentSites.current, hereSite)
+  }, [hereSite])
+  const [switcher, setSwitcherState] = useState<{ keys: string[]; index: number } | null>(null)
+  // Copie immédiate : sur un appui rapide, Ctrl relâché arrive avant que la page se soit redessinée.
+  const switcherNow = useRef<{ keys: string[]; index: number } | null>(null)
+  const setSwitcher = (next: { keys: string[]; index: number } | null) => {
+    switcherNow.current = next
+    setSwitcherState(next)
+  }
+  // Ctrl+Tab rapide : bascule directe vers le site d'avant. La liste n'apparaît que si Ctrl reste appuyé.
+  const [switcherShown, setSwitcherShown] = useState(false)
+  const switcherOpen = switcher !== null
+  useEffect(() => {
+    if (!switcherOpen) return setSwitcherShown(false)
+    const timer = window.setTimeout(() => setSwitcherShown(true), SWITCHER_DELAY_MS)
+    return () => window.clearTimeout(timer)
+  }, [switcherOpen])
+  const switchStep = useRef<(step: 'next' | 'prev' | 'open' | 'cancel' | number) => void>(() => undefined)
+  useEffect(() => desktop?.onSiteSwitch?.((step) => switchStep.current(step)), [])
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
   const railOn = !railHidden
@@ -1276,6 +1302,34 @@ export default function App() {
     if (tab === 'settings') window.dispatchEvent(new Event(NEW_TAB_EVENT))
     else selectTab('settings')
   }
+  /** ⚡ : le dash, à sa dernière vue (Raccourcis si on y est déjà). */
+  const goHome = () => {
+    search.setQuery('')
+    if (spaceOf(tab) === DASH) return selectTab('links')
+    const last = lastDash.current
+    selectTab(!last.startsWith('x:') || allTabs.some((t) => tabKey(t) === last) ? last : lastNative.current)
+  }
+  const openSite = (key: string | undefined) => {
+    setSwitcher(null)
+    if (key === DASH) goHome()
+    else if (key && key !== hereSite) {
+      search.setQuery('')
+      selectTab(key as TabId)
+    }
+  }
+  switchStep.current = (step) => {
+    const switcher = switcherNow.current
+    if (step === 'cancel') return setSwitcher(null)
+    if (typeof step === 'number') return switcher ? openSite(switcher.keys[step]) : undefined
+    if (step === 'open') return switcher ? openSite(switcher.keys[switcher.index]) : undefined
+    if (switcher) setSwitcherShown(true)
+    if (switcher) return setSwitcher({ ...switcher, index: stepIndex(switcher.index, switcher.keys.length, step) })
+    const keys = orderSites(recentSites.current, [DASH, ...allTabs.filter((t) => t.embed && !t.parent).map(tabKey)])
+    if (keys.length < 2) return
+    // Hors d'un site (Réglages) : pas de site actuel à sauter, le premier visé est le plus récent.
+    const start = keys.indexOf(hereSite ?? '')
+    setSwitcher({ keys, index: start < 0 ? (step === 'next' ? 0 : keys.length - 1) : stepIndex(start, keys.length, step) })
+  }
   /** Clic droit sur la barre de gauche (hors icône) : ce qui n'a plus de bouton. */
   const railMenu = (e: React.MouseEvent) => {
     const at = { clientX: e.clientX, clientY: e.clientY }
@@ -1944,14 +1998,7 @@ export default function App() {
           collapse={railLabels === 'none' ? undefined : { open: railOpen, onToggle: () => changeRailOpen(!railOpen) }}
           icons={iconOf}
           counts={tabCounts}
-          onHome={() => {
-            search.setQuery('')
-            // Déjà dans le dash : ⚡ ramène à Raccourcis, comme le logo d'une appli
-            // (issue #54). Sinon la dernière vue du dash, s'il existe encore.
-            if (spaceOf(tab) === DASH) return selectTab('links')
-            const last = lastDash.current
-            selectTab(!last.startsWith('x:') || allTabs.some((t) => tabKey(t) === last) ? last : lastNative.current)
-          }}
+          onHome={goHome}
           onSettings={() => {
             search.setQuery('')
             selectTab('settings')
@@ -2301,6 +2348,26 @@ export default function App() {
           onLabels={changeRailLabels}
           onSize={changeRailSize}
           onClose={() => setRailPicker(null)}
+        />
+      ) : null}
+      {switcher && switcherShown ? (
+        <SiteSwitcher
+          index={switcher.index}
+          onHover={(index) => setSwitcher({ ...switcher, index })}
+          onPick={(index) => openSite(switcher.keys[index])}
+          sites={switcher.keys.map((key) => {
+            const t = allTabs.find((x) => tabKey(x) === key)
+            if (!t) return { key, label: 'homedash', icon: '⚡', host: 'Raccourcis, GitHub, Local…' }
+            return {
+              key,
+              label: t.label,
+              icon: iconOf[t.id],
+              host: t.url.replace(/^https?:\/\//, '').replace(/\/$/, ''),
+              unread: t.notify !== false ? (tabCounts[key] ?? 0) : 0,
+              asleep: asleep.includes(key),
+              session: sessionOf(t, tabSessions),
+            }
+          })}
         />
       ) : null}
       <ConfirmHost />

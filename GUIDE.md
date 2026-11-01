@@ -118,6 +118,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 | `⌘R` | `Ctrl+R` | Recharger le site ouvert (sur un onglet de homedash : relire ses données) |
 | `⇧⌘R` | `Ctrl+Maj+R` | Recharger tout homedash (tous les sites se rechargent) |
 | `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
+| `Ctrl+Tab` | `Ctrl+Tab` | Revenir au site d'avant. `Ctrl` gardé appuyé : tes sites s'affichent en tuiles. `Tab` ou `Maj+Tab` pour choisir, relâcher `Ctrl` ou cliquer pour ouvrir, `1` à `9` pour ouvrir directement, `Échap` pour rester (⌘Tab et Alt+Tab restent ceux du système) |
 | `⌘,` | `Ctrl+,` | Réglages |
 | `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : pastilles et cloche continuent |
 

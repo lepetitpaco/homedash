@@ -95,7 +95,7 @@ class Fake {
         { id: 6, type: 'Todo', title: 'Vieux bug congés', status: 'archived', app_url: 'https://3.basecamp.com/123/buckets/9/todos/6' },
       ]
     else if (url.endsWith('/buckets/9/todos/2.json'))
-      body = { id: 2, title: 'Tâche 2', comments_count: 1, description: '<div>Refaire la <strong>page</strong> :<ul><li>logo</li><li><a href="https://x.fr">lien</a></li></ul></div>' }
+      body = { id: 2, title: 'Tâche 2', creator: { name: 'Léa Martin' }, created_at: '2026-10-20T08:00:00Z', comments_count: 1, description: '<div>Refaire la <strong>page</strong> :<ul><li>logo</li><li><a href="https://x.fr">lien</a></li></ul></div>' }
     else if (method === 'POST' && url.endsWith('/buckets/9/recordings/5/comments.json'))
       body = { id: 900, app_url: 'https://3.basecamp.com/123/buckets/9/card_tables/cards/5#__recording_900' }
     else if (url.endsWith('/buckets/9/recordings/2/comments.json?page=2')) body = [{ id: 32, creator: { name: 'Max' }, created_at: '2026-10-23T09:00:00Z', content: '<div>Fait.</div>' }]
@@ -184,7 +184,8 @@ describe("contenu d'une tâche", () => {
     expect(got.text).toContain('- logo')
     expect(got.text).toContain('- [lien](https://x.fr)')
     expect(got.text).not.toContain('Flo')
-    expect(got.comments).toEqual([{ id: 31, who: 'Flo', date: '2026-10-22', text: 'Pour vendredi !' }])
+    expect(got.comments).toEqual([{ id: 31, who: 'Flo', date: '2026-10-22T09:00:00Z', text: 'Pour vendredi !' }])
+    expect(got.creator).toEqual({ who: 'Léa Martin', date: '2026-10-20T08:00:00Z' })
     const done = net.requests.slice(before)
     expect(new Set(done.map((r) => r.method))).toEqual(new Set(['GET']))
     expect(done.every((r) => r.url.startsWith(HREF))).toBe(true)
@@ -195,6 +196,24 @@ describe("contenu d'une tâche", () => {
     )
     expect(text).toContain('[🖼 Capture (1).png](<https://preview.3.basecamp.com/1/blobs/k/previews/full>) (sur Basecamp)')
     expect(text).toContain('📎 devis.pdf (sur Basecamp)')
+  })
+  it('une mention devient @ et le nom complet, même avec du HTML dans un attribut (#100)', () => {
+    // tel que Basecamp l'envoie : `content="…"` contient des < et > (description) ou est entre apostrophes (commentaire)
+    const inner = '<bc-mention gid="gid://bc3/Person/1"><span><img alt="" title="Julian Boissy, Chef" src="https://x/avatar">Julian\n</span></bc-mention>'
+    const figure = '<figure><img alt="Julian Boissy" title="Julian Boissy, Chef" src="https://x/avatar"><figcaption>\n    Julian\n  </figcaption></figure>'
+    const dq = basecamp.htmlText(
+      `<p>+ <bc-attachment sgid="S" content="${inner.replace(/"/g, '&quot;')}" content-type="application/vnd.basecamp.mention">${figure}</bc-attachment> pour info</p>`,
+    )
+    expect(dq).toBe('+ **@Julian Boissy** pour info')
+    const sq = basecamp.htmlText(
+      `<p><bc-attachment sgid="S" content-type="application/vnd.basecamp.mention" content='${inner.replace(/</g, '&lt;').replace(/>/g, '&gt;')}'>${figure}</bc-attachment> tu peux voir ?</p>`,
+    )
+    expect(sq).toBe('**@Julian Boissy** tu peux voir ?')
+    // description d'une carte : pas de figure, le nom n'est que dans `content` (titre de l'avatar)
+    const bare = basecamp.htmlText(`<p>+ <bc-attachment sgid="S" content="${inner.replace(/"/g, '&quot;')}" content-type="application/vnd.basecamp.mention"></bc-attachment> pour info</p>`)
+    expect(bare).toBe('+ **@Julian Boissy** pour info')
+    // sans avatar : le prénom affiché
+    expect(basecamp.htmlText('<bc-attachment content-type="application/vnd.basecamp.mention"><figcaption> Julian </figcaption></bc-attachment>')).toBe('**@Julian**')
   })
   it('les commentaires suivent les pages sans jamais quitter le compte', async () => {
     await connect()

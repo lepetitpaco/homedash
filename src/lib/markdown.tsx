@@ -13,6 +13,9 @@ export function inline(text: string): ReactNode[] {
     // image dans le texte (une case de tableau) : même règle d'adresse que les figures
     const img = /^!\[([^\]]*)\]\(([^)\s]+)\)$/.exec(part)
     if (img) return <img key={i} className="md-img" src={imageSrc(img[2])} alt={img[1]} loading="lazy" />
+    // `**@Prénom Nom**` : une mention (Basecamp), en pastille
+    if (part.length > 5 && part.startsWith('**@') && part.endsWith('**'))
+      return <strong key={i} className="md-mention">{part.slice(2, -2)}</strong>
     if (part.length > 4 && part.startsWith('**') && part.endsWith('**'))
       return <strong key={i}>{inline(part.slice(2, -2))}</strong>
     if (part.length > 1 && part.startsWith('`') && part.endsWith('`')) return <code key={i}>{part.slice(1, -1)}</code>
