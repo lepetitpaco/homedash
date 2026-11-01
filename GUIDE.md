@@ -300,6 +300,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🏕 Basecamp | La connexion, les repos où créer les issues |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
+| 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |

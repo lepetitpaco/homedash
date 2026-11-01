@@ -14,6 +14,9 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 ## Mes sites
 
 - Démarrage échelonné et anneaux ; onglet ouvert, précédent et suivant ; onglet temporaire, le garder.
+- `Ctrl+Tab` : appui rapide, `Ctrl` gardé, chiffres, clic, Échap, focus dans un site, barre cachée.
+- Barre : chaque disposition et taille, Réduire, Cacher, avec pastilles (non-lus, onglets, son, veille) et deux comptes.
+- Dossiers, 🐳 compris : glisser devant un site, un dossier, en bas ; regrouper ou supprimer le site à côté.
 - Réglages : mémoire, Libérer, Plus d'options, Catalogue, Configuration recommandée.
 - `⌘K` : actions par site.
 
@@ -49,9 +52,11 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 
 - Menu Branche : changer, refus si modifications, récupérer, nettoyer, journal du dev.
 
+## Docker
+
+- Désactivé par défaut, lignes par projet, éteints fades sans clic, démarrage et arrêt, autres ports au clic droit.
+- Appli installée : le socket est trouvé. Docker coupé : le message le dit.
+
 ## Bugs trouvés à revérifier
 
-- Guide en dev (:7778) : les captures `guide/*.jpg` ne se chargent pas.
 - Une action `⌘K` qui change de nom après usage : relancer la même recherche peut tomber sur le résultat Google.
-- Fenêtre « Créer une issue » à 800×600 : deux barres de défilement, celle de la fenêtre et celle de la liste.
-- Onglet GitHub : le compteur « lectures en échec » monte vite (541 → 721 en 5 min, le 2026-11-01).
