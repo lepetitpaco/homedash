@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { folderOf, moveTab, sessionOf, srcOf, tabKey } from '../lib/customTabs'
-import { moveFolder, railEntries } from '../lib/railOrder'
+import { keepFolderPlaces, moveFolder, railEntries } from '../lib/railOrder'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 
 /** Taille des icônes de la barre : petites, normales ou grandes. */
@@ -10,6 +10,18 @@ export type RailLabels = 'none' | 'right' | 'grid1' | 'grid2' | 'grid3' | 'text'
 
 const OPEN_KEY = 'homedash:rail-closed'
 const DOCKER_FOLDER = 'docker'
+/** Place du dossier 🐳 : calculé, il n'est pas dans la config ; préférence de l'écran. */
+const DOCKER_PLACE_KEY = 'homedash:rail-docker'
+type DockerPlace = { before?: string; at?: number }
+
+function readDockerPlace(): DockerPlace {
+  try {
+    const v = JSON.parse(localStorage.getItem(DOCKER_PLACE_KEY) ?? '{}') as DockerPlace
+    return v && typeof v === 'object' ? v : {}
+  } catch {
+    return {}
+  }
+}
 
 function readClosed(): string[] {
   try {
@@ -169,6 +181,34 @@ export default function Rail({
   const unread = (t: CustomTab) => (t.embed && t.notify !== false ? (counts[tabKey(t)] ?? 0) : 0)
   /** Glissé : un dossier (clé `f:id`), sinon un site. */
   const draggedFolder = drag?.startsWith('f:') ? drag.slice(2) : null
+  const [dockerPlace, setDockerPlaceState] = useState<DockerPlace>(readDockerPlace)
+  const setDockerPlace = (place: DockerPlace) => {
+    setDockerPlaceState(place)
+    try {
+      localStorage.setItem(DOCKER_PLACE_KEY, JSON.stringify(place))
+    } catch {
+      /* stockage indisponible */
+    }
+  }
+  const hasDocker = dockerSites.length + dockerOff.length > 0
+  /** Les dossiers de la barre, 🐳 compris à sa place. */
+  const railFolders: TabFolder[] = (() => {
+    if (!hasDocker) return folders
+    const list = [...folders]
+    list.splice(Math.min(dockerPlace.at ?? list.length, list.length), 0, {
+      id: DOCKER_FOLDER,
+      name: 'Docker',
+      ...(dockerPlace.before ? { before: dockerPlace.before } : {}),
+    })
+    return list
+  })()
+  /** Un dossier déplacé : 🐳 reste dans ce navigateur, les autres vont dans la config. */
+  const placeFolders = (next: TabFolder[]) => {
+    const at = next.findIndex((f) => f.id === DOCKER_FOLDER)
+    if (at >= 0) setDockerPlace({ ...(next[at].before ? { before: next[at].before } : {}), at })
+    const own = next.filter((f) => f.id !== DOCKER_FOLDER)
+    if (JSON.stringify(own) !== JSON.stringify(folders)) onFolders(own)
+  }
   const endDrag = () => {
     setDrag(null)
     setOver(null)
@@ -283,7 +323,7 @@ export default function Rail({
           e.preventDefault()
           e.stopPropagation()
           if (draggedFolder) {
-            onFolders(moveFolder(folders, draggedFolder, { tab: t.id }))
+            placeFolders(moveFolder(railFolders, draggedFolder, { tab: t.id }))
             return endDrag()
           }
           const dragged = tabs.find((x) => x.id === drag)
@@ -310,6 +350,17 @@ export default function Rail({
     )
   }
 
+  // Un site bouge ou disparaît : 🐳 reste à sa place, comme les autres dossiers.
+  const prevLoose = useRef(loose)
+  useEffect(() => {
+    const before = dockerPlace.before
+    const prev = prevLoose.current
+    prevLoose.current = loose
+    if (!before || prev === loose) return
+    const [kept] = keepFolderPlaces(prev, loose, [{ id: DOCKER_FOLDER, name: 'Docker', before }], () => true)
+    if (kept.before !== before) setDockerPlace({ ...dockerPlace, before: kept.before })
+  })
+
   // L'onglet affiché reste visible : un onglet ouvert en bas d'une longue barre
   // était créé hors de la partie visible (issue #53). Un nouveau clignote un instant.
   const navRef = useRef<HTMLElement>(null)
@@ -326,6 +377,54 @@ export default function Rail({
   useEffect(() => {
     navRef.current?.querySelector('.rail-list .is-active')?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
   }, [active, temps.length])
+
+  const dockerFolder = (
+          <div key={DOCKER_FOLDER} className={`rail-folder${closed.includes(DOCKER_FOLDER) ? '' : ' is-open'}`} style={{ ['--folder' as string]: '#2496ed' }}>
+            <div
+              className={`rail-item${closed.includes(DOCKER_FOLDER) && dockerSites.some((t) => active === tabKey(t)) ? ' is-active' : ''}${over?.id === `f:${DOCKER_FOLDER}` ? ' is-before' : ''}${drag === `f:${DOCKER_FOLDER}` ? ' is-dragging' : ''}`}
+              draggable
+              onDragStart={(e) => {
+                e.dataTransfer.effectAllowed = 'move'
+                e.dataTransfer.setData('text/plain', 'Docker')
+                setDrag(`f:${DOCKER_FOLDER}`)
+              }}
+              onDragEnd={endDrag}
+            >
+              <span className="rail-pill" aria-hidden="true" />
+              <button className="rail-btn rail-folder-btn" onClick={() => toggle(DOCKER_FOLDER)} title="Docker · Réglages → Docker pour choisir"
+                // Un dossier se place devant lui ; un site n'y entre pas, la liste est calculée.
+                onDragOver={(e) => {
+                  if (!draggedFolder || draggedFolder === DOCKER_FOLDER) return
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setOver({ id: `f:${DOCKER_FOLDER}`, zone: 'before' })
+                }}
+                onDrop={(e) => {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  if (draggedFolder) placeFolders(moveFolder(railFolders, draggedFolder, { folder: DOCKER_FOLDER }))
+                  endDrag()
+                }}>
+                <span className="rail-icon rail-folder-icon">{textOnly ? null : '🐳'}</span>
+                {wide ? <span className="rail-label rail-folder-name">Docker</span> : null}
+              </button>
+            </div>
+            {closed.includes(DOCKER_FOLDER) ? null : (
+              <div className="rail-kids">
+                {dockerSites.map(item)}
+                {dockerOff.map((d) => (
+                  <div key={d.id} className="rail-item is-stopped">
+                    <span className="rail-pill" aria-hidden="true" />
+                    <span className="rail-btn" title={`${d.label} · éteint`}>
+                      <span className="rail-icon">{textOnly ? null : d.icon}</span>
+                      {wide ? <span className="rail-label">{d.label}</span> : null}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+  )
 
   return (
     <nav
@@ -363,9 +462,10 @@ export default function Rail({
             </button>
           </div>
         ) : null}
-        {railEntries(loose, folders).map((entry) => {
+        {railEntries(loose, railFolders).map((entry) => {
           if ('tab' in entry) return item(entry.tab)
           const f = entry.folder
+          if (f.id === DOCKER_FOLDER) return dockerFolder
           const kids = inFolder(f)
           const open = !closed.includes(f.id)
           const sum = kids.reduce((s, t) => s + unread(t), 0)
@@ -405,7 +505,7 @@ export default function Rail({
                   onDrop={(e) => {
                     e.preventDefault()
                     e.stopPropagation()
-                    if (draggedFolder) onFolders(moveFolder(folders, draggedFolder, { folder: f.id }))
+                    if (draggedFolder) placeFolders(moveFolder(railFolders, draggedFolder, { folder: f.id }))
                     else if (drag) onTabs(moveTab(tabs, drag, null, f.id))
                     endDrag()
                   }}
@@ -430,32 +530,6 @@ export default function Rail({
             </div>
           )
         })}
-
-        {dockerSites.length || dockerOff.length ? (
-          <div className={`rail-folder${closed.includes(DOCKER_FOLDER) ? '' : ' is-open'}`} style={{ ['--folder' as string]: '#2496ed' }}>
-            <div className={`rail-item${closed.includes(DOCKER_FOLDER) && dockerSites.some((t) => active === tabKey(t)) ? ' is-active' : ''}`}>
-              <span className="rail-pill" aria-hidden="true" />
-              <button className="rail-btn rail-folder-btn" onClick={() => toggle(DOCKER_FOLDER)} title="Docker · Réglages → Docker pour choisir">
-                <span className="rail-icon rail-folder-icon">{textOnly ? null : '🐳'}</span>
-                {wide ? <span className="rail-label rail-folder-name">Docker</span> : null}
-              </button>
-            </div>
-            {closed.includes(DOCKER_FOLDER) ? null : (
-              <div className="rail-kids">
-                {dockerSites.map(item)}
-                {dockerOff.map((d) => (
-                  <div key={d.id} className="rail-item is-stopped">
-                    <span className="rail-pill" aria-hidden="true" />
-                    <span className="rail-btn" title={`${d.label} · éteint`}>
-                      <span className="rail-icon">{textOnly ? null : d.icon}</span>
-                      {wide ? <span className="rail-label">{d.label}</span> : null}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        ) : null}
 
         {temps.length ? (
           <div className="rail-temps" aria-label="Onglets temporaires">
@@ -514,7 +588,7 @@ export default function Rail({
         <div
           className={`rail-end${over?.id === 'end' ? ' is-over' : ''}`}
           {...dropZone('end', (id) =>
-            draggedFolder ? onFolders(moveFolder(folders, draggedFolder, {})) : onTabs(moveTab(tabs, id, null)),
+            draggedFolder ? placeFolders(moveFolder(railFolders, draggedFolder, {})) : onTabs(moveTab(tabs, id, null)),
           )}
         />
       </div>

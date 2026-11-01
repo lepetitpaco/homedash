@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { keepFolderPlaces, moveFolder, railEntries } from '../src/lib/railOrder.ts'
+import { keepFolderPlaces, moveFolder, placeForNew, railEntries } from '../src/lib/railOrder.ts'
 import type { CustomTab, TabFolder } from '../src/types.ts'
 
 const tab = (id: string, folder?: string) => ({ id, label: id, url: 'https://x.test', ...(folder ? { folder } : {}) }) as CustomTab
@@ -69,8 +69,35 @@ describe('un site bouge, les dossiers restent', () => {
     expect(next[0].before).toBeUndefined()
   })
 
+  it('ne bouge pas quand c’est le site d’après qui change de place', () => {
+    const four = [...all, tab('d')]
+    const list = [f('1', 'c')]
+    expect(keepFolderPlaces(four, [tab('d'), tab('a'), tab('b'), tab('c')], list, loose)).toBe(list)
+  })
+
+  it('reste quand son site est supprimé', () => {
+    const next = keepFolderPlaces(all, [tab('a'), tab('c')], [f('1', 'b')], loose)
+    expect(next[0].before).toBe('c')
+  })
+
+  it('reste quand son site et le suivant rejoignent un nouveau dossier', () => {
+    const next = keepFolderPlaces([...all, tab('d')], [tab('a'), tab('b', '9'), tab('c', '9'), tab('d')], [f('1', 'b')], loose)
+    expect(next[0].before).toBe('d')
+  })
+
   it('ne change rien si le site visé ne bouge pas', () => {
     const list = [f('1', 'c')]
     expect(keepFolderPlaces(all, [tab('b'), tab('a'), tab('c')], list, loose)).toBe(list)
+  })
+})
+
+describe('nouveau dossier', () => {
+  it('se place là où étaient ses sites', () => {
+    expect(placeForNew(all, ['a', 'b'])).toBe('c')
+    expect(placeForNew(all, ['b'])).toBe('c')
+  })
+
+  it('va en bas s’il n’y a rien après', () => {
+    expect(placeForNew(all, ['c', 'b'])).toBeUndefined()
   })
 })

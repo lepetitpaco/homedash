@@ -916,9 +916,10 @@
     border-right: 0;
     border-bottom: 1px solid var(--border-soft);
   }
+  /* Une seule barre de défilement : celle de la fenêtre. */
   .is-composing .ic-source {
     flex: none;
-    max-height: 34vh;
+    overflow: visible;
   }
   .ic-form {
     overflow: visible;

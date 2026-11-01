@@ -43,16 +43,24 @@ export function moveFolder(folders: TabFolder[], id: string, target: { tab?: str
 export function keepFolderPlaces(prevLoose: CustomTab[], nextTabs: CustomTab[], folders: TabFolder[], isLoose: (t: CustomTab) => boolean): TabFolder[] {
   const ids = prevLoose.map((t) => t.id)
   const next = nextTabs.filter(isLoose).map((t) => t.id)
-  const followerIn = (list: string[], id: string) => list[list.indexOf(id) + 1]
+  const same = (a: string[], b: string[]) => a.length === b.length && a.every((x, i) => x === b[i])
+  if (same(ids, next)) return folders
+  // A-t-il bougé ? Absent de la liste, ou seul à différer entre les deux ordres.
+  const moved = (id: string) => !next.includes(id) || same(ids.filter((x) => x !== id), next.filter((x) => x !== id))
   let changed = false
   const out = folders.map((f) => {
-    if (!f.before || !ids.includes(f.before)) return f
-    if (next.includes(f.before) && followerIn(next, f.before) === followerIn(ids, f.before)) return f
-    // Le site visé a bougé : on cherche le premier suivant qui existe encore.
-    const stay = ids.slice(ids.indexOf(f.before) + 1).find((x) => x !== f.before && next.includes(x))
+    if (!f.before || !ids.includes(f.before) || !moved(f.before)) return f
+    const stay = ids.slice(ids.indexOf(f.before) + 1).find((x) => next.includes(x) && !moved(x))
     changed = true
     const { before: _old, ...rest } = f
     return stay ? { ...rest, before: stay } : rest
   })
   return changed ? out : folders
+}
+
+/** Où placer un nouveau dossier fait de ces sites : là où était le premier, devant le site suivant. */
+export function placeForNew(loose: CustomTab[], ids: string[]): string | undefined {
+  const order = loose.map((t) => t.id)
+  const at = order.indexOf(ids[0])
+  return at < 0 ? undefined : order.slice(at + 1).find((x) => !ids.includes(x))
 }
