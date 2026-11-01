@@ -36,5 +36,5 @@ Branches : `<qui>/<type>/<nom>`. Le tag et la Release partent seuls à la fusion
 
 1. `git fetch --tags --prune origin`. Arrêt si la tête de `CHANGELOG.md` sur `origin/preprod` n'est pas une nouvelle version, si `desktop/package.json` diffère, ou si `CHANGELOG-dev.md` a encore des lignes.
 2. PR de `preprod` vers `main` : titre `X.Y.Z`, corps = l'entrée du changelog.
-3. **S'arrêter. Réservé à la personne : fusionner par commit de fusion, avec `lepetitpaco` (admin, passe outre l'approbation requise). Une PR ouverte par un autre compte s'approuve normalement.**
+3. **S'arrêter. Réservé à la personne : fusionner par commit de fusion, avec `lepetitpaco` (admin, passe outre l'approbation requise) ou `davidgennaoui` (owner : l'un approuve la PR de l'autre).**
 4. Après sa fusion : vérifier que la Release existe et que `preprod` est toujours là.
