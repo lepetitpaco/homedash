@@ -87,4 +87,4 @@ Doc seule : pas de version. Du code sur `main` sans nouvelle version fait échou
 
 `sh docs/demo/capture.sh` reprend les captures de `docs/screenshots/` : la vraie page, sur une instance
 de démo aux données fictives (`docs/demo/`), dans Docker. Celles des sites ouverts dans l'appli
-(`site-dans-un-onglet`, clics droits, onglet temporaire, barre) se prennent à la main dans l'appli.
+(`site-dans-un-onglet`, clic droit sur un lien ou un site, onglet temporaire) se prennent à la main dans l'appli.

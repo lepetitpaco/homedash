@@ -33,11 +33,15 @@ Clic droit dessus : le garder, copier son lien, ou l'ajouter à *Mes sites*.
 
 ## La barre de gauche
 
-![La barre : icônes et titres, icônes, petites icônes](screenshots/barre-trois-largeurs.jpg)
+![La barre : icônes et titres, 2 colonnes, titres, icônes, petites icônes](screenshots/barre-trois-largeurs.jpg)
+
+![Le panneau Disposition et taille](screenshots/barre-disposition.jpg)
 
 Clic droit sur la barre, *Disposition et taille…* : icônes, icônes et titres, titres, ou tuiles sur 1 à 3 colonnes, en
 petit, normal ou grand. Les dossiers se placent où tu veux, se replient et montrent leurs quatre premières icônes et le
 total des non-lus. `Ctrl+Tab` passe d'un site à l'autre.
+
+![Ctrl+Tab : changer de site](screenshots/changer-de-site.jpg)
 
 ## Raccourcis
 

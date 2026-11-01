@@ -55,6 +55,8 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
 - **Cacher la barre** : clic droit sur la barre, hors d'une icône.
 
+![Disposition et taille de la barre](docs/screenshots/barre-disposition.jpg)
+
 | Ajouter un site | Clic droit sur une icône |
 | --- | --- |
 | ![](docs/screenshots/nouvel-onglet.jpg) | ![](docs/screenshots/menu-d-un-onglet.jpg) |
@@ -115,6 +117,8 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
   l'appli tourne.
 
 #### Raccourcis
+
+![Ctrl+Tab : changer de site](docs/screenshots/changer-de-site.jpg)
 
 | Mac | Windows | Action |
 | --- | --- | --- |
