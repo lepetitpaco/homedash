@@ -1,9 +1,9 @@
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { Markdown } from '../lib/markdown'
 
 export type ThreadMessage = { id: string | number; who: string; date: string; text: string }
 
-const initials = (who: string) =>
+export const initials = (who: string) =>
   who
     .split(/\s+/)
     .filter(Boolean)
@@ -12,7 +12,7 @@ const initials = (who: string) =>
     .join('') || '?'
 
 /** La même personne garde la même couleur dans une conversation. */
-const hue = (who: string) => [...who].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)
+export const hue = (who: string) => [...who].reduce((h, c) => (h * 31 + c.charCodeAt(0)) % 360, 7)
 
 const parsed = (date: string) => {
   const d = new Date(date)
@@ -60,6 +60,7 @@ export default function Thread({ messages, focus, render, picked, onToggle, acti
             {newDay ? <div className="th-day"><span>{dayOf(m.date)}</span></div> : null}
             <div
               className={`th-msg${same ? ' is-same' : ''}${on ? ' is-on' : ''}${focus === m.id ? ' is-focus' : ''}`}
+              style={{ '--hue': hue(m.who) } as CSSProperties}
               onClick={onToggle ? (e) => !(e.target as HTMLElement).closest('a') && onToggle(m.id) : undefined}
               role={onToggle ? 'checkbox' : undefined}
               aria-checked={onToggle ? !!on : undefined}
@@ -67,9 +68,10 @@ export default function Thread({ messages, focus, render, picked, onToggle, acti
               onKeyDown={onToggle ? (e) => e.key === ' ' && (e.preventDefault(), onToggle(m.id)) : undefined}
             >
               {same ? (
-                <span className="th-side" />
+                // message suivant de la même personne : son heure, à gauche, au survol
+                <span className="th-side"><time>{timeOf(m.date)}</time></span>
               ) : (
-                <span className="th-avatar" style={{ background: `hsl(${hue(m.who)} 45% 42%)` }} aria-hidden="true">
+                <span className="th-avatar" aria-hidden="true">
                   {initials(m.who)}
                 </span>
               )}
