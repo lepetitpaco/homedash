@@ -30,6 +30,8 @@ docker compose -f docker-compose.dev.yml up -d        # http://homedash-dev.loca
 
 - Une modif dans `src/` s'affiche tout de suite (Vite) ; une modif dans `server/` relance le serveur.
 - Les données du dev sont dans `data-dev/`, à part des vraies.
+- Le container monte le socket Docker, pour *Réglages → Docker*. Si tu viens d'une version sans ce montage, relance
+  `docker compose -f docker-compose.dev.yml up -d`, sinon homedash n'arrive pas à joindre Docker.
 
 **Dans l'appli** (onglets de sites, pastilles, Dock…) : l'appli « homedash dev », éclair **orange**,
 branchée sur le Docker de dev, avec son propre profil. Elle cohabite avec l'appli normale.

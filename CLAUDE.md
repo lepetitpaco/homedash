@@ -267,6 +267,13 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = onglets perso et éphémères **sans** espace. Espace disparu = éphémère seul.
 
+**Docker** (`docker.ts`)
+- Le socket donne le contrôle de la machine : une seule requête, `GET /containers/json?all=1`, écrite en dur. Rien d'autre,
+  ni démarrer ni arrêter. Contacté seulement si `docker.enabled`, ou `?probe=1` depuis Réglages. Testé.
+- Les lignes sont calculées : jamais dans `tabs` de la config (ids `dk-…`). La place du dossier reste dans le navigateur
+  (`homedash:rail-docker`), celle des autres dans `tabFolders[].before`.
+- Éteints : seulement les projets Compose, sinon les restes de `docker run` envahiraient la liste.
+
 **Performance** (revue du 2026-10-20)
 - Chaque site chargé dans l'appli = un processus de 100 à 400 Mo : montés au démarrage, un par un, seulement si
   `preloads()` (sites à non-lus), sinon au premier clic ; `sleep` les décharge.

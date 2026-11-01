@@ -5,6 +5,9 @@ status: implemented
 
 # Plan: changer de site au clavier, noms dans la barre, liens Docker
 
+> Livré en 2.4.0. La suite des essais a changé des choix de ce plan : disposition et taille en phase 2, une ligne par projet
+> en phase 3. Le code et `GUIDE.md` font foi.
+
 ## Overview
 
 | Field      | Value                                                 |
