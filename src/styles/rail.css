@@ -616,12 +616,12 @@ body {
   backdrop-filter: blur(6px);
 }
 .site-switcher {
-  width: min(880px, 90vw);
-  max-height: 84vh;
+  width: min(640px, 92vw);
+  max-height: 80vh;
   display: flex;
   flex-direction: column;
   border: 1px solid color-mix(in srgb, #60a5fa 45%, var(--border));
-  border-radius: 20px;
+  border-radius: 14px;
   background: var(--panel);
   box-shadow: 0 24px 80px rgb(0 0 0 / 65%);
   overflow: hidden;
@@ -629,21 +629,21 @@ body {
 .site-switcher-head {
   display: flex;
   align-items: baseline;
-  gap: 12px;
+  gap: 8px;
   min-width: 0;
-  padding: 18px 22px 12px;
+  padding: 10px 14px 6px;
 }
 .site-switcher-head strong {
   overflow: hidden;
   color: var(--text);
-  font-size: 1.45rem;
+  font-size: 1rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .site-switcher-head span {
   overflow: hidden;
   color: var(--text-dim);
-  font-size: 0.9rem;
+  font-size: 0.74rem;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -652,20 +652,20 @@ body {
   min-height: 0;
   overflow-y: auto;
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
-  gap: 10px;
-  padding: 6px 18px 16px;
+  grid-template-columns: repeat(auto-fill, minmax(88px, 1fr));
+  gap: 4px;
+  padding: 4px 10px 10px;
 }
 .site-switcher-tile {
   position: relative;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 7px;
+  gap: 3px;
   min-width: 0;
-  padding: 16px 8px 10px;
+  padding: 7px 4px 5px;
   border: 2px solid transparent;
-  border-radius: 14px;
+  border-radius: 10px;
   background: var(--panel-2);
   color: var(--text);
   font: inherit;
@@ -675,19 +675,18 @@ body {
   border-color: #fff;
   background: #2563eb;
   color: #fff;
-  box-shadow: 0 8px 26px rgb(37 99 235 / 55%);
-  transform: scale(1.05);
-}
+  box-shadow: 0 3px 12px rgb(37 99 235 / 50%);
+  }
 .site-switcher-tile.is-asleep .site-switcher-icon {
   filter: grayscale(1);
   opacity: 0.65;
 }
 .site-switcher-digit {
   position: absolute;
-  top: 6px;
-  left: 7px;
+  top: 4px;
+  left: 5px;
   color: var(--text-faint);
-  font: 700 0.72rem/1 inherit;
+  font: 700 0.62rem/1 inherit;
 }
 .site-switcher-tile.is-on .site-switcher-digit,
 .site-switcher-tile.is-on .site-switcher-sub {
@@ -695,48 +694,47 @@ body {
 }
 .site-switcher-icon {
   position: relative;
-  width: 54px;
-  height: 54px;
-  display: grid;
-  place-items: center;
-  border-radius: 16px;
-  background: var(--bg);
-  font-size: 1.7rem;
-}
-.site-switcher-icon .favicon {
   width: 34px;
   height: 34px;
-  border-radius: 8px;
+  display: grid;
+  place-items: center;
+  border-radius: 10px;
+  background: var(--bg);
+  font-size: 1.15rem;
+}
+.site-switcher-icon .favicon {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
 }
 .site-switcher-badge {
   position: absolute;
-  right: -7px;
-  top: -7px;
-  min-width: 20px;
-  padding: 0 5px;
-  border-radius: 10px;
+  right: -6px;
+  top: -6px;
+  min-width: 15px;
+  padding: 0 3px;
+  border-radius: 8px;
   background: #ef4444;
   color: #fff;
-  font-size: 0.72rem;
+  font-size: 0.62rem;
   font-weight: 800;
-  line-height: 20px;
+  line-height: 15px;
   text-align: center;
 }
 .site-switcher-name {
   width: 100%;
   overflow: hidden;
-  font-size: 0.88rem;
-  font-weight: 700;
+  font-size: 0.74rem;
+  font-weight: 600;
   text-align: center;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .site-switcher-sub {
   width: 100%;
-  min-height: 1em;
   overflow: hidden;
   color: var(--text-dim);
-  font-size: 0.7rem;
+  font-size: 0.62rem;
   line-height: 1;
   text-align: center;
   text-overflow: ellipsis;
@@ -746,24 +744,19 @@ body {
   display: flex;
   flex-wrap: wrap;
   justify-content: center;
-  gap: 6px 22px;
-  padding: 11px 16px;
+  gap: 3px 14px;
+  padding: 6px 10px;
   border-top: 1px solid var(--border);
   color: var(--text-dim);
-  font-size: 0.76rem;
+  font-size: 0.66rem;
 }
 .site-switcher-foot kbd {
-  padding: 1px 6px;
+  padding: 0 4px;
   border: 1px solid var(--border);
   border-radius: 5px;
   background: var(--panel-2);
   color: var(--text);
   font: inherit;
-}
-@media (prefers-reduced-motion: reduce) {
-  .site-switcher-tile.is-on {
-    transform: none;
-  }
 }
 .site-switcher-digit {
   border: 0;

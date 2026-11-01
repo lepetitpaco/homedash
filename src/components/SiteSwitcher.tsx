@@ -57,7 +57,7 @@ export default function SiteSwitcher({
                 {s.unread ? <span className="site-switcher-badge">{s.unread > 99 ? '99+' : s.unread}</span> : null}
               </span>
               <span className="site-switcher-name">{s.label}</span>
-              <span className="site-switcher-sub">{s.asleep ? '💤 en veille' : (s.session?.name ?? ' ')}</span>
+              {s.asleep || s.session ? <span className="site-switcher-sub">{s.asleep ? '💤 en veille' : s.session?.name}</span> : null}
             </button>
           ))}
         </div>
