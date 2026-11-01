@@ -263,6 +263,12 @@ export type Config = {
   tabSessions?: TabSession[]
   /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
   features?: Partial<Record<Feature, boolean>>
+  /** Liens vers les containers Docker (Réglages → Docker). Absent = désactivé. */
+  docker?: {
+    enabled?: boolean
+    /** Liens décochés (`nom-port`). Absent = tous, y compris les nouveaux. */
+    hidden?: string[]
+  }
   /** Onglet Basecamp. Tout est facultatif : absent = défaut. */
   basecamp?: {
     /** Projets masqués (ids). Absent = tout afficher, y compris les nouveaux. */

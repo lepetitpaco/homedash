@@ -30,6 +30,8 @@ import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
 import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
+import { useDocker } from './lib/docker'
+import { dockerTabs } from './lib/dockerTabs'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
@@ -126,7 +128,11 @@ export default function App() {
   const regularTabs = useMemo(() => customTabs.filter((t) => !t.kept), [customTabs])
   const keptTabs = useMemo(() => customTabs.filter((t) => t.kept), [customTabs])
   const allTemps = useMemo(() => [...keptTabs, ...temps], [keptTabs, temps])
-  const allTabs = useMemo(() => [...regularTabs, ...allTemps], [regularTabs, allTemps])
+  // Containers Docker (issue #104) : des sites calculés, jamais dans la config.
+  const dockerState = useDocker(raw?.docker?.enabled === true)
+  const dockerHidden = raw?.docker?.hidden
+  const dockerSites = useMemo(() => dockerTabs(dockerState.links, dockerHidden), [dockerState.links, dockerHidden])
+  const allTabs = useMemo(() => [...regularTabs, ...allTemps, ...dockerSites], [regularTabs, allTemps, dockerSites])
   // Onglets ouverts par un lien, rangés dans l'espace d'où il vient : le dash ou un
   // onglet perso, en onglets en haut de celui-ci. Espace disparu = éphémère seul.
   const parentOf = useCallback(
@@ -1899,6 +1905,7 @@ export default function App() {
           sessions={tabSessions}
           active={railActive}
           mode={railMode}
+          dockerSites={dockerSites}
           icons={iconOf}
           counts={tabCounts}
           onHome={() => {
@@ -1972,7 +1979,11 @@ export default function App() {
             tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
             session={sessionOf(t, tabSessions)}
             hidden={view !== tabKey(t)}
-            onSettings={() => openTabSettings(t.id)}
+            onSettings={() => {
+              if (!dockerSites.includes(t)) return openTabSettings(t.id)
+              presetSettingsSection('set-docker')
+              selectTab('settings')
+            }}
             onCopyLink={() => copyTabLink(t)}
             copied={copiedKey === `tab:${t.id}`}
             onGuest={(id) => guestTab.current.set(id, t.id)}

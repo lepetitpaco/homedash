@@ -12,6 +12,7 @@ import path from 'node:path'
 
 import * as accounts from './accounts.ts'
 import * as backup from './backup.ts'
+import * as docker from './docker.ts'
 import * as basecamp from './basecamp.ts'
 import * as errlog from './errlog.ts'
 import * as events from './events.ts'
@@ -453,6 +454,12 @@ async function apiGet(req: Req): Promise<Res> {
   if (p === '/api/perf/report') {
     const days = perfreport.report(perflog.perfDir(), Math.max(1, Math.min(30, Math.trunc(Number(q(req, 'days') || 7)) || 7)))
     return json({ days, text: perfreport.text(days) })
+  }
+  if (p === '/api/docker') {
+    // Désactivé : le socket n'est pas contacté. `probe` : Réglages, option cochée, pas encore enregistrée.
+    const cfg = store.read(store.CONFIG, {}) as { docker?: { enabled?: unknown } }
+    if (cfg.docker?.enabled !== true && !q(req, 'probe')) return json({ available: false, links: [] })
+    return json(await docker.read())
   }
   if (p === '/api/health')
     return json({ ok: true, github: accounts.enabled(), basecamp: basecamp.connected(), trello: trello.connected(), local: localgit.enabled(), accounts: accounts.allMods().length, version: updates.current(), browser_access: browserAccess })

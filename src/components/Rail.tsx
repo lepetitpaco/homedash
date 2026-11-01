@@ -6,6 +6,7 @@ import type { CustomTab, TabFolder, TabSession } from '../types'
 export type RailMode = 'wide' | 'icons' | 'mini' | 'hidden'
 
 const OPEN_KEY = 'homedash:rail-closed'
+const DOCKER_FOLDER = 'docker'
 
 function readClosed(): string[] {
   try {
@@ -49,6 +50,8 @@ type Props = {
   /** Onglet perso ouvert (`x:…`), `settings`, ou null quand on est dans homedash. */
   active: string | null
   mode: RailMode
+  /** Containers Docker : leur dossier, calculé, ni glissable ni modifiable. */
+  dockerSites: CustomTab[]
   icons: Record<string, ReactNode>
   counts: Record<string, number>
   /** Onglets ouverts dans chaque espace (`x:…`, `links` pour le dash) : visibles d'ici (issue #60). */
@@ -97,6 +100,7 @@ export default function Rail({
   sessions,
   active,
   mode,
+  dockerSites,
   icons,
   counts,
   kids,
@@ -169,6 +173,7 @@ export default function Rail({
   }
   const item = (t: CustomTab) => {
     const key = tabKey(t)
+    const fixed = dockerSites.includes(t)
     const own = sessionOf(t, sessions)
     // Le compte de tout son dossier : pas répété sur chaque icône (issue #60),
     // seulement l'exception. Le nom au survol le dit toujours.
@@ -224,7 +229,7 @@ export default function Rail({
       <div
         key={t.id}
         className={`rail-item${active === key ? ' is-active' : ''}${zone ? ` is-${zone}` : ''}${drag === t.id ? ' is-dragging' : ''}${asleep.includes(key) ? ' is-asleep' : ''}${warming.includes(key) ? ' is-warming' : ''}`}
-        draggable
+        draggable={!fixed}
         onDragStart={(e) => {
           e.dataTransfer.effectAllowed = 'move'
           e.dataTransfer.setData('text/plain', t.label)
@@ -233,10 +238,10 @@ export default function Rail({
         onDragEnd={endDrag}
         onContextMenu={(e) => {
           e.preventDefault()
-          onTabMenu(e, t)
+          if (!fixed) onTabMenu(e, t)
         }}
         onDragOver={(e) => {
-          if (!drag || drag === t.id) return
+          if (!drag || drag === t.id || fixed) return
           e.preventDefault()
           e.stopPropagation()
           // Haut de l'icône : placer avant ; le reste : réunir (comme Discord).
@@ -367,6 +372,19 @@ export default function Rail({
             </div>
           )
         })}
+
+        {dockerSites.length ? (
+          <div className={`rail-folder${closed.includes(DOCKER_FOLDER) ? '' : ' is-open'}`} style={{ ['--folder' as string]: '#2496ed' }}>
+            <div className={`rail-item${closed.includes(DOCKER_FOLDER) && dockerSites.some((t) => active === tabKey(t)) ? ' is-active' : ''}`}>
+              <span className="rail-pill" aria-hidden="true" />
+              <button className="rail-btn rail-folder-btn" onClick={() => toggle(DOCKER_FOLDER)} title="Docker · Réglages → Docker pour choisir">
+                <span className="rail-icon rail-folder-icon">🐳</span>
+                {wide ? <span className="rail-label rail-folder-name">Docker</span> : null}
+              </button>
+            </div>
+            {closed.includes(DOCKER_FOLDER) ? null : <div className="rail-kids">{dockerSites.map(item)}</div>}
+          </div>
+        ) : null}
 
         {temps.length ? (
           <div className="rail-temps" aria-label="Onglets temporaires">
