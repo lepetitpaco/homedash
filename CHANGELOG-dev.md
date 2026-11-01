@@ -5,4 +5,8 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 
 ## paco/docs/captures-2.4.0
 
-- Doc : captures de la barre, du panneau et de Ctrl+Tab reprises, désormais refaites par `capture.sh`. Seul `@lepetitpaco` reçoit les demandes de relecture.
+- Doc : captures de la barre, du panneau et de Ctrl+Tab reprises, désormais refaites par `capture.sh`.
+
+## paco/chore/deux-owners
+
+- Doc : qui peut quoi sur le dépôt, et les deux comptes du propriétaire restent owners.

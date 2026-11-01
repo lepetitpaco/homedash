@@ -60,6 +60,11 @@ supprimées. Branche refusée en preprod : `git revert` de sa fusion. Correctif 
 **Pour une IA** : crée toujours la branche sous ce format, avec le prénom de la personne qui te le demande (demande-le
 s'il n'est pas connu), et jamais directement sur `main` ou `preprod`.
 
+**Qui peut quoi.** Dépôt personnel : seul `lepetitpaco` peut être admin, et GitHub ne réserve pas le bouton Fusionner à des
+comptes choisis. `lepetitpaco` et `davidgennaoui` sont la même personne, tous deux owners (CODEOWNERS) : l'un approuve la PR
+de l'autre, et `lepetitpaco` peut passer outre (`gh pr merge <n> --merge --admin`). Les autres collaborateurs : branches,
+push, fusion vers `preprod` ; pas de validation vers `main`. Ne jamais retirer l'approbation de `main` : ils pourraient publier.
+
 **Avant la pull request** (on ne pousse directement ni sur `main` ni sur `preprod`) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
   `CHANGELOG.md` **après** synchronisation, et un tag déjà pris ne se réutilise pas.
