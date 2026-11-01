@@ -11,6 +11,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 
 - Mes sites : un dossier garde sa place quand on regroupe ou supprime le site à côté de lui, et un nouveau dossier se crée là où étaient ses sites. Le ✕ d'un onglet temporaire ne recouvre plus sa pastille en mode Titres, et les pastilles d'un site chargé se chevauchent moins. La barre réduite coche la disposition choisie. Le dossier Docker se déplace comme les autres.
 - Après l'arrêt d'un site Docker ouvert, le titre de la fenêtre revient à Raccourcis.
+- Créer une issue à petite taille : une seule barre de défilement.
 - GitHub : un dépôt disparu est retiré tout seul de la liste (sauvegarde avant, ligne dans la cloche), au lieu de consommer le quota.
 
 ## paco/feature/dossiers-deplacables
