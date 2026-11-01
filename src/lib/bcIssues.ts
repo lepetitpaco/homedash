@@ -168,8 +168,11 @@ export function claudeCommand(dir: string, prompt: string): string {
   return `cd ${at} && claude '${prompt.replace(/'/g, '’')}'`
 }
 
-/** Un échange (commentaire) de la tâche, en Markdown. */
+/** Un échange (commentaire) de la tâche, en Markdown ; `date` complète (ISO). */
 export type BcComment = { id: number; who: string; date: string; text: string }
+
+/** Qui a créé la tâche, et quand (ISO) ; vides si Basecamp ne le dit pas. */
+export type BcAuthor = { who: string; date: string }
 
 /** Échanges retenus par défaut : les plus récents (un projet au long cours en a déjà réglé beaucoup). */
 export const RECENT_COMMENTS = 5
@@ -181,19 +184,19 @@ export const RECENT_COMMENTS = 5
  */
 export async function taskText(
   url: string,
-): Promise<{ text: string; comments: BcComment[]; images: Record<string, string> }> {
+): Promise<{ text: string; creator: BcAuthor; comments: BcComment[]; images: Record<string, string> }> {
   const res = await fetch(`api/basecamp/task?${new URLSearchParams({ url })}`, { cache: 'no-store' })
   const out = (await res.json().catch(() => null)) as
-    | { text?: string; comments?: BcComment[]; images?: Record<string, string>; error?: string }
+    | { text?: string; creator?: BcAuthor; comments?: BcComment[]; images?: Record<string, string>; error?: string }
     | null
   if (!res.ok) throw new Error(out?.error ?? `HTTP ${res.status}`)
-  return { text: out?.text ?? '', comments: out?.comments ?? [], images: out?.images ?? {} }
+  return { text: out?.text ?? '', creator: out?.creator ?? { who: '', date: '' }, comments: out?.comments ?? [], images: out?.images ?? {} }
 }
 
 /** Échanges retenus, en fin de Besoin (ordre chronologique). */
 export function commentsMarkdown(list: BcComment[]): string {
   if (!list.length) return ''
-  return ['### Échanges retenus (Basecamp)', '', ...list.map((c) => `**${c.who}** (${c.date}) :\n${c.text}\n`)]
+  return ['### Échanges retenus (Basecamp)', '', ...list.map((c) => `**${c.who}** (${c.date.slice(0, 10)}) :\n${c.text}\n`)]
     .join('\n')
     .trim()
 }
