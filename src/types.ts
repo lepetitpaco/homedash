@@ -214,6 +214,8 @@ export type TabFolder = {
   color?: string
   /** Compte de tout le dossier (id de `tabSessions`) : repris par les sites qu'on y ajoute. */
   session?: string
+  /** Site devant lequel le dossier est placé dans la barre. Absent ou site disparu : en bas. */
+  before?: string
 }
 
 /**

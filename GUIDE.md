@@ -49,7 +49,7 @@ même sans aucun site : son **＋** ajoute le premier.
   modifier, supprimer).
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
-- **Ranger** : glisse une icône sur une autre pour créer un dossier.
+- **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
 - **Cacher la barre** : clic droit sur la barre, hors d'une icône.
 
 | Ajouter un site | Clic droit sur une icône |
