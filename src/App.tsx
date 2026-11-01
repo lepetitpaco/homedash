@@ -6,6 +6,7 @@ import BasecampView, { showBcIssues, showBcTask } from './components/BasecampVie
 import TrelloView, { showTrIssues, showTrTask } from './components/TrelloView'
 import TrIssueHost, { askTrIssue } from './components/TrIssueHost'
 import CustomTabView from './components/CustomTabView'
+import DockerIcon from './components/DockerIcon'
 import SiteIcon, { isImageIcon, setIconProvider } from './components/SiteIcon'
 import NameColorHost, { askNameColor } from './components/NameColorHost'
 import { confirmDialog } from './components/ConfirmHost'
@@ -32,6 +33,8 @@ import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
 import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
+import { useDocker } from './lib/docker'
+import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
@@ -153,7 +156,12 @@ export default function App() {
   const regularTabs = useMemo(() => customTabs.filter((t) => !t.kept), [customTabs])
   const keptTabs = useMemo(() => customTabs.filter((t) => t.kept), [customTabs])
   const allTemps = useMemo(() => [...keptTabs, ...temps], [keptTabs, temps])
-  const allTabs = useMemo(() => [...regularTabs, ...allTemps], [regularTabs, allTemps])
+  // Containers Docker (issue #104) : des sites calculés, jamais dans la config.
+  const dockerState = useDocker(raw?.docker?.enabled === true)
+  const dockerHidden = raw?.docker?.hidden
+  const dockerSites = useMemo(() => dockerTabs(dockerState.entries, dockerHidden), [dockerState.entries, dockerHidden])
+  const dockerOff = useMemo(() => dockerStopped(dockerState.entries, dockerHidden), [dockerState.entries, dockerHidden])
+  const allTabs = useMemo(() => [...regularTabs, ...allTemps, ...dockerSites], [regularTabs, allTemps, dockerSites])
   // Onglets ouverts par un lien, rangés dans l'espace d'où il vient : le dash ou un
   // onglet perso, en onglets en haut de celui-ci. Espace disparu = éphémère seul.
   const parentOf = useCallback(
@@ -817,8 +825,9 @@ export default function App() {
           : true,
   )
   // Actions sur chaque site, dans la recherche. Les fonctions sont définies plus bas (comme `openTempRef`).
+  // Pas de site Docker ici : ces actions écrivent dans la config, où ils n'existent pas.
   const siteCommands: Command[] = allTabs
-    .filter((t) => t.embed && !isLocal(t.url))
+    .filter((t) => t.embed && !isLocal(t.url) && !dockerSites.includes(t))
     .flatMap((t) => {
       const key = tabKey(t)
       const name = t.label
@@ -993,10 +1002,13 @@ export default function App() {
   // un seul bloc (« duo »), chacun garde son clic.
   const code = { id: 'code', title: 'Ton code : en ligne (GitHub) et sur ton disque (Local)' }
   // Image ou emoji choisi, sinon l'icône du site, recadrée pour que toutes aient la même échelle.
+  const dockerEntry = (t: CustomTab) => dockerState.entries.find((e) => dockerTabId(e) === t.id)
   const iconOf: Record<string, React.ReactNode> = Object.fromEntries(
     allTabs.map((t) => [
       t.id,
-      isImageIcon(t.icon) ? (
+      dockerEntry(t) ? (
+        <DockerIcon name={t.label} />
+      ) : isImageIcon(t.icon) ? (
         <SiteIcon url={t.url} name={t.label} image={t.icon} />
       ) : t.icon ? (
         t.icon
@@ -1302,6 +1314,17 @@ export default function App() {
     // Réglages déjà ouvert : il bascule lui-même, sans perdre un brouillon.
     if (tab === 'settings') window.dispatchEvent(new Event(NEW_TAB_EVENT))
     else selectTab('settings')
+  }
+  /** Clic droit sur une ligne Docker : ses autres ports, repliés ici pour ne pas encombrer la barre. */
+  const dockerMenu = (e: React.MouseEvent, t: CustomTab) => {
+    const ports = dockerEntry(t)?.ports ?? []
+    if (ports.length < 2) return
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: t.label,
+      items: ports.slice(1).map((p) => ({ icon: '🔌', label: `Ouvrir le port ${p.port}`, onSelect: () => openTemp(p.url) })),
+    })
   }
   /** ⚡ : le dash, à sa dernière vue (Raccourcis si on y est déjà). */
   const goHome = () => {
@@ -1815,6 +1838,7 @@ export default function App() {
         ...childEntries(DASH),
         ...regularTabs.flatMap((t) => [entry(t), ...childEntries(tabKey(t))]),
         ...allTemps.filter((t) => !parentOf(t)).map(entry),
+        ...dockerSites.map(entry),
         { id: 'settings' as TabId, icon: '⚙', label: 'Réglages' },
       ]
     : space === DASH
@@ -1997,6 +2021,9 @@ export default function App() {
           size={railSize}
           labels={shownLabels}
           collapse={railLabels === 'none' ? undefined : { open: railOpen, onToggle: () => changeRailOpen(!railOpen) }}
+          dockerSites={dockerSites}
+          dockerOff={dockerOff.map((e) => ({ id: e.id, label: e.label, icon: <DockerIcon name={e.label} /> }))}
+          onDockerMenu={dockerMenu}
           icons={iconOf}
           counts={tabCounts}
           onHome={goHome}
@@ -2069,7 +2096,11 @@ export default function App() {
             tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
             session={sessionOf(t, tabSessions)}
             hidden={view !== tabKey(t)}
-            onSettings={() => openTabSettings(t.id)}
+            onSettings={() => {
+              if (!dockerSites.includes(t)) return openTabSettings(t.id)
+              presetSettingsSection('set-docker')
+              selectTab('settings')
+            }}
             onCopyLink={() => copyTabLink(t)}
             copied={copiedKey === `tab:${t.id}`}
             onGuest={(id) => guestTab.current.set(id, t.id)}

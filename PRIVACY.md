@@ -39,6 +39,7 @@ Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en deh
 - L'appli **n'ouvre aucun port** : rien n'écoute sur ta machine. Seule l'option *Accès depuis le
   navigateur* (désactivée par défaut) ouvre `localhost:7777`, joignable depuis ta machine seulement.
 - L'onglet **Local lit** tes dossiers de code sans rien y écrire ni lancer de commande.
+- L'option **Docker** (désactivée par défaut) lit la liste de tes containers sur ta machine, sans rien y changer ni l'envoyer ailleurs.
 - Le code est ouvert : tout ceci se vérifie dans ce dépôt (`server/`, `desktop/`).
 
 Une question : [ouvre une issue](https://github.com/lepetitpaco/homedash/issues/new).
