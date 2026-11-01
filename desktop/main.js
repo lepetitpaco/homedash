@@ -223,6 +223,32 @@ async function route(url, fromId, flip = false) {
   if (!handled) void shell.openExternal(url)
 }
 
+/**
+ * Ctrl+Tab, Ctrl+Maj+Tab : changer de site (issue #102). Écouté sur la fenêtre et
+ * sur chaque site, car c'est celui qui a le focus qui reçoit le clavier ; la page
+ * dessine la liste. Ctrl relâché ouvre le site choisi, Échap annule.
+ */
+let switching = false
+function watchSiteSwitch(wc) {
+  wc.on('before-input-event', (e, input) => {
+    if (input.type === 'keyDown' && input.key === 'Tab' && input.control && !input.meta && !input.alt) {
+      // Pas de preventDefault ici : Chromium ignorerait ensuite le relâchement de Ctrl.
+      // Ce sont preload.js et guest-preload.js qui empêchent Tab de déplacer le focus.
+      switching = true
+      win?.webContents.send('homedash:site-switch', input.shift ? 'prev' : 'next')
+    } else if (switching && input.type === 'keyDown' && /^[1-9]$/.test(input.key)) {
+      switching = false
+      win?.webContents.send('homedash:site-switch', Number(input.key) - 1)
+    } else if (switching && input.type === 'keyUp' && input.key === 'Control') {
+      switching = false
+      win?.webContents.send('homedash:site-switch', 'open')
+    } else if (switching && input.type === 'keyDown' && input.key === 'Escape') {
+      switching = false
+      win?.webContents.send('homedash:site-switch', 'cancel')
+    }
+  })
+}
+
 function fallbackPage(reason) {
   const why = reason ? String(reason).replace(/[<>&]/g, '') : ''
   const html = DEV
@@ -277,6 +303,13 @@ function createWindow() {
   }
   // Précédent / suivant venus du système : balayage (macOS ; c'est ce qu'envoient
   // Logi Options+ et les souris à gestes) et touches multimédia (Windows).
+  watchSiteSwitch(win.webContents)
+  // Ctrl relâché dans une autre appli : la fenêtre ne le verrait jamais.
+  win.on('blur', () => {
+    if (!switching) return
+    switching = false
+    win?.webContents.send('homedash:site-switch', 'cancel')
+  })
   win.on('swipe', (_e, d) => (d === 'left' ? pageNav('back') : d === 'right' ? pageNav('forward') : undefined))
   win.on('app-command', (_e, cmd) =>
     cmd === 'browser-backward' ? pageNav('back') : cmd === 'browser-forward' ? pageNav('forward') : undefined,
@@ -374,6 +407,7 @@ function createWindow() {
       return { action: 'deny' }
     })
     guests.add(guest.id)
+    watchSiteSwitch(guest)
     guest.once('destroyed', () => guests.delete(guest.id))
     // Un site se met à émettre du son, ou s'arrête : 🔊 sur son onglet.
     guest.on('audio-state-changed', (e) => {

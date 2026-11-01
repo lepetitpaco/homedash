@@ -604,3 +604,168 @@ body {
   bottom: -3px;
   font-size: 9px;
 }
+
+/* Ctrl+Tab : les sites en tuiles, du plus récent au plus ancien (issue #102). */
+.site-switcher-back {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  display: grid;
+  place-items: center;
+  background: rgb(0 0 0 / 62%);
+  backdrop-filter: blur(6px);
+}
+.site-switcher {
+  width: min(880px, 90vw);
+  max-height: 84vh;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid color-mix(in srgb, #60a5fa 45%, var(--border));
+  border-radius: 20px;
+  background: var(--panel);
+  box-shadow: 0 24px 80px rgb(0 0 0 / 65%);
+  overflow: hidden;
+}
+.site-switcher-head {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  padding: 18px 22px 12px;
+}
+.site-switcher-head strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 1.45rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-switcher-head span {
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-switcher-grid {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(128px, 1fr));
+  gap: 10px;
+  padding: 6px 18px 16px;
+}
+.site-switcher-tile {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 16px 8px 10px;
+  border: 2px solid transparent;
+  border-radius: 14px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+  cursor: pointer;
+}
+.site-switcher-tile.is-on {
+  border-color: #fff;
+  background: #2563eb;
+  color: #fff;
+  box-shadow: 0 8px 26px rgb(37 99 235 / 55%);
+  transform: scale(1.05);
+}
+.site-switcher-tile.is-asleep .site-switcher-icon {
+  filter: grayscale(1);
+  opacity: 0.65;
+}
+.site-switcher-digit {
+  position: absolute;
+  top: 6px;
+  left: 7px;
+  color: var(--text-faint);
+  font: 700 0.72rem/1 inherit;
+}
+.site-switcher-tile.is-on .site-switcher-digit,
+.site-switcher-tile.is-on .site-switcher-sub {
+  color: rgb(255 255 255 / 85%);
+}
+.site-switcher-icon {
+  position: relative;
+  width: 54px;
+  height: 54px;
+  display: grid;
+  place-items: center;
+  border-radius: 16px;
+  background: var(--bg);
+  font-size: 1.7rem;
+}
+.site-switcher-icon .favicon {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+}
+.site-switcher-badge {
+  position: absolute;
+  right: -7px;
+  top: -7px;
+  min-width: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+}
+.site-switcher-name {
+  width: 100%;
+  overflow: hidden;
+  font-size: 0.88rem;
+  font-weight: 700;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-switcher-sub {
+  width: 100%;
+  min-height: 1em;
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: 0.7rem;
+  line-height: 1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.site-switcher-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 6px 22px;
+  padding: 11px 16px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.76rem;
+}
+.site-switcher-foot kbd {
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--panel-2);
+  color: var(--text);
+  font: inherit;
+}
+@media (prefers-reduced-motion: reduce) {
+  .site-switcher-tile.is-on {
+    transform: none;
+  }
+}
+.site-switcher-digit {
+  border: 0;
+  background: none;
+}

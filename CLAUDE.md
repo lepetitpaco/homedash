@@ -256,6 +256,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   adresse venue de la page.
 - Pas de contrôle du système dans ces écrans (`<select>`, sélecteur de couleur) : `Pick`, `ColorSwatches`,
   `askNameColor()`.
+- Ctrl+Tab : jamais de `preventDefault` dans `before-input-event` sur un appui : Chromium ignore ensuite les relâchements, celui de Ctrl compris. Le blocage se fait dans `preload.js` et `guest-preload.js`.
 - Liens et clic droit des sites : main.js demande à la page (`window.__homedashRoute`,
   `window.__homedashMenu`, via `executeJavaScript`) ; absents (page ancienne) = navigateur / rien. Les
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
