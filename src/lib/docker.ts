@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
-import type { DockerLink } from './dockerTabs'
+import type { DockerEntry } from './dockerTabs'
 import { usePageVisible } from './visible'
 
-export type DockerState = { available: boolean; links: DockerLink[] }
+export type DockerState = { available: boolean; entries: DockerEntry[] }
 
-const EMPTY: DockerState = { available: false, links: [] }
-const POLL_MS = 30_000
+const EMPTY: DockerState = { available: false, entries: [] }
+const POLL_MS = 10_000
 const RETRY_MS = 2_000
 
 /** Lit `/api/docker` tant que `enabled` ; `probe` : lecture demandée depuis Réglages, avant enregistrement. */

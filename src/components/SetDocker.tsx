@@ -10,12 +10,12 @@ export default function SetDocker({
   hidden: string[]
   onChange: (enabled: boolean, hidden: string[]) => void
 }) {
-  const { available, links, loaded } = useDocker(enabled, true)
+  const { available, entries, loaded } = useDocker(enabled, true)
   return (
     <>
       <p className="set-hint">
-        Pour les développeurs : un dossier 🐳 dans la barre de gauche, avec un lien vers chaque container qui publie un
-        port web. homedash lit seulement la liste des containers : il ne démarre, n'arrête et ne modifie rien.
+        Pour les développeurs : un dossier 🐳 dans la barre de gauche, avec une ligne par projet ou container. Ceux qui sont
+        éteints restent visibles, en plus fade. homedash lit seulement la liste : il ne démarre, n'arrête et ne modifie rien.
       </p>
       <div className="set-toggles">
         <label className="set-toggle">
@@ -24,19 +24,24 @@ export default function SetDocker({
         </label>
       </div>
       {!enabled || !loaded ? null : !available ? (
-        <p className="set-hint">Docker ne répond pas sur cette machine : le dossier reste caché tant qu'il n'est pas lancé.</p>
-      ) : !links.length ? (
-        <p className="set-hint">Aucun container en marche ne publie de port web.</p>
+        <p className="set-hint">homedash n'arrive pas à joindre Docker sur cette machine : le dossier reste caché pour l'instant.</p>
+      ) : !entries.length ? (
+        <p className="set-hint">Aucun projet ni container à afficher pour l'instant.</p>
       ) : (
         <div className="set-toggles">
-          {links.map((l) => (
-            <label className="set-toggle" key={l.id} title={l.image}>
+          {entries.map((e) => (
+            <label className={`set-toggle${e.running ? '' : ' is-stopped'}`} key={e.id} title={e.image}>
               <input
                 type="checkbox"
-                checked={!hidden.includes(l.id)}
-                onChange={(e) => onChange(enabled, e.target.checked ? hidden.filter((x) => x !== l.id) : [...hidden, l.id])}
+                checked={!hidden.includes(e.id)}
+                onChange={(ev) => onChange(enabled, ev.target.checked ? hidden.filter((x) => x !== e.id) : [...hidden, e.id])}
               />
-              {l.label} <em>{l.url}</em>
+              {e.label}{' '}
+              <em>
+                {e.running
+                  ? e.ports[0].url + (e.ports.length > 1 ? ` · ${e.ports.length - 1} autre${e.ports.length > 2 ? 's' : ''} port${e.ports.length > 2 ? 's' : ''}` : '')
+                  : 'éteint'}
+              </em>
             </label>
           ))}
         </div>

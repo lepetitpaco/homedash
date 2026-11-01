@@ -52,6 +52,10 @@ type Props = {
   mode: RailMode
   /** Containers Docker : leur dossier, calculé, ni glissable ni modifiable. */
   dockerSites: CustomTab[]
+  /** Projets et containers éteints : affichés fades, sans clic. */
+  dockerOff: { id: string; label: string; icon: ReactNode }[]
+  /** Clic droit sur une ligne Docker : ses autres ports. */
+  onDockerMenu: (e: React.MouseEvent, tab: CustomTab) => void
   icons: Record<string, ReactNode>
   counts: Record<string, number>
   /** Onglets ouverts dans chaque espace (`x:…`, `links` pour le dash) : visibles d'ici (issue #60). */
@@ -101,6 +105,8 @@ export default function Rail({
   active,
   mode,
   dockerSites,
+  dockerOff,
+  onDockerMenu,
   icons,
   counts,
   kids,
@@ -238,7 +244,8 @@ export default function Rail({
         onDragEnd={endDrag}
         onContextMenu={(e) => {
           e.preventDefault()
-          if (!fixed) onTabMenu(e, t)
+          if (fixed) onDockerMenu(e, t)
+          else onTabMenu(e, t)
         }}
         onDragOver={(e) => {
           if (!drag || drag === t.id || fixed) return
@@ -373,7 +380,7 @@ export default function Rail({
           )
         })}
 
-        {dockerSites.length ? (
+        {dockerSites.length || dockerOff.length ? (
           <div className={`rail-folder${closed.includes(DOCKER_FOLDER) ? '' : ' is-open'}`} style={{ ['--folder' as string]: '#2496ed' }}>
             <div className={`rail-item${closed.includes(DOCKER_FOLDER) && dockerSites.some((t) => active === tabKey(t)) ? ' is-active' : ''}`}>
               <span className="rail-pill" aria-hidden="true" />
@@ -382,7 +389,20 @@ export default function Rail({
                 {wide ? <span className="rail-label rail-folder-name">Docker</span> : null}
               </button>
             </div>
-            {closed.includes(DOCKER_FOLDER) ? null : <div className="rail-kids">{dockerSites.map(item)}</div>}
+            {closed.includes(DOCKER_FOLDER) ? null : (
+              <div className="rail-kids">
+                {dockerSites.map(item)}
+                {dockerOff.map((d) => (
+                  <div key={d.id} className="rail-item is-stopped">
+                    <span className="rail-pill" aria-hidden="true" />
+                    <span className="rail-btn" title={`${d.label} · éteint`}>
+                      <span className="rail-icon">{d.icon}</span>
+                      {wide ? <span className="rail-label">{d.label}</span> : null}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : null}
 

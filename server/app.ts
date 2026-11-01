@@ -458,7 +458,7 @@ async function apiGet(req: Req): Promise<Res> {
   if (p === '/api/docker') {
     // Désactivé : le socket n'est pas contacté. `probe` : Réglages, option cochée, pas encore enregistrée.
     const cfg = store.read(store.CONFIG, {}) as { docker?: { enabled?: unknown } }
-    if (cfg.docker?.enabled !== true && !q(req, 'probe')) return json({ available: false, links: [] })
+    if (cfg.docker?.enabled !== true && !q(req, 'probe')) return json({ available: false, entries: [] })
     return json(await docker.read())
   }
   if (p === '/api/health')

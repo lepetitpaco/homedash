@@ -107,7 +107,7 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
 | `/api/export/full` | POST | Export complet chiffré (mot de passe, cookies des sites fournis par l'appli) → fichier `.homedash` |
 | `/api/import/preview`, `/api/import/apply` | POST | Export complet : aperçu sans secret, puis import (instantané avant, jetons remplacés gardés à part) |
-| `/api/docker` | GET | Liens vers les containers ; socket contacté seulement si `docker.enabled` (ou `?probe=1`, depuis Réglages) |
+| `/api/docker` | GET | Lignes Docker (projets et containers, en marche ou éteints) ; socket contacté seulement si `docker.enabled` (ou `?probe=1`, depuis Réglages) |
 | `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp et Trello connectés, comptes GitHub, version, accès navigateur |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page
