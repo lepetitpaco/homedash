@@ -899,3 +899,35 @@ body {
 .rail.has-names .rail-foot.is-compact {
   padding-inline: 4px;
 }
+/* homedash et les dossiers : leur icône dans l'axe de la première colonne, le nom à côté. */
+.rail.has-grid {
+  --rail-icon: 44px;
+}
+.rail.is-mini.has-grid {
+  --rail-icon: 32px;
+}
+.rail.is-large.has-grid {
+  --rail-icon: 56px;
+}
+.rail.has-grid .rail-home,
+.rail.has-grid .rail-list .rail-folder > .rail-item {
+  padding-left: max(0px, calc(100% / var(--rail-cols) / 2 - var(--rail-icon) / 2));
+}
+/* Une seule colonne : pas de place à côté, le nom passe dessous, comme pour les sites. */
+.rail.is-one .rail-home,
+.rail.is-one .rail-list .rail-folder > .rail-item {
+  padding: 0 4px;
+}
+.rail.is-one .rail-home .rail-btn,
+.rail.is-one .rail-folder-btn {
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+.rail.is-one .rail-home .rail-label,
+.rail.is-one .rail-folder-name {
+  display: block;
+  width: 100%;
+  font-size: 0.72rem;
+  line-height: 1.15;
+}

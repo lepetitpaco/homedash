@@ -303,7 +303,7 @@ export default function Rail({
   return (
     <nav
       ref={navRef}
-      className={`rail is-${size}${wide ? ' has-names' : ''}${columns ? ' has-grid' : ''}${textOnly ? ' has-text' : ''}`}
+      className={`rail is-${size}${wide ? ' has-names' : ''}${columns ? ' has-grid' : ''}${columns === 1 ? ' is-one' : ''}${textOnly ? ' has-text' : ''}`}
       style={columns ? { ['--rail-cols' as string]: columns } : undefined}
       aria-label="Mes sites"
       // Les icônes ont leur propre menu (elles l'ont déjà ouvert : defaultPrevented).
