@@ -76,6 +76,9 @@ const RAIL_KEY = 'homedash:rail'
 /** Onglet temporaire fermé tout seul après ce temps sans y aller. */
 const TEMP_IDLE_MS = 3 * 3600_000
 const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
+/** Noms sous les icônes : un peu plus de place, pour qu'ils restent lisibles. */
+const RAIL_WIDTH_NAMED: Record<RailMode, string> = { ...RAIL_WIDTH, icons: '84px', mini: '68px' }
+const RAIL_NAMES_KEY = 'homedash:rail-names'
 /** Dernières pastilles des onglets perso, par `tabKey`. */
 const TAB_COUNTS_KEY = 'homedash:tab-counts'
 /** Écart entre deux sites chargés au démarrage. */
@@ -379,13 +382,32 @@ export default function App() {
       /* stockage indisponible */
     }
   }, [])
+  // Noms sous les icônes (issue #103) : préférence de l'écran, désactivée par défaut.
+  const [railNames, setRailNames] = useState(() => {
+    try {
+      return localStorage.getItem(RAIL_NAMES_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  const toggleRailNames = useCallback(() => {
+    setRailNames((on) => {
+      try {
+        if (on) localStorage.removeItem(RAIL_NAMES_KEY)
+        else localStorage.setItem(RAIL_NAMES_KEY, '1')
+      } catch {
+        /* stockage indisponible */
+      }
+      return !on
+    })
+  }, [])
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
   const railOn = railMode !== 'hidden'
   useEffect(() => {
-    const w = !railOn ? '0px' : RAIL_WIDTH[railMode]
+    const w = !railOn ? '0px' : (railNames ? RAIL_WIDTH_NAMED : RAIL_WIDTH)[railMode]
     document.documentElement.style.setProperty('--rail-w', w)
-  }, [railOn, railMode])
+  }, [railOn, railMode, railNames])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
@@ -1251,6 +1273,13 @@ export default function App() {
         width('icons', 'Réduite (icônes)'),
         width('mini', 'Super réduite (petites icônes)'),
         { sep: true },
+        {
+          icon: railNames || railMode === 'wide' ? '✓' : '',
+          label: 'Afficher les noms',
+          hint: railMode === 'wide' ? 'toujours en étendue' : 'sous les icônes',
+          onSelect: toggleRailNames,
+        },
+        { sep: true },
         { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => changeRail('hidden') },
       ],
     })
@@ -1899,6 +1928,7 @@ export default function App() {
           sessions={tabSessions}
           active={railActive}
           mode={railMode}
+          showNames={railNames}
           icons={iconOf}
           counts={tabCounts}
           onHome={() => {

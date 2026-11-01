@@ -295,6 +295,7 @@ body {
   height: 40px;
   font-size: 1.45rem;
 }
+.rail.is-wide .rail-foot .rail-tool,
 .rail.is-mini .rail-foot .rail-tool {
   height: 34px;
   font-size: 1.2rem;
@@ -310,29 +311,35 @@ body {
 .rail.is-mini .rail-item {
   padding: 0 6px 0 8px;
 }
+.rail.is-wide .rail-icon,
 .rail.is-mini .rail-icon {
   width: 32px;
   height: 32px;
   font-size: 0.95rem;
 }
+.rail.is-wide .rail-icon .favicon,
 .rail.is-mini .rail-icon .favicon {
   width: 18px;
   height: 18px;
   border-radius: 4px;
 }
+.rail.is-wide .rail-item.is-active .rail-icon,
 .rail.is-mini .rail-item.is-active .rail-icon {
   border-radius: 10px;
   box-shadow:
     0 0 0 2px var(--session, #60a5fa),
     0 0 10px color-mix(in srgb, var(--session, #60a5fa) 55%, transparent);
 }
+.rail.is-wide .rail-item.is-active .rail-pill,
 .rail.is-mini .rail-item.is-active .rail-pill {
   height: 28px;
   width: 4px;
 }
+.rail.is-wide .rail-item:hover .rail-pill,
 .rail.is-mini .rail-item:hover .rail-pill {
   height: 12px;
 }
+.rail.is-wide .rail-badge,
 .rail.is-mini .rail-badge {
   right: -4px;
   bottom: -4px;
@@ -350,6 +357,7 @@ body {
   height: 8px;
   font-size: 0;
 }
+.rail.is-wide .rail-audio,
 .rail.is-mini .rail-audio {
   right: -5px;
   top: -5px;
@@ -357,11 +365,13 @@ body {
   height: 13px;
   font-size: 7px;
 }
+.rail.is-wide .rail-zz,
 .rail.is-mini .rail-zz {
   right: -4px;
   top: -5px;
   font-size: 8px;
 }
+.rail.is-wide .rail-out,
 .rail.is-mini .rail-out {
   font-size: 0.5rem;
 }
@@ -375,15 +385,18 @@ body {
 .rail.is-mini .rail-folder.is-open .rail-pill {
   left: -3px;
 }
+.rail.is-wide .rail-mini,
 .rail.is-mini .rail-mini {
   padding: 4px;
   border-radius: 10px;
   gap: 1px;
 }
+.rail.is-wide .rail-mini .favicon,
 .rail.is-mini .rail-mini .favicon {
   width: 10px;
   height: 10px;
 }
+.rail.is-wide .rail-temp-x,
 .rail.is-mini .rail-temp-x {
   left: 30px;
   width: 13px;
@@ -599,8 +612,50 @@ body {
   box-sizing: content-box;
   pointer-events: none;
 }
+.rail.is-wide .rail-open,
 .rail.is-mini .rail-open {
   left: -3px;
   bottom: -3px;
   font-size: 9px;
+}
+
+/* Étendue, lignes serrées (issue #103) : plus de sites à l'écran. */
+.rail.is-wide .rail-list,
+.rail.is-wide .rail-kids,
+.rail.is-wide .rail-temps {
+  gap: 3px;
+}
+.rail.is-wide .rail-label-session {
+  font-size: 0.62rem;
+}
+
+/* « Afficher les noms » en réduite et super réduite : le nom sous l'icône. */
+.rail.has-names .rail-item {
+  padding: 0 4px;
+}
+.rail.has-names .rail-btn {
+  flex-direction: column;
+  gap: 3px;
+  text-align: center;
+}
+.rail.has-names .rail-label {
+  display: block;
+  width: 100%;
+  font-size: 0.64rem;
+  line-height: 1.15;
+}
+.rail.is-mini.has-names .rail-label {
+  font-size: 0.58rem;
+}
+/* Le compte reste signalé par la pastille de l'icône : pas de place pour son nom. */
+.rail.has-names .rail-label-session {
+  display: none;
+}
+.rail.has-names .rail-folder.is-open > .rail-item,
+.rail.has-names .rail-folder.is-open .rail-kids .rail-item {
+  padding: 0 2px;
+}
+.rail.has-names .rail-temp-x {
+  left: auto;
+  right: 2px;
 }

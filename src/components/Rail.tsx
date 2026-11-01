@@ -49,6 +49,8 @@ type Props = {
   /** Onglet perso ouvert (`x:…`), `settings`, ou null quand on est dans homedash. */
   active: string | null
   mode: RailMode
+  /** Noms sous les icônes, en largeurs réduites ; l'étendue les a toujours, à droite. */
+  showNames: boolean
   icons: Record<string, ReactNode>
   counts: Record<string, number>
   /** Onglets ouverts dans chaque espace (`x:…`, `links` pour le dash) : visibles d'ici (issue #60). */
@@ -97,6 +99,7 @@ export default function Rail({
   sessions,
   active,
   mode,
+  showNames,
   icons,
   counts,
   kids,
@@ -127,6 +130,7 @@ export default function Rail({
   const loose = tabs.filter((t) => !folderOf(t, folders))
   const inFolder = (f: TabFolder) => tabs.filter((t) => folderOf(t, folders) === f.id)
   const wide = mode === 'wide'
+  const named = wide || showNames
   // Notifications coupées (`notify: false`) : pas de pastille.
   /** « 2 » en haut à droite : des onglets sont ouverts en haut de cet espace. */
   const kidsBadge = (key: string, name: string) => {
@@ -206,7 +210,7 @@ export default function Rail({
           {asleep.includes(key) ? <span className="rail-zz" aria-hidden="true">💤</span> : null}
           {!t.embed ? <span className="rail-out" aria-hidden="true">↗</span> : null}
         </span>
-        {wide ? (
+        {named ? (
           <span className="rail-label">
             {t.label}
             {session ? (
@@ -290,7 +294,7 @@ export default function Rail({
   return (
     <nav
       ref={navRef}
-      className={`rail is-${mode}`}
+      className={`rail is-${mode}${!wide && showNames ? ' has-names' : ''}`}
       aria-label="Mes sites"
       // Les icônes ont leur propre menu (elles l'ont déjà ouvert : defaultPrevented).
       onContextMenu={(e) => {
@@ -305,7 +309,7 @@ export default function Rail({
           <span className="rail-icon">
             ⚡{kidsBadge('links', 'homedash')}
           </span>
-          {wide ? <span className="rail-label">homedash</span> : null}
+          {named ? <span className="rail-label">homedash</span> : null}
         </button>
       </div>
       <div className="rail-sep" />
@@ -317,7 +321,7 @@ export default function Rail({
             <span className="rail-pill" aria-hidden="true" />
             <button className="rail-btn" onClick={onAdd} title="Ajouter ton premier site : Gmail, Chat, Claude…">
               <span className="rail-icon">＋</span>
-              {wide ? <span className="rail-label">Ajouter un site</span> : null}
+              {named ? <span className="rail-label">Ajouter un site</span> : null}
             </button>
           </div>
         ) : null}
@@ -360,7 +364,7 @@ export default function Rail({
                       {badge(sum)}
                     </span>
                   )}
-                  {wide ? <span className="rail-label rail-folder-name">{f.name}</span> : null}
+                  {named ? <span className="rail-label rail-folder-name">{f.name}</span> : null}
                 </button>
               </div>
               {open ? <div className="rail-kids">{kids.map(item)}</div> : null}
@@ -410,7 +414,7 @@ export default function Rail({
                         </span>
                       ) : null}
                     </span>
-                    {wide ? <span className="rail-label">{t.label}</span> : null}
+                    {named ? <span className="rail-label">{t.label}</span> : null}
                   </button>
                   <button className="rail-temp-x" onClick={() => onTempClose(t)} title="Fermer l'onglet">
                     ✕
