@@ -30,6 +30,7 @@ import {
 import { hostOf } from '../lib/customTabs'
 import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
+import SetDocker from './SetDocker'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
 import SetTrello from './SetTrello'
@@ -77,6 +78,7 @@ const SECTIONS = [
   { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
   { id: 'set-trello', icon: '📋', label: 'Trello', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
+  { id: 'set-docker', icon: '🐳', label: 'Docker', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
@@ -924,6 +926,16 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           ) : (
             <p className="set-hint">{guide ? 'Le guide est introuvable.' : 'chargement…'}</p>
           )}
+        </Card>
+        ) : null}
+
+        {active === 'set-docker' ? (
+        <Card id="set-docker" icon="🐳" title="Docker">
+          <SetDocker
+            enabled={draft.docker?.enabled === true}
+            hidden={asList(draft.docker?.hidden)}
+            onChange={(enabled, hidden) => setDraft({ ...draft, docker: { enabled, hidden } })}
+          />
         </Card>
         ) : null}
 

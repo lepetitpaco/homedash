@@ -789,7 +789,12 @@
 .ic-desc {
   margin-bottom: 8px;
   padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--sig-info) 55%, transparent);
   border-radius: 8px;
+  background: color-mix(in srgb, var(--sig-info) 13%, transparent);
+}
+.ic-desc-top > strong {
+  color: var(--sig-info);
 }
 .ic-desc.is-picking {
   cursor: pointer;
@@ -911,9 +916,10 @@
     border-right: 0;
     border-bottom: 1px solid var(--border-soft);
   }
+  /* Une seule barre de défilement : celle de la fenêtre. */
   .is-composing .ic-source {
     flex: none;
-    max-height: 34vh;
+    overflow: visible;
   }
   .ic-form {
     overflow: visible;
@@ -937,15 +943,25 @@
 /* Une conversation (Thread) : sans boîtes, comme une messagerie. */
 .th-day {
   display: flex;
-  justify-content: center;
-  margin: 14px 0 6px;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0 6px;
+}
+.th-day::before,
+.th-day::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border-soft);
 }
 .th-day span {
-  padding: 1px 9px;
+  padding: 1px 10px;
+  border: 1px solid var(--border-soft);
   border-radius: 999px;
   background: var(--panel-2);
-  color: var(--text-dim);
+  color: var(--text);
   font-size: 11px;
+  font-weight: 600;
 }
 .th-msg {
   position: relative;
@@ -974,6 +990,7 @@
   place-items: center;
   height: 32px;
   border-radius: 50%;
+  background: hsl(var(--hue) 45% 42%);
   color: #fff;
   font-size: 11px;
   font-weight: 650;
@@ -981,16 +998,48 @@
 .th-main {
   flex: 1;
   min-width: 0;
+  padding: 4px 10px 5px;
+  border-left: 3px solid hsl(var(--hue) 65% 55%);
+  border-radius: 4px 8px 8px 4px;
+  background: hsl(var(--hue) 55% 50% / 0.14);
+}
+/* Le nom, dans la couleur de la personne (lisible dans les deux thèmes) */
+.th-top strong {
+  color: hsl(var(--hue) 80% 74%);
+}
+:root[data-theme='light'] .th-top strong {
+  color: hsl(var(--hue) 70% 30%);
 }
 .th-top {
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 13px;
+  margin-bottom: 2px;
+  font-size: 14px;
+}
+.th-top strong {
+  font-weight: 700;
 }
 .th-top time {
+  padding: 0 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--text);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.th-side {
+  padding-top: 6px;
+  text-align: center;
+}
+.th-side time {
+  visibility: hidden;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 10.5px;
+  font-variant-numeric: tabular-nums;
+}
+.th-msg:hover .th-side time {
+  visibility: visible;
 }
 .th-text {
   font-size: 14px;
@@ -1050,4 +1099,40 @@
 .th-msg.is-on .th-tick {
   border-color: var(--sig-info);
   background: var(--sig-info);
+}
+.ic-author {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 0 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid color-mix(in srgb, var(--sig-info) 30%, transparent);
+  font-size: 14px;
+}
+.ic-author .th-avatar {
+  width: 26px;
+  height: 26px;
+  font-size: 10px;
+}
+.ic-author strong {
+  color: hsl(var(--hue) 80% 74%);
+  font-weight: 700;
+}
+:root[data-theme='light'] .ic-author strong {
+  color: hsl(var(--hue) 70% 30%);
+}
+.ic-author time {
+  padding: 0 6px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  font-size: 12px;
+}
+/* Mention (@Prénom Nom) : une pastille */
+.md-mention {
+  padding: 0 5px;
+  border-radius: 5px;
+  background: color-mix(in srgb, var(--sig-branch) 26%, transparent);
+  color: var(--sig-branch);
+  font-weight: 600;
+  white-space: nowrap;
 }

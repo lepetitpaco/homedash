@@ -7,7 +7,10 @@ import fs from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import * as accounts from '../server/accounts.ts'
-import { GitHubAccount, setFetch } from '../server/github.ts'
+import { removeGoneRepos } from '../server/app.ts'
+import * as backup from '../server/backup.ts'
+import * as events from '../server/events.ts'
+import { GitHubAccount, setFetch, setRepoGone } from '../server/github.ts'
 import * as store from '../server/store.ts'
 
 const resetSecrets = () => fs.rmSync(store.pathOf(store.SECRETS), { force: true })
@@ -341,5 +344,126 @@ describe('carte En cours', () => {
     await gh.rebuild('tok', ['running'])
     expect(gh.data.running).toEqual([])
     expect((gh as any).state.error).toBeNull()
+  })
+})
+
+describe('dépôt disparu', () => {
+  const REPOS = ['moi/vivant', 'moi/parti']
+  const removed: [string, string[]][] = []
+  const account = () => {
+    const a = new GitHubAccount()
+    a.ACCOUNT = { id: 'main', label: '' }
+    a.configure({ repos: REPOS })
+    a.applyToken('jeton', 'test')
+    return a
+  }
+  const github = (status: (p: string) => number) =>
+    setFetch(async (i) => new Response('{}', { status: status(new URL(String(i)).pathname) }))
+  const pass = async (a: GitHubAccount) => {
+    for (const r of REPOS) await a.gh(`/repos/${r}/pulls`, 'jeton')
+    await (a as any).settleMissing('jeton')
+  }
+  const gone = (p: string) => (p.includes('/moi/parti') ? 404 : 200)
+
+  beforeEach(() => {
+    removed.length = 0
+    setRepoGone((acc, list) => removed.push([acc, list]))
+  })
+  afterEach(() => {
+    setFetch((i, init) => fetch(i, init))
+    setRepoGone(() => undefined)
+  })
+
+  it('retire après deux passes de suite', async () => {
+    github(gone)
+    const a = account()
+    await pass(a)
+    expect(removed).toEqual([])
+    await pass(a)
+    expect(removed).toEqual([['main', ['moi/parti']]])
+  })
+
+  it('oublie un 404 passager', async () => {
+    const a = account()
+    github(gone)
+    await pass(a)
+    github(() => 200)
+    await pass(a)
+    github(gone)
+    await pass(a)
+    expect(removed).toEqual([])
+  })
+
+  it('ne retire rien si la vérification directe répond', async () => {
+    github((p) => (p.endsWith('/moi/parti/pulls') ? 404 : 200))
+    const a = account()
+    await pass(a)
+    await pass(a)
+    expect(removed).toEqual([])
+  })
+
+  it('ne retire rien si le jeton est refusé', async () => {
+    github((p) => (p === '/user' ? 401 : gone(p)))
+    const a = account()
+    await pass(a)
+    await pass(a)
+    expect(removed).toEqual([])
+  })
+
+  it('ne retire rien si tous les dépôts manquent', async () => {
+    github((p) => (p === '/user' ? 200 : 404))
+    const a = account()
+    await pass(a)
+    await pass(a)
+    expect(removed).toEqual([])
+  })
+
+  it('une panne ou un refus ne compte pas', async () => {
+    github((p) => (p.includes('/moi/parti') ? 503 : 200))
+    const a = account()
+    await pass(a)
+    await pass(a)
+    expect(removed).toEqual([])
+  })
+
+  it('un fichier absent d’un dépôt ne le rend pas suspect', async () => {
+    github((p) => (p.includes('/contents/') ? 404 : 200))
+    const a = account()
+    await a.gh('/repos/moi/parti/contents/x', 'jeton')
+    await (a as any).settleMissing('jeton')
+    await a.gh('/repos/moi/parti/contents/x', 'jeton')
+    await (a as any).settleMissing('jeton')
+    expect(removed).toEqual([])
+  })
+
+  it('nettoie toute la config, sauvegarde d’abord, et le dit au journal', () => {
+    store.write(store.CONFIG, {
+      groups: [],
+      github_accounts: [{ id: 'main', repos: REPOS, branch_repos: REPOS }],
+      repos: { items: [{ name: 'vivant', owner: 'moi' }, { name: 'parti', owner: 'moi' }] },
+      trello: { repos: REPOS },
+    })
+    const before = backup.listing().length
+    removeGoneRepos('main', ['moi/parti'])
+    const cfg = store.read(store.CONFIG, {}) as any
+    expect(cfg.github_accounts[0].repos).toEqual(['moi/vivant'])
+    expect(cfg.github_accounts[0].branch_repos).toEqual(['moi/vivant'])
+    expect(cfg.repos.items.map((i: any) => i.name)).toEqual(['vivant'])
+    expect(cfg.trello.repos).toEqual(['moi/vivant'])
+    expect(backup.listing().length).toBe(before + 1)
+    expect(events.payload().events.at(-1)?.title).toContain('moi/parti')
+  })
+
+  it('garde la carte si un autre compte suit encore le dépôt', () => {
+    store.write(store.CONFIG, {
+      groups: [],
+      github_accounts: [{ id: 'main', repos: REPOS }, { id: 'deux', repos: ['moi/parti'] }],
+      repos: { items: [{ name: 'parti', owner: 'moi' }] },
+    })
+    removeGoneRepos('main', ['moi/parti'])
+    const cfg = store.read(store.CONFIG, {}) as any
+    expect(cfg.github_accounts[0].repos).toEqual(['moi/vivant'])
+    expect(cfg.github_accounts[1].repos).toEqual(['moi/parti'])
+    expect(cfg.repos.items).toHaveLength(1)
   })
 })

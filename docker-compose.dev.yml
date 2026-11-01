@@ -33,3 +33,5 @@ services:
       # Onglet Local et Mes sites : dossier personnel et disque, en LECTURE SEULE.
       - ${HOME:-${USERPROFILE:-}}:/host:ro
       - ${HOMEDASH_DISK:-${SystemDrive:-/Volumes}}/:/hostdisk:ro
+      # Réglages → Docker : liste des containers. homedash n'y envoie que GET /containers/json?all=1 (server/docker.ts).
+      - /var/run/docker.sock:/var/run/docker.sock

@@ -184,6 +184,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Le cache ETag est vital : sans lui ~16 800 appels/h pour un plafond de 5 000. Les 304 sont gratuits.
 - Attribution d'une branche : PR dont `head.ref` == branche, puis auteurs des commits propres, puis auteur
   du tip si déjà mergée. **Jamais** de filtrage par préfixe de nom.
+- Dépôt en 404 : retiré de la config par `removeGoneRepos()` (`settleMissing`), après 2 passes de suite, jeton valide, jamais si tous les dépôts manquent ; instantané d'abord, ligne au journal. Testé.
 - `applyToken()` vide caches et amorçage du journal : sinon le changement de jeton passe pour des nouveautés.
 
 **Onglet Local**
@@ -256,6 +257,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   adresse venue de la page.
 - Pas de contrôle du système dans ces écrans (`<select>`, sélecteur de couleur) : `Pick`, `ColorSwatches`,
   `askNameColor()`.
+- Ctrl+Tab : jamais de `preventDefault` dans `before-input-event` sur un appui : Chromium ignore ensuite les relâchements, celui de Ctrl compris. Le blocage se fait dans `preload.js` et `guest-preload.js`.
 - Liens et clic droit des sites : main.js demande à la page (`window.__homedashRoute`,
   `window.__homedashMenu`, via `executeJavaScript`) ; absents (page ancienne) = navigateur / rien. Les
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
@@ -264,6 +266,13 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un onglet perso (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = onglets perso et éphémères **sans** espace. Espace disparu = éphémère seul.
+
+**Docker** (`docker.ts`)
+- Le socket donne le contrôle de la machine : une seule requête, `GET /containers/json?all=1`, écrite en dur. Rien d'autre,
+  ni démarrer ni arrêter. Contacté seulement si `docker.enabled`, ou `?probe=1` depuis Réglages. Testé.
+- Les lignes sont calculées : jamais dans `tabs` de la config (ids `dk-…`). La place du dossier reste dans le navigateur
+  (`homedash:rail-docker`), celle des autres dans `tabFolders[].before`.
+- Éteints : seulement les projets Compose, sinon les restes de `docker run` envahiraient la liste.
 
 **Performance** (revue du 2026-10-20)
 - Chaque site chargé dans l'appli = un processus de 100 à 400 Mo : montés au démarrage, un par un, seulement si

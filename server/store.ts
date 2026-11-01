@@ -228,6 +228,11 @@ export function validateConfig(cfg: unknown): string | null {
       }
     }
   }
+  const dockerCfg = cfg.docker
+  if (dockerCfg !== undefined && dockerCfg !== null) {
+    if (!isObj(dockerCfg)) return '"docker" doit être un objet'
+    if (dockerCfg.hidden !== undefined && !Array.isArray(dockerCfg.hidden)) return '"docker.hidden" doit être un tableau'
+  }
   const repos = cfg.repos
   if (repos !== undefined && repos !== null) {
     if (!isObj(repos)) return '"repos" doit être un objet'

@@ -4,6 +4,24 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.4.0 — 2026-11-01
+Appli de bureau : 2.4.0
+
+- **Changer de site au clavier** : un appui rapide sur `Ctrl+Tab` revient au site d'avant. `Ctrl` gardé, tes sites
+  s'affichent en tuiles, à choisir avec `Tab`, `1` à `9` ou un clic. Marche aussi quand tu es dans un site.
+- **Ta barre, comme tu la veux** : clic droit sur la barre, *Disposition et taille…* : icônes, icônes et titres, titres
+  seuls, ou tuiles sur 1 à 3 colonnes, en petit, normal ou grand. **‹** la réduit aux icônes et **›** la redéplie. Tes
+  anciens réglages sont repris.
+- **Les dossiers se placent où tu veux** : glisse-les entre tes sites, ils ne restent plus bloqués en bas.
+- **Tes containers Docker dans la barre**, pour les développeurs : *Réglages → Docker*, désactivé par défaut. Un dossier
+  avec une ligne par projet, reconnaissable à ses deux lettres et sa couleur ; ceux qui sont éteints restent visibles en
+  plus fade. homedash lit la liste et ne change rien.
+- **Basecamp, fenêtre d'une tâche** : on voit qui l'a créée et quand, les @mentions sont lisibles, chaque échange montre
+  son heure et chaque personne a sa couleur.
+- **Un dépôt GitHub disparu est retiré tout seul de ta liste**, au lieu de consommer ton quota d'appels : si GitHub ne le
+  trouve plus, homedash le retire. La cloche te le dit, et *Réglages → Sauvegardes* garde la liste d'avant.
+- **Corrigé** : à petite taille, la fenêtre *Créer une issue* n'a plus deux barres de défilement.
+
 ## 2.3.0 — 2026-11-01
 Appli de bureau : 2.3.0
 

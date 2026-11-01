@@ -69,6 +69,8 @@ export type GithubData = {
     open_count: number
   }
   stats: { calls: number; hits: number; errors: number }
+  /** Retraits de dépôts disparus par le serveur : la page relit alors la config. */
+  repos_removed?: number
   /** Compte affiché, et tous les comptes configurés (sélecteur). */
   account?: string
   accounts?: GhAccount[]

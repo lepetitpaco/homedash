@@ -13,12 +13,15 @@ server/                   TypeScript « effaçable » : lancé tel quel en dev, 
   store.ts                JSON dans data/ : écriture atomique, validation, secrets en 600
   paths.ts                chemins affichés (~/…, C:/…) ↔ lisibles (vrais dans l'appli, montages en dev)
   accounts.ts             comptes GitHub : une instance GitHubAccount par compte, migration de config
-  github.ts               données GitHub d'un compte (cache ETag), seule écriture : createIssue
+  github.ts               données GitHub d'un compte (cache ETag), seule écriture : createIssue ; repère les
+                          dépôts disparus, que app.ts (removeGoneRepos) retire de la config
   basecamp.ts             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
                           publié en commentaire (seule écriture) ; html.ts lit leur HTML
   trello.ts               Trello : clé d'API + jeton collé, cartes ouvertes, notifications non lues
                           (lecture), rapport d'issue publié en commentaire (seule écriture)
   localfile.ts            Mes sites : un fichier du dossier personnel servi en lecture seule
+  docker.ts               Réglages → Docker : liste des containers lue sur le socket (une seule requête GET,
+                          /containers/json?all=1)
   favicons.ts             icônes de Mes sites relayées (la page les recadre), en cache
   perflog.ts              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
   perfreport.ts           ce journal résumé jour par jour (Réglages → Aide, scripts/perf-report.mjs)
@@ -35,7 +38,8 @@ src/
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…) ; IssueComposer :
                           la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
-                          tabCount (pastilles de Mes sites)
+                          tabCount (pastilles de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
+                          dockerTabs (lignes Docker)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  l'appli (Electron)
   main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
@@ -106,6 +110,7 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
 | `/api/export/full` | POST | Export complet chiffré (mot de passe, cookies des sites fournis par l'appli) → fichier `.homedash` |
 | `/api/import/preview`, `/api/import/apply` | POST | Export complet : aperçu sans secret, puis import (instantané avant, jetons remplacés gardés à part) |
+| `/api/docker` | GET | Lignes Docker (projets et containers, en marche ou éteints) ; socket contacté seulement si `docker.enabled` (ou `?probe=1`, depuis Réglages) |
 | `/api/health` | GET | État du serveur : fonctionnalités actives, Basecamp et Trello connectés, comptes GitHub, version, accès navigateur |
 
 Toute requête doit venir d'un hôte local (ou de `HOMEDASH_HOSTS`) ; une écriture doit venir de la page

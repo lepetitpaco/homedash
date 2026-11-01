@@ -99,7 +99,7 @@ export function useTabs(title: string | undefined, custom: CustomTab[] = []) {
   useEffect(() => {
     if (!title) return
     const label = tab.startsWith('x:')
-      ? (custom.find((t) => `x:${t.id}` === tab)?.label ?? 'Onglet')
+      ? (custom.find((t) => `x:${t.id}` === tab)?.label ?? 'Raccourcis') // site disparu : App affiche Raccourcis
       : {
           links: 'Raccourcis',
           github: 'GitHub',
