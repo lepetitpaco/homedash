@@ -13,7 +13,8 @@ import AddTabDialog from './components/AddTabDialog'
 import LoadTrouble from './components/LoadTrouble'
 import UpdateProgress from './components/UpdateProgress'
 import DockHint from './components/DockHint'
-import Rail, { type RailMode } from './components/Rail'
+import Rail, { type RailLabels, type RailSize } from './components/Rail'
+import RailLayoutPicker from './components/RailLayoutPicker'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
@@ -75,10 +76,29 @@ import { updateGroup } from './lib/mutate'
 const RAIL_KEY = 'homedash:rail'
 /** Onglet temporaire fermé tout seul après ce temps sans y aller. */
 const TEMP_IDLE_MS = 3 * 3600_000
-const RAIL_WIDTH: Record<RailMode, string> = { wide: '200px', icons: '68px', mini: '50px', hidden: '0px' }
-/** Noms sous les icônes : un peu plus de place, pour qu'ils restent lisibles. */
-const RAIL_WIDTH_NAMED: Record<RailMode, string> = { ...RAIL_WIDTH, icons: '84px', mini: '68px' }
-const RAIL_NAMES_KEY = 'homedash:rail-names'
+const RAIL_WIDTH: Record<RailSize, string> = { mini: '50px', icons: '68px', large: '84px' }
+const RAIL_WIDTH_NAMED: Record<RailSize, string> = { mini: '170px', icons: '200px', large: '230px' }
+/** Largeur d'une colonne d'icônes avec leur nom dessous. */
+const RAIL_CELL: Record<RailSize, number> = { mini: 84, icons: 98, large: 114 }
+const RAIL_COLUMNS: Partial<Record<RailLabels, number>> = { grid1: 1, grid2: 2, grid3: 3 }
+const RAIL_OPEN_KEY = 'homedash:rail-open'
+const RAIL_SIZE_KEY = 'homedash:rail-size'
+const RAIL_LABELS_KEY = 'homedash:rail-labels'
+/** Lecture sûre du stockage du navigateur. */
+const readPref = (key: string) => {
+  try {
+    return localStorage.getItem(key)
+  } catch {
+    return null
+  }
+}
+const writePref = (key: string, value: string) => {
+  try {
+    localStorage.setItem(key, value)
+  } catch {
+    /* stockage indisponible */
+  }
+}
 /** Dernières pastilles des onglets perso, par `tabKey`. */
 const TAB_COUNTS_KEY = 'homedash:tab-counts'
 /** Écart entre deux sites chargés au démarrage. */
@@ -366,48 +386,55 @@ export default function App() {
   // Dernière vue du dash, ses onglets ouverts par un lien compris : ⚡ y ramène.
   const lastDash = useRef<TabId>('links')
   if (spaceOf(tab) === DASH && tab !== 'events') lastDash.current = tab
-  const [railMode, setRailMode] = useState<RailMode>(() => {
-    try {
-      const v = localStorage.getItem(RAIL_KEY)
-      return v === 'wide' || v === 'icons' || v === 'mini' || v === 'hidden' ? v : 'icons'
-    } catch {
-      return 'icons'
-    }
+  // Deux réglages séparés : taille des icônes, noms à droite (issue #103). `RAIL_KEY` ne dit
+  // plus que « cachée », mais ses anciennes valeurs donnent les réglages de départ.
+  const [railHidden, setRailHidden] = useState(() => readPref(RAIL_KEY) === 'hidden')
+  const [railSize, setRailSize] = useState<RailSize>(() => {
+    const v = readPref(RAIL_SIZE_KEY)
+    if (v === 'mini' || v === 'icons' || v === 'large') return v
+    return readPref(RAIL_KEY) === 'mini' ? 'mini' : 'icons'
   })
-  const changeRail = useCallback((m: RailMode) => {
-    setRailMode(m)
-    try {
-      localStorage.setItem(RAIL_KEY, m)
-    } catch {
-      /* stockage indisponible */
-    }
-  }, [])
-  // Noms sous les icônes (issue #103) : préférence de l'écran, désactivée par défaut.
-  const [railNames, setRailNames] = useState(() => {
-    try {
-      return localStorage.getItem(RAIL_NAMES_KEY) === '1'
-    } catch {
-      return false
-    }
+  const [railLabels, setRailLabels] = useState<RailLabels>(() => {
+    const v = readPref(RAIL_LABELS_KEY)
+    if (v === 'none' || v === 'right' || v === 'grid1' || v === 'grid2' || v === 'grid3' || v === 'text') return v
+    return readPref(RAIL_KEY) === 'wide' ? 'right' : 'none'
   })
-  const toggleRailNames = useCallback(() => {
-    setRailNames((on) => {
-      try {
-        if (on) localStorage.removeItem(RAIL_NAMES_KEY)
-        else localStorage.setItem(RAIL_NAMES_KEY, '1')
-      } catch {
-        /* stockage indisponible */
-      }
-      return !on
-    })
+  const showRail = useCallback((on: boolean) => {
+    // Figés avant de réécrire `RAIL_KEY`, qui ne pourra plus les donner.
+    setRailSize((size) => (writePref(RAIL_SIZE_KEY, size), size))
+    setRailLabels((labels) => (writePref(RAIL_LABELS_KEY, labels), labels))
+    setRailHidden(!on)
+    writePref(RAIL_KEY, on ? 'shown' : 'hidden')
   }, [])
+  const changeRailSize = useCallback((size: RailSize) => {
+    setRailSize(size)
+    writePref(RAIL_SIZE_KEY, size)
+  }, [])
+  // Réduite : icônes seules le temps de gagner de la place, la disposition choisie est gardée.
+  const [railOpen, setRailOpen] = useState(() => readPref(RAIL_OPEN_KEY) !== '0')
+  const changeRailOpen = useCallback((open: boolean) => {
+    setRailOpen(open)
+    writePref(RAIL_OPEN_KEY, open ? '1' : '0')
+  }, [])
+  const changeRailLabels = useCallback(
+    (labels: RailLabels) => {
+      setRailLabels(labels)
+      writePref(RAIL_LABELS_KEY, labels)
+      changeRailOpen(true)
+    },
+    [changeRailOpen],
+  )
+  const shownLabels: RailLabels = railOpen ? railLabels : 'none'
+  const [railPicker, setRailPicker] = useState<{ clientX: number; clientY: number } | null>(null)
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
-  const railOn = railMode !== 'hidden'
+  const railOn = !railHidden
   useEffect(() => {
-    const w = !railOn ? '0px' : (railNames ? RAIL_WIDTH_NAMED : RAIL_WIDTH)[railMode]
+    const w = !railOn ? '0px' : RAIL_COLUMNS[shownLabels]
+        ? `${RAIL_COLUMNS[shownLabels] * RAIL_CELL[railSize] + 4}px`
+        : (shownLabels === 'none' ? RAIL_WIDTH : RAIL_WIDTH_NAMED)[railSize]
     document.documentElement.style.setProperty('--rail-w', w)
-  }, [railOn, railMode, railNames])
+  }, [railOn, railSize, shownLabels])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
@@ -1252,11 +1279,6 @@ export default function App() {
   /** Clic droit sur la barre de gauche (hors icône) : ce qui n'a plus de bouton. */
   const railMenu = (e: React.MouseEvent) => {
     const at = { clientX: e.clientX, clientY: e.clientY }
-    const width = (mode: RailMode, label: string): MenuItem => ({
-      icon: railMode === mode ? '✓' : '',
-      label,
-      onSelect: () => changeRail(mode),
-    })
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
@@ -1268,19 +1290,9 @@ export default function App() {
           ? [{ icon: '✕', label: 'Fermer tous les onglets temporaires', hint: `${temps.length}`, onSelect: closeAllTemps }]
           : []),
         { sep: true },
-        { heading: 'Largeur' },
-        width('wide', 'Étendue (icônes et noms)'),
-        width('icons', 'Réduite (icônes)'),
-        width('mini', 'Super réduite (petites icônes)'),
+        { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
         { sep: true },
-        {
-          icon: railNames || railMode === 'wide' ? '✓' : '',
-          label: 'Afficher les noms',
-          hint: railMode === 'wide' ? 'toujours en étendue' : 'sous les icônes',
-          onSelect: toggleRailNames,
-        },
-        { sep: true },
-        { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => changeRail('hidden') },
+        { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => showRail(false) },
       ],
     })
   }
@@ -1927,8 +1939,9 @@ export default function App() {
           folders={tabFolders}
           sessions={tabSessions}
           active={railActive}
-          mode={railMode}
-          showNames={railNames}
+          size={railSize}
+          labels={shownLabels}
+          collapse={railLabels === 'none' ? undefined : { open: railOpen, onToggle: () => changeRailOpen(!railOpen) }}
           icons={iconOf}
           counts={tabCounts}
           onHome={() => {
@@ -1957,7 +1970,7 @@ export default function App() {
       ) : (
         <button
           className={`rail-reopen${tabUnread ? ' has-unread' : ''}`}
-          onClick={() => changeRail('icons')}
+          onClick={() => showRail(true)}
           title={tabUnread ? `Afficher la barre de gauche · ${tabUnread} non lu(s)` : 'Afficher la barre de gauche'}
         >
           »{tabUnread ? <span className="rail-reopen-badge">{tabUnread > 99 ? '99+' : tabUnread}</span> : null}
@@ -2279,6 +2292,17 @@ export default function App() {
       {ui.showFooter && view === 'links' ? <Footer count={links.length} /> : null}
 
       <ContextMenu state={menus.menu} onClose={menus.closeMenu} />
+      {railPicker ? (
+        <RailLayoutPicker
+          x={railPicker.clientX}
+          y={railPicker.clientY}
+          labels={shownLabels}
+          size={railSize}
+          onLabels={changeRailLabels}
+          onSize={changeRailSize}
+          onClose={() => setRailPicker(null)}
+        />
+      ) : null}
       <ConfirmHost />
       <NameColorHost />
       <IssueHost />

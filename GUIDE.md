@@ -42,14 +42,15 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
-- **Afficher les noms** : clic droit sur la barre, hors d'une icône. En réduite et super réduite, le nom passe
-  sous chaque icône (coupé s'il est long, complet au survol). L'étendue les affiche toujours, en lignes serrées.
+- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…*. Icônes, icônes et titres, titres,
+  ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre
+  aux icônes, **›** la redéplie.
 - **Tout le reste** : clic droit sur l'icône (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier.
-- **Largeur de la barre, la cacher** : clic droit sur la barre, hors d'une icône.
+- **Cacher la barre** : clic droit sur la barre, hors d'une icône.
 
 | Ajouter un site | Clic droit sur une icône |
 | --- | --- |

@@ -5,4 +5,4 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 
 ## paco/feature/barre-noms
 
-- Option « Afficher les noms » dans le clic droit de la barre : nom sous l'icône en réduite et super réduite. La barre étendue passe en lignes serrées (#103).
+- Barre de gauche, nouveau panneau *Disposition et taille…* dans son clic droit : icônes, icônes et titres, titres, ou tuiles sur 1 à 3 colonnes ; petit, normal ou grand. Un bouton réduit la barre aux icônes et la redéplie. Les anciens réglages sont repris (#103).
