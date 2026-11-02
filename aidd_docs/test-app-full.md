@@ -60,3 +60,8 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 ## Bugs trouvés à revérifier
 
 - Une action `⌘K` qui change de nom après usage : relancer la même recherche peut tomber sur le résultat Google.
+- Réglages → Affichage à 1024×700 (deux thèmes) : « Plus de réglages » déborde de 26 px à droite de sa carte, bord coupé (colonnes de 118 px mini dans 532 px).
+- Éditeur de note : boutons « supprimer » et « fermer » sans majuscule (lexique de CLAUDE.md).
+- Réglages à 800×600 : la bande du menu des parties montre une grosse barre de défilement système.
+- Local à 800×600 avec 2 colonnes réglées : l'en-tête de carte se coupe (« synchro il y a / 3 min »).
+- (2026-11-02) L'action `⌘K` qui change de nom : ne se reproduit plus (« thème » deux fois → Thème clair puis Thème sombre).
