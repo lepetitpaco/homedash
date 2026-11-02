@@ -3,6 +3,7 @@
  * chacune au clic. Marqueurs distincts de Basecamp.
  */
 import { claudeCommand, createIssue, newIssueUrl } from './bcIssues'
+import { exchangesMarkdown, foldDescription, forGitHub, issueSections, sectionsRule, type IssueParts } from './issueText'
 import type { TrCard, TrFound, TrIssue, TrPosted } from './trello'
 
 export const REPORT_MARK = '<!-- homedash:tr-report -->'
@@ -66,7 +67,7 @@ export const REPORT_TEMPLATE = [
 
 function rules(close: string): string[] {
   return [
-    "Lis le besoin et tous les échanges : sur Trello, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques**. Ne modifie pas le corps de l'issue : il porte le lien vers la carte. Les images restent sur Trello.",
+    `Lis le besoin et tous les échanges : sur Trello, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques**. Ne modifie pas le corps de l'issue : il porte le lien vers la carte. ${sectionsRule('Trello')} Les images restent sur Trello.`,
     "Donne-lui la ou les étiquettes qui conviennent, choisies parmi celles du repo (`gh label list`) : n'en crée pas.",
     'Fais le travail en suivant les règles du repo (CLAUDE.md).',
     `Une fois livré, poste **un** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la carte Trello. Si on te redemande un rapport final, poste-en un nouveau : le dernier fait foi.`,
@@ -75,15 +76,12 @@ function rules(close: string): string[] {
   ]
 }
 
-export function issueBody(card: IssueCard, need = ''): string {
+export function issueBody(card: IssueCard, parts: IssueParts): string {
   return [
     `> 📋 **Carte Trello** : [${card.title || 'carte'}](${card.url})`,
     ...(card.where ? [`> ${card.where}`] : []),
     '',
-    '## Besoin',
-    '',
-    need.trim() || '_À compléter._',
-    '',
+    ...issueSections('Trello', '📋', parts),
     '---',
     `<!-- homedash:tr ${card.url.split(/[?#]/)[0]} -->`,
     '<details><summary>Consigne pour Claude Code (issue liée à Trello par homedash)</summary>',
@@ -103,6 +101,7 @@ export function claudePrompt(repo: string, number: number): string {
     `Occupe-toi de l'issue ${repo}#${number} : lis-la avec \`gh issue view ${number} -R ${repo} --comments\`. ` +
     `Elle vient d'une carte Trello : commence par en tirer le vrai besoin et la meilleure solution, ` +
     `reformulés en termes techniques (en commentaire de l'issue si ce n'est pas limpide), sans toucher au corps de l'issue. ` +
+    `${sectionsRule('Trello')} ` +
     `Donne-lui ses étiquettes, parmi celles du repo (\`gh label list -R ${repo}\`) sans en créer. ` +
     `Puis suis la consigne en bas de l'issue (rapport au format indiqué, puis fermeture).`
   )
@@ -110,7 +109,8 @@ export function claudePrompt(repo: string, number: number): string {
 
 export function reportPrompt(repo: string, number: number, notes = ''): string {
   return [
-    `Le travail sur l'issue ${repo}#${number} est terminé. Vérifie tout ce qui a été fait par rapport à la demande d'origine (section Besoin) et aux échanges (\`gh issue view ${number} -R ${repo} --comments\`).`,
+    `Le travail sur l'issue ${repo}#${number} est terminé. Vérifie tout ce qui a été fait par rapport au corps de l'issue et aux échanges (\`gh issue view ${number} -R ${repo} --comments\`).`,
+    sectionsRule('Trello'),
     `Puis poste le rapport final en commentaire de l'issue (\`gh issue comment ${number} -R ${repo}\`), exactement au format ci-dessous : il est publié tel quel sur la carte Trello. S'il y a déjà un rapport, poste-en un nouveau : le dernier fait foi.`,
     `Enfin, ferme l'issue si elle est encore ouverte : \`gh issue close ${number} -R ${repo} --reason completed\`.`,
     ...(notes.trim() ? ['', `Précisions pour ce rapport : ${notes.trim()}`] : []),
@@ -144,23 +144,19 @@ export async function cardText(url: string): Promise<{
   }
 }
 
-export function needFromCard(
-  text: string,
-  checklists: { name: string; items: { title: string; completed: boolean }[] }[],
-  comments: TrComment[],
-  picked: Set<string>,
-): string {
-  const lines = [text.trim()]
+/** Description et listes de la carte, prêtes pour la section « Carte Trello ». */
+export function cardMarkdown(text: string, checklists: { name: string; items: { title: string; completed: boolean }[] }[]): string {
+  const lines = [foldDescription(text.trim())]
   for (const cl of checklists) {
     if (!cl.items.length) continue
     lines.push('', `### ${cl.name}`, ...cl.items.map((it) => `- [${it.completed ? 'x' : ' '}] ${it.title}`))
   }
-  const kept = comments.filter((c) => picked.has(c.id))
-  if (kept.length) {
-    lines.push('', '### Échanges retenus (Trello)', '')
-    for (const c of kept) lines.push(`**${c.who}** (${c.date}) :`, c.text, '')
-  }
-  return lines.join('\n').trim()
+  return forGitHub(lines.join('\n').trim())
+}
+
+/** Échanges retenus, pour la section « Échanges Trello ». */
+export function commentsMarkdown(comments: TrComment[], picked: Set<string>): string {
+  return exchangesMarkdown(comments.filter((c) => picked.has(c.id)))
 }
 
 export function whereOf(c: Pick<TrCard, 'board' | 'list'> | Pick<TrFound, 'board' | 'parent'>): string {
