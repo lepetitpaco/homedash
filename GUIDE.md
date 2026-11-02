@@ -42,9 +42,18 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
-- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…*. Icônes, icônes et titres, titres,
-  ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre
-  aux icônes, **›** la redéplie.
+- **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
+  et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
+  automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page). Puis les
+  options du mode choisi :
+  - *Barre de gauche* : icônes, icônes et titres, titres, ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal
+    ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre aux icônes, **›** la redéplie.
+  - *En haut* : plus de barre de gauche, tous les onglets en haut de la page, sur plusieurs rangées si besoin ; style
+    (pastilles, par défaut, ou soulignés) et taille des onglets. Un dossier est un onglet : un clic montre ses sites. On
+    revient à la barre de gauche par ce même choix.
+- **Raccourcis, GitHub, Local… à un clic** : clic droit sur **⚡**, puis *Dans la barre, sous ⚡* : ils passent dans un dossier ⚡
+  en haut de la barre, au lieu des onglets du haut. Un clic sur ⚡ replie ou déplie le dossier ; replié, il montre le total
+  des compteurs. *En haut de la page* revient à l'ancien rangement.
 - **Containers Docker** (développeurs) : *Réglages → Docker* ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
   ou container, reconnaissable à ses deux lettres et sa couleur. Un clic ouvre son premier port, un clic droit ses autres ports.
   Le dossier se glisse où tu veux. Ceux qui sont éteints restent visibles en plus fade, sans clic. Tu choisis lesquels ; homedash lit la liste et ne change rien.
@@ -53,7 +62,7 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
-- **Cacher la barre** : clic droit sur la barre, hors d'une icône.
+- **Cacher la barre** : clic droit sur la barre, hors d'une icône (les onglets passent en haut).
 
 ![Disposition et taille de la barre](docs/screenshots/barre-disposition.jpg)
 
@@ -112,7 +121,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
   télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance. Sous Windows, si
   l'installation échoue, homedash reste ouvert ou se rouvre, et te le dit.
 - **homedash n'existe que dans l'appli** : elle n'ouvre aucun port, et http://localhost:7777 dans un
-  navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Affichage →
+  navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Fonctionnalités →
   Accès depuis le navigateur* ; http://localhost:7777 marche alors, sur ta machine seulement, tant que
   l'appli tourne.
 
@@ -301,17 +310,18 @@ garde tes modifications en brouillon, retrouvées au retour.
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
-| 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas |
+| 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas ; accès depuis le navigateur (appli) |
 | 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
 | 💻 Dépôts locaux | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion, les repos où créer les issues |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
-| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
+| 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…) ; mise en page par modèles : largeur de la page (centrée sur un grand écran), densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
-| 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (s'il est activé) |
+| 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (à activer en tête de sa page) |
 
 **Couper une fonctionnalité** (🧩 Fonctionnalités) : décochée, elle disparaît de la page (onglet,
 recherche, cartes de l'accueil, ses parties de Réglages, ses notifications dans la cloche et
@@ -343,7 +353,7 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, quitte et relance l'appli |
 | « La mise à jour n'a pas été installée » (Windows) | Tes données n'ont pas changé. Réessaie, ou installe la nouvelle version à la main depuis la page des versions. Si ça recommence, *Aide → Signaler un problème* en joignant le fichier `update.log` indiqué dans le message |
 | « homedash n'a pas pu démarrer » | Le serveur de l'appli s'est arrêté : quitte et relance homedash. Si ça recommence, *Aide → Signaler un problème* |
-| http://localhost:7777 ne montre rien dans le navigateur | Normal : coche *Réglages → Affichage → Accès depuis le navigateur*, l'appli ouverte |
+| http://localhost:7777 ne montre rien dans le navigateur | Normal : coche *Réglages → Fonctionnalités → Accès depuis le navigateur*, l'appli ouverte |
 | Accès navigateur : « le port 7777 est déjà pris » | Un autre programme l'utilise (un ancien homedash ?) : ferme-le |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
 | Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion*, le pas-à-pas « Comment créer un jeton » y est ouvert |

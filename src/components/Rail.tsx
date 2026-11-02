@@ -10,6 +10,8 @@ export type RailLabels = 'none' | 'right' | 'grid1' | 'grid2' | 'grid3' | 'text'
 
 const OPEN_KEY = 'homedash:rail-closed'
 const DOCKER_FOLDER = 'docker'
+/** ⚡ en dossier : sa place dans la liste des dossiers fermés (`OPEN_KEY`). */
+const HOME_FOLDER = '⚡'
 /** Place du dossier 🐳 : calculé, il n'est pas dans la config ; préférence de l'écran. */
 const DOCKER_PLACE_KEY = 'homedash:rail-docker'
 type DockerPlace = { before?: string; at?: number }
@@ -94,6 +96,14 @@ type Props = {
   onMerge: (dragged: CustomTab, target: CustomTab) => void
   onTabMenu: (e: React.MouseEvent, tab: CustomTab) => void
   onFolderMenu: (e: React.MouseEvent, folder: TabFolder) => void
+  /**
+   * « homedash en dossier » (menu Disposition) : ⚡ est un dossier toujours ouvert en haut, ses
+   * onglets (Raccourcis, GitHub, Local…) à un clic. Absent : ⚡ ouvre homedash, onglets en haut.
+   */
+  home?: { id: string; icon: ReactNode; label: string; badge?: number; badgeAlert?: boolean; badgeTitle?: string; active: boolean }[]
+  onHomeTab?: (id: string) => void
+  /** Clic droit sur ⚡ : où mettre les onglets de homedash. */
+  onHomeMenu?: (e: React.MouseEvent) => void
 }
 
 /**
@@ -138,6 +148,9 @@ export default function Rail({
   onHome,
   onSettings,
   onSelect,
+  home,
+  onHomeTab,
+  onHomeMenu,
   onAdd,
   onMenu,
   onTabs,
@@ -150,6 +163,12 @@ export default function Rail({
   const [drag, setDrag] = useState<string | null>(null)
   const [over, setOver] = useState<Over>(null)
 
+  const homeContext = onHomeMenu
+    ? (e: React.MouseEvent) => {
+        e.preventDefault()
+        onHomeMenu(e)
+      }
+    : undefined
   const toggle = (id: string) => {
     const next = closed.includes(id) ? closed.filter((x) => x !== id) : [...closed, id]
     setClosed(next)
@@ -439,16 +458,62 @@ export default function Rail({
         onMenu(e)
       }}
     >
-      <div className={`rail-item rail-home${active ? '' : ' is-active'}`}>
-        <span className="rail-pill" aria-hidden="true" />
-        <button className="rail-btn" onClick={onHome} title="homedash : Raccourcis, GitHub, Local…">
-          <span className="rail-icon">
-            {textOnly ? null : '⚡'}
-            {kidsBadge('links', 'homedash')}
-          </span>
-          {wide ? <span className="rail-label">homedash</span> : null}
-        </button>
-      </div>
+      {home ? (
+        // ⚡ en dossier : un clic l'ouvre ou le ferme (mémorisé comme les autres dossiers) ;
+        // fermé, il porte le total des compteurs et la sélection.
+        (() => {
+          const open = !closed.includes(HOME_FOLDER)
+          const sum = home.reduce((n, h) => n + (h.badge ?? 0), 0)
+          const alert = home.some((h) => h.badge && h.badgeAlert)
+          const here = home.find((h) => h.active)
+          return (
+            <div className={`rail-folder rail-home-folder${open ? ' is-open' : ''}`} style={{ ['--folder' as string]: '#60a5fa' }}>
+              <div className={`rail-item rail-home${!open && here ? ' is-active' : ''}`}>
+                <span className="rail-pill" aria-hidden="true" />
+                <button
+                  className="rail-btn rail-folder-btn"
+                  onClick={() => toggle(HOME_FOLDER)}
+                  onContextMenu={homeContext}
+                  title={`homedash · ${open ? 'replier' : 'déplier'}${here ? ` · ${here.label} affiché` : ''} — clic droit : où mettre ses onglets`}
+                >
+                  <span className="rail-icon rail-folder-icon">
+                    {textOnly ? null : '⚡'}
+                    {open ? kidsBadge('links', 'homedash') : sum ? <span className={`rail-badge${alert ? '' : ' is-ok'}`}>{sum > 99 ? '99+' : sum}</span> : null}
+                  </span>
+                  {wide ? <span className="rail-label rail-folder-name">homedash</span> : null}
+                </button>
+              </div>
+              {open ? (
+                <div className="rail-kids">
+                  {home.map((h) => (
+                    <div key={h.id} className={`rail-item${h.active ? ' is-active' : ''}`}>
+                      <span className="rail-pill" aria-hidden="true" />
+                      <button className="rail-btn" onClick={() => onHomeTab?.(h.id)} title={h.badge && h.badgeTitle ? `${h.label} · ${h.badgeTitle}` : h.label}>
+                        <span className="rail-icon">
+                          {textOnly ? null : h.icon}
+                          {h.badge ? <span className={`rail-badge${h.badgeAlert ? '' : ' is-ok'}`}>{h.badge > 99 ? '99+' : h.badge}</span> : null}
+                        </span>
+                        {wide ? <span className="rail-label">{h.label}</span> : null}
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )
+        })()
+      ) : (
+        <div className={`rail-item rail-home${active ? '' : ' is-active'}`}>
+          <span className="rail-pill" aria-hidden="true" />
+          <button className="rail-btn" onClick={onHome} onContextMenu={homeContext} title="homedash : Raccourcis, GitHub, Local… — clic droit : où mettre ses onglets">
+            <span className="rail-icon">
+              {textOnly ? null : '⚡'}
+              {kidsBadge('links', 'homedash')}
+            </span>
+            {wide ? <span className="rail-label">homedash</span> : null}
+          </button>
+        </div>
+      )}
       <div className="rail-sep" />
 
       <div className="rail-list">

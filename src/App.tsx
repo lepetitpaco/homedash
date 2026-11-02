@@ -16,6 +16,7 @@ import UpdateProgress from './components/UpdateProgress'
 import DockHint from './components/DockHint'
 import Rail, { type RailLabels, type RailSize } from './components/Rail'
 import RailLayoutPicker from './components/RailLayoutPicker'
+import type { Bars } from './components/BarLayoutForm'
 import SiteSwitcher from './components/SiteSwitcher'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
@@ -27,7 +28,7 @@ import QuickTiles from './components/QuickTiles'
 import SearchResults from './components/SearchResults'
 import Section, { type SectionCtx } from './components/Section'
 import SettingsPage from './components/SettingsPage'
-import Tabs, { type Tab, type TabId } from './components/Tabs'
+import Tabs, { type StripSize, type Tab, type TabId, type TabLook } from './components/Tabs'
 import TopBar from './components/TopBar'
 import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
@@ -35,7 +36,7 @@ import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
 import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
-import { keepFolderPlaces, placeForNew } from './lib/railOrder'
+import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
@@ -90,6 +91,14 @@ const RAIL_CELL: Record<RailSize, number> = { mini: 84, icons: 98, large: 114 }
 const RAIL_COLUMNS: Partial<Record<RailLabels, number>> = { grid1: 1, grid2: 2, grid3: 3 }
 const RAIL_OPEN_KEY = 'homedash:rail-open'
 const RAIL_SIZE_KEY = 'homedash:rail-size'
+/** Taille des pastilles quand les onglets sont en haut. */
+const STRIP_SIZE_KEY = 'homedash:strip-size'
+/** La barre choisie (gauche, ou onglets en haut) se cache et revient au survol de son bord. */
+const AUTOHIDE_KEY = 'homedash:autohide'
+/** Onglets de homedash (Raccourcis, GitHub…) : `rail` = dossier ⚡ dans la barre de gauche, sinon en haut. */
+const DASH_PLACE_KEY = 'homedash:dash-place'
+/** Style des onglets du haut : `underline` = soulignés, sinon pastilles. */
+const TAB_STYLE_KEY = 'homedash:tab-style'
 const RAIL_LABELS_KEY = 'homedash:rail-labels'
 /** Lecture sûre du stockage du navigateur. */
 const readPref = (key: string) => {
@@ -442,7 +451,47 @@ export default function App() {
     [changeRailOpen],
   )
   const shownLabels: RailLabels = railOpen ? railLabels : 'none'
+  const [stripSize, setStripSize] = useState<StripSize>(() => {
+    const v = readPref(STRIP_SIZE_KEY)
+    return v === 'mini' || v === 'large' ? v : 'icons'
+  })
+  const changeStripSize = useCallback((size: StripSize) => {
+    setStripSize(size)
+    writePref(STRIP_SIZE_KEY, size)
+  }, [])
+  const [tabLook, setTabLook] = useState<TabLook>(() => (readPref(TAB_STYLE_KEY) === 'underline' ? 'underline' : 'pills'))
+  const changeTabLook = useCallback((look: TabLook) => {
+    setTabLook(look)
+    writePref(TAB_STYLE_KEY, look)
+  }, [])
+  const [dashInRail, setDashInRail] = useState(() => readPref(DASH_PLACE_KEY) === 'rail')
+  const changeDashInRail = useCallback((on: boolean) => {
+    setDashInRail(on)
+    writePref(DASH_PLACE_KEY, on ? 'rail' : 'top')
+  }, [])
+  const [autoHide, setAutoHide] = useState(() => readPref(AUTOHIDE_KEY) === '1')
+  const changeAutoHide = useCallback((on: boolean) => {
+    setAutoHide(on)
+    writePref(AUTOHIDE_KEY, on ? '1' : '0')
+  }, [])
   const [railPicker, setRailPicker] = useState<{ clientX: number; clientY: number } | null>(null)
+  /** Les choix des barres, pour le menu flottant et Réglages → Barres et onglets. */
+  const bars: Bars = {
+    top: railHidden,
+    labels: railLabels,
+    size: railSize,
+    stripSize,
+    tabLook,
+    autoHide,
+    dashInRail,
+    setTop: (top) => showRail(!top),
+    setLabels: changeRailLabels,
+    setSize: changeRailSize,
+    setStripSize: changeStripSize,
+    setTabLook: changeTabLook,
+    setAutoHide: changeAutoHide,
+    setDashInRail: changeDashInRail,
+  }
   // Ctrl+Tab : les sites, du plus récent au plus ancien, et celui qu'on vise (issue #102).
   const recentSites = useRef<string[]>([])
   const hereSite = spaceOf(tab) ?? (tab.startsWith('x:') ? tab : null)
@@ -474,7 +523,10 @@ export default function App() {
         ? `${RAIL_COLUMNS[shownLabels] * RAIL_CELL[railSize] + 4}px`
         : (shownLabels === 'none' ? RAIL_WIDTH : RAIL_WIDTH_NAMED)[railSize]
     document.documentElement.style.setProperty('--rail-w', w)
-  }, [railOn, railSize, shownLabels])
+    // Masquée d'elle-même : la page prend toute la largeur, la barre passe par-dessus au survol.
+    document.documentElement.style.setProperty('--page-left', railOn && autoHide ? '0px' : w)
+    document.documentElement.classList.toggle('rail-autohide', railOn && autoHide)
+  }, [railOn, railSize, shownLabels, autoHide])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
@@ -919,11 +971,24 @@ export default function App() {
   // Réglages pas chargés : serveur qui redémarre (réessai seul), fichier abîmé
   // (proposer la dernière sauvegarde), ou autre — jamais de jargon (LoadTrouble).
   // Hauteur de la barre d'onglets du haut : un site affiché en dessous prend le reste.
+  // Les pastilles passent à la ligne : la hauteur change aussi quand la fenêtre change de largeur.
+  // Un seul observateur, refait seulement quand l'élément change (barre affichée, cachée, en bande masquée).
+  const stripWatch = useRef<{ el: HTMLElement | null; ro: ResizeObserver | null }>({ el: null, ro: null })
   useLayoutEffect(() => {
     const el = document.getElementById(STRIP_ID)
-    const h = el ? el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || '0') : 0
-    document.documentElement.style.setProperty('--strip-h', `${h}px`)
+    const measure = () => {
+      const h = el ? el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || '0') : 0
+      document.documentElement.style.setProperty('--strip-h', `${h}px`)
+    }
+    measure()
+    const w = stripWatch.current
+    if (w.el === el || typeof ResizeObserver === 'undefined') return
+    w.ro?.disconnect()
+    w.el = el
+    w.ro = el ? new ResizeObserver(measure) : null
+    if (el) w.ro!.observe(el)
   })
+  useEffect(() => () => stripWatch.current.ro?.disconnect(), [])
 
   // « Pour commencer » (accueil) : ce qui est branché, relu à chaque retour sur
   // l'accueil et après chaque enregistrement.
@@ -1392,6 +1457,36 @@ export default function App() {
       ],
     })
   }
+  /** Clic droit sur ⚡ : où mettre les onglets de homedash (en haut, ou dans un dossier ⚡). */
+  const homeMenu = (e: React.MouseEvent) => {
+    const at = { clientX: e.clientX, clientY: e.clientY }
+    const mark = (on: boolean) => (on ? '✓' : '')
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'homedash',
+      items: [
+        { heading: 'Raccourcis, GitHub, Local…' },
+        { icon: mark(!dashInRail), label: 'En haut de la page', hint: 'un clic sur ⚡, puis l’onglet', onSelect: () => changeDashInRail(false) },
+        { icon: mark(dashInRail), label: 'Dans la barre, sous ⚡', hint: 'un seul clic ; ⚡ se replie', onSelect: () => changeDashInRail(true) },
+        { sep: true },
+        { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
+      ],
+    })
+  }
+  /** Clic droit sur la barre d'onglets du haut (barre de gauche cachée). */
+  const stripMenu = (e: React.MouseEvent) => {
+    const at = { clientX: e.clientX, clientY: e.clientY }
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'Onglets en haut',
+      items: [
+        // Pas de retour direct à la barre de gauche : ça passe par le choix de disposition.
+        { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
+      ],
+    })
+  }
   /** Tous les onglets temporaires (pas les gardés), et retour à l'espace d'où l'on était. */
   const closeAllTemps = () => {
     const shownTemp = temps.find((t) => tabKey(t) === tab)
@@ -1854,13 +1949,40 @@ export default function App() {
     ? [
         ...tabs,
         ...childEntries(DASH),
-        ...regularTabs.flatMap((t) => [entry(t), ...childEntries(tabKey(t))]),
+        // Même ordre que la barre de gauche : un dossier est une pastille qui déplie ses sites.
+        ...railEntries(
+          regularTabs.filter((t) => !folderOf(t, tabFolders)),
+          tabFolders,
+        ).flatMap((e): Tab[] => {
+          if ('tab' in e) return [entry(e.tab), ...childEntries(tabKey(e.tab))]
+          const f = e.folder
+          return [
+            {
+              // id d'affichage seulement (clé, menu) : un dossier n'est jamais passé à `selectTab`
+              id: `f:${f.id}` as TabId,
+              icon: f.icon ?? <span className="tab-folder-dot" style={{ background: f.color ?? '#60a5fa' }} />,
+              label: f.name,
+              color: f.color,
+              onContext: (ev: React.MouseEvent) => folderMenu(ev, f),
+              kids: regularTabs
+                .filter((t) => folderOf(t, tabFolders) === f.id)
+                .flatMap((t) => [entry(t), ...childEntries(tabKey(t))]),
+            },
+          ]
+        }),
         ...allTemps.filter((t) => !parentOf(t)).map(entry),
-        ...dockerSites.map(entry),
+        ...(dockerSites.length
+          ? [{ id: 'f:docker' as TabId, icon: '🐳', label: 'Docker', kids: dockerSites.map(entry) }]
+          : []),
         { id: 'settings' as TabId, icon: '⚙', label: 'Réglages' },
       ]
     : space === DASH
-      ? [...tabs, ...childEntries(DASH)]
+      ? // ⚡ en dossier : ses onglets sont dans la barre de gauche, en haut ne restent que ceux ouverts par un lien
+        dashInRail
+        ? childEntries(DASH).length
+          ? childEntries(DASH)
+          : null
+        : [...tabs, ...childEntries(DASH)]
       : parentTab && childrenOf(space!).length
         ? [entry(parentTab), ...childEntries(space!)]
         : null
@@ -1934,7 +2056,7 @@ export default function App() {
           id: 'display',
           icon: '🖥',
           title: 'Adapte l’affichage à ton écran',
-          hint: 'Texte trop petit ou trop grand ? Choisis ton écran (portable, 34", 49").',
+          hint: 'Page trop large ou trop serrée ? Choisis sa largeur : toute la largeur sur un portable, centrée sur un grand écran.',
           done: raw?.ui?.pageWidth !== undefined,
           action: 'Choisir',
           run: () => openSection('set-display'),
@@ -2019,6 +2141,7 @@ export default function App() {
         }
       />
 
+      {railOn && autoHide ? <div className="rail-hot" aria-hidden="true" /> : null}
       {railOn ? (
         <Rail
           tabs={regularTabs}
@@ -2060,16 +2183,27 @@ export default function App() {
           onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
           onTabMenu={tabMenu}
           onFolderMenu={folderMenu}
+          home={
+            dashInRail
+              ? tabs.map((t) => ({
+                  id: t.id,
+                  // ⚡ est déjà le dossier : Raccourcis y prend 🔗 (son icône dans les Réglages)
+                  icon: t.id === 'links' ? '🔗' : t.icon,
+                  label: t.label,
+                  badge: t.badge,
+                  badgeAlert: t.badgeAlert,
+                  badgeTitle: t.badgeTitle,
+                  active: shown === t.id,
+                }))
+              : undefined
+          }
+          onHomeMenu={homeMenu}
+          onHomeTab={(id) => {
+            search.setQuery('')
+            selectTab(id as TabId)
+          }}
         />
-      ) : (
-        <button
-          className={`rail-reopen${tabUnread ? ' has-unread' : ''}`}
-          onClick={() => showRail(true)}
-          title={tabUnread ? `Afficher la barre de gauche · ${tabUnread} non lu(s)` : 'Afficher la barre de gauche'}
-        >
-          »{tabUnread ? <span className="rail-reopen-badge">{tabUnread > 99 ? '99+' : tabUnread}</span> : null}
-        </button>
-      )}
+      ) : null}
 
       {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
           serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}
@@ -2079,6 +2213,10 @@ export default function App() {
           tabs={strip}
           active={shown}
           onSelect={selectTab}
+          onMenu={railOn ? undefined : stripMenu}
+          size={stripSize}
+          autoHide={!railOn && autoHide}
+          look={tabLook}
           onAdd={railOn ? undefined : addTab}
           onNewTemp={railOn || !desktop ? undefined : newTemp}
           onMove={(id, before) => {
@@ -2293,6 +2431,7 @@ export default function App() {
           onReload={reload}
           saving={saveState.kind === 'saving'}
           changelog={changelog}
+          bars={bars}
         />
       ) : view === 'github' ? (
         <GithubView
@@ -2340,7 +2479,7 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="board" style={{ ['--rail-w' as string]: `${ui.railWidth}px` }}>
+          <div className="board" style={{ ['--cat-w' as string]: `${ui.railWidth}px` }}>
             {cfg.sections.map((s) => (
               <Section key={s.key} section={s} ctx={ctx} />
             ))}
@@ -2394,10 +2533,7 @@ export default function App() {
         <RailLayoutPicker
           x={railPicker.clientX}
           y={railPicker.clientY}
-          labels={railLabels}
-          size={railSize}
-          onLabels={changeRailLabels}
-          onSize={changeRailSize}
+          bars={bars}
           onClose={() => setRailPicker(null)}
         />
       ) : null}

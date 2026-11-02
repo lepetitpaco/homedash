@@ -16,7 +16,7 @@ import {
   toggleNotifications,
   type NotifState,
 } from '../lib/notifications'
-import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
+import { DEFAULT_GH_LAYOUT, DEFAULT_UI } from '../lib/config'
 import {
   EDIT_TAB_EVENT,
   NEW_TAB_EVENT,
@@ -39,6 +39,8 @@ import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
 import SetRepos, { type Use } from './SetRepos'
+import BarLayoutForm, { type Bars } from './BarLayoutForm'
+import SetDisplay from './SetDisplay'
 import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
 import ErrorLog from './ErrorLog'
@@ -79,6 +81,7 @@ const SECTIONS = [
   { id: 'set-trello', icon: '📋', label: 'Trello', group: 'Connexions' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
   { id: 'set-docker', icon: '🐳', label: 'Docker', group: 'La page' },
+  { id: 'set-bars', icon: '🧭', label: 'Barres et onglets', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
@@ -98,45 +101,6 @@ const FEATURE_LIST: { id: Feature; icon: string; label: string; hint: string }[]
   { id: 'local', icon: '💻', label: 'Local', hint: 'onglet Local : les dépôts de ton disque et leurs branches à nettoyer' },
   { id: 'basecamp', icon: '🏕', label: 'Basecamp', hint: 'onglet Basecamp (tes tâches), ses non-lus dans la cloche, recherche dans Basecamp' },
   { id: 'trello', icon: '📋', label: 'Trello', hint: 'onglet Trello (tes cartes), ses non-lus dans la cloche, recherche dans Trello' },
-]
-
-/** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
-const limitOf = (key: string) => SIZE_LIMITS.find(([k]) => k === key)
-
-/** Réglages numériques de « Affichage » : ce que chacun change, en une phrase. */
-const DISPLAY_FIELDS: {
-  title: string
-  icon: string
-  hint: string
-  fields: {
-    key: 'maxTiles' | 'linkWidth' | 'railWidth' | 'sidebarWidth' | 'healthcheckInterval' | 'pageWidth' | 'cardColumns' | 'cardWidth'
-    label: string
-    unit?: string
-    hint: string
-  }[]
-}[] = [
-  {
-    title: 'Onglet Raccourcis',
-    icon: '🔗',
-    hint: 'Tailles et rythme de l’accueil. Vide = la valeur par défaut.',
-    fields: [
-      { key: 'maxTiles', label: 'Tuiles « les plus utilisés »', hint: 'nombre de liens dans la rangée des plus cliqués' },
-      { key: 'linkWidth', label: 'Largeur d’un lien', unit: 'px', hint: 'plus petit = plus de liens par ligne' },
-      { key: 'railWidth', label: 'Largeur des noms de catégorie', unit: 'px', hint: 'la colonne de gauche de chaque catégorie de liens, où s’affiche son nom' },
-      { key: 'sidebarWidth', label: 'Blocs Notes / Stats', unit: 'px', hint: 'largeur mini de chaque bloc sous les tuiles' },
-      { key: 'healthcheckInterval', label: 'Test des voyants', unit: 's', hint: 'fréquence de vérification des liens surveillés' },
-    ],
-  },
-  {
-    title: 'Mise en page',
-    icon: '📐',
-    hint: 'Largeur de la page et des cartes GitHub / Local.',
-    fields: [
-      { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran ; jamais moins de 1 400 px' },
-      { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
-      { key: 'cardWidth', label: 'Largeur d’une carte', unit: 'px', hint: 'onglets GitHub et Local, quand « Colonnes » est à 0 : largeur minimum d’une carte. Exemple sur un écran de 1 800 px : 560 → 3 cartes par ligne, 400 → 4' },
-    ],
-  },
 ]
 
 /** Une partie d'une carte de réglages : icône, titre et une phrase qui dit à quoi elle sert. */
@@ -203,6 +167,8 @@ type Props = {
   saving: boolean
   /** Version et changelog (Aide → Nouveautés), le même état que la barre du haut. */
   changelog: ReturnType<typeof useChangelog>
+  /** Les choix des barres (propres à cet écran, appliqués tout de suite) : Barres et onglets. */
+  bars?: Bars
 }
 
 /** Pages de l'Aide qui ne viennent pas de GUIDE.md. */
@@ -231,7 +197,7 @@ type GhCfg = {
 
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
 
-export default function SettingsPage({ config, onSave, onReload, saving, changelog }: Props) {
+export default function SettingsPage({ config, onSave, onReload, saving, changelog, bars }: Props) {
   // Brouillon local : rien n'est écrit avant « Enregistrer ».
   const [draft, setDraft] = useState<Config | null>(() => (config && cachedDraft(config)) ?? config)
   const [auth, setAuth] = useState<Auth | null>(null)
@@ -317,7 +283,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }, [])
   // Une fonctionnalité décochée quitte le menu tout de suite (brouillon compris).
   const shown = (id: string) => !SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id])
-  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), NEWS, GUIDE, ERRORS, ...(hasPerf ? [PERF] : [])]
+  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), NEWS, GUIDE, ERRORS, PERF]
   const [guidePart, setGuidePart] = useState<string | null>(() => {
     try {
       return localStorage.getItem(GUIDE_PART_KEY)
@@ -712,6 +678,28 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </label>
             ))}
           </div>
+          {desktop?.features?.includes('app-server') ? (
+            <Block
+              icon="🌐"
+              title="Accès depuis le navigateur"
+              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
+            >
+              <div className="set-toggles">
+                <label className="set-toggle">
+                  <input
+                    type="checkbox"
+                    checked={draft.ui?.browserAccess === true}
+                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
+                  />
+                  <span>
+                    Ouvrir homedash sur <code>http://localhost:7777</code>
+                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
+                  </span>
+                </label>
+              </div>
+              <BrowserAccessState />
+            </Block>
+          ) : null}
         </Card>
         ) : null}
 
@@ -895,7 +883,18 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
 
         {active === PERF.id ? (
         <Card id={PERF.id} icon={PERF.icon} title={PERF.label}>
-          <PerfLog />
+          {/* L'activation vit avec le journal (elle était dans Affichage) ; la page est donc toujours là. */}
+          <Block
+            icon="⏱"
+            title="Activer le journal"
+            hint="Pour comprendre une lenteur : note ce qui prend du temps. Inutile au quotidien."
+          >
+            <SetPerf
+              enabled={draft.ui?.perfLog === true}
+              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
+            />
+          </Block>
+          {hasPerf || config?.ui?.perfLog === true ? <PerfLog /> : null}
         </Card>
         ) : null}
 
@@ -945,6 +944,20 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
 
+        {active === 'set-bars' ? (
+        <Card id="set-bars" icon="🧭" title="Barres et onglets">
+          <p className="set-hint">
+            Propre à cet écran et appliqué tout de suite, sans « Enregistrer ». Aussi au clic droit sur une barre, et sur ⚡
+            pour la place de Raccourcis, GitHub, Local…
+          </p>
+          {bars ? (
+            <BarLayoutForm bars={bars} withDash />
+          ) : (
+            <p className="set-hint">Indisponible ici.</p>
+          )}
+        </Card>
+        ) : null}
+
         {active === 'set-display' ? (
         <Card id="set-display" icon="🎛" title="Affichage">
           <Block icon="🧭" title="Ce qui s'affiche" hint="Ce que tu vois dans la page, à cocher ou décocher.">
@@ -982,85 +995,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </label>
             </div>
           </Block>
-          <Block icon="🖥" title="Taille de l'écran" hint="Un clic règle toutes les tailles ci-dessous d'un coup ; ajuste ensuite si besoin.">
-            <div className="set-presets">
-              {DISPLAY_PRESETS.map((p) => {
-                const on = Object.entries(p.ui).every(
-                  ([k, v]) => ((draft.ui?.[k as keyof typeof p.ui] as number | undefined) || DEFAULT_UI[k as keyof typeof p.ui]) === v,
-                )
-                return (
-                  <button
-                    key={p.id}
-                    className={`set-preset${on ? ' is-on' : ''}`}
-                    onClick={() => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...p.ui } })}
-                  >
-                    <strong>{p.label}</strong>
-                    <span>{p.hint}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </Block>
-          {DISPLAY_FIELDS.map((section) => (
-            <Block key={section.title} icon={section.icon} title={section.title} hint={section.hint}>
-              <div className="set-grid">
-                {section.fields.map(({ key, label, unit, hint }) => (
-                  <label className="set-field" key={key}>
-                    <span>
-                      {label} {unit ? <b className="set-unit">{unit}</b> : null}
-                      <em>{hint}</em>
-                    </span>
-                    <input
-                      type="number"
-                      min={limitOf(key)?.[1] ?? 0}
-                      max={limitOf(key)?.[2]}
-                      placeholder={`${DEFAULT_UI[key]} (défaut)`}
-                      value={(draft.ui?.[key] as number | undefined) || (limitOf(key) ? '' : (draft.ui?.[key] ?? ''))}
-                      onChange={(e) => {
-                        const ui: Record<string, unknown> = { ...(draft.ui ?? {}) }
-                        const v = num(e.target.value, 0)
-                        // Taille vidée ou à 0 : on retire la clé, le défaut s'applique.
-                        if (limitOf(key) && v <= 0) delete ui[key]
-                        else ui[key] = v
-                        setDraft({ ...draft, ui })
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
-            </Block>
-          ))}
-          {desktop?.features?.includes('app-server') ? (
-            <Block
-              icon="🌐"
-              title="Accès depuis le navigateur"
-              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
-            >
-              <div className="set-toggles">
-                <label className="set-toggle">
-                  <input
-                    type="checkbox"
-                    checked={draft.ui?.browserAccess === true}
-                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
-                  />
-                  <span>
-                    Ouvrir homedash sur <code>http://localhost:7777</code>
-                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
-                  </span>
-                </label>
-              </div>
-              <BrowserAccessState />
-            </Block>
-          ) : null}
-          <Block
-            icon="⏱"
-            title="Journal de performance"
-            hint="Pour comprendre une lenteur : note ce qui prend du temps. Inutile au quotidien."
-          >
-            <SetPerf
-              enabled={draft.ui?.perfLog === true}
-              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
-            />
+          <Block icon="📐" title="Mise en page" hint="Des modèles plutôt que des chiffres. Appliqué à « Enregistrer ».">
+            <SetDisplay ui={draft.ui ?? {}} onChange={(patch) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...patch } })} />
           </Block>
         </Card>
         ) : null}
