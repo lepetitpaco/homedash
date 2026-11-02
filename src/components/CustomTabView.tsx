@@ -416,7 +416,7 @@ export default function CustomTabView({
           )}
         </button>
       ) : null}
-      <button className="xtab-btn xtab-icon-btn" onClick={onSettings} title="Modifier cet onglet" aria-label="Modifier cet onglet">
+      <button className="xtab-btn xtab-icon-btn" onClick={onSettings} title="Modifier ce site" aria-label="Modifier ce site">
         ⚙
       </button>
     </div>

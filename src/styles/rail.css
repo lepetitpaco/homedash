@@ -788,27 +788,6 @@ body {
   font-size: 0.74rem;
   font-weight: 700;
 }
-.bar-form h3:not(:first-child) {
-  margin-top: 4px;
-}
-.rail-picker-sizes {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.rail-picker-layouts {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  margin-bottom: 12px;
-}
-.bar-form h4 {
-  margin: 0 0 8px;
-  color: var(--text-dim);
-  font-size: 0.72rem;
-  font-weight: 500;
-}
 .bar-form button {
   display: flex;
   flex-direction: column;
@@ -871,120 +850,6 @@ body {
   height: 14px;
   background: linear-gradient(currentColor, currentColor) center bottom / 100% 3px no-repeat,
     radial-gradient(circle at 50% 4px, currentColor 4px, transparent 4.5px) !important;
-}
-/* Onglets en haut : deux rangées de pastilles au-dessus de la page. */
-.rail-thumb.is-top {
-  justify-content: flex-start;
-  padding-top: 5px;
-}
-.rail-thumb.is-top .rail-thumb-row {
-  justify-content: flex-start;
-}
-.rail-picker-layouts.is-two {
-  grid-template-columns: repeat(2, 1fr);
-}
-/* ⚡ en dossier : ses onglets en retrait sur un fond commun. */
-.rail-thumb.is-left {
-  align-items: flex-start;
-  padding-left: 8px;
-  background: linear-gradient(color-mix(in srgb, currentColor 18%, transparent), color-mix(in srgb, currentColor 18%, transparent)) 0 0 / 16px 100% no-repeat, var(--bg);
-}
-.rail-thumb.is-dash {
-  align-items: flex-start;
-  padding-left: 14px;
-  background: linear-gradient(color-mix(in srgb, #60a5fa 30%, transparent), color-mix(in srgb, #60a5fa 30%, transparent)) 8px 4px / 14px 34px no-repeat, var(--bg);
-}
-/* Style des onglets : trois onglets en miniature, le premier choisi. */
-.rail-thumb.is-look-pills .rail-thumb-row,
-.rail-thumb.is-look-underline .rail-thumb-row {
-  justify-content: center;
-}
-.rail-thumb-t {
-  width: 12px;
-  height: 6px;
-  opacity: 0.45 !important;
-}
-.rail-thumb-t.is-on {
-  opacity: 1 !important;
-}
-.is-look-pills .rail-thumb-t {
-  border-radius: 3px;
-}
-.is-look-underline .rail-thumb-t {
-  height: 2px;
-  margin-top: 6px;
-  border-radius: 1px;
-}
-.rail-thumb-p {
-  width: 12px;
-  height: 5px;
-  border-radius: 3px;
-}
-.bar-form button:disabled {
-  opacity: 0.45;
-  cursor: default;
-}
-.bar-form button:disabled:hover {
-  color: var(--text-dim);
-}
-.rail-picker-pill {
-  display: block;
-  height: 12px;
-  width: 22px;
-  margin: 4px 0;
-  border-radius: 999px;
-  border: 2px solid currentColor;
-  box-sizing: border-box;
-}
-.rail-picker-pill.is-mini {
-  height: 10px;
-  width: 18px;
-  margin: 5px 0;
-}
-.rail-picker-pill.is-large {
-  height: 16px;
-  width: 28px;
-  margin: 2px 0;
-}
-.rail-picker-auto {
-  display: flex;
-  align-items: flex-start;
-  gap: 8px;
-  margin: 0 0 14px;
-  padding: 8px 10px;
-  border-radius: 10px;
-  background: var(--panel-2);
-  font-size: 0.78rem;
-  color: var(--text);
-  cursor: pointer;
-}
-.rail-picker-auto input {
-  margin-top: 2px;
-}
-.rail-picker-auto small {
-  display: block;
-  margin-top: 2px;
-  color: var(--text-dim);
-  font-size: 0.7rem;
-}
-.rail-picker-dot {
-  display: block;
-  border-radius: 50%;
-  background: currentColor;
-}
-.rail-picker-dot.is-mini {
-  width: 10px;
-  height: 10px;
-  margin: 5px;
-}
-.rail-picker-dot.is-icons {
-  width: 15px;
-  height: 15px;
-  margin: 2.5px;
-}
-.rail-picker-dot.is-large {
-  width: 20px;
-  height: 20px;
 }
 
 .rail.has-names .rail-foot.is-compact {
@@ -1228,4 +1093,198 @@ body {
 /* Titres : le ✕ d'un onglet temporaire a sa place, à droite des pastilles. */
 .rail.has-text .rail-temp .rail-btn {
   padding-right: 28px;
+}
+
+/* Sélecteur segmenté (choix à 2 ou 3 options) : une pilule, l'option choisie en relief. */
+.seg {
+  display: flex;
+  gap: 2px;
+  margin-bottom: 12px;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+}
+.bar-form .seg button {
+  flex: 1 1 0;
+  flex-direction: row;
+  justify-content: center;
+  gap: 6px;
+  min-width: 0;
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  font-size: 0.76rem;
+  white-space: nowrap;
+}
+.bar-form .seg button:hover {
+  color: var(--text);
+}
+.bar-form .seg button.is-on {
+  border: 0;
+  background: color-mix(in srgb, #60a5fa 24%, var(--panel-2));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #60a5fa 70%, transparent);
+  color: var(--text);
+  font-weight: 600;
+}
+.seg-glyph {
+  display: inline-flex;
+  align-items: center;
+}
+.seg-glyph i {
+  display: block;
+  background: currentColor;
+  opacity: 0.85;
+}
+.seg-left {
+  width: 5px;
+  height: 12px;
+  border-radius: 2px;
+}
+.seg-top {
+  width: 14px;
+  height: 4px;
+  border-radius: 2px;
+}
+.seg-look-pills {
+  width: 14px;
+  height: 7px;
+  border-radius: 4px;
+}
+.seg-look-underline {
+  width: 14px;
+  height: 2px;
+  margin-top: 6px;
+}
+.seg-dot {
+  border-radius: 50%;
+}
+.seg-dot.is-mini {
+  width: 6px;
+  height: 6px;
+}
+.seg-dot.is-icons {
+  width: 9px;
+  height: 9px;
+}
+.seg-dot.is-large {
+  width: 12px;
+  height: 12px;
+}
+.seg-glyph .seg-pill {
+  background: none;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+}
+.seg-pill.is-mini {
+  width: 12px;
+  height: 7px;
+}
+.seg-pill.is-icons {
+  width: 15px;
+  height: 9px;
+}
+.seg-pill.is-large {
+  width: 19px;
+  height: 11px;
+}
+
+/* Une ligne par réglage (BarLayoutForm). Menu flottant : le nom au-dessus du contrôle. */
+.bar-row {
+  padding: 10px 0;
+  border-top: 1px solid var(--border-soft);
+}
+.bar-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+.bar-row:last-child {
+  padding-bottom: 0;
+}
+.bar-row-label h3 {
+  margin: 0;
+  color: var(--text);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.bar-row-label p {
+  margin: 2px 0 0;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+.bar-row-control {
+  margin-top: 8px;
+}
+.bar-row-control .seg {
+  margin-bottom: 0;
+}
+/* Les six dispositions sur une rangée (deux de trois dans le menu, trop étroit). */
+.bar-layouts {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+.bar-form .bar-layouts button {
+  gap: 4px;
+  padding: 6px 4px;
+  font-size: 0.7rem;
+}
+.bar-layouts .rail-thumb {
+  width: 44px;
+  height: 34px;
+}
+
+/* Interrupteur (case à cocher habillée) : glisse à droite et passe au bleu quand c'est actif. */
+.switch {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+}
+.switch input {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+.switch-track {
+  position: relative;
+  width: 38px;
+  height: 22px;
+  border-radius: 999px;
+  background: var(--border);
+  transition: background 0.15s;
+}
+.switch-track::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 1px 2px rgb(0 0 0 / 35%);
+  transition: transform 0.15s;
+}
+.switch input:checked + .switch-track {
+  background: #3b82f6;
+}
+.switch input:checked + .switch-track::after {
+  transform: translateX(16px);
+}
+.switch input:focus-visible + .switch-track {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
+}
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
 }

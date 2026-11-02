@@ -3,6 +3,28 @@
 Où en est le dev : ce qui est fait sur les branches et pas encore publié. Ce fichier n'est pas livré dans
 l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque livraison ».
 
+
+## paco/feature/reglages-clairs
+
+- **La recherche trouve les Réglages** : chaque page et les réglages qu'on cherche (« veille », « sauvegarde », « jeton »,
+  « disposition »…) ouvrent directement la bonne page, GitHub sur le bon sous-onglet.
+- **Réglages plus courts** : *Vue d'ensemble* en tête (ce qui est branché, ce qui manque, la dernière sauvegarde, un bouton
+  vers chaque page) ; groupes Général, Services, La page, Données, Aide ; 13 entrées au lieu de 15. Docker passe dans
+  *Mes sites* et n'est proposé que si Docker tourne ; journal d'erreurs et de performance réunis dans *Diagnostic* ;
+  *Nouveautés* reste au bouton de version (et au menu de l'appli). Les anciens liens mènent à la nouvelle place.
+- **Pages allégées** : GitHub en sous-onglets (*Compte*, *Repos suivis*, *Équipe*, *Ce que montre l'onglet*, Renovate sous
+  *Avancé*) ; Sauvegardes : les 5 dernières, *Voir tout* pour faire le ménage, export complet replié ; Affichage, Mes
+  sites et Diagnostic : le secondaire replié sous *Plus de réglages*.
+- *Réglages → Barres et onglets* : une ligne par réglage (le nom et sa phrase à gauche, le contrôle à droite, tous
+  alignés) ; *Masquer automatiquement* devient un interrupteur ; deux ou trois options = un sélecteur segmenté ; les six
+  dispositions de la barre en une rangée de miniatures. Basculer barre de gauche / en haut ajoute ou retire des lignes,
+  rien ne saute. Tient sans défilement dès 1 137 × 777 ; le menu flottant garde le même ordre, en une colonne.
+- **Défaut** : Raccourcis, GitHub, Local… dans le dossier ⚡ de la barre (un clic) tant qu'on n'a rien choisi.
+- **Un vocabulaire** : site (plus « onglet » pour une icône de la barre), compteur (plus « pastille » pour un nombre),
+  compte, Activité, Local ; boutons avec majuscule, Basecamp et Trello formulés pareil. Lexique dans `CLAUDE.md`.
+- **?** en haut à droite ouvre le Guide ; le menu d'un lien a ses icônes ; plus de *Cacher la barre* au clic droit (le
+  choix se fait dans *Disposition et taille…*).
+
 ## paco/feature/onglets-pastilles
 
 - Barre d'onglets du haut en pastilles arrondies, toutes à la même hauteur ; quand la place manque elles passent à la

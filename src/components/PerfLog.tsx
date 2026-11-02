@@ -20,7 +20,7 @@ type Day = {
   app: { samples: number; mem_mb: number; mem_peak_mb: number; cpu: number; cpu_peak: number; tabs: Tab[]; spikes: Spike[] }
 }
 
-const OPS: Record<string, string> = { github: 'GitHub', local: 'Dépôts locaux', basecamp: 'Basecamp', config: 'Réglages' }
+const OPS: Record<string, string> = { github: 'GitHub', local: 'Local', basecamp: 'Basecamp', config: 'Réglages' }
 const n = (x: number) => x.toLocaleString('fr-FR')
 const dayLabel = (d: string) => new Date(`${d}T12:00`).toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })
 

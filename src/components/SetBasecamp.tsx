@@ -132,7 +132,7 @@ export default function SetBasecamp() {
           </div>
           <div className="set-account-actions">
             <button onClick={unlink} disabled={busy}>
-              déconnecter
+              Déconnecter
             </button>
           </div>
         </div>
@@ -276,13 +276,13 @@ export default function SetBasecamp() {
             >
               Enregistrer l'appli
             </button>
-            {editing ? <button onClick={() => setEditing(false)}>annuler</button> : null}
+            {editing ? <button onClick={() => setEditing(false)}>Annuler</button> : null}
           </div>
         </>
       ) : (
         <div className="set-add">
           <button onClick={() => setEditing(true)} disabled={busy}>
-            modifier l'appli
+            Changer l'appli
           </button>
           <button className="set-danger-link" onClick={forget} disabled={busy}>
             Oublier l'appli Basecamp

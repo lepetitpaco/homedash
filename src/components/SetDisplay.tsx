@@ -99,10 +99,16 @@ export default function SetDisplay({ ui, onChange }: { ui: Ui; onChange: (patch:
   return (
     <div className="set-looks-all">
       <Row title="Largeur de la page" hint="centrée, elle reste lisible sur un très grand écran" picks={PAGE} ui={ui} onPick={pick} thumb={(p) => <PageThumb pct={p.pct} />} />
-      <Row title="Raccourcis" hint="liens, noms de catégorie et blocs Notes / Stats" picks={DENSITY} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} />} />
-      <Row title="Cartes GitHub et Local" hint="côte à côte" picks={COLUMNS} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} auto={p.n === 0} />} />
-      <Row title="Tuiles « les plus utilisés »" hint="combien de liens dans la rangée" picks={TILES} ui={ui} onPick={pick} small />
-      <Row title="Test des voyants" hint="liens surveillés : tous les combien" picks={CHECKS} ui={ui} onPick={pick} small />
+      {/* Le reste a de bons défauts : replié, ouvert d'office si une valeur sort des modèles. */}
+      <details className="set-more" open={[DENSITY, COLUMNS, TILES, CHECKS].some((picks) => !picks.some((p) => isOn(ui, p))) || undefined}>
+        <summary>Plus de réglages : densité, colonnes, tuiles, voyants</summary>
+        <div className="set-looks-all">
+        <Row title="Raccourcis" hint="liens, noms de catégorie et blocs Notes / Stats" picks={DENSITY} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} />} />
+        <Row title="Cartes GitHub et Local" hint="côte à côte" picks={COLUMNS} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} auto={p.n === 0} />} />
+        <Row title="Tuiles « les plus utilisés »" hint="combien de liens dans la rangée" picks={TILES} ui={ui} onPick={pick} small />
+        <Row title="Test des voyants" hint="liens surveillés : tous les combien" picks={CHECKS} ui={ui} onPick={pick} small />
+        </div>
+      </details>
     </div>
   )
 }
