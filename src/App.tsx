@@ -2452,7 +2452,7 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="board" style={{ ['--rail-w' as string]: `${ui.railWidth}px` }}>
+          <div className="board" style={{ ['--cat-w' as string]: `${ui.railWidth}px` }}>
             {cfg.sections.map((s) => (
               <Section key={s.key} section={s} ctx={ctx} />
             ))}

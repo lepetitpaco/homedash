@@ -319,7 +319,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }, [])
   // Une fonctionnalité décochée quitte le menu tout de suite (brouillon compris).
   const shown = (id: string) => !SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id])
-  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), NEWS, GUIDE, ERRORS, ...(hasPerf ? [PERF] : [])]
+  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), NEWS, GUIDE, ERRORS, PERF]
   const [guidePart, setGuidePart] = useState<string | null>(() => {
     try {
       return localStorage.getItem(GUIDE_PART_KEY)
@@ -714,6 +714,28 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </label>
             ))}
           </div>
+          {desktop?.features?.includes('app-server') ? (
+            <Block
+              icon="🌐"
+              title="Accès depuis le navigateur"
+              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
+            >
+              <div className="set-toggles">
+                <label className="set-toggle">
+                  <input
+                    type="checkbox"
+                    checked={draft.ui?.browserAccess === true}
+                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
+                  />
+                  <span>
+                    Ouvrir homedash sur <code>http://localhost:7777</code>
+                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
+                  </span>
+                </label>
+              </div>
+              <BrowserAccessState />
+            </Block>
+          ) : null}
         </Card>
         ) : null}
 
@@ -897,7 +919,18 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
 
         {active === PERF.id ? (
         <Card id={PERF.id} icon={PERF.icon} title={PERF.label}>
-          <PerfLog />
+          {/* L'activation vit avec le journal (elle était dans Affichage) ; la page est donc toujours là. */}
+          <Block
+            icon="⏱"
+            title="Activer le journal"
+            hint="Pour comprendre une lenteur : note ce qui prend du temps. Inutile au quotidien."
+          >
+            <SetPerf
+              enabled={draft.ui?.perfLog === true}
+              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
+            />
+          </Block>
+          {hasPerf || config?.ui?.perfLog === true ? <PerfLog /> : null}
         </Card>
         ) : null}
 
@@ -1050,38 +1083,6 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </div>
             </Block>
           ))}
-          {desktop?.features?.includes('app-server') ? (
-            <Block
-              icon="🌐"
-              title="Accès depuis le navigateur"
-              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
-            >
-              <div className="set-toggles">
-                <label className="set-toggle">
-                  <input
-                    type="checkbox"
-                    checked={draft.ui?.browserAccess === true}
-                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
-                  />
-                  <span>
-                    Ouvrir homedash sur <code>http://localhost:7777</code>
-                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
-                  </span>
-                </label>
-              </div>
-              <BrowserAccessState />
-            </Block>
-          ) : null}
-          <Block
-            icon="⏱"
-            title="Journal de performance"
-            hint="Pour comprendre une lenteur : note ce qui prend du temps. Inutile au quotidien."
-          >
-            <SetPerf
-              enabled={draft.ui?.perfLog === true}
-              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
-            />
-          </Block>
         </Card>
         ) : null}
         {active === 'set-notifs' ? (

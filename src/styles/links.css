@@ -139,7 +139,8 @@
 
 .board > .card {
   display: grid;
-  grid-template-columns: var(--rail-w, 232px) 1fr;
+  /* --cat-w : largeur des noms de catégorie (ui.railWidth), distincte de la barre de gauche (--rail-w). */
+  grid-template-columns: var(--cat-w, 232px) 1fr;
   align-items: stretch;
 }
 

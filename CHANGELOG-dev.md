@@ -19,6 +19,8 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Barre de gauche, taille Petit : l'icône d'un dossier ouvert est alignée sur ses sites (elle était décalée de 4 px).
 - Le choix de disposition ne sort plus de l'écran (à droite ou en bas).
 - *Style des onglets du haut* : pastilles (par défaut) ou soulignés (le rendu d'avant), dans *Disposition et taille…*.
+- Réglages rangés : *Accès depuis le navigateur* passe d'Affichage à Fonctionnalités ; l'activation du journal de
+  performance passe d'Affichage à *Aide → Journal de performance*, page désormais toujours listée.
 
 ## paco/feature/issue-sections-basecamp
 
