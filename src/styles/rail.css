@@ -424,48 +424,6 @@ body {
   padding: 6px 4px 0;
 }
 
-/* Barre cachée : une languette pour la rouvrir. */
-.rail-reopen {
-  position: fixed;
-  left: 0;
-  top: 50%;
-  z-index: 45;
-  width: 16px;
-  height: 48px;
-  margin-top: -24px;
-  padding: 0;
-  border: 1px solid var(--border);
-  border-left: 0;
-  border-radius: 0 8px 8px 0;
-  background: var(--panel-2);
-  color: var(--text-faint);
-  cursor: pointer;
-}
-.rail-reopen:hover {
-  color: var(--text);
-}
-/* Barre cachée : le total des non-lus reste visible sur la languette. */
-.rail-reopen.has-unread {
-  height: auto;
-  min-height: 48px;
-  padding: 6px 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  border-color: color-mix(in srgb, #ef4444 50%, var(--border));
-}
-.rail-reopen-badge {
-  min-width: 14px;
-  padding: 0 2px;
-  border-radius: 7px;
-  background: #ef4444;
-  color: #fff;
-  font-size: 9px;
-  font-weight: 700;
-  line-height: 14px;
-}
-
 /* Fenêtre « nom + couleur » (dossier, compte) et pastilles de couleur. */
 .nc-body {
   display: flex;
@@ -824,16 +782,20 @@ body {
   max-height: calc(100vh - 16px);
   overflow-y: auto;
 }
-.rail-picker h3 {
+.bar-form h3 {
   margin: 0 0 8px;
   color: var(--text-dim);
   font-size: 0.74rem;
   font-weight: 700;
 }
+.bar-form h3:not(:first-child) {
+  margin-top: 4px;
+}
 .rail-picker-sizes {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px;
+  margin-bottom: 12px;
 }
 .rail-picker-layouts {
   display: grid;
@@ -841,13 +803,13 @@ body {
   gap: 8px;
   margin-bottom: 12px;
 }
-.rail-picker h4 {
+.bar-form h4 {
   margin: 0 0 8px;
   color: var(--text-dim);
   font-size: 0.72rem;
   font-weight: 500;
 }
-.rail-picker button {
+.bar-form button {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -861,10 +823,10 @@ body {
   font-size: 0.72rem;
   cursor: pointer;
 }
-.rail-picker button:hover {
+.bar-form button:hover {
   color: var(--text);
 }
-.rail-picker button.is-on {
+.bar-form button.is-on {
   border-color: #60a5fa;
   background: color-mix(in srgb, #60a5fa 20%, var(--panel-2));
   color: var(--text);
@@ -922,6 +884,11 @@ body {
   grid-template-columns: repeat(2, 1fr);
 }
 /* ⚡ en dossier : ses onglets en retrait sur un fond commun. */
+.rail-thumb.is-left {
+  align-items: flex-start;
+  padding-left: 8px;
+  background: linear-gradient(color-mix(in srgb, currentColor 18%, transparent), color-mix(in srgb, currentColor 18%, transparent)) 0 0 / 16px 100% no-repeat, var(--bg);
+}
 .rail-thumb.is-dash {
   align-items: flex-start;
   padding-left: 14px;
@@ -953,11 +920,11 @@ body {
   height: 5px;
   border-radius: 3px;
 }
-.rail-picker button:disabled {
+.bar-form button:disabled {
   opacity: 0.45;
   cursor: default;
 }
-.rail-picker button:disabled:hover {
+.bar-form button:disabled:hover {
   color: var(--text-dim);
 }
 .rail-picker-pill {
@@ -983,7 +950,10 @@ body {
   display: flex;
   align-items: flex-start;
   gap: 8px;
-  margin-top: 12px;
+  margin: 0 0 14px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: var(--panel-2);
   font-size: 0.78rem;
   color: var(--text);
   cursor: pointer;

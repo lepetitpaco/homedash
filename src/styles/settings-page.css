@@ -350,3 +350,8 @@
 .set-sub-gap {
   margin-top: 28px;
 }
+
+/* Réglages → Barres et onglets : le même formulaire que le menu flottant, à sa largeur. */
+#set-bars .bar-form {
+  max-width: 520px;
+}

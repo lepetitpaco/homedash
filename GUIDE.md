@@ -42,17 +42,18 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
-- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…* (ou *Réglages → Affichage*).
-  Icônes, icônes et titres, titres, ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long
-  est coupé, complet au survol. **‹** en bas réduit la barre aux icônes, **›** la redéplie. Propre à chaque écran, appliqué tout de suite.
-- **Raccourcis, GitHub, Local… à un clic** : dans *Disposition et taille…*, *Sous ⚡, dans la barre* range les onglets de homedash
-  dans un dossier ⚡ en haut de la barre, au lieu de la barre d'onglets du haut.
-- **Onglets en haut** : dans *Disposition et taille…*, *Onglets en haut* cache la barre de gauche ; tout passe en pastilles en haut
-  de la page, sur plusieurs rangées si besoin. Un dossier est une pastille : un clic montre ses sites. Taille des pastilles :
-  petit, normal ou grand. Clic droit sur la barre du haut, hors d'un onglet, pour y revenir.
-- **Style des onglets du haut** : dans *Disposition et taille…*, *Pastilles* (par défaut) ou *Soulignés* (le rendu d'avant).
-- **Masquer automatiquement** : la case en bas de *Disposition et taille…* cache la barre (gauche ou haut) ; elle revient quand
-  la souris passe au bord de l'écran ou en haut de la page.
+- **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
+  et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
+  automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page). Puis les
+  options du mode choisi :
+  - *Barre de gauche* : icônes, icônes et titres, titres, ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal
+    ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre aux icônes, **›** la redéplie.
+  - *En haut* : plus de barre de gauche, tous les onglets en haut de la page, sur plusieurs rangées si besoin ; style
+    (pastilles, par défaut, ou soulignés) et taille des onglets. Un dossier est un onglet : un clic montre ses sites. On
+    revient à la barre de gauche par ce même choix.
+- **Raccourcis, GitHub, Local… à un clic** : clic droit sur **⚡**, puis *Dans la barre, sous ⚡* : ils passent dans un dossier ⚡
+  en haut de la barre, au lieu des onglets du haut. Un clic sur ⚡ replie ou déplie le dossier ; replié, il montre le total
+  des compteurs. *En haut de la page* revient à l'ancien rangement.
 - **Containers Docker** (développeurs) : *Réglages → Docker* ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
   ou container, reconnaissable à ses deux lettres et sa couleur. Un clic ouvre son premier port, un clic droit ses autres ports.
   Le dossier se glisse où tu veux. Ceux qui sont éteints restent visibles en plus fade, sans clic. Tu choisis lesquels ; homedash lit la liste et ne change rien.
@@ -316,7 +317,8 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
-| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), barre de gauche et onglets, taille de l'écran |
+| 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, tailles de Raccourcis et des cartes |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
 | 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (à activer en tête de sa page) |

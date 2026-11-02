@@ -16,6 +16,7 @@ import UpdateProgress from './components/UpdateProgress'
 import DockHint from './components/DockHint'
 import Rail, { type RailLabels, type RailSize } from './components/Rail'
 import RailLayoutPicker from './components/RailLayoutPicker'
+import type { Bars } from './components/BarLayoutForm'
 import SiteSwitcher from './components/SiteSwitcher'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
@@ -474,6 +475,23 @@ export default function App() {
     writePref(AUTOHIDE_KEY, on ? '1' : '0')
   }, [])
   const [railPicker, setRailPicker] = useState<{ clientX: number; clientY: number } | null>(null)
+  /** Les choix des barres, pour le menu flottant et Réglages → Barres et onglets. */
+  const bars: Bars = {
+    top: railHidden,
+    labels: railLabels,
+    size: railSize,
+    stripSize,
+    tabLook,
+    autoHide,
+    dashInRail,
+    setTop: (top) => showRail(!top),
+    setLabels: changeRailLabels,
+    setSize: changeRailSize,
+    setStripSize: changeStripSize,
+    setTabLook: changeTabLook,
+    setAutoHide: changeAutoHide,
+    setDashInRail: changeDashInRail,
+  }
   // Ctrl+Tab : les sites, du plus récent au plus ancien, et celui qu'on vise (issue #102).
   const recentSites = useRef<string[]>([])
   const hereSite = spaceOf(tab) ?? (tab.startsWith('x:') ? tab : null)
@@ -1439,6 +1457,23 @@ export default function App() {
       ],
     })
   }
+  /** Clic droit sur ⚡ : où mettre les onglets de homedash (en haut, ou dans un dossier ⚡). */
+  const homeMenu = (e: React.MouseEvent) => {
+    const at = { clientX: e.clientX, clientY: e.clientY }
+    const mark = (on: boolean) => (on ? '✓' : '')
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'homedash',
+      items: [
+        { heading: 'Raccourcis, GitHub, Local…' },
+        { icon: mark(!dashInRail), label: 'En haut de la page', hint: 'un clic sur ⚡, puis l’onglet', onSelect: () => changeDashInRail(false) },
+        { icon: mark(dashInRail), label: 'Dans la barre, sous ⚡', hint: 'un seul clic ; ⚡ se replie', onSelect: () => changeDashInRail(true) },
+        { sep: true },
+        { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
+      ],
+    })
+  }
   /** Clic droit sur la barre d'onglets du haut (barre de gauche cachée). */
   const stripMenu = (e: React.MouseEvent) => {
     const at = { clientX: e.clientX, clientY: e.clientY }
@@ -1447,9 +1482,8 @@ export default function App() {
       y: e.clientY,
       title: 'Onglets en haut',
       items: [
+        // Pas de retour direct à la barre de gauche : ça passe par le choix de disposition.
         { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
-        { sep: true },
-        { icon: '»', label: 'Afficher la barre de gauche', onSelect: () => showRail(true) },
       ],
     })
   }
@@ -2163,20 +2197,13 @@ export default function App() {
                 }))
               : undefined
           }
+          onHomeMenu={homeMenu}
           onHomeTab={(id) => {
             search.setQuery('')
             selectTab(id as TabId)
           }}
         />
-      ) : (
-        <button
-          className={`rail-reopen${tabUnread ? ' has-unread' : ''}`}
-          onClick={() => showRail(true)}
-          title={tabUnread ? `Afficher la barre de gauche · ${tabUnread} non lu(s)` : 'Afficher la barre de gauche'}
-        >
-          »{tabUnread ? <span className="rail-reopen-badge">{tabUnread > 99 ? '99+' : tabUnread}</span> : null}
-        </button>
-      )}
+      ) : null}
 
       {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
           serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}
@@ -2404,7 +2431,7 @@ export default function App() {
           onReload={reload}
           saving={saveState.kind === 'saving'}
           changelog={changelog}
-          onLayout={setRailPicker}
+          bars={bars}
         />
       ) : view === 'github' ? (
         <GithubView
@@ -2506,24 +2533,7 @@ export default function App() {
         <RailLayoutPicker
           x={railPicker.clientX}
           y={railPicker.clientY}
-          labels={railLabels}
-          size={railSize}
-          top={!railOn}
-          onLabels={(labels) => {
-            // dans cet ordre : `showRail` enregistre la disposition en cours, déjà la nouvelle
-            changeRailLabels(labels)
-            if (!railOn) showRail(true)
-          }}
-          onSize={changeRailSize}
-          onTop={() => showRail(false)}
-          stripSize={stripSize}
-          onStripSize={changeStripSize}
-          autoHide={autoHide}
-          onAutoHide={changeAutoHide}
-          dashInRail={dashInRail}
-          onDashInRail={changeDashInRail}
-          tabLook={tabLook}
-          onTabLook={changeTabLook}
+          bars={bars}
           onClose={() => setRailPicker(null)}
         />
       ) : null}
