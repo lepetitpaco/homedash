@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { sectionsOf } from '../lib/issueText'
 import { Markdown } from '../lib/markdown'
 import Pick from './Pick'
 import Thread, { hue, initials } from './Thread'
@@ -9,8 +10,6 @@ export type ComposerComment = { id: string | number; who: string; date: string; 
 
 const repoId = (r: Repo) => `${r.account} ${r.repo}`
 
-/** Pour l'aperçu : ce qu'on a choisi, sans le lien ni la consigne ajoutés autour. */
-const needOf = (body: string) => /## Besoin\n+([\s\S]*?)\n+---\n/.exec(body)?.[1] ?? body
 /** « Créée par » : avatar et nom dans la couleur de la personne (comme ses messages), puis la date. */
 function Author({ who, date }: { who: string; date: string }) {
   const d = new Date(date)
@@ -270,7 +269,7 @@ export default function IssueComposer(p: Props) {
                     onChange={(e) => p.onNeed(e.target.value)}
                   />
                 ) : (
-                  <div className="ic-preview"><Markdown text={needOf(p.body())} /></div>
+                  <div className="ic-preview"><Markdown text={sectionsOf(p.body())} /></div>
                 )}
                 <p className="set-hint">
                   Coche à gauche ce qui part dans l'issue. Le lien vers {p.noun} et la consigne de rapport s'ajoutent tout seuls.

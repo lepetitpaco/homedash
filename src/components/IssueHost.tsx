@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { BcIssue } from '../lib/basecamp'
 import {
+  cardMarkdown,
   commentsMarkdown,
   claudeCommand,
   claudePrompt,
@@ -127,7 +128,7 @@ export default function IssueHost() {
   if (!req) return null
   const close = () => setReq(null)
   const retained = comments.filter((c) => picked.has(c.id))
-  const body = () => issueBody(req.task, [need.trim(), descPicked ? text : '', commentsMarkdown(retained)].filter(Boolean).join('\n\n'))
+  const body = () => issueBody(req.task, { need, card: descPicked ? cardMarkdown(text) : '', exchanges: commentsMarkdown(retained) })
   const toggle = (id: number) =>
     setPicked((cur) => {
       const next = new Set(cur)

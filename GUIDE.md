@@ -220,6 +220,9 @@ les rapports que tu publies.
    *Tout inclure*, *Rien inclure* ; tout est coché au départ), ajoute tes précisions, relis l'*Aperçu*, puis
    **Créer sur GitHub** (⌘ Entrée).
    *Ouvrir le formulaire* passe plutôt par github.com.
+   L'issue a une section par source : *🎯 Mon besoin* (tes précisions, qui priment), *Carte* (la description,
+   reprise telle quelle) et *💬 Échanges* ; une section vide n'apparaît pas. Les mentions y perdent leur `@`, pour
+   ne notifier personne sur GitHub.
 2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
    colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
    (`<!-- homedash:bc-report -->`), fermer l'issue.

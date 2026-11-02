@@ -5,8 +5,9 @@ import {
   claudeCommand,
   claudePrompt,
   createIssue,
+  cardMarkdown,
+  commentsMarkdown,
   issueBody,
-  needFromCard,
   newIssueUrl,
   rememberRepo,
   rememberedRepo,
@@ -94,11 +95,12 @@ export default function TrIssueHost() {
   }, [])
 
   if (!req) return null
-  const body = () => {
-    const exchanges = needFromCard('', [], comments, picked)
-    const described = descPicked ? needFromCard(desc, lists, [], new Set()) : ''
-    return issueBody(req.card, [need.trim(), described, exchanges].filter(Boolean).join('\n\n'))
-  }
+  const body = () =>
+    issueBody(req.card, {
+      need,
+      card: descPicked ? cardMarkdown(desc, lists) : '',
+      exchanges: commentsMarkdown(comments, picked),
+    })
   const prompt = made ? claudePrompt(made.repo, made.number) : ''
   const clone = made ? req.cloneOf(made.repo) : null
   const command = clone ? claudeCommand(clone, prompt) : ''
