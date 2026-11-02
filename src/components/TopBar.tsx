@@ -7,6 +7,8 @@ type Props = {
   showClock: boolean
   theme: 'dark' | 'light'
   onTheme: () => void
+  /** « ? » : le guide (Réglages → Aide). */
+  onHelp?: () => void
   searchRef: React.RefObject<HTMLInputElement | null>
   resultCount: number | null
   /** Où cherche la barre (issue #38) : son icône, son nom, `null` = partout ; clic = le menu des portées. */
@@ -43,6 +45,7 @@ export default function TopBar({
   showClock,
   theme,
   onTheme,
+  onHelp,
   searchRef,
   resultCount,
   scope,
@@ -129,6 +132,11 @@ export default function TopBar({
         >
           ⟳
         </button>
+        {onHelp ? (
+          <button className="icon-btn" onClick={onHelp} title="Guide : comment faire, raccourcis clavier" aria-label="Guide">
+            ?
+          </button>
+        ) : null}
         <button
           className="icon-btn"
           onClick={onTheme}

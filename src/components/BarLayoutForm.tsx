@@ -28,7 +28,7 @@ export type Bars = {
 type Layout = { id: RailLabels; label: string; rows: string[] }
 const LISTS: Layout[] = [
   { id: 'none', label: 'Icônes', rows: ['i', 'i', 'i'] },
-  { id: 'right', label: 'Icônes et titres', rows: ['in', 'in', 'in'] },
+  { id: 'right', label: 'Icônes + titres', rows: ['in', 'in', 'in'] },
   { id: 'text', label: 'Titres', rows: ['n', 'n', 'n'] },
 ]
 const TILES: Layout[] = [
@@ -63,104 +63,127 @@ const Choice = ({ on, label, onPick, children }: { on: boolean; label: string; o
 )
 
 /**
- * D'abord où sont les onglets (barre de gauche ou en haut), puis seulement les options de ce
- * mode (disposition et taille des icônes, ou style et taille des onglets) ; le masquage juste sous le mode. `withDash` : la place des onglets de
- * homedash (Réglages ; dans le menu flottant, elle est au clic droit sur ⚡).
+ * Choix à deux ou trois options : un sélecteur segmenté (une pilule, l'actuel en relief) plutôt que de
+ * grandes vignettes. `glyph` : un petit signe devant le libellé.
+ */
+function Segmented<T extends string>({
+  label,
+  value,
+  options,
+  onPick,
+}: {
+  label: string
+  value: T
+  options: { id: T; label: string; glyph?: React.ReactNode }[]
+  onPick: (id: T) => void
+}) {
+  return (
+    <div className="seg" role="radiogroup" aria-label={label}>
+      {options.map((o) => (
+        <button
+          key={o.id}
+          type="button"
+          role="radio"
+          aria-checked={value === o.id}
+          className={value === o.id ? 'is-on' : ''}
+          onClick={() => onPick(o.id)}
+        >
+          {o.glyph ? <span className="seg-glyph" aria-hidden="true">{o.glyph}</span> : null}
+          {o.label}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+const SIZE_OPTS = (kind: 'dot' | 'pill') =>
+  SIZES.map((s) => ({ id: s.id, label: s.label, glyph: <i className={`seg-${kind} is-${s.id}`} /> }))
+
+/** Une ligne de réglage : le nom et sa phrase à gauche, le contrôle à droite (dessous dans le menu flottant). */
+const Row = ({ title, hint, children }: { title: string; hint?: string; children: React.ReactNode }) => (
+  <div className="bar-row">
+    <div className="bar-row-label">
+      <h3>{title}</h3>
+      {hint ? <p>{hint}</p> : null}
+    </div>
+    <div className="bar-row-control">{children}</div>
+  </div>
+)
+
+/**
+ * Une ligne par réglage, dans un ordre fixe : où sont les onglets, le masquage, puis seulement les
+ * réglages de ce mode. Basculer ajoute ou retire des lignes sous les deux premières, rien ne saute.
+ * `withDash` : la place des onglets de homedash (Réglages ; dans le menu flottant, elle est au clic
+ * droit sur ⚡).
  */
 export default function BarLayoutForm({ bars, withDash = false }: { bars: Bars; withDash?: boolean }) {
   const { top } = bars
   return (
     <div className="bar-form">
-      <h3>Les onglets</h3>
-      <div className="rail-picker-layouts is-two">
-        <Choice on={!top} label="Barre de gauche" onPick={() => bars.setTop(false)}>
-          <Thumb rows={['i', 'i', 'i']} className="is-left" />
-        </Choice>
-        <Choice on={top} label="En haut" onPick={() => bars.setTop(true)}>
-          <Thumb rows={['ppp', 'pp']} className="is-top" />
-        </Choice>
-      </div>
-      {/* Juste sous le choix du mode : en bas, on passait à côté. */}
-      <label className="rail-picker-auto">
-        <input type="checkbox" checked={bars.autoHide} onChange={(e) => bars.setAutoHide(e.target.checked)} />
-        <span>
-          Masquer automatiquement
-          <small>
-            {top ? 'Les onglets du haut reviennent quand la souris passe en haut de la page.' : 'La barre de gauche revient quand la souris passe au bord gauche.'}
-          </small>
-        </span>
-      </label>
-
-      {/* Chaque mode ne montre que ses options. Le style choisi en haut vaut aussi pour la petite
-          barre d'onglets qui reste au-dessus de la page avec la barre de gauche. */}
+      <Row title="Les onglets" hint={top ? 'Tous en haut de la page, sur plusieurs rangées si besoin.' : 'Tes sites dans une barre à gauche.'}>
+        <Segmented
+          label="Les onglets"
+          value={top ? 'top' : 'left'}
+          options={[
+            { id: 'left', label: 'Barre de gauche', glyph: <i className="seg-left" /> },
+            { id: 'top', label: 'En haut', glyph: <i className="seg-top" /> },
+          ]}
+          onPick={(v) => bars.setTop(v === 'top')}
+        />
+      </Row>
+      <Row
+        title="Masquer automatiquement"
+        hint={top ? 'Les onglets reviennent quand la souris passe en haut de la page.' : 'La barre revient quand la souris passe au bord gauche.'}
+      >
+        <label className="switch">
+          <input type="checkbox" checked={bars.autoHide} onChange={(e) => bars.setAutoHide(e.target.checked)} />
+          <span className="switch-track" aria-hidden="true" />
+          <span className="sr-only">Masquer automatiquement</span>
+        </label>
+      </Row>
       {top ? (
         <>
-          <h3>Style des onglets</h3>
-          <div className="rail-picker-layouts is-two">
-            {(
-              [
-                { id: 'pills', label: 'Pastilles' },
-                { id: 'underline', label: 'Soulignés' },
-              ] as const
-            ).map((c) => (
-              <Choice key={c.id} on={bars.tabLook === c.id} label={c.label} onPick={() => bars.setTabLook(c.id)}>
-                <span className={`rail-thumb is-look-${c.id}`} aria-hidden="true">
-                  <span className="rail-thumb-row">
-                    <i className="rail-thumb-t is-on" />
-                    <i className="rail-thumb-t" />
-                    <i className="rail-thumb-t" />
-                  </span>
-                </span>
-              </Choice>
-            ))}
-          </div>
-          <h3>Taille des onglets</h3>
-          <div className="rail-picker-sizes">
-            {SIZES.map((s) => (
-              <Choice key={s.id} on={bars.stripSize === s.id} label={s.label} onPick={() => bars.setStripSize(s.id)}>
-                <i className={`rail-picker-pill is-${s.id}`} aria-hidden="true" />
-              </Choice>
-            ))}
-          </div>
+          <Row title="Style des onglets">
+            <Segmented
+              label="Style des onglets"
+              value={bars.tabLook}
+              options={[
+                { id: 'pills', label: 'Pastilles', glyph: <i className="seg-look-pills" /> },
+                { id: 'underline', label: 'Soulignés', glyph: <i className="seg-look-underline" /> },
+              ]}
+              onPick={bars.setTabLook}
+            />
+          </Row>
+          <Row title="Taille des onglets">
+            <Segmented label="Taille des onglets" value={bars.stripSize} options={SIZE_OPTS('pill')} onPick={bars.setStripSize} />
+          </Row>
         </>
       ) : (
         <>
-          <h3>Disposition de la barre</h3>
-          <div className="rail-picker-layouts">
-            {LISTS.map((l) => (
-              <Choice key={l.id} on={bars.labels === l.id} label={l.label} onPick={() => bars.setLabels(l.id)}>
-                <Thumb rows={l.rows} />
-              </Choice>
-            ))}
-          </div>
-          <h4>Tuiles : le titre sous l'icône</h4>
-          <div className="rail-picker-layouts">
-            {TILES.map((l) => (
-              <Choice key={l.id} on={bars.labels === l.id} label={l.label} onPick={() => bars.setLabels(l.id)}>
-                <Thumb rows={l.rows} />
-              </Choice>
-            ))}
-          </div>
-          <h3>Taille des icônes</h3>
-          <div className="rail-picker-sizes">
-            {SIZES.map((s) => (
-              <Choice key={s.id} on={bars.size === s.id} label={s.label} onPick={() => bars.setSize(s.id)}>
-                <i className={`rail-picker-dot is-${s.id}`} aria-hidden="true" />
-              </Choice>
-            ))}
-          </div>
+          <Row title="Disposition de la barre" hint="Titres à droite, ou sous l'icône sur 1 à 3 colonnes.">
+            <div className="bar-layouts">
+              {[...LISTS, ...TILES].map((l) => (
+                <Choice key={l.id} on={bars.labels === l.id} label={l.label} onPick={() => bars.setLabels(l.id)}>
+                  <Thumb rows={l.rows} />
+                </Choice>
+              ))}
+            </div>
+          </Row>
+          <Row title="Taille des icônes">
+            <Segmented label="Taille des icônes" value={bars.size} options={SIZE_OPTS('dot')} onPick={bars.setSize} />
+          </Row>
           {withDash ? (
-            <>
-              <h3>Raccourcis, GitHub, Local… (⚡)</h3>
-              <div className="rail-picker-layouts is-two">
-                <Choice on={!bars.dashInRail} label="En haut de la page" onPick={() => bars.setDashInRail(false)}>
-                  <Thumb rows={['ppp', '']} className="is-top" />
-                </Choice>
-                <Choice on={bars.dashInRail} label="Sous ⚡, dans la barre" onPick={() => bars.setDashInRail(true)}>
-                  <Thumb rows={['i', 'i', 'i']} className="is-dash" />
-                </Choice>
-              </div>
-            </>
+            <Row title="Raccourcis, GitHub, Local…" hint="Dans un dossier ⚡ de la barre (un clic), ou en haut de la page.">
+              <Segmented
+                label="Raccourcis, GitHub, Local…"
+                value={bars.dashInRail ? 'rail' : 'top'}
+                options={[
+                  { id: 'rail', label: 'Sous ⚡' },
+                  { id: 'top', label: 'En haut de la page' },
+                ]}
+                onPick={(v) => bars.setDashInRail(v === 'rail')}
+              />
+            </Row>
           ) : null}
         </>
       )}

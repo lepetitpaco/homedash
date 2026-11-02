@@ -1,7 +1,7 @@
 # Guide
 
-Installation : voir le [README](README.md). Ce guide est aussi dans homedash : **Réglages → Aide →
-Guide**, une partie par pastille.
+Installation : voir le [README](README.md). Ce guide est aussi dans homedash : **?** en haut à droite
+(ou *Réglages → Aide → Guide*), une partie par bouton.
 
 ## ⚡ Raccourcis
 
@@ -51,18 +51,17 @@ même sans aucun site : son **＋** ajoute le premier.
   - *En haut* : plus de barre de gauche, tous les onglets en haut de la page, sur plusieurs rangées si besoin ; style
     (pastilles, par défaut, ou soulignés) et taille des onglets. Un dossier est un onglet : un clic montre ses sites. On
     revient à la barre de gauche par ce même choix.
-- **Raccourcis, GitHub, Local… à un clic** : clic droit sur **⚡**, puis *Dans la barre, sous ⚡* : ils passent dans un dossier ⚡
-  en haut de la barre, au lieu des onglets du haut. Un clic sur ⚡ replie ou déplie le dossier ; replié, il montre le total
-  des compteurs. *En haut de la page* revient à l'ancien rangement.
-- **Containers Docker** (développeurs) : *Réglages → Docker* ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
+- **Raccourcis, GitHub, Local… à un clic** : par défaut dans un dossier ⚡ en haut de la barre. Un clic sur ⚡ replie ou
+  déplie le dossier ; replié, il montre le total des compteurs. Clic droit sur **⚡** → *En haut de la page* : ils passent
+  dans la barre d'onglets du haut (un clic sur ⚡, puis l'onglet).
+- **Containers Docker** (développeurs) : *Réglages → Mes sites → Docker*, proposé quand Docker tourne sur la machine, ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
   ou container, reconnaissable à ses deux lettres et sa couleur. Un clic ouvre son premier port, un clic droit ses autres ports.
   Le dossier se glisse où tu veux. Ceux qui sont éteints restent visibles en plus fade, sans clic. Tu choisis lesquels ; homedash lit la liste et ne change rien.
-- **Tout le reste** : clic droit sur l'icône (copier le lien, dossier, compte, notifications, son, veille,
+- **Tout le reste** : clic droit sur l'icône du site (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
-- **Cacher la barre** : clic droit sur la barre, hors d'une icône (les onglets passent en haut).
 
 ![Disposition et taille de la barre](docs/screenshots/barre-disposition.jpg)
 
@@ -72,7 +71,7 @@ même sans aucun site : son **＋** ajoute le premier.
 
 #### Bon à savoir
 
-- La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
+- Le **compteur rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
 - **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…* Pour
   tout un dossier : clic droit sur le dossier → *Compte de tout le dossier* ; la lettre du compte ne
   s'affiche alors que sur les sites qui font exception.
@@ -201,7 +200,7 @@ la cloche te le dit, et *Réglages → Sauvegardes* garde la liste d'avant.
 
 #### Bon à savoir
 
-- **Tes clones peuvent être n'importe où** : *Réglages → Dépôts locaux → + ajouter un dossier*, puis
+- **Tes clones peuvent être n'importe où** : *Réglages → Local → ＋ Ajouter un dossier*, puis
   🏠 dossier personnel ou 💽 le disque (`C:` sous Windows, `/Volumes` sur Mac pour les disques externes).
   Tout est lu en lecture seule.
 - **Rien n'est exécuté** : les commandes proposées (`git branch -d …`) sont à copier et lancer toi-même.
@@ -269,7 +268,7 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
   *Repos où créer les issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
 - Le tableau suit le thème clair ou sombre, avec étiquettes, échéances en couleur et photos de profil.
   ✕ écarte une issue sans rien envoyer.
-- La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
+- Le compteur de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
   de Mes sites : le site refuse ce cadre.
 
 ## 🔎 Recherche
@@ -302,26 +301,28 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
 
 ## ⚙️ Réglages
 
-Tout ce qui se règle, rangé par thème. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale
-ce qui ne l'est pas encore. Tu quittes Réglages sans enregistrer ? homedash te le propose ; *Plus tard*
+Tout ce qui se règle, rangé par thème. **Le plus court : la recherche du haut** trouve chaque réglage
+(tape « veille », « sauvegarde », « jeton »…). *Vue d'ensemble* montre d'un coup d'œil ce qui est branché et ce
+qui manque. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale ce qui ne l'est pas encore. Les
+réglages rarement utiles sont repliés sous *Plus de réglages* ou *Avancé*. Tu quittes Réglages sans enregistrer ? homedash te le propose ; *Plus tard*
 garde tes modifications en brouillon, retrouvées au retour.
 
 ![Réglages → Mes sites](docs/screenshots/reglages-onglets.jpg)
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
+| 🏠 Vue d'ensemble | Ce qui est branché, ce qui manque, la dernière sauvegarde ; un bouton vers chaque page |
 | 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas ; accès depuis le navigateur (appli) |
-| 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
-| 💻 Dépôts locaux | Les dossiers où chercher tes clones |
+| 🐙 GitHub | Pour le compte choisi en haut, en sous-onglets : *Compte* (jeton), *Repos suivis*, *Équipe*, *Ce que montre l'onglet* (Renovate sous *Avancé*) ; ＋ Compte pour un autre compte GitHub |
+| 💻 Local | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion, les repos où créer les issues |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
-| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
-| 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
+| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, veille, Docker |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
-| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…) ; mise en page par modèles : largeur de la page (centrée sur un grand écran), densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
-| 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
-| 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
-| 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (à activer en tête de sa page) |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
+| 🔔 Notifications | Notifications du bureau, compteur sur l'icône de l'appli |
+| 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
+| 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. Les nouveautés : le bouton de version, en haut |
 
 **Couper une fonctionnalité** (🧩 Fonctionnalités) : décochée, elle disparaît de la page (onglet,
 recherche, cartes de l'accueil, ses parties de Réglages, ses notifications dans la cloche et
@@ -358,12 +359,12 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
 | Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion*, le pas-à-pas « Comment créer un jeton » y est ouvert |
 | Un repo n'est pas proposé | Repo d'un collègue où tu es collaborateur : onglet *Partagés avec toi*. Sinon le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
-| Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dossier personnel, ou 💽 ailleurs sur le disque) |
-| Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
+| Onglet Local vide | Ajoute un dossier dans *Réglages → Local* (dossier personnel, ou 💽 ailleurs sur le disque) |
+| Un compteur ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
 | Des lettres au lieu des icônes | *Réglages → Affichage → Icônes des sites* doit être coché |
 | Un site boude (captcha refusé, page qui tourne en boucle) | Clic droit sur son icône → *Effacer les données de ce site*, puis reconnecte-toi. Sinon ↗ l'ouvre dans ton navigateur |
 | Rien sur l'icône du Dock | *Pastilles de l'app* désactivé dans macOS : voir *Notifications* ci-dessus |
 
 Autre chose ? Ouvre une **[issue sur GitHub](https://github.com/lepetitpaco/homedash/issues/new)** :
 ce que tu faisais, ce que tu attendais, ce qui s'est passé, et ta version (en haut à droite). *Réglages
-→ Aide → Journal d'erreurs → Copier pour une issue* donne le détail technique à coller dedans.
+→ Aide → Diagnostic → Copier pour une issue* donne le détail technique à coller dedans.

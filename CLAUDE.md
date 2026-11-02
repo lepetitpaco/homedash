@@ -36,6 +36,31 @@ Même chose si la demande contredit une règle absolue : la signaler, proposer u
 Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
 devient un réglage.
 
+## Réglages et vocabulaire : ne pas recréer le désordre
+
+**Un nouveau réglage**, seulement si deux vrais utilisateurs veulent des comportements différents et qu'aucun défaut
+ne convient. Sinon : un bon défaut, sans réglage. Un choix qui se fait sur place (clic droit, glisser) ne crée pas de
+page. Chaque page de Réglages tient sur un écran : le reste va sous *Plus de réglages* ou *Avancé* (`.set-more`).
+Toute page ou réglage nouveau entre dans `src/lib/settingsIndex.ts` (la recherche le trouve) et dans le tableau
+*Réglages* de `GUIDE.md`. Choisir parmi des modèles à miniature plutôt que taper des chiffres.
+
+**Lexique** : un mot pour une chose, partout (page, menus, bulles, guide).
+
+| Mot | Pour | Pas |
+| --- | --- | --- |
+| site | une icône de la barre de gauche (Gmail, ~/dev…) | onglet perso |
+| onglet temporaire | une page ouverte par un lien, fermée au redémarrage | éphémère |
+| compteur | le nombre de non-lus ou d'actions (barre, Dock, onglets) | pastille, badge |
+| pastille | seulement le style « Pastilles » des onglets du haut | |
+| tuiles | les liens épinglés et les plus utilisés de Raccourcis | (disposition de la barre) |
+| compte | une connexion à part pour un même site (pro / perso) | compte de connexion, session |
+| Activité | la cloche et sa page | événements, journal |
+| Local | l'onglet et ses réglages (les dépôts de ton disque) | Dépôts locaux |
+| Raccourcis | la page d'accueil (⚡) | |
+
+Boutons : une majuscule au premier mot (« Déconnecter », « Restaurer »), le même verbe pour la même action d'un
+service à l'autre (Basecamp, Trello).
+
 **Une branche par sujet ; `preprod` les réunit ; `main` = une version.** Branches : `<qui>/<type>/<nom>` (ci-dessous),
 sans toucher au `CHANGELOG.md` ni aux versions. Une fois la branche testée : pull request vers `preprod`, sans approbation
 (chaque collaborateur fusionne), et la branche est supprimée toute seule. On teste l'ensemble sur `preprod`. Quand

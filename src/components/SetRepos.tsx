@@ -268,7 +268,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
           autoComplete="off"
           data-1p-ignore
         />
-        <button onClick={addManual}>+ suivre</button>
+        <button onClick={addManual}>＋ Suivre</button>
       </div>
       <p className="set-hint">
         Un onglet par compte que voit le jeton, repos triés par activité. Un repo absent n'est pas visible

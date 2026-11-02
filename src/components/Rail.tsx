@@ -675,7 +675,7 @@ export default function Rail({
         <button
           className={`rail-tool rail-settings${active === 'settings' ? ' is-active' : ''}`}
           onClick={onSettings}
-          title="Réglages · clic droit sur la barre : ajouter un site, onglet temporaire, largeur"
+          title="Réglages · clic droit sur la barre : ajouter un site, onglet temporaire, disposition"
         >
           ⚙{footText ? <span className="rail-label">Réglages</span> : null}
         </button>

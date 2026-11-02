@@ -76,11 +76,11 @@ export default function SetConnect({ account, auth, onChange }: Props) {
           </div>
           <div className="set-account-actions">
             <button onClick={() => setEditing((v) => !v)} disabled={busy}>
-              {editing ? 'annuler' : 'changer de jeton'}
+              {editing ? 'Annuler' : 'Changer de jeton'}
             </button>
             {auth.source === 'ui' ? (
               <button onClick={unlink} disabled={busy}>
-                déconnecter
+                Déconnecter
               </button>
             ) : null}
           </div>

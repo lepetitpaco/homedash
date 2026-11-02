@@ -137,7 +137,7 @@ export default function EventBell({
         className={`icon-btn bell-btn${open ? ' is-open' : ''}`}
         onClick={toggle}
         title={
-          [unseen ? `${unseen} événement(s) depuis ta dernière visite` : '', bcUnread ? `${bcUnread} notif(s) Basecamp non lue(s)` : '', trUnread ? `${trUnread} notif(s) Trello non lue(s)` : '']
+          [unseen ? `Activité : ${unseen} nouveauté(s) depuis ta dernière visite` : '', bcUnread ? `${bcUnread} notif(s) Basecamp non lue(s)` : '', trUnread ? `${trUnread} notif(s) Trello non lue(s)` : '']
             .filter(Boolean)
             .join(' · ') || 'Notifications'
         }

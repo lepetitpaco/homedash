@@ -71,6 +71,7 @@ import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
 import { setUnread } from './lib/notifications'
+import { settingsEntries } from './lib/settingsIndex'
 import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection, showSettingsSection } from './lib/settingsNav'
 import { featureOn, type CustomTab, type FlatLink, type UiConfig } from './types'
 import type { Command } from './components/SearchResults'
@@ -464,7 +465,8 @@ export default function App() {
     setTabLook(look)
     writePref(TAB_STYLE_KEY, look)
   }, [])
-  const [dashInRail, setDashInRail] = useState(() => readPref(DASH_PLACE_KEY) === 'rail')
+  // Par défaut en dossier : Raccourcis, GitHub, Local… à un clic ; un choix fait reste respecté.
+  const [dashInRail, setDashInRail] = useState(() => readPref(DASH_PLACE_KEY) !== 'top')
   const changeDashInRail = useCallback((on: boolean) => {
     setDashInRail(on)
     writePref(DASH_PLACE_KEY, on ? 'rail' : 'top')
@@ -822,18 +824,19 @@ export default function App() {
         ? [{ id: 'trello', icon: '📋', label: 'Trello', keywords: 'cartes tableaux', run: () => selectTab('trello') }]
         : []),
       { id: 'refresh', icon: '⟳', label: 'Tout actualiser', keywords: 'recharger rafraîchir données', run: () => refreshAllRef.current() },
-      {
-        id: 'settings-sites',
-        icon: '🗂',
-        label: 'Réglages de Mes sites',
-        keywords: 'onglets mémoire veille',
+      { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
+      { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config paramètres', run: () => selectTab('settings') },
+      // Chaque page et réglage des Réglages, avec les mots qu'on tape vraiment : on ne cherche plus où c'est rangé.
+      ...settingsEntries(on).map((e) => ({
+        id: `set:${e.id}`,
+        icon: e.icon,
+        label: `Réglages › ${e.label}`,
+        keywords: e.keywords,
         run: () => {
-          showSettingsSection('set-tabs')
+          showSettingsSection(e.section)
           selectTab('settings')
         },
-      },
-      { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
-      { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config', run: () => selectTab('settings') },
+      })),
       ...(desktop
         ? [
             {
@@ -863,7 +866,7 @@ export default function App() {
         run: clearVisits,
       },
     ],
-    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, tr.data?.configured, newGroup, on.github, on.local, on.trello],
+    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, tr.data?.configured, newGroup, on],
   )
   // Basecamp dans la recherche : mes tâches (déjà là) ; tout Basecamp, useSearch le cherche
   const bcTasks = useMemo(
@@ -1140,7 +1143,7 @@ export default function App() {
   const copyItem = (t: CustomTab): MenuItem => ({ icon: '⧉', label: 'Copier le lien', onSelect: () => copyTabLink(t) })
   const removeTab = (t: CustomTab) =>
     void confirmDialog({
-      title: `Supprimer l'onglet « ${t.label} » ?`,
+      title: `Supprimer le site « ${t.label} » ?`,
       body: [
         t.url,
         "L'onglet disparaît de la barre. La connexion au site est conservée : rajouté plus tard, il sera encore connecté.",
@@ -1198,7 +1201,7 @@ export default function App() {
               ],
             }
           : { icon: '📁', label: 'Aucun dossier pour l’instant', disabled: true, onSelect: () => undefined },
-        { icon: '＋', label: 'Nouveau dossier avec cet onglet…', onSelect: () => void newFolder([t.id]) },
+        { icon: '＋', label: 'Nouveau dossier avec ce site…', onSelect: () => void newFolder([t.id]) },
         // Comptes : seulement là où ils ont un effet (appli de bureau récente).
         ...(hasSessions && web
           ? [
@@ -1219,10 +1222,10 @@ export default function App() {
               { icon: '＋', label: 'Nouveau compte…', hint: 'connexion à part', onSelect: () => void newSession(t.id) },
             ]
           : []),
-        { heading: 'Onglet' },
+        { heading: 'Ce site' },
         ...(t.embed ? [notifyItem(t), muteItem(t), sleepItem(t), ...clearItem(t)] : []),
         { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: () => openTabSettings(t.id) },
-        { icon: '✕', label: "Supprimer l'onglet…", danger: true, onSelect: () => removeTab(t) },
+        { icon: '✕', label: 'Supprimer le site…', danger: true, onSelect: () => removeTab(t) },
       ],
     })
   }
@@ -1452,8 +1455,6 @@ export default function App() {
           : []),
         { sep: true },
         { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
-        { sep: true },
-        { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => showRail(false) },
       ],
     })
   }
@@ -1542,7 +1543,7 @@ export default function App() {
   const notifyItem = (t: CustomTab): MenuItem => ({
     icon: t.notify === false ? '🔔' : '🔕',
     label: t.notify === false ? 'Rétablir les notifications' : 'Couper les notifications',
-    hint: t.notify === false ? 'pastille et notifs' : 'ni pastille ni notifs',
+    hint: t.notify === false ? 'compteur et notifs' : 'ni compteur ni notifs',
     onSelect: () => toggleNotify(t),
   })
   const toggleMute = (t: CustomTab) => {
@@ -1610,7 +1611,7 @@ export default function App() {
         { icon: '📌', label: 'Garder dans Mes sites', hint: 'dans la barre de gauche', onSelect: () => promoteTemp(t, false) },
         // Gardé avec l'ancien réglage : on peut encore le rendre temporaire.
         ...(t.kept ? [{ icon: '◌', label: 'Ne plus garder', hint: 'fermé au redémarrage', onSelect: () => unkeep(t) }] : []),
-        { heading: 'Onglet' },
+        { heading: 'Cet onglet' },
         notifyItem(t),
         muteItem(t),
         sleepItem(t),
@@ -2087,6 +2088,10 @@ export default function App() {
         showClock={ui.showClock}
         theme={effectiveTheme}
         onTheme={switchTheme}
+        onHelp={() => {
+          showSettingsSection('help-guide')
+          selectTab('settings')
+        }}
         searchRef={searchRef}
         resultCount={searching ? search.hits.length : null}
         scope={{
