@@ -94,6 +94,12 @@ type Props = {
   onMerge: (dragged: CustomTab, target: CustomTab) => void
   onTabMenu: (e: React.MouseEvent, tab: CustomTab) => void
   onFolderMenu: (e: React.MouseEvent, folder: TabFolder) => void
+  /**
+   * « homedash en dossier » (menu Disposition) : ⚡ est un dossier toujours ouvert en haut, ses
+   * onglets (Raccourcis, GitHub, Local…) à un clic. Absent : ⚡ ouvre homedash, onglets en haut.
+   */
+  home?: { id: string; icon: ReactNode; label: string; badge?: number; badgeAlert?: boolean; badgeTitle?: string; active: boolean }[]
+  onHomeTab?: (id: string) => void
 }
 
 /**
@@ -138,6 +144,8 @@ export default function Rail({
   onHome,
   onSettings,
   onSelect,
+  home,
+  onHomeTab,
   onAdd,
   onMenu,
   onTabs,
@@ -439,16 +447,45 @@ export default function Rail({
         onMenu(e)
       }}
     >
-      <div className={`rail-item rail-home${active ? '' : ' is-active'}`}>
-        <span className="rail-pill" aria-hidden="true" />
-        <button className="rail-btn" onClick={onHome} title="homedash : Raccourcis, GitHub, Local…">
-          <span className="rail-icon">
-            {textOnly ? null : '⚡'}
-            {kidsBadge('links', 'homedash')}
-          </span>
-          {wide ? <span className="rail-label">homedash</span> : null}
-        </button>
-      </div>
+      {home ? (
+        <div className="rail-folder is-open rail-home-folder" style={{ ['--folder' as string]: '#60a5fa' }}>
+          <div className="rail-item rail-home">
+            <span className="rail-pill" aria-hidden="true" />
+            <button className="rail-btn" onClick={onHome} title="homedash">
+              <span className="rail-icon rail-folder-icon">
+                {textOnly ? null : '⚡'}
+                {kidsBadge('links', 'homedash')}
+              </span>
+              {wide ? <span className="rail-label rail-folder-name">homedash</span> : null}
+            </button>
+          </div>
+          <div className="rail-kids">
+            {home.map((h) => (
+              <div key={h.id} className={`rail-item${h.active ? ' is-active' : ''}`}>
+                <span className="rail-pill" aria-hidden="true" />
+                <button className="rail-btn" onClick={() => onHomeTab?.(h.id)} title={h.badge && h.badgeTitle ? `${h.label} · ${h.badgeTitle}` : h.label}>
+                  <span className="rail-icon">
+                    {textOnly ? null : h.icon}
+                    {h.badge ? <span className={`rail-badge${h.badgeAlert ? '' : ' is-ok'}`}>{h.badge > 99 ? '99+' : h.badge}</span> : null}
+                  </span>
+                  {wide ? <span className="rail-label">{h.label}</span> : null}
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : (
+        <div className={`rail-item rail-home${active ? '' : ' is-active'}`}>
+          <span className="rail-pill" aria-hidden="true" />
+          <button className="rail-btn" onClick={onHome} title="homedash : Raccourcis, GitHub, Local…">
+            <span className="rail-icon">
+              {textOnly ? null : '⚡'}
+              {kidsBadge('links', 'homedash')}
+            </span>
+            {wide ? <span className="rail-label">homedash</span> : null}
+          </button>
+        </div>
+      )}
       <div className="rail-sep" />
 
       <div className="rail-list">

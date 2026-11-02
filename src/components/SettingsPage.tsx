@@ -203,6 +203,8 @@ type Props = {
   saving: boolean
   /** Version et changelog (Aide → Nouveautés), le même état que la barre du haut. */
   changelog: ReturnType<typeof useChangelog>
+  /** Ouvre « Disposition et taille » (barre de gauche, onglets en haut, masquage auto) à cet endroit. */
+  onLayout?: (at: { clientX: number; clientY: number }) => void
 }
 
 /** Pages de l'Aide qui ne viennent pas de GUIDE.md. */
@@ -231,7 +233,7 @@ type GhCfg = {
 
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
 
-export default function SettingsPage({ config, onSave, onReload, saving, changelog }: Props) {
+export default function SettingsPage({ config, onSave, onReload, saving, changelog, onLayout }: Props) {
   // Brouillon local : rien n'est écrit avant « Enregistrer ».
   const [draft, setDraft] = useState<Config | null>(() => (config && cachedDraft(config)) ?? config)
   const [auth, setAuth] = useState<Auth | null>(null)
@@ -982,6 +984,24 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </label>
             </div>
           </Block>
+          {onLayout ? (
+            <Block
+              icon="🧭"
+              title="Barre de gauche et onglets"
+              hint="Disposition de la barre, onglets en haut, style et taille des onglets, homedash (⚡) en dossier, masquage automatique. Propre à cet écran, appliqué tout de suite ; aussi au clic droit sur la barre."
+            >
+              <button
+                type="button"
+                className="set-inline-btn"
+                onClick={(e) => {
+                  const r = e.currentTarget.getBoundingClientRect()
+                  onLayout({ clientX: r.left, clientY: r.bottom + 6 })
+                }}
+              >
+                ▦ Disposition et taille…
+              </button>
+            </Block>
+          ) : null}
           <Block icon="🖥" title="Taille de l'écran" hint="Un clic règle toutes les tailles ci-dessous d'un coup ; ajuste ensuite si besoin.">
             <div className="set-presets">
               {DISPLAY_PRESETS.map((p) => {

@@ -42,9 +42,17 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
-- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…*. Icônes, icônes et titres, titres,
-  ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre
-  aux icônes, **›** la redéplie.
+- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…* (ou *Réglages → Affichage*).
+  Icônes, icônes et titres, titres, ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long
+  est coupé, complet au survol. **‹** en bas réduit la barre aux icônes, **›** la redéplie. Propre à chaque écran, appliqué tout de suite.
+- **Raccourcis, GitHub, Local… à un clic** : dans *Disposition et taille…*, *Sous ⚡, dans la barre* range les onglets de homedash
+  dans un dossier ⚡ en haut de la barre, au lieu de la barre d'onglets du haut.
+- **Onglets en haut** : dans *Disposition et taille…*, *Onglets en haut* cache la barre de gauche ; tout passe en pastilles en haut
+  de la page, sur plusieurs rangées si besoin. Un dossier est une pastille : un clic montre ses sites. Taille des pastilles :
+  petit, normal ou grand. Clic droit sur la barre du haut, hors d'un onglet, pour y revenir.
+- **Style des onglets du haut** : dans *Disposition et taille…*, *Pastilles* (par défaut) ou *Soulignés* (le rendu d'avant).
+- **Masquer automatiquement** : la case en bas de *Disposition et taille…* cache la barre (gauche ou haut) ; elle revient quand
+  la souris passe au bord de l'écran ou en haut de la page.
 - **Containers Docker** (développeurs) : *Réglages → Docker* ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
   ou container, reconnaissable à ses deux lettres et sa couleur. Un clic ouvre son premier port, un clic droit ses autres ports.
   Le dossier se glisse où tu veux. Ceux qui sont éteints restent visibles en plus fade, sans clic. Tu choisis lesquels ; homedash lit la liste et ne change rien.
@@ -53,7 +61,7 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
-- **Cacher la barre** : clic droit sur la barre, hors d'une icône.
+- **Cacher la barre** : clic droit sur la barre, hors d'une icône (les onglets passent en haut).
 
 ![Disposition et taille de la barre](docs/screenshots/barre-disposition.jpg)
 
@@ -308,7 +316,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
-| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), barre de gauche et onglets, taille de l'écran, journal de performance |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
 | 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (s'il est activé) |

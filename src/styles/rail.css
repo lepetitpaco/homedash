@@ -2,7 +2,28 @@
    Fixe, pleine hauteur ; la page se décale de sa largeur (--rail-w, posée par
    App.tsx : 0 quand elle est cachée ou sans onglet perso).                   */
 body {
-  padding-left: var(--rail-w, 0px);
+  /* --page-left : 0 quand la barre se masque d'elle-même (elle passe alors par-dessus la page). */
+  padding-left: var(--page-left, var(--rail-w, 0px));
+}
+/* Masquage auto : la barre sort de l'écran ; une bande de 8 px au bord gauche la fait revenir,
+   et elle reste tant que la souris (ou le focus clavier) est dessus. Petit délai avant de
+   repartir, pour ne pas clignoter en frôlant le bord. */
+.rail-hot {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: 8px;
+  z-index: 44;
+}
+.rail-autohide .rail {
+  transform: translateX(-100%);
+  transition: transform 0.18s ease 0.35s;
+  box-shadow: 8px 0 28px rgb(0 0 0 / 35%);
+}
+.rail-autohide .rail-hot:hover + .rail,
+.rail-autohide .rail:hover,
+.rail-autohide .rail:has(:focus-visible) {
+  transform: none;
+  transition-delay: 0s;
 }
 .rail {
   position: fixed;
@@ -332,6 +353,9 @@ body {
 .rail.is-mini .rail-item:hover .rail-pill {
   height: 12px;
 }
+.rail-badge.is-ok {
+  background: #238636;
+}
 .rail.is-mini .rail-badge {
   right: -4px;
   bottom: -4px;
@@ -373,6 +397,12 @@ body {
 }
 .rail.is-mini .rail-folder.is-open .rail-pill {
   left: -3px;
+}
+/* Même retrait pour le dossier et ses sites : 3 + 5 = les 8 px d'un site hors dossier
+   (sinon `.rail.is-mini .rail-item` décalait l'icône du dossier seule). */
+.rail.is-mini:not(.has-grid) .rail-folder.is-open > .rail-item,
+.rail.is-mini:not(.has-grid) .rail-folder.is-open .rail-kids .rail-item {
+  padding-left: 5px;
 }
 .rail.is-mini .rail-mini {
   padding: 4px;
@@ -662,12 +692,14 @@ body {
 .rail.has-grid .rail-item {
   padding: 0 4px;
 }
-.rail.has-grid .rail-list .rail-btn:not(.rail-folder-btn) {
+.rail.has-grid .rail-list .rail-btn:not(.rail-folder-btn),
+.rail.has-grid .rail-home-folder .rail-kids .rail-btn {
   flex-direction: column;
   gap: 3px;
   text-align: center;
 }
-.rail.has-grid .rail-list .rail-btn:not(.rail-folder-btn) .rail-label {
+.rail.has-grid .rail-list .rail-btn:not(.rail-folder-btn) .rail-label,
+.rail.has-grid .rail-home-folder .rail-kids .rail-btn .rail-label {
   display: block;
   width: 100%;
   font-size: 0.72rem;
@@ -789,6 +821,8 @@ body {
   border-radius: 14px;
   background: var(--panel);
   box-shadow: 0 14px 44px rgb(0 0 0 / 45%);
+  max-height: calc(100vh - 16px);
+  overflow-y: auto;
 }
 .rail-picker h3 {
   margin: 0 0 8px;
@@ -875,6 +909,93 @@ body {
   height: 14px;
   background: linear-gradient(currentColor, currentColor) center bottom / 100% 3px no-repeat,
     radial-gradient(circle at 50% 4px, currentColor 4px, transparent 4.5px) !important;
+}
+/* Onglets en haut : deux rangées de pastilles au-dessus de la page. */
+.rail-thumb.is-top {
+  justify-content: flex-start;
+  padding-top: 5px;
+}
+.rail-thumb.is-top .rail-thumb-row {
+  justify-content: flex-start;
+}
+.rail-picker-layouts.is-two {
+  grid-template-columns: repeat(2, 1fr);
+}
+/* ⚡ en dossier : ses onglets en retrait sur un fond commun. */
+.rail-thumb.is-dash {
+  align-items: flex-start;
+  padding-left: 14px;
+  background: linear-gradient(color-mix(in srgb, #60a5fa 30%, transparent), color-mix(in srgb, #60a5fa 30%, transparent)) 8px 4px / 14px 34px no-repeat, var(--bg);
+}
+/* Style des onglets : trois onglets en miniature, le premier choisi. */
+.rail-thumb.is-look-pills .rail-thumb-row,
+.rail-thumb.is-look-underline .rail-thumb-row {
+  justify-content: center;
+}
+.rail-thumb-t {
+  width: 12px;
+  height: 6px;
+  opacity: 0.45 !important;
+}
+.rail-thumb-t.is-on {
+  opacity: 1 !important;
+}
+.is-look-pills .rail-thumb-t {
+  border-radius: 3px;
+}
+.is-look-underline .rail-thumb-t {
+  height: 2px;
+  margin-top: 6px;
+  border-radius: 1px;
+}
+.rail-thumb-p {
+  width: 12px;
+  height: 5px;
+  border-radius: 3px;
+}
+.rail-picker button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.rail-picker button:disabled:hover {
+  color: var(--text-dim);
+}
+.rail-picker-pill {
+  display: block;
+  height: 12px;
+  width: 22px;
+  margin: 4px 0;
+  border-radius: 999px;
+  border: 2px solid currentColor;
+  box-sizing: border-box;
+}
+.rail-picker-pill.is-mini {
+  height: 10px;
+  width: 18px;
+  margin: 5px 0;
+}
+.rail-picker-pill.is-large {
+  height: 16px;
+  width: 28px;
+  margin: 2px 0;
+}
+.rail-picker-auto {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  margin-top: 12px;
+  font-size: 0.78rem;
+  color: var(--text);
+  cursor: pointer;
+}
+.rail-picker-auto input {
+  margin-top: 2px;
+}
+.rail-picker-auto small {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-dim);
+  font-size: 0.7rem;
 }
 .rail-picker-dot {
   display: block;
