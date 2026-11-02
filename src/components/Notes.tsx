@@ -161,11 +161,11 @@ export default function Notes({ config, notes, setNotes, openId, setOpenId, coll
                     }).then((ok) => ok && remove(open.id))
                   }
                 >
-                  supprimer
+                  Supprimer
                 </button>
                 <span className="note-hint">autosave · Échap pour fermer</span>
                 <button className="reveal-btn" onClick={() => setOpenId(null)}>
-                  fermer
+                  Fermer
                 </button>
               </div>
             </div>

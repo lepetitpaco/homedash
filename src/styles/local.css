@@ -47,6 +47,11 @@
   font-family: ui-monospace, monospace;
   border-bottom: 1px solid var(--border-soft);
 }
+.loc-sub > span:last-child {
+  /* « synchro il y a 3 min » sur une ligne : c'est le chemin qui se raccourcit */
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
 .loc-sub > span:first-child {
   overflow: hidden;
   text-overflow: ellipsis;

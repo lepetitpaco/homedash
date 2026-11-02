@@ -355,6 +355,8 @@
 /* Réglages → Affichage : des modèles à miniature plutôt que des chiffres (SetDisplay). */
 .set-looks-all {
   display: grid;
+  /* une colonne qui ne s'élargit pas au contenu : les modèles passent à la ligne dans le repli */
+  grid-template-columns: minmax(0, 1fr);
   gap: 14px;
 }
 .set-looks h4 {

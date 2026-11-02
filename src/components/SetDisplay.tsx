@@ -104,7 +104,7 @@ export default function SetDisplay({ ui, onChange }: { ui: Ui; onChange: (patch:
         <summary>Plus de réglages : densité, colonnes, tuiles, voyants</summary>
         <div className="set-looks-all">
         <Row title="Raccourcis" hint="liens, noms de catégorie et blocs Notes / Stats" picks={DENSITY} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} />} />
-        <Row title="Cartes GitHub et Local" hint="côte à côte" picks={COLUMNS} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} auto={p.n === 0} />} />
+        <Row title="Cartes GitHub et Local" hint="côte à côte, au plus : moins sur un écran étroit" picks={COLUMNS} ui={ui} onPick={pick} thumb={(p) => <GridThumb n={p.n} auto={p.n === 0} />} />
         <Row title="Tuiles « les plus utilisés »" hint="combien de liens dans la rangée" picks={TILES} ui={ui} onPick={pick} small />
         <Row title="Test des voyants" hint="liens surveillés : tous les combien" picks={CHECKS} ui={ui} onPick={pick} small />
         </div>

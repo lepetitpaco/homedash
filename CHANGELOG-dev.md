@@ -4,6 +4,16 @@ Où en est le dev : ce qui est fait sur les branches et pas encore publié. Ce f
 l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque livraison ».
 
 
+
+## paco/fix/reglages-finitions
+
+- Cartes GitHub et Local : le nombre de colonnes choisi devient un maximum ; sur un écran étroit, une carte ne descend
+  plus sous 360 px (à 800 px, deux colonnes faisaient des cartes de 290 px aux en-têtes coupés).
+- Réglages → Affichage : à 1 024 px, *Plus de réglages* ne déborde plus de sa carte ; les modèles passent à la ligne.
+- Local : « synchro il y a… » reste sur une ligne, c'est le chemin qui se raccourcit.
+- Réglages sur écran étroit : la bande du menu des parties a une barre de défilement fine.
+- Éditeur de note : « Supprimer » et « Fermer » avec majuscule.
+
 ## paco/feature/reglages-clairs
 
 - **La recherche trouve les Réglages** : chaque page et les réglages qu'on cherche (« veille », « sauvegarde », « jeton »,

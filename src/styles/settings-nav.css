@@ -67,6 +67,8 @@
   .set-nav {
     flex-direction: row;
     overflow-x: auto;
+    /* bande défilante : une barre fine, pas la grosse barre du système */
+    scrollbar-width: thin;
     top: var(--topbar-h, 0px);
     z-index: 5;
     background: var(--bg, var(--panel));
