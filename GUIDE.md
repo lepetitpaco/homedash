@@ -318,7 +318,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
 | 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
-| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, tailles de Raccourcis et des cartes |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…) ; mise en page par modèles : largeur de la page (centrée sur un grand écran), densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
 | 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
 | 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
 | 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (à activer en tête de sa page) |

@@ -2056,7 +2056,7 @@ export default function App() {
           id: 'display',
           icon: '🖥',
           title: 'Adapte l’affichage à ton écran',
-          hint: 'Texte trop petit ou trop grand ? Choisis ton écran (portable, 34", 49").',
+          hint: 'Page trop large ou trop serrée ? Choisis sa largeur : toute la largeur sur un portable, centrée sur un grand écran.',
           done: raw?.ui?.pageWidth !== undefined,
           action: 'Choisir',
           run: () => openSection('set-display'),

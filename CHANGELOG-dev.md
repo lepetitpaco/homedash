@@ -19,6 +19,10 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
   clic ; Raccourcis y prend 🔗). Le dossier ⚡ se replie au clic, avec le total des compteurs.
 - Barre de gauche, taille Petit : l'icône d'un dossier ouvert est alignée sur ses sites (elle était décalée de 4 px).
 - Le choix de disposition ne sort plus de l'écran (à droite ou en bas).
+- *Réglages → Affichage* : plus de chiffres à taper ni de préréglages d'écran, des modèles à miniature : largeur de la
+  page (toute la largeur, large, centrée, étroite), densité de Raccourcis (compacte, normale, aérée), cartes GitHub et
+  Local (auto, 1 à 3 colonnes), tuiles (4 à 16), test des voyants (30 s à jamais). Mêmes valeurs par défaut ; une
+  valeur réglée à la main avant reste appliquée, signalée « personnalisé ».
 - Réglages rangés : *Accès depuis le navigateur* passe d'Affichage à Fonctionnalités ; l'activation du journal de
   performance passe d'Affichage à *Aide → Journal de performance*, page désormais toujours listée.
 
