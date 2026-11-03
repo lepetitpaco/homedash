@@ -63,7 +63,8 @@ export type BcData = {
   /** Faux tant que la première lecture n'a pas abouti. */
   loaded: boolean
   /** Issues GitHub liées aux tâches, et repos où en créer (tous comptes GitHub). */
-  github?: { issues: BcIssue[]; repos: { account: string; repo: string }[] }
+  /** `linked` : tous les repos suivis, proposés comme « autres repos concernés ». */
+  github?: { issues: BcIssue[]; repos: { account: string; repo: string }[]; linked?: string[] }
   /** Rapports déjà publiés sur Basecamp : id du commentaire GitHub → commentaire Basecamp. */
   posted?: Record<string, BcPosted>
 }

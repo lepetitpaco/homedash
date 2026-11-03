@@ -1729,6 +1729,7 @@ export default function App() {
       onOpen: openLink,
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: bc.reload,
+      linkable: bc.data?.github?.linked ?? [],
     })
   }
   const newIssue = (task: IssueTask, comment?: number): boolean => {
@@ -1749,6 +1750,7 @@ export default function App() {
       onOpen: openLink,
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: tr.reload,
+      linkable: tr.data?.github?.linked ?? [],
     })
   }
   const newTrIssue = (card: IssueCard, comment?: string): boolean => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 // bcIssues / trIssues importent des types du front (DOM) : on teste ici ce qu'ils assemblent.
-import { exchangesMarkdown, foldDescription, forGitHub, issueSections, sectionsOf, sectionsRule, type IssueParts } from '../src/lib/issueText'
+import { exchangesMarkdown, foldDescription, forGitHub, issueSections, otherRepos, reposPrompt, reposRule, reposSection, sectionsOf, sectionsRule, type IssueParts } from '../src/lib/issueText'
 
 const order = (lines: string[]) => lines.filter((l) => l.startsWith('## ')).map((l) => l.slice(3))
 const bc = (p: IssueParts) => issueSections('Basecamp', '🏕', p)
@@ -92,5 +92,26 @@ describe('consigne pour Claude Code', () => {
       expect(text).toContain('prioritaires')
       expect(text).not.toContain("'")
     }
+  })
+})
+
+describe('plusieurs repos', () => {
+  it('« Repos concernés » en tête, seulement s’il y a un autre repo', () => {
+    expect(order(bc({ need: 'n', card: '', exchanges: '', repo: 'o/api', others: ['o/web'] }))).toEqual(['🔗 Repos concernés', '🎯 Mon besoin'])
+    expect(order(bc({ need: 'n', card: '', exchanges: '', repo: 'o/api', others: [] }))).toEqual(['🎯 Mon besoin'])
+    expect(reposSection('o/api', ['o/web'])).toEqual(['## 🔗 Repos concernés', '', '- **o/api** (cette issue)', '- [o/web](https://github.com/o/web)', ''])
+  })
+
+  it('sans doublon ni le repo de l’issue, dans l’ordre choisi', () => {
+    expect(otherRepos('o/API', ['o/web', 'o/api', 'O/Web', 'nom-court', 'o/docs'])).toEqual(['o/web', 'o/docs'])
+  })
+
+  it('consigne et prompt : une PR par repo, un seul rapport ; sans apostrophe droite', () => {
+    expect(reposRule()).toContain('un seul')
+    const p = reposPrompt([{ repo: 'o/web', dir: '~/dev/web' }, { repo: 'o/docs', dir: null }])
+    expect(p).toContain('o/web (clone : ~/dev/web)')
+    expect(p).toContain('o/docs')
+    expect(p + reposRule()).not.toContain("'")
+    expect(reposPrompt([])).toBe('')
   })
 })

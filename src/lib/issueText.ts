@@ -13,6 +13,10 @@ export type IssueParts = {
   card: string
   /** Échanges retenus, déjà mis en forme (`exchangesMarkdown`). */
   exchanges: string
+  /** Autres repos concernés (`propriétaire/repo`), cités sous « Repos concernés ». Le repo de l'issue n'y est pas. */
+  others?: string[]
+  /** Repo de l'issue, en tête de cette liste. */
+  repo?: string
 }
 
 /** Un échange : auteur et date tels que le service les donne. */
@@ -95,7 +99,7 @@ export function issueSections(service: string, icon: string, p: IssueParts): str
   const need = p.need.trim()
   const card = p.card.trim()
   const exchanges = p.exchanges.trim()
-  const out: string[] = []
+  const out: string[] = [...reposSection(p.repo ?? '', p.others ?? [])]
   if (need || (!card && !exchanges)) out.push('## 🎯 Mon besoin', '', need || '_À compléter._', '')
   if (card) out.push(`## ${icon} Carte ${service}`, '', '> Description de la carte, reprise telle quelle.', '', card, '')
   if (exchanges) out.push(`## 💬 Échanges ${service}`, '', exchanges, '')
@@ -115,4 +119,38 @@ export function sectionsRule(service: string): string {
     `« Échanges ${service} » est la suite de la conversation ; « Mon besoin » sont les précisions de la personne qui a créé l’issue, ` +
     `prioritaires en cas d’écart.`
   )
+}
+
+/** Autres repos, sans doublon ni le repo de l'issue, dans l'ordre choisi. */
+export function otherRepos(main: string, others: string[]): string[] {
+  const seen = new Set([main.toLowerCase()])
+  return others.filter((r) => r.includes('/') && !seen.has(r.toLowerCase()) && seen.add(r.toLowerCase()))
+}
+
+/** « Repos concernés » : le repo de l'issue, puis les autres (liens) ; rien s'il n'y en a pas d'autre. */
+export function reposSection(main: string, others: string[]): string[] {
+  const list = otherRepos(main, others)
+  if (!list.length) return []
+  return [
+    '## 🔗 Repos concernés',
+    '',
+    ...(main ? [`- **${main}** (cette issue)`] : []),
+    ...list.map((r) => `- [${r}](https://github.com/${r})`),
+    '',
+  ]
+}
+
+/** Règle de la consigne quand l'issue touche plusieurs repos (sans apostrophe droite : voir `claudeCommand`). */
+export function reposRule(): string {
+  return (
+    'Si l’issue a une section « Repos concernés », le travail touche chacun de ces repos : une branche et une pull request par repo, ' +
+    'chacune citant cette issue (`propriétaire/repo#numéro`) ; puis **un seul** rapport ici, qui couvre tous les repos.'
+  )
+}
+
+/** Pour le prompt : les autres repos et, s'il existe, leur clone local. */
+export function reposPrompt(others: { repo: string; dir: string | null }[]): string {
+  if (!others.length) return ''
+  const list = others.map((o) => (o.dir ? `${o.repo} (clone : ${o.dir})` : o.repo)).join(', ')
+  return ` Elle touche aussi : ${list} ; une pull request par repo, chacune citant l’issue.`
 }

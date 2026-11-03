@@ -17,6 +17,7 @@ import {
   type IssueTask,
 } from '../lib/bcIssues'
 import { shown } from '../lib/errors'
+import { otherRepos } from '../lib/issueText'
 import IssueComposer from './IssueComposer'
 
 /**
@@ -48,6 +49,8 @@ export type IssueRequest = {
   onOpenOutside?: (url: string) => void
   /** Issue créée : relire l'onglet Basecamp pour l'afficher sur la tâche. */
   onMade?: () => void
+  /** Repos suivis, à citer comme « autres repos concernés ». */
+  linkable?: string[]
 }
 
 let show: ((r: IssueRequest) => void) | null = null
@@ -56,7 +59,7 @@ export function askIssue(r: IssueRequest) {
   show?.(r)
 }
 
-type Made = { number: number; url: string; repo: string }
+type Made = { number: number; url: string; repo: string; others: string[] }
 
 /**
  * Pièces jointes (cf. `basecamp.html_text`) : une image devient l'image elle-même,
@@ -86,6 +89,8 @@ export default function IssueHost() {
   const [creator, setCreator] = useState<BcAuthor | null>(null)
   /** Ce qui part dans l'issue : la description, et les échanges cochés (ids). */
   const [descPicked, setDescPicked] = useState(true)
+  /** Autres repos concernés, cités dans l'issue. */
+  const [others, setOthers] = useState<string[]>([])
   const [picked, setPicked] = useState<Set<number>>(new Set())
   const asked = useRef(0)
 
@@ -104,6 +109,7 @@ export default function IssueHost() {
       setComments([])
       setCreator(null)
       setPicked(new Set())
+      setOthers([])
       setDescPicked(!(r.start === 'issue' && r.comment))
       const n = ++asked.current
       setReading(true)
@@ -128,7 +134,11 @@ export default function IssueHost() {
   if (!req) return null
   const close = () => setReq(null)
   const retained = comments.filter((c) => picked.has(c.id))
-  const body = () => issueBody(req.task, { need, card: descPicked ? cardMarkdown(text) : '', exchanges: commentsMarkdown(retained) })
+  const linked = repo ? otherRepos(repo.repo, others) : []
+  const body = () =>
+    issueBody(req.task, { need, card: descPicked ? cardMarkdown(text) : '', exchanges: commentsMarkdown(retained), repo: repo?.repo, others: linked })
+  /** Les autres repos et leur clone local, pour le prompt. */
+  const withClones = (list: string[]) => list.map((r) => ({ repo: r, dir: req.cloneOf(r) }))
   const toggle = (id: number) =>
     setPicked((cur) => {
       const next = new Set(cur)
@@ -136,7 +146,7 @@ export default function IssueHost() {
       return next
     })
   // Pour Claude Code : le prompt, et la commande qui le lance dans le clone local s'il y en a un.
-  const prompt = made ? claudePrompt(made.repo, made.number) : ''
+  const prompt = made ? claudePrompt(made.repo, made.number, withClones(made.others)) : ''
   const clone = made ? req.cloneOf(made.repo) : null
   const command = clone ? claudeCommand(clone, prompt) : ''
   const copy = (what: 'command' | 'prompt', text: string) =>
@@ -152,10 +162,10 @@ export default function IssueHost() {
     try {
       const got = await createIssue(repo.account, repo.repo, title.trim(), body())
       rememberRepo(repo, req.task.project)
-      setMade({ ...got, repo: repo.repo })
+      setMade({ ...got, repo: repo.repo, others: linked })
       req.onMade?.()
       // déjà dans le presse-papiers : il n'y a plus qu'à coller dans un terminal (ou Claude Code)
-      const p = claudePrompt(repo.repo, got.number)
+      const p = claudePrompt(repo.repo, got.number, withClones(linked))
       const dir = req.cloneOf(repo.repo)
       void (dir ? copy('command', claudeCommand(dir, p)) : copy('prompt', p))
     } catch (e) {
@@ -189,6 +199,9 @@ export default function IssueHost() {
       repos={req.repos}
       repo={repo}
       onRepo={setRepo}
+      linkable={req.linkable ?? []}
+      others={others}
+      onOthers={setOthers}
       title={title}
       onTitle={setTitle}
       need={need}

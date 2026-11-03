@@ -8,7 +8,7 @@
  * en tête du commentaire-rapport (lus par `github.fetch_bc_issues`).
  */
 import type { BcIssue, BcPosted, BcTask } from './basecamp'
-import { exchangesMarkdown, foldDescription, forGitHub, issueSections, sectionsRule, type IssueParts } from './issueText'
+import { exchangesMarkdown, foldDescription, forGitHub, issueSections, reposPrompt, reposRule, sectionsRule, type IssueParts } from './issueText'
 
 export const REPORT_MARK = '<!-- homedash:bc-report -->'
 
@@ -94,6 +94,7 @@ export function claudeRules(close: string): string[] {
     `Lis le besoin et tous les échanges : sur Basecamp, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques** (problème, cause probable, solution retenue, ce qui sera touché). Ne modifie pas le corps de l'issue : il porte le lien vers la tâche. ${sectionsRule('Basecamp')} En cas de doute, c'est le corps qui fait foi, pas ta reformulation. Les captures (🖼) restent sur Basecamp, hors de ta portée : si l'une est indispensable, demande ce qu'elle montre.`,
     "Donne-lui la ou les étiquettes qui conviennent (bug, amélioration…), choisies parmi celles du repo (`gh label list`) : n'en crée pas.",
     'Fais le travail en suivant les règles du repo (CLAUDE.md).',
+    reposRule(),
     `Une fois livré, poste **un** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la tâche Basecamp. Si on te redemande un rapport final, poste-en un nouveau : le dernier fait foi.`,
     `Puis ferme l'issue : ${close}.`,
     "Si le besoin n'est pas clair, demande avant de coder plutôt que d'inventer.",
@@ -136,14 +137,15 @@ export function newIssueUrl(repo: string, title: string, body: string): string {
  * fermeture) est dans l'issue. Sans apostrophe droite (’) : il tient entre
  * guillemets simples dans `claudeCommand`, sous zsh, bash comme PowerShell.
  */
-export function claudePrompt(repo: string, number: number): string {
+export function claudePrompt(repo: string, number: number, others: { repo: string; dir: string | null }[] = []): string {
   return (
     `Occupe-toi de l’issue ${repo}#${number} : lis-la avec \`gh issue view ${number} -R ${repo} --comments\`. ` +
     `Elle vient d’une tâche Basecamp, souvent une conversation décousue : commence par en tirer le vrai besoin et ` +
     `la meilleure solution, reformulés en termes techniques (en commentaire de l’issue si ce n’est pas limpide), ` +
     `sans toucher au corps de l’issue. ${sectionsRule('Basecamp')} ` +
     `Donne-lui ses étiquettes, parmi celles du repo (\`gh label list -R ${repo}\`) sans en créer. ` +
-    `Puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).`
+    `Puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).` +
+    reposPrompt(others)
   )
 }
 

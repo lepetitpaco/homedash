@@ -845,6 +845,17 @@
   grid-template-columns: minmax(130px, 2fr) minmax(0, 5fr);
   gap: 10px;
 }
+.ic-others {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+}
+.ic-others-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
 .ic-repo-one {
   padding: 7px 0;
   font-size: 13px;

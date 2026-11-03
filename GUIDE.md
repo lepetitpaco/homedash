@@ -236,7 +236,10 @@ les rapports que tu publies.
    **Créer sur GitHub** (⌘ Entrée).
    *Ouvrir le formulaire* passe plutôt par github.com.
    L'issue a une section par source : *🎯 Mon besoin* (tes précisions, qui priment), *Carte* (la description,
-   reprise telle quelle) et *💬 Échanges* ; une section vide n'apparaît pas. Les mentions y perdent leur `@`, pour
+   reprise telle quelle) et *💬 Échanges* ; une section vide n'apparaît pas.
+   Le travail touche plusieurs repos ? Coche-les dans *Autres repos concernés* : l'issue reste dans le repo choisi,
+   les autres y sont cités (*🔗 Repos concernés*), et Claude Code fait une pull request dans chacun, puis un seul
+   rapport. Rien n'est créé dans les autres repos. Les mentions y perdent leur `@`, pour
    ne notifier personne sur GitHub.
 2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
    colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
