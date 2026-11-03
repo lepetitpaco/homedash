@@ -322,7 +322,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas ; accès depuis le navigateur (appli) |
 | 🐙 GitHub | Pour le compte choisi en haut, en sous-onglets : *Compte* (jeton), *Repos suivis*, *Équipe*, *Ce que montre l'onglet* (Renovate sous *Avancé*) ; ＋ Compte pour un autre compte GitHub |
 | 💻 Local | Les dossiers où chercher tes clones |
-| 🏕 Basecamp | La connexion, les repos où créer les issues |
+| 🏕 Basecamp | La connexion, les repos où créer les issues, les stats en arrière-plan |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, veille, Docker |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
