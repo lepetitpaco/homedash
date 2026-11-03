@@ -129,6 +129,8 @@ export function loadSections(): void {
   const local = cfg.local || {}
   localgit.configure({ ...local, enabled: store.featureOn(cfg, 'local') && local.enabled !== false })
   basecamp.setEnabled(store.featureOn(cfg, 'basecamp'))
+  // Stats préparées en arrière-plan : désactivé par défaut (Réglages → Basecamp).
+  basecamp.setStatsBackground(cfg.basecamp?.statsBackground)
   trello.setEnabled(store.featureOn(cfg, 'trello'))
   // Journal de performance : désactivé par défaut (Réglages → Affichage).
   perflog.configure(cfg.ui?.perfLog === true)
@@ -420,6 +422,13 @@ async function apiGet(req: Req): Promise<Res> {
   if (p === '/api/basecamp/task') {
     try {
       return json(await basecamp.taskText(q(req, 'url')))
+    } catch (e) {
+      return err(req, e instanceof RangeError ? 422 : 502, (e as Error).message)
+    }
+  }
+  if (p === '/api/basecamp/stats') {
+    try {
+      return json(await basecamp.stats(q(req, 'days'), !!q(req, 'fresh')))
     } catch (e) {
       return err(req, e instanceof RangeError ? 422 : 502, (e as Error).message)
     }

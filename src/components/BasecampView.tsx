@@ -1,5 +1,6 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import { GhEmpty } from './GhCard'
+import BcStats from './BcStats'
 import { ago } from '../lib/ghboard'
 import { dueOf, projectKey, type BcBoard, type BcData, type BcIssue, type BcPosted, type BcTask } from '../lib/basecamp'
 import {
@@ -468,6 +469,7 @@ function KanbanCard({ t }: { t: Prio }) {
 const VIEW_KEY = 'homedash:bc-view'
 const URGENT = 'urgent'
 const ISSUES = 'issues'
+const STATS = 'stats'
 
 /** Vue affichée si l'onglet est monté ; sinon retenue pour son ouverture. */
 let goto: ((key: string) => void) | null = null
@@ -863,8 +865,10 @@ export default function BasecampView({
   const busy = data.building
   const all = shown.flatMap((p) => entriesOf(p).map((e) => ({ ...e, project: p })))
   // Vue mémorisée si elle existe encore ; sinon « À traiter ».
-  const current = picked === URGENT || picked === ISSUES ? null : all.find((e) => e.key === picked) ?? null
-  const view = current ? current.key : picked === ISSUES ? ISSUES : URGENT
+  const current = picked === URGENT || picked === ISSUES || picked === STATS ? null : all.find((e) => e.key === picked) ?? null
+  const view = current ? current.key : picked === ISSUES || picked === STATS ? picked : URGENT
+  /** Vues qui ne dépendent pas des tâches assignées. */
+  const global = view === ISSUES || view === STATS
   const project = current?.project
   const board = project?.boards.find((b) => current?.key === `${project.key}::${b.key}`)
 
@@ -969,6 +973,14 @@ export default function BasecampView({
             {waiting ? <span className="bc-nav-late">{waiting}</span> : null}
             {active ? <span className="bc-nav-count">{active}</span> : null}
           </button>
+          <button
+            className={`bc-nav-item is-top${view === STATS ? ' is-active' : ''}`}
+            onClick={() => pick(STATS)}
+            title="Tâches créées et faites, par personne, sur les projets dont tu es membre"
+          >
+            <span aria-hidden="true">📊</span>
+            <span className="bc-nav-label">Stats</span>
+          </button>
           {shown.map((p) => {
             const entries = entriesOf(p)
             return (
@@ -1006,7 +1018,7 @@ export default function BasecampView({
           <header className="group-head">
             <div className="group-toggle static">
               <span className="group-icon" aria-hidden="true">
-                {current ? current.icon : view === ISSUES ? '🐙' : '🔥'}
+                {current ? current.icon : view === ISSUES ? '🐙' : view === STATS ? '📊' : '🔥'}
               </span>
               <h2 className="group-title">
                 {project ? (
@@ -1015,6 +1027,8 @@ export default function BasecampView({
                   </>
                 ) : view === ISSUES ? (
                   'Issues GitHub'
+                ) : view === STATS ? (
+                  'Stats des tâches créées'
                 ) : (
                   'À traiter'
                 )}
@@ -1041,11 +1055,12 @@ export default function BasecampView({
           </header>
           <div className="bc-project">
             {!data.loaded ? <GhEmpty>première lecture…</GhEmpty> : null}
-            {data.loaded && total === 0 && view !== ISSUES ? <GhEmpty>Aucune tâche assignée. 🎉</GhEmpty> : null}
-            {total > 0 && shown.length === 0 && view !== ISSUES ? (
+            {data.loaded && total === 0 && !global ? <GhEmpty>Aucune tâche assignée. 🎉</GhEmpty> : null}
+            {total > 0 && shown.length === 0 && !global ? (
               <GhEmpty>Tous les projets sont masqués : clique sur leurs pastilles ci-dessus.</GhEmpty>
             ) : null}
             {view === ISSUES ? <IssueList issues={issues} /> : null}
+            {view === STATS ? <BcStats /> : null}
             {data.loaded && shown.length > 0 && view === URGENT ? <Urgent items={located} onOpen={pick} /> : null}
             {current && !board && project ? <TodoLists lists={project.lists} /> : null}
             {board ? <BoardColumns b={board} /> : null}

@@ -217,6 +217,13 @@ les rapports que tu publies.
 ![L'onglet Basecamp](docs/screenshots/basecamp.jpg)
 
 - **🔥 À traiter** : ce qui est en retard ou dû dans les 7 jours. À gauche, un projet : ses tableaux et to-dos.
+- **📊 Stats** : qui a créé combien de tâches et de cartes, et combien sont faites (cochées, ou cartes dans la
+  colonne Done). Période : 7 ou 30 jours, ce mois-ci, le mois dernier, 3 ou 12 mois, ou *Personnalisé* (du mois…
+  au mois…). *Par personne* (un projet ou tous cumulés) ou *par projet* ; *📅 détail par mois* met une colonne par
+  mois. Un clic sur un titre de colonne trie, un clic sur une ligne déroule ses tâches ; ⤢ passe en plein écran.
+  Seulement les projets dont tu es membre : Basecamp ne montre pas les autres. La première lecture d'un an prend
+  environ une minute, ensuite seulement ce qui a changé ; *Réglages → Basecamp → Stats en arrière-plan* les
+  prépare petit à petit, puis les tient à jour toutes les 15 min (désactivé par défaut). « Mis à jour à … » dit de quand elles datent.
 - **Se connecter** (une fois, pas besoin d'être admin) : pas-à-pas dans *Réglages → Basecamp*.
 - **Lire une tâche** : un clic sur son titre (⌘ clic : Basecamp) : description, étapes, issues liées, échanges
   avec leurs captures.

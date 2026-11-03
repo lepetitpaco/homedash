@@ -66,3 +66,13 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Les lignes indentées ne s'affichent plus en bloc de code, les sauts de ligne de Basecamp sont gardés ; ce qui suit
   une ligne de tirets est replié.
 - La consigne pour Claude Code nomme les trois sections : la carte est la demande d'origine, *Mon besoin* prime en cas d'écart.
+
+## paco/feature/stats-basecamp
+
+- Basecamp (#118) : panneau *📊 Stats*, qui a créé combien de tâches et cartes (et combien sont faites), par personne
+  ou par projet, détail par mois, périodes (7/30 j, mois, 3/12 mois, personnalisée), tri par colonne, plein écran ;
+  sur les projets dont on est membre. Réserve d'un an dans `data/bc_stats.json` (cache), puis seulement ce qui a changé.
+- Réglages → Basecamp : *Stats en arrière-plan* (désactivé par défaut) : un an rempli par tranches d'une minute, puis
+  mise à jour toutes les 15 min ; tour complet chaque semaine.
+- Lecture conforme à l'API Basecamp : pages suivies par `Link`, 3 requêtes/s au plus, `Retry-After` sur 429, nouvel
+  essai sur 5xx, ETag sur les mises à jour.

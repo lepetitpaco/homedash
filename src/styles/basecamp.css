@@ -1136,3 +1136,131 @@
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* ─── Stats : tâches créées et faites, par personne ─────────────────────────── */
+.bc-stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.bc-stats-bar .bc-filter {
+  margin-bottom: 0;
+}
+.bc-stats-bar + .bc-filter {
+  margin-top: 10px;
+}
+.bc-stats-state {
+  margin-left: auto;
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.bc-stats-note {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  margin: 4px 0 12px;
+}
+.bc-stats-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.bc-stats-table th,
+.bc-stats-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--border-soft);
+  text-align: left;
+}
+.bc-stats-table th {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-faint);
+  font-weight: 600;
+}
+.bc-stats-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.bc-stats-row {
+  cursor: pointer;
+}
+.bc-stats-row:hover,
+.bc-stats-row.is-open {
+  background: var(--panel-2);
+}
+.bc-stats-caret {
+  display: inline-block;
+  width: 1em;
+  color: var(--text-faint);
+}
+/* Part faite : une barre discrète derrière le chiffre */
+.bc-stats-rate {
+  display: inline-block;
+  min-width: 4.5em;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--sig-ok) 28%, transparent) var(--rate), transparent var(--rate));
+}
+.bc-stats-detail > td {
+  background: var(--panel-2);
+  padding-top: 2px;
+}
+.bc-stats-detail ul {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 6px 1.4em;
+  display: grid;
+  gap: 3px;
+}
+.bc-stats-detail li.is-done a {
+  color: var(--text-dim);
+}
+.bc-stats-meta {
+  margin-left: 8px;
+  font-size: 0.75rem;
+  color: var(--text-faint);
+}
+.bc-stats-table tfoot td {
+  font-weight: 600;
+  border-bottom: none;
+  border-top: 2px solid var(--border);
+}
+/* Titres de colonne cliquables : tri */
+.bc-stats-sort {
+  all: unset;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  text-transform: inherit;
+  letter-spacing: inherit;
+}
+.bc-stats-sort:hover,
+.bc-stats-sort.is-on {
+  color: var(--text);
+}
+.bc-stats-sort:focus-visible {
+  outline: 2px solid var(--sig-info);
+  outline-offset: 2px;
+}
+/* Personnes d'un projet, sous sa ligne */
+.bc-stats-table.is-nested {
+  font-size: 0.84rem;
+  margin: 0 0 6px;
+}
+.bc-stats-table.is-nested .bc-stats-row:hover,
+.bc-stats-table.is-nested .bc-stats-row.is-open {
+  background: var(--panel);
+}
+.bc-stats-filling {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.8rem;
+  color: var(--sig-info);
+  margin: -4px 0 12px;
+}
