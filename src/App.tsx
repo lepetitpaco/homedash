@@ -142,6 +142,16 @@ function shortLink(url: string): string {
   }
 }
 
+const BADGES_KEY = 'homedash:badges-hidden'
+function readBadgeHidden(): Record<string, number> {
+  try {
+    const v = JSON.parse(localStorage.getItem(BADGES_KEY) ?? '{}')
+    return v && typeof v === 'object' ? v : {}
+  } catch {
+    return {}
+  }
+}
+
 export default function App() {
   const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad } = useConfigState()
   // Fonctionnalités coupées dans Réglages : ni onglet, ni commande, ni résultat de recherche.
@@ -192,6 +202,23 @@ export default function App() {
     return isTemp(t) ? parentOf(t) : key
   }
   const childrenOf = (space: string) => allTemps.filter((t) => parentOf(t) === space)
+  // Compteurs masqués d'un clic droit (Local, Basecamp, Trello) : le nombre au moment du clic.
+  // Il revient dès que ce nombre change. Préférence de l'écran, comme les dossiers repliés.
+  const [badgeHidden, setBadgeHidden] = useState<Record<string, number>>(readBadgeHidden)
+  const counted = (id: string, n: number) => (n && badgeHidden[id] === n ? 0 : n)
+  const hideBadge = (id: string, n: number | null) => {
+    setBadgeHidden((h) => {
+      const next = { ...h }
+      if (n === null) delete next[id]
+      else next[id] = n
+      try {
+        localStorage.setItem(BADGES_KEY, JSON.stringify(next))
+      } catch {
+        /* stockage indisponible */
+      }
+      return next
+    })
+  }
   // Titre de la page de chaque onglet d'espace : son nom dans la barre (en mémoire seulement).
   const [childTitles, setChildTitles] = useState<Record<string, string>>({})
   // Adresse où est chaque onglet éphémère (gardé ou non), suivie pendant la navigation.
@@ -1458,10 +1485,30 @@ export default function App() {
       ],
     })
   }
+  /** Clic droit sur Local, Basecamp ou Trello : ce que compte le compteur, et le masquer. */
+  const badgeMenu = (e: React.MouseEvent, id: TabId, label: string, n: number, what: string) => {
+    const hidden = !!n && badgeHidden[id] === n
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: label,
+      items: [
+        ...(n ? [{ heading: what }] : [{ heading: 'Rien à signaler : pas de compteur.' }]),
+        ...(n && !hidden
+          ? [{ icon: '🙈', label: 'Masquer le compteur', hint: 'il revient si le nombre change', onSelect: () => hideBadge(id, n) }]
+          : []),
+        ...(hidden ? [{ icon: '👁', label: 'Afficher le compteur', hint: `${n}`, onSelect: () => hideBadge(id, null) }] : []),
+        { sep: true },
+        { icon: '→', label: `Ouvrir ${label}`, onSelect: () => selectTab(id) },
+      ],
+    })
+  }
   /** Clic droit sur ⚡ : où mettre les onglets de homedash (en haut, ou dans un dossier ⚡). */
   const homeMenu = (e: React.MouseEvent) => {
     const at = { clientX: e.clientX, clientY: e.clientY }
     const mark = (on: boolean) => (on ? '✓' : '')
+    // Le compteur bleu de ⚡ : les onglets temporaires ouverts depuis homedash (liens cliqués).
+    const opened = temps.filter((t) => parentOf(t) === DASH)
     menus.openMenu({
       x: e.clientX,
       y: e.clientY,
@@ -1470,6 +1517,20 @@ export default function App() {
         { heading: 'Raccourcis, GitHub, Local…' },
         { icon: mark(!dashInRail), label: 'En haut de la page', hint: 'un clic sur ⚡, puis l’onglet', onSelect: () => changeDashInRail(false) },
         { icon: mark(dashInRail), label: 'Dans la barre, sous ⚡', hint: 'un seul clic ; ⚡ se replie', onSelect: () => changeDashInRail(true) },
+        ...(opened.length
+          ? [
+              { sep: true as const },
+              {
+                icon: '✕',
+                label: `Fermer ${opened.length > 1 ? `les ${opened.length} onglets ouverts` : 'l’onglet ouvert'} depuis homedash`,
+                hint: 'le compteur bleu',
+                onSelect: () => {
+                  if (opened.some((t) => tabKey(t) === tab)) selectTab(lastNative.current)
+                  setTemps((all) => all.filter((t) => parentOf(t) !== DASH))
+                },
+              },
+            ]
+          : []),
         { sep: true },
         { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
       ],
@@ -1885,8 +1946,10 @@ export default function App() {
             id: 'local' as TabId,
             icon: '💻',
             label: 'Local',
-            badge: local.todo,
-            badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
+            badge: counted('local', local.todo),
+            badgeTitle: `${local.todo} branche(s) locale(s) déjà fusionnée(s), encore sur le disque — clic droit : masquer`,
+            onContext: (e: React.MouseEvent) =>
+              badgeMenu(e, 'local', 'Local', local.todo, `${local.todo} branche(s) locale(s) déjà fusionnée(s), encore sur ton disque : l’onglet donne la commande pour les supprimer.`),
             group: code,
           },
         ]
@@ -1898,8 +1961,10 @@ export default function App() {
             id: 'basecamp' as TabId,
             icon: '🏕',
             label: 'Basecamp',
-            badge: bcLate,
-            badgeTitle: `${bcLate} tâche(s) Basecamp en retard`,
+            badge: counted('basecamp', bcLate),
+            badgeTitle: `${bcLate} tâche(s) Basecamp en retard — clic droit : masquer`,
+            onContext: (e: React.MouseEvent) =>
+              badgeMenu(e, 'basecamp', 'Basecamp', bcLate, `${bcLate} tâche(s) qui te sont assignées, échéance passée. Les projets masqués dans l’onglet ne comptent pas.`),
           },
         ]
       : []),
@@ -1909,8 +1974,10 @@ export default function App() {
             id: 'trello' as TabId,
             icon: '📋',
             label: 'Trello',
-            badge: trLate,
-            badgeTitle: `${trLate} carte(s) Trello en retard`,
+            badge: counted('trello', trLate),
+            badgeTitle: `${trLate} carte(s) Trello en retard — clic droit : masquer`,
+            onContext: (e: React.MouseEvent) =>
+              badgeMenu(e, 'trello', 'Trello', trLate, `${trLate} carte(s) qui te sont assignées, échéance passée. Les tableaux masqués dans l’onglet ne comptent pas.`),
           },
         ]
       : []),
@@ -2200,6 +2267,7 @@ export default function App() {
                   badge: t.badge,
                   badgeAlert: t.badgeAlert,
                   badgeTitle: t.badgeTitle,
+                  onContext: t.onContext,
                   active: shown === t.id,
                 }))
               : undefined
