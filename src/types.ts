@@ -277,6 +277,8 @@ export type Config = {
     hidden?: string[]
     /** Repos où créer les issues (`propriétaire/repo`). Absent ou vide = tous les repos suivis. */
     repos?: string[]
+    /** Stats préparées en arrière-plan (mises à jour toutes les 15 min). Absent = désactivé. */
+    statsBackground?: boolean
   }
   /** Onglet Trello. Tout est facultatif : absent = défaut. */
   trello?: {

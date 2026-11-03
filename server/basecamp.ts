@@ -14,6 +14,7 @@
  */
 
 import crypto from 'node:crypto'
+import fs from 'node:fs'
 
 import * as events from './events.ts'
 import { escape, parse } from './html.ts'
@@ -94,6 +95,10 @@ function reset(): void {
   seeded.clear()
   searches.clear()
   files.clear()
+  // réserve des stats : propre à ce compte, effacée avec la connexion
+  stock = null
+  gapMs = STATS_GAP_MS
+  fs.rmSync(store.pathOf('bc_stats.json'), { force: true })
 }
 
 /** Tests : remet tout à zéro, y compris l'interrupteur. */
@@ -132,6 +137,14 @@ async function postToken(params: Record<string, string>): Promise<any> {
 
 type Got = [number, any, Headers | null]
 
+/** Secondes à attendre d'après `Retry-After` (nombre ou date HTTP) ; 30 s si absent ou illisible. */
+export function retryAfter(h: Headers | null | undefined): number {
+  const v = (h?.get('Retry-After') || '').trim()
+  if (/^\d+$/.test(v)) return Math.max(1, Number(v))
+  const at = Date.parse(v)
+  return Number.isNaN(at) ? 30 : Math.max(1, Math.ceil((at - Date.now()) / 1000))
+}
+
 /** GET authentifié, avec cache ETag (exigé par Basecamp). Un 304 rend le contenu en cache. */
 async function get(url: string, token: string, cache = true): Promise<Got> {
   const cached = cache ? etags.get(url) : undefined
@@ -144,6 +157,8 @@ async function get(url: string, token: string, cache = true): Promise<Got> {
     return [0, { message: String((e as Error).message || e) }, null]
   }
   if (res.status === 304 && cached) return [200, cached[1], res.headers]
+  // Limite par IP, pour tout le compte : un refus, d'où qu'il vienne, fait attendre toutes les lectures.
+  if (res.status === 429) state.retryAt = Math.max(state.retryAt, Date.now() / 1000 + retryAfter(res.headers))
   if (!res.ok) return [res.status, null, res.headers]
   const text = await res.text()
   const payload = text ? JSON.parse(text) : null
@@ -460,8 +475,8 @@ export async function rebuild(): Promise<void> {
         ;[st, body, headers] = await apiGet(p, s.access_token, s.href)
       }
       if (st === 429) {
-        const wait = Math.trunc(Number(headers?.get('Retry-After') || 30))
-        state.retryAt = Date.now() / 1000 + wait
+        const wait = retryAfter(headers)
+        state.retryAt = Math.max(state.retryAt, Date.now() / 1000 + wait)
         throw new Error(`Basecamp limite les appels : nouvel essai dans ${wait} s`)
       }
       if (st !== 200) {
@@ -818,6 +833,369 @@ export function richHtml(raw: string | null | undefined): string {
     },
   })
   return out.join('').trim()
+}
+
+// ── Statistiques : tâches créées et faites, par créateur ────────────────────────
+/**
+ * Une seule source : `GET /projects/recordings.json`, qui ne rend que les projets
+ * dont le compte est membre (les autres sont invisibles, donc hors des stats).
+ * Lu à l'ouverture du panneau, ou en arrière-plan si Réglages → Basecamp le demande
+ * (`basecamp.statsBackground`, désactivé par défaut) ; jamais par le sondage des tâches.
+ *
+ * Règles de l'API (bc3-api, README) suivies ici :
+ * - pages suivies par l'en-tête `Link`, jamais construites (15, 30, 50 puis 100 par page) ;
+ * - 50 requêtes / 10 s par IP, et d'autres limites qui bougent : rythme plafonné
+ *   (`STATS_GAP_MS`), et sur 429 on attend `Retry-After` ;
+ * - 500/502/503/504 : nouvel essai, délai doublé à chaque fois ;
+ * - ETag sur la première page d'une mise à jour : rien de neuf = 304.
+ *
+ * Coût : une réserve commune à toutes les périodes (`data/bc_stats.json`, simple
+ * cache) ; pour l'étendre, lecture par date de création arrêtée à la fin de la
+ * période ; ensuite seulement ce qui a changé (date de modification, que change le
+ * fait de cocher une tâche ou de la passer en Done). Une seule lecture à la fois.
+ */
+const STATS_TYPES = ['Todo', 'Kanban::Card'] as const
+/** Écart minimal entre deux requêtes des stats : 3 / s au plus, la moitié de la limite. */
+const STATS_GAP_MS = 334
+/** Plafond par type et par lecture, pour ne jamais tourner sans fin (100 tâches par page au-delà de la 3e). */
+const STATS_PAGES = 400
+/** Au-delà, une demande relit ce qui a changé. */
+const STATS_TTL = 5 * 60
+/** Mise à jour plus longue que ça : la réserve est relue de zéro. */
+const STATS_DELTA_PAGES = 20
+/** Marge sur la dernière lecture (horloges, écritures en cours). */
+const STATS_OVERLAP = 120
+/** « Trop d'appels » ou panne passagère : essais. Au-delà de `STATS_WAIT_MAX` s d'attente demandée, on abandonne. */
+const STATS_RETRIES = 3
+const STATS_WAIT_MAX = 60
+/** Écart maximal entre deux requêtes des stats après des refus (ms). */
+const STATS_GAP_MAX = 5000
+/** Périodes demandables, en jours ; 400 = douze mois entiers (le premier peut commencer il y a plus de 365 jours). */
+export const STATS_DAYS = [7, 30, 90, 365, 400] as const
+/** Arrière-plan (Réglages → Basecamp) : une mise à jour toutes les 15 min, deux requêtes, souvent un 304. */
+const STATS_EVERY_MIN = 15
+/** Arrière-plan : la réserve se remplit par tranches de `FILL_PAGES` pages par type, une toutes les `FILL_EVERY` s. */
+const FILL_PAGES = 4
+const FILL_EVERY = 60
+/** Tour complet de vérification (par tranches aussi) : rattrape une tâche manquée, retire les supprimées. */
+const REFILL_DAYS = 7
+/** Simple cache (pas dans les sauvegardes) ; effacé par `reset()`. */
+const STATS_FILE = 'bc_stats.json'
+
+/**
+ * Remplissage en cours (arrière-plan) : jusqu'où aller (`target`), et par type la
+ * page suivante à lire ('' = la première, null = terminé) et la plus vieille
+ * création déjà lue. Gardé dans le fichier : reprend après un redémarrage.
+ */
+type Fill = { target: string; started: string; next: Record<string, string | null>; reached: Record<string, string>; seen?: string[] }
+/** `filled` : fin du dernier tour complet (ms). */
+type Stock = { account: string; since: string; synced: string; ts: number; partial: boolean; items: Record<string, Obj>; fill?: Fill; filled?: number }
+let stock: Stock | null = null
+let syncing: Promise<void> | null = null
+let nextSlot = 0
+let background_ = false
+let statsTimer: ReturnType<typeof setInterval> | null = null
+/** Dernière mise à jour faite en arrière-plan (ms). */
+let deltaAt = 0
+let statsError: string | null = null
+
+const sleep = (ms: number) => new Promise((ok) => setTimeout(ok, ms))
+
+/** Écart courant entre deux requêtes des stats : doublé à chaque 429, redescend à chaque succès. */
+let gapMs = STATS_GAP_MS
+
+/**
+ * Attend son tour : l'attente commune demandée par Basecamp (429, toutes lectures
+ * confondues), puis l'écart courant. Attente trop longue : on abandonne, la
+ * lecture reprendra plus tard (tour suivant ou nouvelle demande).
+ */
+async function pace(): Promise<void> {
+  const blocked = state.retryAt * 1000 - Date.now()
+  if (blocked > STATS_WAIT_MAX * 1000) throw new Error(`Basecamp demande d’attendre ${Math.ceil(blocked / 1000)} s : réessaie plus tard`)
+  if (blocked > 0) await sleep(blocked)
+  const now = Date.now()
+  const at = Math.max(now, nextSlot)
+  nextSlot = at + gapMs
+  if (at > now) await sleep(at - now)
+}
+
+/** Limites ajustées en continu par Basecamp : on ralentit au refus, on réaccélère doucement. */
+function adapt(refused: boolean): void {
+  gapMs = refused ? Math.min(STATS_GAP_MAX, gapMs * 2) : Math.max(STATS_GAP_MS, Math.round(gapMs * 0.9))
+}
+
+/** Une tâche pour les stats : qui l'a créée, où, quand, et si elle est faite. */
+export function statItem(r: Obj, s = SITE): Obj | null {
+  if (!r || typeof r !== 'object' || !r.created_at) return null
+  const card = r.type === 'Kanban::Card'
+  // carte : cochée, ou dans une colonne « Done » ; to-do : cochée
+  const done = !!r.completed || (card && /Done/.test(r.parent?.type || ''))
+  return {
+    id: r.id ?? null,
+    kind: card ? 'card' : 'todo',
+    title: (r.title || r.content || '').trim() || '(sans titre)',
+    url: webUrl(r.app_url, s),
+    who: r.creator?.name || '?',
+    who_id: r.creator?.id ?? null,
+    project: r.bucket?.name || '',
+    project_id: r.bucket?.id ?? null,
+    created_at: r.created_at,
+    updated_at: r.updated_at || r.created_at,
+    done,
+  }
+}
+
+const keyOf = (it: Obj) => `${it.kind}:${it.id}`
+
+function loadStock(account: string): Stock | null {
+  if (stock?.account === account) return stock
+  const v = store.read<Stock | null>(STATS_FILE, null)
+  stock = v && v.account === account && v.items && typeof v.items === 'object' ? v : null
+  return stock
+}
+
+/**
+ * Lit un type page après page, en suivant `Link`, jusqu'à ce que `stop(r)` dise
+ * qu'on est allé assez loin. `etag` : première page avec le cache ETag (mise à
+ * jour). `start` : reprendre à cette page (adresse donnée par Basecamp). Rend
+ * [enregistrements, plafond atteint, page suivante si plafond].
+ */
+async function readType(
+  s: Obj,
+  type: string,
+  sort: 'created_at' | 'updated_at',
+  stop: (r: Obj) => boolean,
+  max: number,
+  etag = false,
+  start = '',
+): Promise<[Obj[], boolean, string | null]> {
+  const base = s.href.replace(/\/+$/, '') + '/'
+  /** Une page, au rythme permis ; 429 : attend `Retry-After` ; 5xx : délai doublé. */
+  const fetchPage = async (url: string, cache: boolean): Promise<Got> => {
+    for (let i = 0; ; i++) {
+      await pace()
+      const got = await get(url, s.access_token, cache)
+      const st = got[0]
+      adapt(st === 429)
+      const retry = st === 429 || st === 500 || st === 502 || st === 503 || st === 504
+      if (!retry || i >= STATS_RETRIES) {
+        if (st === 429) throw new Error('Basecamp limite les appels : réessaie dans un moment')
+        if (st !== 200) throw new Error(`lecture des tâches impossible (HTTP ${st})`)
+        return got
+      }
+      // 429 : l'attente demandée est déjà notée pour tous (get), `pace()` la respecte en entier
+      if (st !== 429) await sleep(2 ** i * 1000)
+    }
+  }
+  const out: Obj[] = []
+  let url: string | undefined = start && start.startsWith(base) ? start : `${base}projects/recordings.json?${new URLSearchParams({ type, sort, direction: 'desc' })}`
+  for (let n = 1; url; n++) {
+    if (n > max) return [out, true, url]
+    const [, page, headers]: Got = await fetchPage(url, etag && n === 1)
+    if (!Array.isArray(page) || !page.length) break
+    for (const r of page) {
+      if (stop(r)) return [out, false, null]
+      out.push(r)
+    }
+    url = /<([^>]+)>;\s*rel="next"/.exec(headers?.get('Link') || '')?.[1]
+    // jamais d'adresse hors du compte
+    if (url && !url.startsWith(base)) break
+  }
+  return [out, false, null]
+}
+
+/** Relit de zéro jusqu'à `since` (création), les deux types en même temps. */
+async function fullRead(s: Obj, account: string, since: string): Promise<Stock> {
+  const started = new Date().toISOString()
+  const got = await Promise.all(STATS_TYPES.map((t) => readType(s, t, 'created_at', (r) => (r?.created_at || '') < since, STATS_PAGES)))
+  const items: Record<string, Obj> = {}
+  for (const [list] of got) for (const r of list) {
+    const it = statItem(r, SITE)
+    if (it) items[keyOf(it)] = it
+  }
+  return { account, since, synced: started, ts: Date.now() / 1000, partial: got.some(([, cut]) => cut), items }
+}
+
+/** Ce qui a changé depuis la dernière lecture ; null si trop pour une mise à jour. */
+async function delta(s: Obj, cur: Stock): Promise<Stock | null> {
+  const started = new Date().toISOString()
+  const after = new Date(Date.parse(cur.synced) - STATS_OVERLAP * 1000).toISOString()
+  const got = await Promise.all(STATS_TYPES.map((t) => readType(s, t, 'updated_at', (r) => (r?.updated_at || '') < after, STATS_DELTA_PAGES, true)))
+  if (got.some(([, cut]) => cut)) return null
+  const items = { ...cur.items }
+  for (const [list] of got) for (const r of list) {
+    const it = statItem(r, SITE)
+    // créée avant la réserve (ou avant sa cible, pendant un remplissage) : hors des stats
+    if (it && it.created_at >= (cur.fill?.target ?? cur.since)) items[keyOf(it)] = it
+  }
+  return { ...cur, synced: started, ts: Date.now() / 1000, items }
+}
+
+function save(next: Stock): void {
+  stock = next
+  try {
+    store.write(STATS_FILE, next)
+  } catch {
+    /* simple cache : gardé en mémoire */
+  }
+}
+
+/** Commence un remplissage (arrière-plan) jusqu'à `target`, en gardant ce qui est déjà lu. */
+function startFill(account: string, cur: Stock | null, target: string): Stock {
+  const now = new Date().toISOString()
+  const fill: Fill = { target, started: now, next: Object.fromEntries(STATS_TYPES.map((t) => [t, ''])), reached: {}, seen: [] }
+  return cur ? { ...cur, fill } : { account, since: now, synced: now, ts: Date.now() / 1000, partial: false, items: {}, fill }
+}
+
+/** Une tranche du remplissage : quelques pages par type, à partir de là où on s'était arrêté. */
+async function fillStep(s: Obj, cur: Stock): Promise<Stock> {
+  const fill = cur.fill as Fill
+  const next = { ...fill.next }
+  const reached = { ...fill.reached }
+  let items = { ...cur.items }
+  const seen = new Set(fill.seen ?? [])
+  await Promise.all(
+    STATS_TYPES.map(async (t) => {
+      if (next[t] === null) return
+      const [list, cut, after] = await readType(s, t, 'created_at', (r) => (r?.created_at || '') < fill.target, FILL_PAGES, false, next[t] || '')
+      for (const r of list) {
+        const it = statItem(r, SITE)
+        if (!it) continue
+        items[keyOf(it)] = it
+        seen.add(keyOf(it))
+      }
+      const oldest = list.length ? list[list.length - 1].created_at : ''
+      if (cut && after) {
+        next[t] = after
+        if (oldest) reached[t] = oldest
+      } else {
+        next[t] = null
+        reached[t] = fill.target
+      }
+    }),
+  )
+  const done = STATS_TYPES.every((t) => next[t] === null)
+  // couvert jusqu'où le type le plus en retard est allé
+  const since = done ? fill.target : STATS_TYPES.map((t) => reached[t] || new Date().toISOString()).sort().pop() as string
+  if (done) {
+    // tour terminé : ce qui n'a pas été revu (supprimé, archivé) quitte la réserve ; sauf les créées pendant le tour
+    const started = fill.started || cur.synced
+    items = Object.fromEntries(Object.entries(items).filter(([k, it]) => seen.has(k) || it.created_at >= started))
+  }
+  const out: Stock = { ...cur, since: since < cur.since || !Object.keys(cur.items).length ? since : cur.since, ts: Date.now() / 1000, items }
+  if (done) {
+    delete out.fill
+    out.filled = Date.now()
+  } else out.fill = { ...fill, next, reached, seen: [...seen] }
+  return out
+}
+
+/**
+ * À la demande (panneau). Sans arrière-plan : lecture complète si la réserve ne
+ * couvre pas la période. Avec : jamais de grosse lecture ici, le remplissage par
+ * tranches s'en charge ; on n'ajoute que ce qui a changé.
+ */
+async function sync(s: Obj, since: string, fresh: boolean): Promise<void> {
+  const account = String(s.href)
+  let cur = loadStock(account)
+  if (background_) {
+    if (!cur || (cur.since > since && !cur.fill)) {
+      // première tranche tout de suite : les jours récents sont là d'emblée
+      cur = startFill(account, cur, sinceOf(Math.max(...STATS_DAYS)))
+      save(await fillStep(s, cur))
+      return
+    }
+    if (fresh || Date.now() / 1000 - cur.ts >= STATS_TTL) {
+      const next = await delta(s, cur)
+      if (next) save(next)
+    }
+    return
+  }
+  let next: Stock | null = null
+  if (!cur || cur.since > since) next = await fullRead(s, account, cur && cur.since < since ? cur.since : since)
+  else if (fresh || Date.now() / 1000 - cur.ts >= STATS_TTL) next = (await delta(s, cur)) ?? (await fullRead(s, account, cur.since))
+  if (next) save(next)
+}
+
+/** Arrière-plan, une fois par `FILL_EVERY` : une tranche du remplissage, sinon la mise à jour à son rythme. */
+async function background(s: Obj): Promise<void> {
+  const account = String(s.href)
+  let cur = loadStock(account)
+  const target = sinceOf(Math.max(...STATS_DAYS))
+  // réserve absente, ou trop courte (plus d'un jour de retard sur un an) : on remplit
+  const stale = !cur?.filled || Date.now() - cur.filled > REFILL_DAYS * 86400_000
+  if (!cur || (!cur.fill && (stale || Date.parse(cur.since) - Date.parse(target) > 86400_000))) cur = startFill(account, cur, target)
+  if (cur.fill) return save(await fillStep(s, cur))
+  if (Date.now() - deltaAt < STATS_EVERY_MIN * 60_000) return
+  deltaAt = Date.now()
+  const next = (await delta(s, cur)) ?? startFill(account, cur, target)
+  save(next)
+}
+
+/** Une lecture à la fois : la suivante part de ce que la précédente a laissé. */
+async function exclusive(job: () => Promise<void>): Promise<void> {
+  while (syncing) await syncing
+  syncing = job()
+    .then(() => {
+      statsError = null
+    })
+    .catch((e) => {
+      statsError = (e as Error).message
+      throw e
+    })
+    .finally(() => {
+      syncing = null
+    })
+  await syncing
+}
+
+const sinceOf = (days: number) => new Date(Date.now() - days * 86400_000).toISOString()
+
+/** Tâches créées dans les `days` derniers jours, sur tous les projets visibles. `fresh` : relit ce qui a changé. */
+export async function stats(days: unknown, fresh = false): Promise<Obj> {
+  const d = Number(days)
+  if (!(STATS_DAYS as readonly number[]).includes(d)) throw new RangeError(`période attendue : ${STATS_DAYS.join(', ')} jours`)
+  const s = secret()
+  if (!(s.access_token && s.href)) throw new Error('Basecamp non connecté')
+  const since = sinceOf(d)
+  await exclusive(() => sync(s, since, fresh))
+  const cur = stock as Stock
+  const items = Object.values(cur.items)
+    .filter((it) => it.created_at >= since)
+    .sort((a, b) => b.created_at.localeCompare(a.created_at))
+  // remplissage en cours : la réserve ne remonte que jusqu'à `filling`
+  return { days: d, since, ts: cur.ts, partial: cur.partial, auto: background_, filling: cur.fill ? cur.since : null, items }
+}
+
+/** Arrière-plan : une tranche ou une mise à jour. Erreur : gardée, sans bruit ; on réessaie au tour suivant. */
+export async function prepareStats(): Promise<void> {
+  const s = secret()
+  if (!on || !background_ || !(s.access_token && s.href) || Date.now() / 1000 < state.retryAt) return
+  try {
+    await exclusive(() => background(s))
+  } catch (e) {
+    console.error(`✗ Stats Basecamp : ${(e as Error).message}`)
+  }
+}
+
+/** Réglages → Basecamp : stats préparées en arrière-plan, ou non (le défaut). */
+export function setStatsBackground(value: unknown): void {
+  const v = value === true
+  if (v === background_) return
+  background_ = v
+  deltaAt = 0
+  if (statsTimer) clearInterval(statsTimer)
+  statsTimer = null
+  if (!v) return
+  // un peu après le démarrage : la lecture des tâches passe d'abord ; puis un tour par minute
+  setTimeout(() => void prepareStats(), 30_000).unref()
+  statsTimer = setInterval(() => void prepareStats(), FILL_EVERY * 1000)
+  statsTimer.unref()
+}
+
+/** Dernière erreur de la préparation, pour le panneau. */
+export function statsState(): Obj {
+  return { auto: background_, ts: stock?.ts ?? null, filling: stock?.fill ? stock.since : null, error: statsError }
 }
 
 /** Issues traitées : id du rapport publié → {url, ts} ; issue écartée → {ts, dismissed}. */

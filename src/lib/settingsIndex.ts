@@ -26,6 +26,7 @@ export const SETTINGS_INDEX: SettingsEntry[] = [
   { id: 'gh-tab', icon: '🐙', label: "GitHub › Ce que montre l'onglet", section: 'set-github:tab', keywords: 'prs mergées rafraîchissement renovate cartes', feature: 'github' },
   { id: 'local', icon: '💻', label: 'Local', section: 'set-local', keywords: 'dépôts locaux dossiers code disque clones branches', feature: 'local' },
   { id: 'basecamp', icon: '🏕', label: 'Basecamp', section: 'set-basecamp', keywords: 'basecamp connecter tâches', feature: 'basecamp' },
+  { id: 'bc-stats', icon: '📊', label: 'Basecamp › Stats en arrière-plan', section: 'set-basecamp', keywords: 'stats statistiques arrière-plan préparer qui a créé combien', feature: 'basecamp' },
   { id: 'trello', icon: '📋', label: 'Trello', section: 'set-trello', keywords: 'trello clé jeton cartes tableaux', feature: 'trello' },
   { id: 'sites', icon: '🗂', label: 'Mes sites', section: 'set-tabs', keywords: 'sites onglets ajouter catalogue gmail' },
   { id: 'sleep', icon: '💤', label: 'Mes sites › Veille', section: 'set-tabs:more', keywords: 'veille mémoire endormir décharger' },

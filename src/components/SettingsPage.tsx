@@ -35,6 +35,7 @@ import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
 import SetTrello from './SetTrello'
 import SetToolRepos from './SetToolRepos'
+import SetBcStats from './SetBcStats'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
@@ -891,6 +892,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         <Card id="set-basecamp" icon="🏕" title="Basecamp">
           <SetBasecamp />
           <SetToolRepos tool="Basecamp" followed={followed} chosen={asList(draft.basecamp?.repos)} onChange={(l) => setToolRepos('basecamp', l)} />
+          <SetBcStats
+            on={draft.basecamp?.statsBackground === true}
+            onChange={(v) => {
+              const { statsBackground: _old, ...rest } = draft.basecamp ?? {}
+              setDraft({ ...draft, basecamp: v ? { ...rest, statsBackground: true } : rest })
+            }}
+          />
         </Card>
         ) : null}
         {active === 'set-trello' ? (
