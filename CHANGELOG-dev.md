@@ -76,3 +76,9 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
   mise à jour toutes les 15 min ; tour complet chaque semaine.
 - Lecture conforme à l'API Basecamp : pages suivies par `Link`, 3 requêtes/s au plus, `Retry-After` sur 429, nouvel
   essai sur 5xx, ETag sur les mises à jour.
+
+## paco/feature/issue-plusieurs-repos
+
+- Issue liée à Basecamp ou Trello : *Autres repos concernés*, à cocher parmi les repos suivis. L'issue reste dans un
+  seul repo et cite les autres (*🔗 Repos concernés*) ; la consigne et le prompt demandent une pull request par repo
+  et un seul rapport. Aucune écriture dans les autres repos.

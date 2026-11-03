@@ -3,7 +3,7 @@
  * chacune au clic. Marqueurs distincts de Basecamp.
  */
 import { claudeCommand, createIssue, newIssueUrl } from './bcIssues'
-import { exchangesMarkdown, foldDescription, forGitHub, issueSections, sectionsRule, type IssueParts } from './issueText'
+import { exchangesMarkdown, foldDescription, forGitHub, issueSections, reposPrompt, reposRule, sectionsRule, type IssueParts } from './issueText'
 import type { TrCard, TrFound, TrIssue, TrPosted } from './trello'
 
 export const REPORT_MARK = '<!-- homedash:tr-report -->'
@@ -70,6 +70,7 @@ function rules(close: string): string[] {
     `Lis le besoin et tous les échanges : sur Trello, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques**. Ne modifie pas le corps de l'issue : il porte le lien vers la carte. ${sectionsRule('Trello')} Les images restent sur Trello.`,
     "Donne-lui la ou les étiquettes qui conviennent, choisies parmi celles du repo (`gh label list`) : n'en crée pas.",
     'Fais le travail en suivant les règles du repo (CLAUDE.md).',
+    reposRule(),
     `Une fois livré, poste **un** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la carte Trello. Si on te redemande un rapport final, poste-en un nouveau : le dernier fait foi.`,
     `Puis ferme l'issue : ${close}.`,
     "Si le besoin n'est pas clair, demande avant de coder plutôt que d'inventer.",
@@ -96,14 +97,15 @@ export function issueBody(card: IssueCard, parts: IssueParts): string {
   ].join('\n')
 }
 
-export function claudePrompt(repo: string, number: number): string {
+export function claudePrompt(repo: string, number: number, others: { repo: string; dir: string | null }[] = []): string {
   return (
     `Occupe-toi de l'issue ${repo}#${number} : lis-la avec \`gh issue view ${number} -R ${repo} --comments\`. ` +
     `Elle vient d'une carte Trello : commence par en tirer le vrai besoin et la meilleure solution, ` +
     `reformulés en termes techniques (en commentaire de l'issue si ce n'est pas limpide), sans toucher au corps de l'issue. ` +
     `${sectionsRule('Trello')} ` +
     `Donne-lui ses étiquettes, parmi celles du repo (\`gh label list -R ${repo}\`) sans en créer. ` +
-    `Puis suis la consigne en bas de l'issue (rapport au format indiqué, puis fermeture).`
+    `Puis suis la consigne en bas de l'issue (rapport au format indiqué, puis fermeture).` +
+    reposPrompt(others)
   )
 }
 
