@@ -4,6 +4,12 @@ Où en est le dev : ce qui est fait sur les branches et pas encore publié. Ce f
 l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque livraison ».
 
 
+## paco/fix/compteurs-barre
+
+- Compteurs de Local, Basecamp et Trello : clic droit sur l'onglet (barre de gauche ou du haut) → ce qu'il compte,
+  *Masquer le compteur* (il revient si le nombre change, mémorisé par écran) ou *Afficher le compteur*.
+- Compteur bleu de ⚡ : sa bulle dit ce qu'il compte ; clic droit sur ⚡ → fermer les onglets ouverts depuis homedash.
+
 
 ## paco/fix/reglages-finitions
 

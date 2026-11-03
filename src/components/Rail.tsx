@@ -100,7 +100,7 @@ type Props = {
    * « homedash en dossier » (menu Disposition) : ⚡ est un dossier toujours ouvert en haut, ses
    * onglets (Raccourcis, GitHub, Local…) à un clic. Absent : ⚡ ouvre homedash, onglets en haut.
    */
-  home?: { id: string; icon: ReactNode; label: string; badge?: number; badgeAlert?: boolean; badgeTitle?: string; active: boolean }[]
+  home?: { id: string; icon: ReactNode; label: string; badge?: number; badgeAlert?: boolean; badgeTitle?: string; onContext?: (e: React.MouseEvent) => void; active: boolean }[]
   onHomeTab?: (id: string) => void
   /** Clic droit sur ⚡ : où mettre les onglets de homedash. */
   onHomeMenu?: (e: React.MouseEvent) => void
@@ -192,7 +192,7 @@ export default function Rail({
   const kidsBadge = (key: string, name: string) => {
     const n = kids[key] ?? 0
     return n ? (
-      <span className="rail-open" title={`${n} onglet${n > 1 ? 's' : ''} ouvert${n > 1 ? 's' : ''} dans ${name}`}>
+      <span className="rail-open" title={`${n} onglet${n > 1 ? 's' : ''} ouvert${n > 1 ? 's' : ''} depuis ${name} (liens cliqués), en haut de la page${key === 'links' ? ` — clic droit sur ⚡ pour ${n > 1 ? 'les' : 'le'} fermer` : ''}`}>
         {n}
       </span>
     ) : null
@@ -488,7 +488,18 @@ export default function Rail({
                   {home.map((h) => (
                     <div key={h.id} className={`rail-item${h.active ? ' is-active' : ''}`}>
                       <span className="rail-pill" aria-hidden="true" />
-                      <button className="rail-btn" onClick={() => onHomeTab?.(h.id)} title={h.badge && h.badgeTitle ? `${h.label} · ${h.badgeTitle}` : h.label}>
+                      <button
+                        className="rail-btn"
+                        onClick={() => onHomeTab?.(h.id)}
+                        onContextMenu={
+                          h.onContext
+                            ? (e) => {
+                                e.preventDefault()
+                                h.onContext!(e)
+                              }
+                            : undefined
+                        }
+                        title={h.badge && h.badgeTitle ? `${h.label} · ${h.badgeTitle}` : h.label}>
                         <span className="rail-icon">
                           {textOnly ? null : h.icon}
                           {h.badge ? <span className={`rail-badge${h.badgeAlert ? '' : ' is-ok'}`}>{h.badge > 99 ? '99+' : h.badge}</span> : null}

@@ -72,6 +72,11 @@ même sans aucun site : son **＋** ajoute le premier.
 #### Bon à savoir
 
 - Le **compteur rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
+- Le **compteur vert** de Local compte les branches déjà fusionnées encore sur ton disque ; celui de Basecamp
+  ou Trello, tes tâches ou cartes en retard. Survole-le pour le détail ; clic droit sur l'onglet → *Masquer le
+  compteur* : il revient dès que le nombre change.
+- Le **compteur bleu** de ⚡ compte les onglets ouverts depuis homedash (liens cliqués), en haut de la page.
+  Clic droit sur ⚡ → *Fermer les onglets ouverts depuis homedash*.
 - **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…* Pour
   tout un dossier : clic droit sur le dossier → *Compte de tout le dossier* ; la lettre du compte ne
   s'affiche alors que sur les sites qui font exception.
