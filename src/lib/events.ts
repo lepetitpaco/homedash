@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { notifyEvents } from './notifications'
 import { shown } from './errors'
+import { levelOf, unseenCount, type BellPrefs } from './bellPrefs'
 
 export type EventLevel = 'ok' | 'bad' | 'warn' | 'info'
 export type EventSource = 'github' | 'local' | 'basecamp' | 'trello'
@@ -63,10 +64,10 @@ function readSeen(): number {
  * `off` : sources des fonctionnalités coupées (Réglages → Fonctionnalités). Leurs
  * événements, même anciens, ne sont ni montrés, ni comptés, ni notifiés.
  */
-export function useEvents(inApp: InApp, off: EventSource[] = []): {
+export function useEvents(inApp: InApp, off: EventSource[] = [], prefs: BellPrefs = {}): {
   events: HdEvent[]
   error: string | null
-  /** Nombre d'événements plus récents que ce qui a été lu. Pastille de l'onglet. */
+  /** Lignes plus récentes que ce qui a été lu (regroupées, sans les discrètes) : compteur de la cloche. */
   unseen: number
   /** `seq` du plus récent, et repère figé à l'ouverture de la page. */
   latest: number
@@ -88,6 +89,8 @@ export function useEvents(inApp: InApp, off: EventSource[] = []): {
   act.current = inApp
   const offRef = useRef(off)
   offRef.current = off
+  const prefsRef = useRef(prefs)
+  prefsRef.current = prefs
 
   const setSeen = useCallback((value: number) => {
     seenRef.current = value
@@ -123,7 +126,10 @@ export function useEvents(inApp: InApp, off: EventSource[] = []): {
       } else if (data.seq > baseline.current) {
         const since = baseline.current
         baseline.current = data.seq
-        const fresh = data.events.filter((e) => e.seq > since && !offRef.current.includes(e.source))
+        // Seuls les types « Compter » sonnent (Réglages → Notifications, issue #131).
+        const fresh = data.events.filter(
+          (e) => e.seq > since && !offRef.current.includes(e.source) && levelOf(prefsRef.current, e.kind) === 'notify',
+        )
         if (fresh.length > 0) notifyEvents(fresh, act.current)
       }
       return data
@@ -159,15 +165,17 @@ export function useEvents(inApp: InApp, off: EventSource[] = []): {
   }, [load])
 
   const offKey = off.join(',')
-  const kept = useMemo(
-    () => (offKey ? events.filter((e) => !offKey.split(',').includes(e.source)) : events),
-    [events, offKey],
-  )
+  const prefsKey = JSON.stringify(prefs ?? {})
+  // Types « Masqué » : ni montrés, ni comptés, comme une fonctionnalité coupée.
+  const kept = useMemo(() => {
+    const p = JSON.parse(prefsKey) as BellPrefs
+    return events.filter((e) => !(offKey && offKey.split(',').includes(e.source)) && levelOf(p, e.kind) !== 'hide')
+  }, [events, offKey, prefsKey])
 
   return {
     events: kept,
     error,
-    unseen: kept.filter((e) => e.seq > seen).length,
+    unseen: unseenCount(kept, seen, prefs),
     latest,
     seen,
     markSeen,

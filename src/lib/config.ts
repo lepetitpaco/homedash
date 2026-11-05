@@ -11,6 +11,7 @@ import type {
 } from '../types'
 import { featureOn, repoTabs, type Feature, type RepoTab } from '../types'
 import { keys } from './keys'
+import { cleanPrefs } from './bellPrefs'
 
 export const DEFAULT_UI: UiConfig = {
   theme: 'dark',
@@ -40,6 +41,7 @@ export const DEFAULT_UI: UiConfig = {
   perfLog: false,
   browserAccess: false,
   setupHidden: false,
+  bellKinds: {},
 }
 
 /** Réglages de taille : [clé, minimum, maximum]. 0 ou vide = valeur par défaut. */
@@ -244,6 +246,7 @@ export function normalizeConfig(raw: Config): Normalized {
   if (ui.theme !== 'light' && ui.theme !== 'dark') ui.theme = DEFAULT_UI.theme
   if (ui.openLinks !== 'browser') ui.openLinks = DEFAULT_UI.openLinks
   ui.linkTabsKept = ui.linkTabsKept === true
+  ui.bellKinds = cleanPrefs(ui.bellKinds)
   // Tailles de mise en page : 0, vide ou absurde = défaut ; sinon bornées. Une
   // colonne de titres ou un lien à 0 px cassait toute la grille.
   {
