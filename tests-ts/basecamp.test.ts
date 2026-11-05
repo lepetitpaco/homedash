@@ -483,7 +483,8 @@ describe('stats des tâches créées (#118)', () => {
       [rec(1, 1, { completed: true }), rec(2, 3), rec(3, 40)],
       [
         rec(4, 2, { type: 'Kanban::Card', creator: { id: 2, name: 'Max' }, parent: { type: 'Kanban::DoneColumn' } }),
-        rec(5, 2, { type: 'Kanban::Card', creator: { id: 2, name: 'Max' }, parent: { type: 'Kanban::Column' } }),
+        // 2,5 jours et pas 2 : deux `ago(2)` lus à une milliseconde d'écart inversaient l'ordre (#148)
+        rec(5, 2.5, { type: 'Kanban::Card', creator: { id: 2, name: 'Max' }, parent: { type: 'Kanban::Column' } }),
       ],
     )
     // page suivante jamais lue : la page 1 sort déjà de la période
