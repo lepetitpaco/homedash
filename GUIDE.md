@@ -43,6 +43,9 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
   L'adresse s'affiche au survol du nom. **⚡** ramène à homedash. Ces boutons sont dans la barre du haut, à
   côté de la recherche, et le site prend toute la place qui reste, bord à bord, quelle que soit la disposition.
+- **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F (Ctrl+Maj+F), même en tapant dans le site : le site prend toute la
+  fenêtre. La barre du haut revient quand la souris touche le bord haut (ou avec ⌘K), celle de gauche au bord gauche.
+  ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
   et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
   automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page ; les sites

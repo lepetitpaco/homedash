@@ -249,6 +249,18 @@ function watchSiteSwitch(wc) {
   })
 }
 
+/**
+ * ⌘⇧F (Ctrl+Maj+F) dans un site : mode focus de la page (issue #144). Seulement sur les sites :
+ * sur la page homedash, c'est elle qui écoute le clavier. Pas de preventDefault (voir plus haut).
+ */
+function watchFocusKey(wc) {
+  wc.on('before-input-event', (_e, input) => {
+    const mod = process.platform === 'darwin' ? input.meta : input.control
+    if (input.type === 'keyDown' && mod && input.shift && !input.alt && String(input.key).toLowerCase() === 'f')
+      win?.webContents.send('homedash:focus')
+  })
+}
+
 function fallbackPage(reason) {
   const why = reason ? String(reason).replace(/[<>&]/g, '') : ''
   const html = DEV
@@ -408,6 +420,7 @@ function createWindow() {
     })
     guests.add(guest.id)
     watchSiteSwitch(guest)
+    watchFocusKey(guest)
     guest.once('destroyed', () => guests.delete(guest.id))
     // Un site se met à émettre du son, ou s'arrête : 🔊 sur son onglet.
     guest.on('audio-state-changed', (e) => {

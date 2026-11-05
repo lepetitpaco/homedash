@@ -549,15 +549,41 @@ export default function App() {
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
   const railOn = !railHidden
+  // Mode focus (issue #144) : le site affiché prend toute la fenêtre, les barres reviennent au
+  // survol de leur bord. ⌘⇧F (Ctrl+Maj+F) ou ⤢ ; seulement sur un site, oublié en le quittant.
+  const [focusWanted, setFocusWanted] = useState(false)
+  const siteNow = tab.startsWith('x:') && allTabs.some((t) => tabKey(t) === tab && t.embed)
+  const focus = focusWanted && siteNow
+  const siteNowRef = useRef(siteNow)
+  siteNowRef.current = siteNow
+  const toggleFocus = useCallback(() => {
+    if (siteNowRef.current) setFocusWanted((v) => !v)
+  }, [])
+  useEffect(() => {
+    if (!siteNow) setFocusWanted(false)
+  }, [siteNow])
+  useEffect(() => desktop?.onFocusToggle?.(toggleFocus), [toggleFocus])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.shiftKey && !e.altKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && siteNowRef.current) {
+        e.preventDefault()
+        toggleFocus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleFocus])
+  // Barres masquées par le réglage, ou le temps du mode focus.
+  const hideBars = autoHide || focus
   useEffect(() => {
     const w = !railOn ? '0px' : RAIL_COLUMNS[shownLabels]
         ? `${RAIL_COLUMNS[shownLabels] * RAIL_CELL[railSize] + 4}px`
         : (shownLabels === 'none' ? RAIL_WIDTH : RAIL_WIDTH_NAMED)[railSize]
     document.documentElement.style.setProperty('--rail-w', w)
     // Masquée d'elle-même : la page prend toute la largeur, la barre passe par-dessus au survol.
-    document.documentElement.style.setProperty('--page-left', railOn && autoHide ? '0px' : w)
-    document.documentElement.classList.toggle('rail-autohide', railOn && autoHide)
-  }, [railOn, railSize, shownLabels, autoHide])
+    document.documentElement.style.setProperty('--page-left', railOn && hideBars ? '0px' : w)
+    document.documentElement.classList.toggle('rail-autohide', railOn && hideBars)
+  }, [railOn, railSize, shownLabels, hideBars])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
@@ -2171,15 +2197,17 @@ export default function App() {
     <div
       // Site affiché : en-tête remonté dans la barre du haut et cadre bord à bord, que la barre de
       // gauche soit visible ou non (issue #129 : barres masquées, c'était le rendu le plus gaspilleur).
-      className={`app${shown.startsWith('x:') ? ' is-site' : ''}${strip ? ' has-strip' : ''}`}
+      className={`app${shown.startsWith('x:') ? ' is-site' : ''}${strip ? ' has-strip' : ''}${focus ? ' is-focus' : ''}`}
       style={layoutVars(ui)}
     >
+      {focus ? <div className="topbar-hot" aria-hidden="true" /> : null}
       <TopBar
         site={view.startsWith('x:')}
+        focus={view.startsWith('x:') ? { on: focus, toggle: toggleFocus } : undefined}
         unread={(() => {
           // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
           // Rien à lire = rien d'affiché ; pas de réglage.
-          if (!autoHide) return null
+          if (!hideBars) return null
           const list = unreadSites(allTabs, tabCounts, tabKey, view.startsWith('x:') ? view : null)
           if (!list.length) return null
           const open = (key: string) => {
@@ -2287,7 +2315,7 @@ export default function App() {
         }
       />
 
-      {railOn && autoHide ? <div className="rail-hot" aria-hidden="true" /> : null}
+      {railOn && hideBars ? <div className="rail-hot" aria-hidden="true" /> : null}
       {railOn ? (
         <Rail
           tabs={regularTabs}
@@ -2362,7 +2390,7 @@ export default function App() {
           onSelect={selectTab}
           onMenu={railOn ? undefined : stripMenu}
           size={stripSize}
-          autoHide={!railOn && autoHide}
+          autoHide={!railOn && hideBars}
           look={tabLook}
           onAdd={railOn ? undefined : addTab}
           onNewTemp={railOn || !desktop ? undefined : newTemp}
