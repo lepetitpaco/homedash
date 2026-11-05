@@ -1,4 +1,5 @@
 import type { GithubData } from '../lib/ghboard'
+import { ghDate, ghDateFull } from '../lib/ghDate'
 import { CiBadge, GhCard, GhEmpty, GhRow } from './GhCard'
 
 export default function GhMerged({
@@ -32,7 +33,7 @@ export default function GhMerged({
           </a>
           <div className="gh-meta">
             <span className="gh-num">#{p.number}</span>
-            {p.merged_at ? ` · ${p.merged_at.slice(5, 16)}` : null}
+            {p.merged_at ? <span title={ghDateFull(p.merged_at)}> · {ghDate(p.merged_at)}</span> : null}
             {/* La PR est close, mais la branche traîne encore sur le disque :
                 c'est ici, en relisant ses merges, qu'on pense au ménage. */}
             {p.branch && removable?.has(`${p.repo}/${p.branch}`) ? (

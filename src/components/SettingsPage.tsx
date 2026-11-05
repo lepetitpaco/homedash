@@ -39,6 +39,7 @@ import SetBcStats from './SetBcStats'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
+import SetBellKinds from './SetBellKinds'
 import SetRepos, { type Use } from './SetRepos'
 import BarLayoutForm, { type Bars } from './BarLayoutForm'
 import SetDisplay from './SetDisplay'
@@ -1099,6 +1100,16 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         ) : null}
         {active === 'set-notifs' ? (
         <Card id="set-notifs" icon="🔔" title="Notifications">
+          <Block
+            icon="🔕"
+            title="Ce qui compte dans la cloche"
+            hint="Compter : dans le compteur et en notification. Discret : dans la liste seulement. Masqué : nulle part. Une version Renovate sur plusieurs repos ne fait déjà qu'une ligne."
+          >
+            <SetBellKinds
+              prefs={draft.ui?.bellKinds ?? {}}
+              onChange={(bellKinds) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), bellKinds } })}
+            />
+          </Block>
           <Block
             icon="💬"
             title="Notifications du bureau"

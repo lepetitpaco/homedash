@@ -7,6 +7,7 @@ import { agoShort } from '../lib/local'
 import { notifState, toggleNotifications, type NotifState } from '../lib/notifications'
 import { confirmDialog } from './ConfirmHost'
 import { EventRow } from './EventFeed'
+import { groupEvents, othersOf } from '../lib/bellPrefs'
 
 const SHOWN = 20
 
@@ -121,10 +122,12 @@ export default function EventBell({
     if (filter === 'basecamp') return e.source === 'basecamp'
     return e.source === 'trello'
   })
-  const shown = journal.slice(0, SHOWN)
+  // Une version Renovate sur six repos = une ligne (issue #131).
+  const groups = groupEvents(journal)
+  const shown = groups.slice(0, SHOWN)
   const unreads = bc && (filter === 'all' || filter === 'basecamp') ? bc.unreads : []
   const trUnreads = tr && (filter === 'all' || filter === 'trello') ? tr.unreads : []
-  const codeFresh = events.filter((e) => e.seq > mark && CODE_SOURCES.has(e.source)).length
+  const codeFresh = groupEvents(events.filter((e) => e.seq > mark && CODE_SOURCES.has(e.source))).length
   const blocked = notif === 'unsupported' || notif === 'insecure' || notif === 'denied'
   const go = (fn: () => void) => () => {
     setOpen(false)
@@ -281,11 +284,13 @@ export default function EventBell({
                     : 'Rien pour l’instant : CI qui casse ou repasse au vert, PR mergée, Renovate publiée, branche locale devenue inutile arriveront ici.'}
               </p>
             ) : null}
-            {shown.map((e) => (
+            {shown.map((g) => (
               <EventRow
-                key={e.seq}
-                event={e}
-                fresh={e.seq > mark}
+                key={g.head.seq}
+                event={g.head}
+                others={othersOf(g)}
+                count={g.items.length}
+                fresh={g.items.some((e) => e.seq > mark)}
                 showAccount={multiAccount}
                 showDay
                 inApp={(ev) => {
@@ -294,9 +299,9 @@ export default function EventBell({
                 }}
               />
             ))}
-            {journal.length > SHOWN ? (
+            {groups.length > SHOWN ? (
               <button className="bell-link bell-more" onClick={go(onShowAll)}>
-                {journal.length - SHOWN} de plus : tout voir →
+                {groups.length - SHOWN} de plus : tout voir →
               </button>
             ) : null}
           </div>

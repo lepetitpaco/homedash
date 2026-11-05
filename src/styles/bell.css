@@ -153,3 +153,29 @@
   flex-wrap: wrap;
   row-gap: 6px;
 }
+
+/* Regroupement (issue #131) : « ×6 » après le titre, les autres repos sous lui. */
+.ev-group-count {
+  margin-left: 0.45rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.ev-group-more {
+  color: var(--text-faint);
+}
+
+/* Réglages → Notifications : un type par ligne, son choix à droite. */
+.set-bell-kinds {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 1rem;
+  align-items: center;
+}
+.set-bell-kinds > span:nth-child(odd) {
+  font-size: 0.86rem;
+}

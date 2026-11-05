@@ -146,6 +146,11 @@ export type UiConfig = {
   browserAccess: boolean
   /** Accueil : carte « Pour commencer » masquée (Réglages → Affichage la remet). */
   setupHidden: boolean
+  /**
+   * Cloche, par type d'événement (Réglages → Notifications, issue #131) : `quiet` = dans la liste sans
+   * compter ni notifier, `hide` = nulle part. Absent = compté, comme avant.
+   */
+  bellKinds: Partial<Record<string, 'notify' | 'quiet' | 'hide'>>
 }
 
 /**

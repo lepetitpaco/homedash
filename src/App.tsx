@@ -662,7 +662,7 @@ export default function App() {
     if (!featureOn(raw, 'trello')) off.push('trello')
     return off
   }, [raw])
-  const events = useEvents(inApp, eventsOff)
+  const events = useEvents(inApp, eventsOff, cfg?.ui.bellKinds)
   // ⌘R sur un onglet natif (appli 2.0) : relire GitHub, le disque et Basecamp,
   // sans recharger la page ni remonter les sites (issue #63).
   const ghRefresh = gh.refresh
