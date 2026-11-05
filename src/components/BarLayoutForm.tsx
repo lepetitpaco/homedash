@@ -28,7 +28,7 @@ export type Bars = {
 type Layout = { id: RailLabels; label: string; rows: string[] }
 const LISTS: Layout[] = [
   { id: 'none', label: 'Icônes', rows: ['i', 'i', 'i'] },
-  { id: 'right', label: 'Icônes + titres', rows: ['in', 'in', 'in'] },
+  { id: 'right', label: 'Icônes\u00a0+ titres', rows: ['in', 'in', 'in'] },
   { id: 'text', label: 'Titres', rows: ['n', 'n', 'n'] },
 ]
 const TILES: Layout[] = [

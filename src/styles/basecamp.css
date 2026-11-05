@@ -1174,6 +1174,27 @@
   color: var(--text-dim);
   margin: 4px 0 12px;
 }
+/* Le détail par mois peut être plus large que la carte : il défile au lieu d'être coupé */
+.bc-stats-scroll {
+  overflow-x: auto;
+}
+/* Plein écran : le panneau, porté dans <body>, couvre toute la fenêtre (Échap ou ✕ pour sortir) */
+.bc-stats-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 75;
+  overflow: auto;
+  background: var(--bg);
+  padding: 20px 28px;
+}
+.bc-stats.is-full {
+  max-width: 1600px;
+  margin: 0 auto;
+}
+.bc-stats-title {
+  font-size: 1rem;
+  margin-right: auto;
+}
 .bc-stats-table {
   width: 100%;
   border-collapse: collapse;

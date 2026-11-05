@@ -270,7 +270,7 @@ export type Config = {
   tabSessions?: TabSession[]
   /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
   features?: Partial<Record<Feature, boolean>>
-  /** Liens vers les containers Docker (Réglages → Docker). Absent = désactivé. */
+  /** Liens vers les containers Docker (Réglages → Mes sites → Docker). Absent = désactivé. */
   docker?: {
     enabled?: boolean
     /** Liens décochés (`nom-port`). Absent = tous, y compris les nouveaux. */

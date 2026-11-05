@@ -146,7 +146,7 @@ export default function TopBar({
           className={`icon-btn${refreshing ? ' is-spinning' : ''}`}
           onClick={onRefresh}
           disabled={refreshing}
-          title="Tout actualiser : GitHub, Basecamp, Trello, dépôts locaux, la cloche et les non-lus des sites (ceux en veille sont réveillés)"
+          title="Tout actualiser : GitHub, Basecamp, Trello, Local, la cloche et les non-lus des sites (ceux en veille sont réveillés)"
           aria-label="Tout actualiser"
         >
           ⟳

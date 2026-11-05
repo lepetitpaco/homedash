@@ -910,5 +910,5 @@ export function start(): void {
     localgit.kickoff('démarrage')
     // surveille les .git : un `git fetch` tapé dans un terminal rafraîchit la page
     localgit.startWatch()
-  } else console.log('ℹ onglet Local : aucun dossier lisible — Réglages → Dépôts locaux')
+  } else console.log('ℹ onglet Local : aucun dossier lisible — Réglages → Local')
 }

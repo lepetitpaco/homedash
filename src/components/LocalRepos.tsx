@@ -362,7 +362,7 @@ export default function LocalRepos({ data, error, busy, onRefresh, onSettings, c
     <>
       <div className="gh-bar">
         <div className="gh-bar-user">
-          <span>Dépôts locaux</span>
+          <span>Local</span>
           <strong>{t?.repos ?? '—'}</strong>
         </div>
         <div className="gh-bar-sep" />
