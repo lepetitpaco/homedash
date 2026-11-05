@@ -14,6 +14,7 @@ Dans le profil de l'appli : `~/Library/Application Support/homedash` (Mac), `%AP
 | Jetons GitHub, Basecamp (et Trello) | `data/secrets.json`, lisible par toi seul ; jamais envoyés à la page ni mis dans une sauvegarde simple |
 | Connexions de tes sites (cookies de Gmail, Chat…) | le profil de l'appli, comme dans un navigateur |
 | Sauvegardes automatiques | `data/backups/` |
+| Dossiers des extensions ajoutées (appli de bureau) | `desktop.json` du profil : les chemins de cette machine, jamais dans `data/` ni dans une sauvegarde |
 
 L'**export complet** (pour changer de machine) emporte tout, jetons compris, **chiffré** par le mot de
 passe que tu choisis. Désinstaller l'appli et supprimer ce dossier efface tout.
@@ -32,7 +33,10 @@ Uniquement vers les services que tu branches, avec tes propres accès :
 | Trello (`trello-members.s3.amazonaws.com`), si branché | Les photos de profil des membres de tes tableaux |
 | Tes sites et tes liens | Comme un navigateur : quand tu les ouvres, ou pour le voyant d'un lien *surveillé* |
 
-Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en dehors de ce tableau.
+Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en dehors de ce tableau. Seule
+exception, celle que tu ajoutes toi-même : une **extension de navigateur** (*Réglages → Mes sites → Extensions*,
+aucune par défaut) voit tout ce que tes sites affichent et peut contacter ce qu'elle veut, comme dans Chrome.
+N'ajoute que des extensions que tu connais.
 
 ## Ta machine
 

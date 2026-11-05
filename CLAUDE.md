@@ -330,7 +330,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - `src/styles/index.css` : l'ordre des imports **est** la cascade.
 - Carte Repos : `repos.items[].in` (absent = `['github']`) dit dans quel onglet chaque repo apparaît.
   `normalizeConfig` met toujours `repos` dans les deux listes d'onglets et filtre par onglet ; une carte
-  sans repo pour cet onglet n'est pas affichée. Ce sont les pastilles GitHub / Accueil qui décident.
+  sans repo pour cet onglet n'est pas affichée. Ce sont les boutons GitHub / Accueil qui décident.
 - Tailles d'affichage : `SIZE_LIMITS` (config.ts) — 0 ou vide = défaut, sinon bornées ; une taille à 0 px
   cassait la grille. Les défauts = le preset 49" (`DISPLAY_PRESETS`) ; la page ne descend jamais sous
   1 400 px (`base.css`), sinon 60 % rendrait un portable illisible.
