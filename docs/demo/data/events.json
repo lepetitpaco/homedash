@@ -1,0 +1,83 @@
+{
+  "seq": 9,
+  "events": [
+    {
+      "kind": "ci",
+      "level": "bad",
+      "source": "github",
+      "title": "✗ CI fail — api #142",
+      "body": "tests : 2 échecs dans orders/",
+      "repo": "api",
+      "url": "https://github.com/",
+      "tag": "demo:9",
+      "sticky": false,
+      "seq": 9,
+      "ts": 1792519206.2345972
+    },
+    {
+      "kind": "ci",
+      "level": "ok",
+      "source": "github",
+      "title": "✓ CI pass — web #88",
+      "body": "Nouvelle page de paiement",
+      "repo": "web",
+      "url": "https://github.com/",
+      "tag": "demo:8",
+      "sticky": false,
+      "seq": 8,
+      "ts": 1792518786.2345972
+    },
+    {
+      "kind": "pr-merged",
+      "level": "ok",
+      "source": "github",
+      "title": "🔀 PR mergée — design-system #31",
+      "body": "Boutons : variante « danger »",
+      "repo": "design-system",
+      "url": "https://github.com/",
+      "tag": "demo:7",
+      "sticky": false,
+      "seq": 7,
+      "ts": 1792517826.2345972
+    },
+    {
+      "kind": "bc-notif",
+      "level": "info",
+      "source": "basecamp",
+      "title": "🏕 Linus — Re: Lancement de la v2",
+      "body": "Projet Lancement · je m'occupe des visuels",
+      "repo": "Lancement",
+      "url": "https://github.com/",
+      "tag": "demo:6",
+      "sticky": false,
+      "seq": 6,
+      "ts": 1792516446.2345972
+    },
+    {
+      "kind": "local-cleanup",
+      "level": "info",
+      "source": "local",
+      "title": "🧹 feat/login peut partir",
+      "body": "web : mergée sur GitHub, encore sur ton disque",
+      "repo": "web",
+      "url": "https://github.com/",
+      "tag": "demo:5",
+      "sticky": false,
+      "seq": 5,
+      "ts": 1792513626.2345972
+    },
+    {
+      "kind": "renovate",
+      "level": "info",
+      "source": "github",
+      "title": "🤖 Renovate — react 19.2",
+      "body": "3 PRs ouvertes",
+      "repo": "web",
+      "url": "https://github.com/",
+      "tag": "demo:4",
+      "sticky": false,
+      "seq": 4,
+      "ts": 1792508526.2345972
+    }
+  ]
+}
