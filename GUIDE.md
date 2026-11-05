@@ -45,8 +45,9 @@ même sans aucun site : son **＋** ajoute le premier.
   côté de la recherche, et le site prend toute la place qui reste, bord à bord, quelle que soit la disposition.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
   et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
-  automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page). Puis les
-  options du mode choisi :
+  automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page ; les sites
+  qui ont des non-lus apparaissent alors à gauche de la cloche, les 3 plus chargés puis *+N*, un clic ouvre le site). Puis
+  les options du mode choisi :
   - *Barre de gauche* : icônes, icônes et titres, titres, ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal
     ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre aux icônes, **›** la redéplie.
   - *En haut* : plus de barre de gauche, tous les onglets en haut de la page, sur plusieurs rangées si besoin ; style

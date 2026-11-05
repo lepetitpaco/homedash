@@ -81,6 +81,7 @@ import { RECOUNT_TABS } from './lib/tabCount'
 import SetupCard, { type SetupStep } from './components/SetupCard'
 import { updateGroup } from './lib/mutate'
 import { setGroupOpener } from './lib/openTabs'
+import { unreadSites, UNREAD_SHOWN } from './lib/unreadSites'
 
 const RAIL_KEY = 'homedash:rail'
 const SWITCHER_DELAY_MS = 180
@@ -2175,6 +2176,53 @@ export default function App() {
     >
       <TopBar
         site={view.startsWith('x:')}
+        unread={(() => {
+          // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
+          // Rien à lire = rien d'affiché ; pas de réglage.
+          if (!autoHide) return null
+          const list = unreadSites(allTabs, tabCounts, tabKey, view.startsWith('x:') ? view : null)
+          if (!list.length) return null
+          const open = (key: string) => {
+            search.setQuery('')
+            selectTab(key as TabId)
+          }
+          const label = (s: (typeof list)[number]) =>
+            `${s.tab.label} : ${s.n} non lu${s.n > 1 ? 's' : ''}${asleep.includes(s.key) ? ' (avant la mise en veille)' : ''}`
+          const rest = list.slice(UNREAD_SHOWN)
+          return (
+            <div className="unread-sites" aria-label="Sites à lire">
+              {list.slice(0, UNREAD_SHOWN).map((s) => (
+                <button
+                  key={s.key}
+                  className={`icon-btn unread-site${asleep.includes(s.key) ? ' is-asleep' : ''}`}
+                  title={label(s)}
+                  aria-label={label(s)}
+                  onClick={() => open(s.key)}
+                >
+                  <span className="unread-site-icon">{iconOf[s.tab.id]}</span>
+                  <span className="unread-site-count">{s.n > 99 ? '99+' : s.n}</span>
+                </button>
+              ))}
+              {rest.length ? (
+                <button
+                  className="icon-btn unread-more"
+                  title={`Encore ${rest.length} site${rest.length > 1 ? 's' : ''} à lire`}
+                  onClick={(e) => {
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                    menus.openMenu({
+                      x: r.left,
+                      y: r.bottom + 6,
+                      title: 'Sites à lire',
+                      items: rest.map((s) => ({ icon: iconOf[s.tab.id], label: label(s), onSelect: () => open(s.key) })),
+                    })
+                  }}
+                >
+                  +{rest.length}
+                </button>
+              ) : null}
+            </div>
+          )
+        })()}
         query={search.query}
         onQuery={search.setQuery}
         placeholder={ui.searchPlaceholder}

@@ -179,3 +179,50 @@
 .set-bell-kinds > span:nth-child(odd) {
   font-size: 0.86rem;
 }
+
+/* Sites à lire, à gauche de la cloche, quand les barres sont masquées (issue #130). */
+.unread-sites {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.unread-site {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+.unread-site-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 15px;
+  line-height: 1;
+}
+.unread-site-icon img,
+.unread-site-icon .site-icon {
+  width: 18px;
+  height: 18px;
+}
+.unread-site-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+.unread-site.is-asleep {
+  opacity: 0.55;
+}
+.unread-more {
+  font-size: 0.78rem;
+  font-weight: 600;
+}
