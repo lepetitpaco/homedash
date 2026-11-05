@@ -16,15 +16,16 @@ server/                   TypeScript « effaçable » : lancé tel quel en dev, 
   github.ts               données GitHub d'un compte (cache ETag), seule écriture : createIssue ; repère les
                           dépôts disparus, que app.ts (removeGoneRepos) retire de la config
   basecamp.ts             Basecamp : OAuth, mes tâches, mes notifications (lecture), rapport d'issue
-                          publié en commentaire (seule écriture) ; html.ts lit leur HTML
+                          publié en commentaire (seule écriture) ; html.ts lit leur HTML ; 📊 Stats (tâches
+                          et cartes créées, réserve d'un an dans data/bc_stats.json, 3 requêtes/s au plus)
   trello.ts               Trello : clé d'API + jeton collé, cartes ouvertes, notifications non lues
                           (lecture), rapport d'issue publié en commentaire (seule écriture)
   localfile.ts            Mes sites : un fichier du dossier personnel servi en lecture seule
-  docker.ts               Réglages → Docker : liste des containers lue sur le socket (une seule requête GET,
+  docker.ts               Docker (Réglages → Mes sites) : liste des containers lue sur le socket (une seule requête GET,
                           /containers/json?all=1)
   favicons.ts             icônes de Mes sites relayées (la page les recadre), en cache
   perflog.ts              journal de performance facultatif (ui.perfLog) : data/perf/, 30 jours
-  perfreport.ts           ce journal résumé jour par jour (Réglages → Aide, scripts/perf-report.mjs)
+  perfreport.ts           ce journal résumé jour par jour (Réglages → Diagnostic, scripts/perf-report.mjs)
   events.ts               journal des événements (la cloche)
   gitread.ts              lecture des .git sans git ni écriture
   localgit.ts             onglet Local : verdicts et commandes proposées
@@ -35,11 +36,12 @@ server/                   TypeScript « effaçable » : lancé tel quel en dev, 
 src/
   App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
-  components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell…) ; IssueComposer :
+  components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell, BcStats…) ; IssueComposer :
                           la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
-                          tabCount (pastilles de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
-                          dockerTabs (lignes Docker)
+                          tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
+                          dockerTabs (lignes Docker), settingsIndex (ce que la recherche trouve dans Réglages),
+                          issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  l'appli (Electron)
   main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
@@ -62,10 +64,11 @@ AGENTS.md, .cursor/rules/ les mêmes règles pour Cursor et les autres IA (renvo
 CHANGELOG.md              une entrée par version (un tag = une Release) ; la première = version installée
 CHANGELOG-dev.md          ce qui est fait sur les branches, pas encore publié ; non livré dans l'appli
 RELEASE.md                les étapes de livraison : flux, tests, preprod, version, prod
-GUIDE.md                  mode d'emploi ; chaque `## ` = une page de Réglages → Aide
+GUIDE.md                  mode d'emploi ; chaque `## ` = une partie de Réglages → Guide
 docs/screenshots/         captures (instance de démo) : README, GUIDE, et servies sous /guide/
 data/                     (non versionné, dev) ; dans l'appli : <userData>/data
-                          config.json, secrets.json, notes, journal, backups/, version.json
+                          config.json, secrets.json, notes, journal, backups/, version.json,
+                          bc_stats.json (cache des 📊 Stats Basecamp)
 ```
 
 ## API
@@ -85,6 +88,7 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/basecamp/search?q=` | GET | Recherche dans tout Basecamp (barre de recherche), réponses gardées 1 min |
 | `/api/basecamp/task?url=` | GET | Description et étapes d'une tâche (`text`), ses échanges à part (`comments`), ses images (`images`) : fiche et issue |
 | `/api/basecamp/file?url=` | GET | Image jointe à une tâche, lue avec le jeton (adresse `…/blobs/…` du compte, formats d'image sûrs, sans SVG) |
+| `/api/basecamp/stats?days=` | GET | 📊 Stats : tâches et cartes créées sur la période (projets dont on est membre), lues depuis `data/bc_stats.json` puis seulement ce qui a changé ; `&fresh=1` relit |
 | `/api/basecamp/report` | POST | Publier le rapport d'une issue liée en commentaire de sa tâche (une fois) |
 | `/api/basecamp/dismiss` | POST | Écarter une issue liée sans publier son rapport (`undo` : la rétablir) ; rien n'est envoyé |
 | `/api/github/issue` | POST | Créer une issue liée à une tâche Basecamp ou une carte Trello (repos suivis, et choisis pour l'outil : `basecamp.repos` / `trello.repos`, absent = tous) |
@@ -106,7 +110,7 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |
 | `/api/guide` | GET | Texte de GUIDE.md (Réglages → Aide) |
 | `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
-| `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Aide) |
+| `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Diagnostic) |
 | `/api/config/repair` | POST | Config illisible : mise de côté, dernière sauvegarde valide restaurée |
 | `/api/export/full` | POST | Export complet chiffré (mot de passe, cookies des sites fournis par l'appli) → fichier `.homedash` |
 | `/api/import/preview`, `/api/import/apply` | POST | Export complet : aperçu sans secret, puis import (instantané avant, jetons remplacés gardés à part) |
