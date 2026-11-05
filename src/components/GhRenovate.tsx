@@ -1,4 +1,5 @@
 import type { GithubData, Pr } from '../lib/ghboard'
+import { ghDate, ghDateFull } from '../lib/ghDate'
 import { CiBadge, GateBanner, GhCard, GhEmpty, GhRow } from './GhCard'
 
 const WAIT_TAG: Record<string, string> = {
@@ -16,7 +17,7 @@ function OpenRow({ p }: { p: Pr }) {
       </a>
       <div className="gh-meta">
         <span className="gh-num">#{p.number}</span>
-        {p.created_at ? ` · ${p.created_at.slice(5, 16)}` : null}
+        {p.created_at ? <span title={ghDateFull(p.created_at)}> · {ghDate(p.created_at)}</span> : null}
       </div>
     </GhRow>
   )
@@ -44,7 +45,7 @@ function MergedRow({ p }: { p: Pr }) {
       ) : (
         <div className="gh-meta">
           <span className="gh-num">#{p.number}</span>
-          {p.merged_at ? ` · mergée le ${p.merged_at.slice(5, 16)}` : null}
+          {p.merged_at ? <span title={ghDateFull(p.merged_at)}> · mergée {ghDate(p.merged_at)}</span> : null}
         </div>
       )}
     </GhRow>

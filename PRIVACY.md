@@ -10,10 +10,11 @@ Dans le profil de l'appli : `~/Library/Application Support/homedash` (Mac), `%AP
 
 | Quoi | Où |
 | --- | --- |
-| Liens, notes, réglages, compteurs d'ouverture, historique de la cloche | `data/` |
+| Liens, notes, réglages, compteurs d'ouverture, historique de la cloche, stats Basecamp (effacées à la déconnexion) | `data/` |
 | Jetons GitHub, Basecamp (et Trello) | `data/secrets.json`, lisible par toi seul ; jamais envoyés à la page ni mis dans une sauvegarde simple |
 | Connexions de tes sites (cookies de Gmail, Chat…) | le profil de l'appli, comme dans un navigateur |
 | Sauvegardes automatiques | `data/backups/` |
+| Dossiers des extensions ajoutées (appli de bureau) | `desktop.json` du profil : les chemins de cette machine, jamais dans `data/` ni dans une sauvegarde |
 
 L'**export complet** (pour changer de machine) emporte tout, jetons compris, **chiffré** par le mot de
 passe que tu choisis. Désinstaller l'appli et supprimer ce dossier efface tout.
@@ -25,14 +26,17 @@ Uniquement vers les services que tu branches, avec tes propres accès :
 | Vers | Pourquoi |
 | --- | --- |
 | GitHub (`api.github.com`) | Tes repos, branches, PRs, workflows en cours ; la création d'une issue quand tu la demandes ; la recherche de mises à jour (Releases de homedash) |
-| Basecamp (`launchpad.37signals.com`, `*.basecampapi.com`) | Tes tâches, en lecture ; le rapport que tu publies, au clic |
+| Basecamp (`launchpad.37signals.com`, `*.basecampapi.com`) | Tes tâches, en lecture ; pour 📊 Stats, les tâches et cartes de tes projets (à l'ouverture du panneau, ou en arrière-plan si tu l'actives) ; le rapport que tu publies, au clic |
 | Trello (`api.trello.com`), si branché | Tes tableaux, en lecture ; le rapport que tu publies, au clic |
 | Le service d'icônes (Google Favicons par défaut) | Le nom de domaine de tes liens, pour afficher leur icône. Désactivable : *Réglages → Affichage → Icônes des sites* |
 | jsDelivr (`cdn.jsdelivr.net`) | Les icônes des sites ajoutés depuis le catalogue, ou ceux auxquels tu appliques la configuration recommandée |
 | Trello (`trello-members.s3.amazonaws.com`), si branché | Les photos de profil des membres de tes tableaux |
 | Tes sites et tes liens | Comme un navigateur : quand tu les ouvres, ou pour le voyant d'un lien *surveillé* |
 
-Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en dehors de ce tableau.
+Rien d'autre : rien n'est envoyé à l'auteur de homedash, ni à personne en dehors de ce tableau. Seule
+exception, celle que tu ajoutes toi-même : une **extension de navigateur** (*Réglages → Mes sites → Extensions*,
+aucune par défaut) voit tout ce que tes sites affichent et peut contacter ce qu'elle veut, comme dans Chrome.
+N'ajoute que des extensions que tu connais.
 
 ## Ta machine
 

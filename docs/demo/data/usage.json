@@ -1,0 +1,26 @@
+{
+  "Quotidien/Gmail": {
+    "count": 42,
+    "last": 1792519266234.0
+  },
+  "Dev/GitHub": {
+    "count": 31,
+    "last": 1792519026234.0
+  },
+  "Quotidien/Notion": {
+    "count": 18,
+    "last": 1792512126234.0
+  },
+  "Dev/MDN": {
+    "count": 12,
+    "last": 1792432926234.0
+  },
+  "Lecture/Hacker News": {
+    "count": 9,
+    "last": 1792515726234.0
+  },
+  "Quotidien/Agenda": {
+    "count": 7,
+    "last": 1792518726234.0
+  }
+}

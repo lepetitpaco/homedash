@@ -1,12 +1,14 @@
 import { useEffect, useRef, useState } from 'react'
 import { shown } from '../lib/errors'
+import { otherRepos } from '../lib/issueText'
 import {
   cardText,
   claudeCommand,
   claudePrompt,
   createIssue,
+  cardMarkdown,
+  commentsMarkdown,
   issueBody,
-  needFromCard,
   newIssueUrl,
   rememberRepo,
   rememberedRepo,
@@ -30,6 +32,8 @@ export type TrIssueRequest = {
   onOpen: (url: string) => void
   onOpenOutside?: (url: string) => void
   onMade?: () => void
+  /** Repos suivis, à citer comme « autres repos concernés ». */
+  linkable?: string[]
 }
 
 let show: ((r: TrIssueRequest) => void) | null = null
@@ -52,7 +56,9 @@ export default function TrIssueHost() {
   const asked = useRef(0)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [made, setMade] = useState<{ number: number; url: string; repo: string } | null>(null)
+  const [made, setMade] = useState<{ number: number; url: string; repo: string; others: string[] } | null>(null)
+  /** Autres repos concernés, cités dans l'issue. */
+  const [others, setOthers] = useState<string[]>([])
   const [copied, setCopied] = useState('')
   const [reading, setReading] = useState(false)
 
@@ -66,6 +72,7 @@ export default function TrIssueHost() {
       setLists([])
       setComments([])
       setPicked(new Set())
+      setOthers([])
       setBusy(false)
       setError('')
       setMade(null)
@@ -94,12 +101,18 @@ export default function TrIssueHost() {
   }, [])
 
   if (!req) return null
-  const body = () => {
-    const exchanges = needFromCard('', [], comments, picked)
-    const described = descPicked ? needFromCard(desc, lists, [], new Set()) : ''
-    return issueBody(req.card, [need.trim(), described, exchanges].filter(Boolean).join('\n\n'))
-  }
-  const prompt = made ? claudePrompt(made.repo, made.number) : ''
+  const linked = repo ? otherRepos(repo.repo, others) : []
+  const body = () =>
+    issueBody(req.card, {
+      need,
+      card: descPicked ? cardMarkdown(desc, lists) : '',
+      exchanges: commentsMarkdown(comments, picked),
+      repo: repo?.repo,
+      others: linked,
+    })
+  /** Les autres repos et leur clone local, pour le prompt. */
+  const withClones = (list: string[]) => list.map((r) => ({ repo: r, dir: req.cloneOf(r) }))
+  const prompt = made ? claudePrompt(made.repo, made.number, withClones(made.others)) : ''
   const clone = made ? req.cloneOf(made.repo) : null
   const command = clone ? claudeCommand(clone, prompt) : ''
   const copy = (what: 'command' | 'prompt', text: string) =>
@@ -114,9 +127,9 @@ export default function TrIssueHost() {
     try {
       rememberRepo(repo, req.card.board)
       const madeIssue = await createIssue(repo.account, repo.repo, title.trim(), body())
-      setMade({ ...madeIssue, repo: repo.repo })
+      setMade({ ...madeIssue, repo: repo.repo, others: linked })
       // déjà dans le presse-papiers : il n'y a plus qu'à coller dans un terminal (ou Claude Code)
-      const p = claudePrompt(repo.repo, madeIssue.number)
+      const p = claudePrompt(repo.repo, madeIssue.number, withClones(linked))
       const dir = req.cloneOf(repo.repo)
       void (dir ? copy('command', claudeCommand(dir, p)) : copy('prompt', p))
       req.onMade?.()
@@ -176,6 +189,9 @@ export default function TrIssueHost() {
       repos={req.repos}
       repo={repo}
       onRepo={setRepo}
+      linkable={req.linkable ?? []}
+      others={others}
+      onOthers={setOthers}
       title={title}
       onTitle={setTitle}
       need={need}

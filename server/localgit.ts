@@ -766,7 +766,7 @@ export function payload(): Record<string, unknown> {
     return {
       enabled: false,
       error: CFG.enabled ?? true ? null : 'onglet Local désactivé — Réglages → Fonctionnalités',
-      hint: 'aucun dossier de dépôts — Réglages → Dépôts locaux',
+      hint: 'aucun dossier de dépôts — Réglages → Local',
     }
   state.seen = Date.now() / 1000 // quelqu'un regarde : la surveillance vit
   const refresh = Math.max(15, Math.trunc(Number(CFG.refresh ?? 120)))

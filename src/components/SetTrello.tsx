@@ -128,7 +128,7 @@ export default function SetTrello() {
           </div>
           <div className="set-account-actions">
             <button onClick={unlink} disabled={busy}>
-              déconnecter
+              Déconnecter
             </button>
           </div>
         </div>
@@ -210,7 +210,7 @@ export default function SetTrello() {
             </button>
             {st.configured ? (
               <button className="set-danger-link" onClick={() => setEditing(false)}>
-                annuler
+                Annuler
               </button>
             ) : null}
           </div>
@@ -219,7 +219,7 @@ export default function SetTrello() {
         <div className="set-add">
           <button onClick={() => setEditing(true)}>Changer la clé</button>
           <button className="set-danger-link" onClick={wipe}>
-            Oublier l'appli
+            Oublier l'appli Trello
           </button>
         </div>
       )}

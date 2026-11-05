@@ -258,9 +258,11 @@ export function startLoop(): void {
 }
 
 /** Issues liées à Basecamp de tous les comptes, et les repos où en créer. */
-export function bcIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
+export function bcIssues(fresh = false): { issues: Cfg[]; repos: Cfg[]; linked: string[] } {
   const issues: Cfg[] = []
   const repos: Cfg[] = []
+  /** Tous les repos suivis : cités comme « autres repos concernés » (texte de l'issue, aucune écriture chez eux). */
+  const linked = new Set<string>()
   for (const mod of allMods()) {
     if (!(mod.token() && mod.enabled())) continue
     if (fresh && mod.age() >= (mod.CFG.auto_refresh || 15)) mod.kickoff(mod.token())
@@ -268,14 +270,17 @@ export function bcIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
     const got = mod.bcIssues()
     issues.push(...got.issues.map((i) => ({ ...i, account: acc })))
     repos.push(...got.repos.filter((r) => repoAllowed('basecamp', r)).map((r) => ({ account: acc, repo: r })))
+    for (const r of got.repos) if (String(r).includes('/')) linked.add(String(r))
   }
-  return { issues, repos }
+  return { issues, repos, linked: [...linked].sort((a, b) => a.localeCompare(b)) }
 }
 
 /** Issues liées à Trello, même forme que `bcIssues`. */
-export function trIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
+export function trIssues(fresh = false): { issues: Cfg[]; repos: Cfg[]; linked: string[] } {
   const issues: Cfg[] = []
   const repos: Cfg[] = []
+  /** Tous les repos suivis : cités comme « autres repos concernés » (texte de l'issue, aucune écriture chez eux). */
+  const linked = new Set<string>()
   for (const mod of allMods()) {
     if (!(mod.token() && mod.enabled())) continue
     if (fresh && mod.age() >= (mod.CFG.auto_refresh || 15)) mod.kickoff(mod.token())
@@ -283,8 +288,9 @@ export function trIssues(fresh = false): { issues: Cfg[]; repos: Cfg[] } {
     const got = mod.trIssues()
     issues.push(...got.issues.map((i) => ({ ...i, account: acc })))
     repos.push(...got.repos.filter((r) => repoAllowed('trello', r)).map((r) => ({ account: acc, repo: r })))
+    for (const r of got.repos) if (String(r).includes('/')) linked.add(String(r))
   }
-  return { issues, repos }
+  return { issues, repos, linked: [...linked].sort((a, b) => a.localeCompare(b)) }
 }
 
 export function invalidateAll(): void {

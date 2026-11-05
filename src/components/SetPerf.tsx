@@ -3,7 +3,7 @@ import { perfClear, perfUsage, type PerfUsage } from '../lib/perf'
 import { confirmDialog } from './ConfirmHost'
 
 /**
- * Réglages → Affichage → Journal de performance : ce que homedash consomme,
+ * Réglages → Aide → Journal de performance : ce que homedash consomme,
  * jour par jour (data/perf/). Désactivé par défaut ; on y voit la place prise,
  * avec un avertissement au-delà du seuil, et on peut le vider.
  */

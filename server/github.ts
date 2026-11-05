@@ -1221,7 +1221,7 @@ export class GitHubAccount {
   /** Snapshot complet ; relance un fetch en tâche de fond si le cache est périmé. */
   payload(tok: string | null): Record<string, unknown> {
     if (!this.enabled()) return { enabled: false }
-    if (!tok) return { enabled: false, error: 'GitHub non connecté — Réglages → Connexion GitHub' }
+    if (!tok) return { enabled: false, error: 'GitHub non connecté — Réglages → GitHub' }
     if (this.state.user === null) this.state.user = this.CFG.me
     // Le front interroge toutes les `auto_refresh` secondes : on suit le front (le cache ETag rend ces cycles quasi gratuits).
     const every = this.CFG.auto_refresh || this.CFG.cache_ttl || 120

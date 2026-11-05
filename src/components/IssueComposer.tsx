@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
+import { otherRepos, sectionsOf } from '../lib/issueText'
 import { Markdown } from '../lib/markdown'
 import Pick from './Pick'
 import Thread, { hue, initials } from './Thread'
@@ -9,8 +10,6 @@ export type ComposerComment = { id: string | number; who: string; date: string; 
 
 const repoId = (r: Repo) => `${r.account} ${r.repo}`
 
-/** Pour l'aperçu : ce qu'on a choisi, sans le lien ni la consigne ajoutés autour. */
-const needOf = (body: string) => /## Besoin\n+([\s\S]*?)\n+---\n/.exec(body)?.[1] ?? body
 /** « Créée par » : avatar et nom dans la couleur de la personne (comme ses messages), puis la date. */
 function Author({ who, date }: { who: string; date: string }) {
   const d = new Date(date)
@@ -44,6 +43,11 @@ type Props = {
   repos: Repo[]
   repo: Repo | null
   onRepo: (r: Repo) => void
+  /** Repos suivis qu'on peut citer comme « autres repos concernés » (`propriétaire/repo`). */
+  linkable: string[]
+  /** Ceux cochés : cités dans l'issue, aucune écriture chez eux. */
+  others: string[]
+  onOthers: (list: string[]) => void
   title: string
   onTitle: (v: string) => void
   need: string
@@ -257,6 +261,35 @@ export default function IssueComposer(p: Props) {
                     <input ref={titleRef} className="nc-name" value={p.title} maxLength={256} onChange={(e) => p.onTitle(e.target.value)} autoComplete="off" data-1p-ignore />
                   </label>
                 </div>
+                {(() => {
+                  // le repo de l'issue n'est pas proposé ; un repo coché puis retiré du suivi reste décochable
+                  const main = p.repo?.repo ?? ''
+                  const choices = otherRepos(main, [...new Set([...p.linkable, ...p.others])])
+                  if (!choices.length) return null
+                  const on = new Set(p.others.map((r) => r.toLowerCase()))
+                  const toggle = (r: string) =>
+                    p.onOthers(on.has(r.toLowerCase()) ? p.others.filter((x) => x.toLowerCase() !== r.toLowerCase()) : [...p.others, r])
+                  return (
+                    <div className="issue-label ic-others">
+                      <span title="Cités dans l'issue : Claude Code fera une pull request dans chacun. Rien n'est créé chez eux.">
+                        Autres repos concernés
+                      </span>
+                      <div className="ic-others-list" role="group" aria-label="Autres repos concernés">
+                        {choices.map((r) => (
+                          <button
+                            key={r}
+                            type="button"
+                            className={`ev-chip${on.has(r.toLowerCase()) ? ' is-on' : ''}`}
+                            aria-pressed={on.has(r.toLowerCase())}
+                            onClick={() => toggle(r)}
+                          >
+                            {r.split('/').pop()}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
                 <div className="ic-tabs" role="tablist">
                   <button role="tab" aria-selected={tab === 'write'} className={tab === 'write' ? 'is-on' : ''} onClick={() => setTab('write')}>Tes précisions</button>
                   <button role="tab" aria-selected={tab === 'preview'} className={tab === 'preview' ? 'is-on' : ''} onClick={() => setTab('preview')}>Aperçu de l'issue</button>
@@ -270,7 +303,7 @@ export default function IssueComposer(p: Props) {
                     onChange={(e) => p.onNeed(e.target.value)}
                   />
                 ) : (
-                  <div className="ic-preview"><Markdown text={needOf(p.body())} /></div>
+                  <div className="ic-preview"><Markdown text={sectionsOf(p.body())} /></div>
                 )}
                 <p className="set-hint">
                   Coche à gauche ce qui part dans l'issue. Le lien vers {p.noun} et la consigne de rapport s'ajoutent tout seuls.

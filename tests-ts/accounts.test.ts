@@ -198,7 +198,7 @@ describe('routage de prForBranch', () => {
     expect(mod.enabled()).toBe(false)
     expect(accounts.enabled()).toBe(false)
     expect(mod.payload(mod.token())).toEqual({ enabled: false })
-    expect(accounts.bcIssues()).toEqual({ issues: [], repos: [] })
+    expect(accounts.bcIssues()).toEqual({ issues: [], repos: [], linked: [] })
     let kicked = false
     mod.kickoff = () => (kicked = true)
     accounts.kickoffAll()

@@ -16,10 +16,12 @@ import UpdateProgress from './components/UpdateProgress'
 import DockHint from './components/DockHint'
 import Rail, { type RailLabels, type RailSize } from './components/Rail'
 import RailLayoutPicker from './components/RailLayoutPicker'
+import type { Bars } from './components/BarLayoutForm'
 import SiteSwitcher from './components/SiteSwitcher'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
+import WhatsNew from './components/WhatsNew'
 import Footer from './components/Footer'
 import GithubView from './components/GithubView'
 import LocalRepos from './components/LocalRepos'
@@ -27,7 +29,7 @@ import QuickTiles from './components/QuickTiles'
 import SearchResults from './components/SearchResults'
 import Section, { type SectionCtx } from './components/Section'
 import SettingsPage from './components/SettingsPage'
-import Tabs, { type Tab, type TabId } from './components/Tabs'
+import Tabs, { type StripSize, type Tab, type TabId, type TabLook } from './components/Tabs'
 import TopBar from './components/TopBar'
 import { useConfigState, type SaveState } from './hooks/useConfigState'
 import { useContextMenus } from './hooks/useContextMenus'
@@ -35,7 +37,7 @@ import { useCopy } from './hooks/useCopy'
 import { usePrefs } from './hooks/usePrefs'
 import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
-import { keepFolderPlaces, placeForNew } from './lib/railOrder'
+import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
@@ -69,7 +71,9 @@ import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
+import { shouldShowWhatsNew, WHATS_NEW_EVENT, WHATS_NEW_SEEN, whatsNewSince } from './lib/whatsNew'
 import { setUnread } from './lib/notifications'
+import { settingsEntries } from './lib/settingsIndex'
 import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection, showSettingsSection } from './lib/settingsNav'
 import { featureOn, type CustomTab, type FlatLink, type UiConfig } from './types'
 import type { Command } from './components/SearchResults'
@@ -78,6 +82,8 @@ import { keys } from './lib/keys'
 import { RECOUNT_TABS } from './lib/tabCount'
 import SetupCard, { type SetupStep } from './components/SetupCard'
 import { updateGroup } from './lib/mutate'
+import { setGroupOpener } from './lib/openTabs'
+import { unreadSites, UNREAD_SHOWN } from './lib/unreadSites'
 
 const RAIL_KEY = 'homedash:rail'
 const SWITCHER_DELAY_MS = 180
@@ -90,6 +96,14 @@ const RAIL_CELL: Record<RailSize, number> = { mini: 84, icons: 98, large: 114 }
 const RAIL_COLUMNS: Partial<Record<RailLabels, number>> = { grid1: 1, grid2: 2, grid3: 3 }
 const RAIL_OPEN_KEY = 'homedash:rail-open'
 const RAIL_SIZE_KEY = 'homedash:rail-size'
+/** Taille des pastilles quand les onglets sont en haut. */
+const STRIP_SIZE_KEY = 'homedash:strip-size'
+/** La barre choisie (gauche, ou onglets en haut) se cache et revient au survol de son bord. */
+const AUTOHIDE_KEY = 'homedash:autohide'
+/** Onglets de homedash (Raccourcis, GitHub…) : `rail` = dossier ⚡ dans la barre de gauche, sinon en haut. */
+const DASH_PLACE_KEY = 'homedash:dash-place'
+/** Style des onglets du haut : `underline` = soulignés, sinon pastilles. */
+const TAB_STYLE_KEY = 'homedash:tab-style'
 const RAIL_LABELS_KEY = 'homedash:rail-labels'
 /** Lecture sûre du stockage du navigateur. */
 const readPref = (key: string) => {
@@ -129,6 +143,16 @@ function shortLink(url: string): string {
     return full.length > 46 ? full.slice(0, 45) + '…' : full
   } catch {
     return url
+  }
+}
+
+const BADGES_KEY = 'homedash:badges-hidden'
+function readBadgeHidden(): Record<string, number> {
+  try {
+    const v = JSON.parse(localStorage.getItem(BADGES_KEY) ?? '{}')
+    return v && typeof v === 'object' ? v : {}
+  } catch {
+    return {}
   }
 }
 
@@ -182,6 +206,23 @@ export default function App() {
     return isTemp(t) ? parentOf(t) : key
   }
   const childrenOf = (space: string) => allTemps.filter((t) => parentOf(t) === space)
+  // Compteurs masqués d'un clic droit (Local, Basecamp, Trello) : le nombre au moment du clic.
+  // Il revient dès que ce nombre change. Préférence de l'écran, comme les dossiers repliés.
+  const [badgeHidden, setBadgeHidden] = useState<Record<string, number>>(readBadgeHidden)
+  const counted = (id: string, n: number) => (n && badgeHidden[id] === n ? 0 : n)
+  const hideBadge = (id: string, n: number | null) => {
+    setBadgeHidden((h) => {
+      const next = { ...h }
+      if (n === null) delete next[id]
+      else next[id] = n
+      try {
+        localStorage.setItem(BADGES_KEY, JSON.stringify(next))
+      } catch {
+        /* stockage indisponible */
+      }
+      return next
+    })
+  }
   // Titre de la page de chaque onglet d'espace : son nom dans la barre (en mémoire seulement).
   const [childTitles, setChildTitles] = useState<Record<string, string>>({})
   // Adresse où est chaque onglet éphémère (gardé ou non), suivie pendant la navigation.
@@ -442,7 +483,48 @@ export default function App() {
     [changeRailOpen],
   )
   const shownLabels: RailLabels = railOpen ? railLabels : 'none'
+  const [stripSize, setStripSize] = useState<StripSize>(() => {
+    const v = readPref(STRIP_SIZE_KEY)
+    return v === 'mini' || v === 'large' ? v : 'icons'
+  })
+  const changeStripSize = useCallback((size: StripSize) => {
+    setStripSize(size)
+    writePref(STRIP_SIZE_KEY, size)
+  }, [])
+  const [tabLook, setTabLook] = useState<TabLook>(() => (readPref(TAB_STYLE_KEY) === 'underline' ? 'underline' : 'pills'))
+  const changeTabLook = useCallback((look: TabLook) => {
+    setTabLook(look)
+    writePref(TAB_STYLE_KEY, look)
+  }, [])
+  // Par défaut en dossier : Raccourcis, GitHub, Local… à un clic ; un choix fait reste respecté.
+  const [dashInRail, setDashInRail] = useState(() => readPref(DASH_PLACE_KEY) !== 'top')
+  const changeDashInRail = useCallback((on: boolean) => {
+    setDashInRail(on)
+    writePref(DASH_PLACE_KEY, on ? 'rail' : 'top')
+  }, [])
+  const [autoHide, setAutoHide] = useState(() => readPref(AUTOHIDE_KEY) === '1')
+  const changeAutoHide = useCallback((on: boolean) => {
+    setAutoHide(on)
+    writePref(AUTOHIDE_KEY, on ? '1' : '0')
+  }, [])
   const [railPicker, setRailPicker] = useState<{ clientX: number; clientY: number } | null>(null)
+  /** Les choix des barres, pour le menu flottant et Réglages → Barres et onglets. */
+  const bars: Bars = {
+    top: railHidden,
+    labels: railLabels,
+    size: railSize,
+    stripSize,
+    tabLook,
+    autoHide,
+    dashInRail,
+    setTop: (top) => showRail(!top),
+    setLabels: changeRailLabels,
+    setSize: changeRailSize,
+    setStripSize: changeStripSize,
+    setTabLook: changeTabLook,
+    setAutoHide: changeAutoHide,
+    setDashInRail: changeDashInRail,
+  }
   // Ctrl+Tab : les sites, du plus récent au plus ancien, et celui qu'on vise (issue #102).
   const recentSites = useRef<string[]>([])
   const hereSite = spaceOf(tab) ?? (tab.startsWith('x:') ? tab : null)
@@ -469,12 +551,41 @@ export default function App() {
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
   const railOn = !railHidden
+  // Mode focus (issue #144) : le site affiché prend toute la fenêtre, les barres reviennent au
+  // survol de leur bord. ⌘⇧F (Ctrl+Maj+F) ou ⤢ ; seulement sur un site, oublié en le quittant.
+  const [focusWanted, setFocusWanted] = useState(false)
+  const siteNow = tab.startsWith('x:') && allTabs.some((t) => tabKey(t) === tab && t.embed)
+  const focus = focusWanted && siteNow
+  const siteNowRef = useRef(siteNow)
+  siteNowRef.current = siteNow
+  const toggleFocus = useCallback(() => {
+    if (siteNowRef.current) setFocusWanted((v) => !v)
+  }, [])
+  useEffect(() => {
+    if (!siteNow) setFocusWanted(false)
+  }, [siteNow])
+  useEffect(() => desktop?.onFocusToggle?.(toggleFocus), [toggleFocus])
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.shiftKey && !e.altKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && siteNowRef.current) {
+        e.preventDefault()
+        toggleFocus()
+      }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [toggleFocus])
+  // Barres masquées par le réglage, ou le temps du mode focus.
+  const hideBars = autoHide || focus
   useEffect(() => {
     const w = !railOn ? '0px' : RAIL_COLUMNS[shownLabels]
         ? `${RAIL_COLUMNS[shownLabels] * RAIL_CELL[railSize] + 4}px`
         : (shownLabels === 'none' ? RAIL_WIDTH : RAIL_WIDTH_NAMED)[railSize]
     document.documentElement.style.setProperty('--rail-w', w)
-  }, [railOn, railSize, shownLabels])
+    // Masquée d'elle-même : la page prend toute la largeur, la barre passe par-dessus au survol.
+    document.documentElement.style.setProperty('--page-left', railOn && hideBars ? '0px' : w)
+    document.documentElement.classList.toggle('rail-autohide', railOn && hideBars)
+  }, [railOn, railSize, shownLabels, hideBars])
   // Onglets perso affichés dans la page : montés à la première visite puis
   // seulement masqués, pour ne pas recharger le site à chaque aller-retour.
   const [visited, setVisited] = useState<string[]>([])
@@ -542,6 +653,35 @@ export default function App() {
   const bc = useBasecamp(tab === 'basecamp')
   const tr = useTrello(tab === 'trello')
   const changelog = useChangelog()
+  // « Quoi de neuf » : une fois après une mise à jour, puis à la demande (WHATS_NEW_EVENT).
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+  const cl = changelog.data
+  const newsSinceUpdate = cl ? whatsNewSince(cl.upgraded_from, cl.current, on, desktop?.features ?? null) : []
+  // Rouverte à la main sans mise à jour connue : les nouveautés de la dernière version qui en a.
+  const newsShown = cl?.upgraded_from ? newsSinceUpdate : cl ? whatsNewSince(null, cl.current, on, desktop?.features ?? null).slice(0, 1) : []
+  useEffect(() => {
+    if (!cl) return
+    let seen: string | null = null
+    try {
+      seen = localStorage.getItem(WHATS_NEW_SEEN)
+    } catch {
+      /* stockage indisponible : on la montre, une fois par chargement au pire */
+    }
+    if (!shouldShowWhatsNew(cl.upgraded_from, cl.current, seen, newsSinceUpdate)) return
+    setWhatsNewOpen(true)
+    try {
+      localStorage.setItem(WHATS_NEW_SEEN, cl.current)
+    } catch {
+      /* idem */
+    }
+    // une seule décision par version et par chargement
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cl?.current, cl?.upgraded_from])
+  useEffect(() => {
+    const open = () => setWhatsNewOpen(true)
+    window.addEventListener(WHATS_NEW_EVENT, open)
+    return () => window.removeEventListener(WHATS_NEW_EVENT, open)
+  }, [])
   // « rapport prêt » : la vue Issues de l'onglet Basecamp, d'où on le publie
   const openBcIssues = useCallback(() => {
     showBcIssues()
@@ -580,7 +720,7 @@ export default function App() {
     if (!featureOn(raw, 'trello')) off.push('trello')
     return off
   }, [raw])
-  const events = useEvents(inApp, eventsOff)
+  const events = useEvents(inApp, eventsOff, cfg?.ui.bellKinds)
   // ⌘R sur un onglet natif (appli 2.0) : relire GitHub, le disque et Basecamp,
   // sans recharger la page ni remonter les sites (issue #63).
   const ghRefresh = gh.refresh
@@ -744,6 +884,12 @@ export default function App() {
   // les actions de homedash. `openTempRef` : défini plus bas, avec les éphémères.
   const iconRef = useRef<Record<string, React.ReactNode>>({})
   const openTempRef = useRef<(url: string) => void>(() => undefined)
+  const openGroupRef = useRef<(urls: string[], flip: boolean) => void>(() => undefined)
+  const openGroupOneRef = useRef<(url: string) => void>(() => undefined)
+  useEffect(() => {
+    setGroupOpener((urls, flip) => openGroupRef.current(urls, flip))
+    return () => setGroupOpener(null)
+  }, [])
   const siteActionsRef = useRef<Record<'mute' | 'notify' | 'clear', (t: CustomTab) => void>>({
     mute: () => undefined,
     notify: () => undefined,
@@ -770,18 +916,19 @@ export default function App() {
         ? [{ id: 'trello', icon: '📋', label: 'Trello', keywords: 'cartes tableaux', run: () => selectTab('trello') }]
         : []),
       { id: 'refresh', icon: '⟳', label: 'Tout actualiser', keywords: 'recharger rafraîchir données', run: () => refreshAllRef.current() },
-      {
-        id: 'settings-sites',
-        icon: '🗂',
-        label: 'Réglages de Mes sites',
-        keywords: 'onglets mémoire veille',
+      { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
+      { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config paramètres', run: () => selectTab('settings') },
+      // Chaque page et réglage des Réglages, avec les mots qu'on tape vraiment : on ne cherche plus où c'est rangé.
+      ...settingsEntries(on).map((e) => ({
+        id: `set:${e.id}`,
+        icon: e.icon,
+        label: `Réglages › ${e.label}`,
+        keywords: e.keywords,
         run: () => {
-          showSettingsSection('set-tabs')
+          showSettingsSection(e.section)
           selectTab('settings')
         },
-      },
-      { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
-      { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config', run: () => selectTab('settings') },
+      })),
       ...(desktop
         ? [
             {
@@ -811,7 +958,7 @@ export default function App() {
         run: clearVisits,
       },
     ],
-    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, tr.data?.configured, newGroup, on.github, on.local, on.trello],
+    [selectTab, switchTheme, effectiveTheme, bc.data?.configured, tr.data?.configured, newGroup, on],
   )
   // Basecamp dans la recherche : mes tâches (déjà là) ; tout Basecamp, useSearch le cherche
   const bcTasks = useMemo(
@@ -919,11 +1066,24 @@ export default function App() {
   // Réglages pas chargés : serveur qui redémarre (réessai seul), fichier abîmé
   // (proposer la dernière sauvegarde), ou autre — jamais de jargon (LoadTrouble).
   // Hauteur de la barre d'onglets du haut : un site affiché en dessous prend le reste.
+  // Les pastilles passent à la ligne : la hauteur change aussi quand la fenêtre change de largeur.
+  // Un seul observateur, refait seulement quand l'élément change (barre affichée, cachée, en bande masquée).
+  const stripWatch = useRef<{ el: HTMLElement | null; ro: ResizeObserver | null }>({ el: null, ro: null })
   useLayoutEffect(() => {
     const el = document.getElementById(STRIP_ID)
-    const h = el ? el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || '0') : 0
-    document.documentElement.style.setProperty('--strip-h', `${h}px`)
+    const measure = () => {
+      const h = el ? el.offsetHeight + parseFloat(getComputedStyle(el).marginBottom || '0') : 0
+      document.documentElement.style.setProperty('--strip-h', `${h}px`)
+    }
+    measure()
+    const w = stripWatch.current
+    if (w.el === el || typeof ResizeObserver === 'undefined') return
+    w.ro?.disconnect()
+    w.el = el
+    w.ro = el ? new ResizeObserver(measure) : null
+    if (el) w.ro!.observe(el)
   })
+  useEffect(() => () => stripWatch.current.ro?.disconnect(), [])
 
   // « Pour commencer » (accueil) : ce qui est branché, relu à chaque retour sur
   // l'accueil et après chaque enregistrement.
@@ -1075,7 +1235,7 @@ export default function App() {
   const copyItem = (t: CustomTab): MenuItem => ({ icon: '⧉', label: 'Copier le lien', onSelect: () => copyTabLink(t) })
   const removeTab = (t: CustomTab) =>
     void confirmDialog({
-      title: `Supprimer l'onglet « ${t.label} » ?`,
+      title: `Supprimer le site « ${t.label} » ?`,
       body: [
         t.url,
         "L'onglet disparaît de la barre. La connexion au site est conservée : rajouté plus tard, il sera encore connecté.",
@@ -1133,7 +1293,7 @@ export default function App() {
               ],
             }
           : { icon: '📁', label: 'Aucun dossier pour l’instant', disabled: true, onSelect: () => undefined },
-        { icon: '＋', label: 'Nouveau dossier avec cet onglet…', onSelect: () => void newFolder([t.id]) },
+        { icon: '＋', label: 'Nouveau dossier avec ce site…', onSelect: () => void newFolder([t.id]) },
         // Comptes : seulement là où ils ont un effet (appli de bureau récente).
         ...(hasSessions && web
           ? [
@@ -1154,10 +1314,10 @@ export default function App() {
               { icon: '＋', label: 'Nouveau compte…', hint: 'connexion à part', onSelect: () => void newSession(t.id) },
             ]
           : []),
-        { heading: 'Onglet' },
+        { heading: 'Ce site' },
         ...(t.embed ? [notifyItem(t), muteItem(t), sleepItem(t), ...clearItem(t)] : []),
         { icon: '✎', label: 'Modifier…', hint: 'nom, adresse', onSelect: () => openTabSettings(t.id) },
-        { icon: '✕', label: "Supprimer l'onglet…", danger: true, onSelect: () => removeTab(t) },
+        { icon: '✕', label: 'Supprimer le site…', danger: true, onSelect: () => removeTab(t) },
       ],
     })
   }
@@ -1309,6 +1469,21 @@ export default function App() {
     return true
   }
   openTempRef.current = (url) => openTemp(url)
+  // ↗ d'un groupe de branche (cartes GitHub, issue #127) : une page par onglet temporaire, pas le site
+  // GitHub de la barre (chaque lien y remplacerait le précédent). Une page déjà ouverte n'est pas doublée.
+  openGroupOneRef.current = (url) => {
+    if (allTabs.some((t) => (t.id.startsWith('tmp-') || t.parent) && samePage(t.url, url))) return
+    openTemp(url)
+  }
+  openGroupRef.current = (urls, flip) => {
+    if ((ui.openLinks === 'browser') !== flip) {
+      for (const url of urls) desktop?.openExternal(url)
+      return
+    }
+    // Une ouverture par rendu : l'id d'un onglet temporaire se calcule sur les onglets déjà là, deux
+    // ouvertures dans le même rendu prendraient le même.
+    urls.forEach((url, i) => window.setTimeout(() => openGroupOneRef.current(url), i * 60))
+  }
   /** ⧉ de la barre : un onglet éphémère vierge (Google), avec le compte choisi s'il y en a. */
   const newTemp = (e: { clientX: number; clientY: number }) => {
     const start = 'https://www.google.com/'
@@ -1387,8 +1562,70 @@ export default function App() {
           : []),
         { sep: true },
         { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
+      ],
+    })
+  }
+  /** Clic droit sur Local, Basecamp ou Trello : ce que compte le compteur, et le masquer. */
+  const badgeMenu = (e: React.MouseEvent, id: TabId, label: string, n: number, what: string) => {
+    const hidden = !!n && badgeHidden[id] === n
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: label,
+      items: [
+        ...(n ? [{ heading: what }] : [{ heading: 'Rien à signaler : pas de compteur.' }]),
+        ...(n && !hidden
+          ? [{ icon: '🙈', label: 'Masquer le compteur', hint: 'il revient si le nombre change', onSelect: () => hideBadge(id, n) }]
+          : []),
+        ...(hidden ? [{ icon: '👁', label: 'Afficher le compteur', hint: `${n}`, onSelect: () => hideBadge(id, null) }] : []),
         { sep: true },
-        { icon: '✕', label: 'Cacher la barre', hint: 'onglets en haut', onSelect: () => showRail(false) },
+        { icon: '→', label: `Ouvrir ${label}`, onSelect: () => selectTab(id) },
+      ],
+    })
+  }
+  /** Clic droit sur ⚡ : où mettre les onglets de homedash (en haut, ou dans un dossier ⚡). */
+  const homeMenu = (e: React.MouseEvent) => {
+    const at = { clientX: e.clientX, clientY: e.clientY }
+    const mark = (on: boolean) => (on ? '✓' : '')
+    // Le compteur bleu de ⚡ : les onglets temporaires ouverts depuis homedash (liens cliqués).
+    const opened = temps.filter((t) => parentOf(t) === DASH)
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'homedash',
+      items: [
+        { heading: 'Raccourcis, GitHub, Local…' },
+        { icon: mark(!dashInRail), label: 'En haut de la page', hint: 'un clic sur ⚡, puis l’onglet', onSelect: () => changeDashInRail(false) },
+        { icon: mark(dashInRail), label: 'Dans la barre, sous ⚡', hint: 'un seul clic ; ⚡ se replie', onSelect: () => changeDashInRail(true) },
+        ...(opened.length
+          ? [
+              { sep: true as const },
+              {
+                icon: '✕',
+                label: `Fermer ${opened.length > 1 ? `les ${opened.length} onglets ouverts` : 'l’onglet ouvert'} depuis homedash`,
+                hint: 'le compteur bleu',
+                onSelect: () => {
+                  if (opened.some((t) => tabKey(t) === tab)) selectTab(lastNative.current)
+                  setTemps((all) => all.filter((t) => parentOf(t) !== DASH))
+                },
+              },
+            ]
+          : []),
+        { sep: true },
+        { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
+      ],
+    })
+  }
+  /** Clic droit sur la barre d'onglets du haut (barre de gauche cachée). */
+  const stripMenu = (e: React.MouseEvent) => {
+    const at = { clientX: e.clientX, clientY: e.clientY }
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: 'Onglets en haut',
+      items: [
+        // Pas de retour direct à la barre de gauche : ça passe par le choix de disposition.
+        { icon: '▦', label: 'Disposition et taille…', onSelect: () => setRailPicker(at) },
       ],
     })
   }
@@ -1447,7 +1684,7 @@ export default function App() {
   const notifyItem = (t: CustomTab): MenuItem => ({
     icon: t.notify === false ? '🔔' : '🔕',
     label: t.notify === false ? 'Rétablir les notifications' : 'Couper les notifications',
-    hint: t.notify === false ? 'pastille et notifs' : 'ni pastille ni notifs',
+    hint: t.notify === false ? 'compteur et notifs' : 'ni compteur ni notifs',
     onSelect: () => toggleNotify(t),
   })
   const toggleMute = (t: CustomTab) => {
@@ -1515,7 +1752,7 @@ export default function App() {
         { icon: '📌', label: 'Garder dans Mes sites', hint: 'dans la barre de gauche', onSelect: () => promoteTemp(t, false) },
         // Gardé avec l'ancien réglage : on peut encore le rendre temporaire.
         ...(t.kept ? [{ icon: '◌', label: 'Ne plus garder', hint: 'fermé au redémarrage', onSelect: () => unkeep(t) }] : []),
-        { heading: 'Onglet' },
+        { heading: 'Cet onglet' },
         notifyItem(t),
         muteItem(t),
         sleepItem(t),
@@ -1633,6 +1870,7 @@ export default function App() {
       onOpen: openLink,
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: bc.reload,
+      linkable: bc.data?.github?.linked ?? [],
     })
   }
   const newIssue = (task: IssueTask, comment?: number): boolean => {
@@ -1653,6 +1891,7 @@ export default function App() {
       onOpen: openLink,
       onOpenOutside: desktop ? openOutside : undefined,
       onMade: tr.reload,
+      linkable: tr.data?.github?.linked ?? [],
     })
   }
   const newTrIssue = (card: IssueCard, comment?: string): boolean => {
@@ -1787,8 +2026,10 @@ export default function App() {
             id: 'local' as TabId,
             icon: '💻',
             label: 'Local',
-            badge: local.todo,
-            badgeTitle: `${local.todo} branche(s) locale(s) mergée(s) qui traînent encore sur le disque`,
+            badge: counted('local', local.todo),
+            badgeTitle: `${local.todo} branche(s) locale(s) déjà fusionnée(s), encore sur le disque — clic droit : masquer`,
+            onContext: (e: React.MouseEvent) =>
+              badgeMenu(e, 'local', 'Local', local.todo, `${local.todo} branche(s) locale(s) déjà fusionnée(s), encore sur ton disque : l’onglet donne la commande pour les supprimer.`),
             group: code,
           },
         ]
@@ -1800,8 +2041,10 @@ export default function App() {
             id: 'basecamp' as TabId,
             icon: '🏕',
             label: 'Basecamp',
-            badge: bcLate,
-            badgeTitle: `${bcLate} tâche(s) Basecamp en retard`,
+            badge: counted('basecamp', bcLate),
+            badgeTitle: `${bcLate} tâche(s) Basecamp en retard — clic droit : masquer`,
+            onContext: (e: React.MouseEvent) =>
+              badgeMenu(e, 'basecamp', 'Basecamp', bcLate, `${bcLate} tâche(s) qui te sont assignées, échéance passée. Les projets masqués dans l’onglet ne comptent pas.`),
           },
         ]
       : []),
@@ -1811,8 +2054,10 @@ export default function App() {
             id: 'trello' as TabId,
             icon: '📋',
             label: 'Trello',
-            badge: trLate,
-            badgeTitle: `${trLate} carte(s) Trello en retard`,
+            badge: counted('trello', trLate),
+            badgeTitle: `${trLate} carte(s) Trello en retard — clic droit : masquer`,
+            onContext: (e: React.MouseEvent) =>
+              badgeMenu(e, 'trello', 'Trello', trLate, `${trLate} carte(s) qui te sont assignées, échéance passée. Les tableaux masqués dans l’onglet ne comptent pas.`),
           },
         ]
       : []),
@@ -1854,13 +2099,40 @@ export default function App() {
     ? [
         ...tabs,
         ...childEntries(DASH),
-        ...regularTabs.flatMap((t) => [entry(t), ...childEntries(tabKey(t))]),
+        // Même ordre que la barre de gauche : un dossier est une pastille qui déplie ses sites.
+        ...railEntries(
+          regularTabs.filter((t) => !folderOf(t, tabFolders)),
+          tabFolders,
+        ).flatMap((e): Tab[] => {
+          if ('tab' in e) return [entry(e.tab), ...childEntries(tabKey(e.tab))]
+          const f = e.folder
+          return [
+            {
+              // id d'affichage seulement (clé, menu) : un dossier n'est jamais passé à `selectTab`
+              id: `f:${f.id}` as TabId,
+              icon: f.icon ?? <span className="tab-folder-dot" style={{ background: f.color ?? '#60a5fa' }} />,
+              label: f.name,
+              color: f.color,
+              onContext: (ev: React.MouseEvent) => folderMenu(ev, f),
+              kids: regularTabs
+                .filter((t) => folderOf(t, tabFolders) === f.id)
+                .flatMap((t) => [entry(t), ...childEntries(tabKey(t))]),
+            },
+          ]
+        }),
         ...allTemps.filter((t) => !parentOf(t)).map(entry),
-        ...dockerSites.map(entry),
+        ...(dockerSites.length
+          ? [{ id: 'f:docker' as TabId, icon: '🐳', label: 'Docker', kids: dockerSites.map(entry) }]
+          : []),
         { id: 'settings' as TabId, icon: '⚙', label: 'Réglages' },
       ]
     : space === DASH
-      ? [...tabs, ...childEntries(DASH)]
+      ? // ⚡ en dossier : ses onglets sont dans la barre de gauche, en haut ne restent que ceux ouverts par un lien
+        dashInRail
+        ? childEntries(DASH).length
+          ? childEntries(DASH)
+          : null
+        : [...tabs, ...childEntries(DASH)]
       : parentTab && childrenOf(space!).length
         ? [entry(parentTab), ...childEntries(space!)]
         : null
@@ -1934,7 +2206,7 @@ export default function App() {
           id: 'display',
           icon: '🖥',
           title: 'Adapte l’affichage à ton écran',
-          hint: 'Texte trop petit ou trop grand ? Choisis ton écran (portable, 34", 49").',
+          hint: 'Page trop large ou trop serrée ? Choisis sa largeur : toute la largeur sur un portable, centrée sur un grand écran.',
           done: raw?.ui?.pageWidth !== undefined,
           action: 'Choisir',
           run: () => openSection('set-display'),
@@ -1954,17 +2226,72 @@ export default function App() {
 
   return (
     <div
-      className={`app${railOn && shown.startsWith('x:') ? ' is-site' : ''}${railOn && strip ? ' has-strip' : ''}`}
+      // Site affiché : en-tête remonté dans la barre du haut et cadre bord à bord, que la barre de
+      // gauche soit visible ou non (issue #129 : barres masquées, c'était le rendu le plus gaspilleur).
+      className={`app${shown.startsWith('x:') ? ' is-site' : ''}${strip ? ' has-strip' : ''}${focus ? ' is-focus' : ''}`}
       style={layoutVars(ui)}
     >
+      {focus ? <div className="topbar-hot" aria-hidden="true" /> : null}
       <TopBar
-        site={railOn && view.startsWith('x:')}
+        site={view.startsWith('x:')}
+        focus={view.startsWith('x:') ? { on: focus, toggle: toggleFocus } : undefined}
+        unread={(() => {
+          // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
+          // Rien à lire = rien d'affiché ; pas de réglage.
+          if (!hideBars) return null
+          const list = unreadSites(allTabs, tabCounts, tabKey, view.startsWith('x:') ? view : null)
+          if (!list.length) return null
+          const open = (key: string) => {
+            search.setQuery('')
+            selectTab(key as TabId)
+          }
+          const label = (s: (typeof list)[number]) =>
+            `${s.tab.label} : ${s.n} non lu${s.n > 1 ? 's' : ''}${asleep.includes(s.key) ? ' (avant la mise en veille)' : ''}`
+          const rest = list.slice(UNREAD_SHOWN)
+          return (
+            <div className="unread-sites" aria-label="Sites à lire">
+              {list.slice(0, UNREAD_SHOWN).map((s) => (
+                <button
+                  key={s.key}
+                  className={`icon-btn unread-site${asleep.includes(s.key) ? ' is-asleep' : ''}`}
+                  title={label(s)}
+                  aria-label={label(s)}
+                  onClick={() => open(s.key)}
+                >
+                  <span className="unread-site-icon">{iconOf[s.tab.id]}</span>
+                  <span className="unread-site-count">{s.n > 99 ? '99+' : s.n}</span>
+                </button>
+              ))}
+              {rest.length ? (
+                <button
+                  className="icon-btn unread-more"
+                  title={`Encore ${rest.length} site${rest.length > 1 ? 's' : ''} à lire`}
+                  onClick={(e) => {
+                    const r = (e.currentTarget as HTMLElement).getBoundingClientRect()
+                    menus.openMenu({
+                      x: r.left,
+                      y: r.bottom + 6,
+                      title: 'Sites à lire',
+                      items: rest.map((s) => ({ icon: iconOf[s.tab.id], label: label(s), onSelect: () => open(s.key) })),
+                    })
+                  }}
+                >
+                  +{rest.length}
+                </button>
+              ) : null}
+            </div>
+          )
+        })()}
         query={search.query}
         onQuery={search.setQuery}
         placeholder={ui.searchPlaceholder}
         showClock={ui.showClock}
         theme={effectiveTheme}
         onTheme={switchTheme}
+        onHelp={() => {
+          showSettingsSection('help-guide')
+          selectTab('settings')
+        }}
         searchRef={searchRef}
         resultCount={searching ? search.hits.length : null}
         scope={{
@@ -2019,6 +2346,7 @@ export default function App() {
         }
       />
 
+      {railOn && hideBars ? <div className="rail-hot" aria-hidden="true" /> : null}
       {railOn ? (
         <Rail
           tabs={regularTabs}
@@ -2060,16 +2388,28 @@ export default function App() {
           onMerge={(dragged, target) => void newFolder([target.id, dragged.id])}
           onTabMenu={tabMenu}
           onFolderMenu={folderMenu}
+          home={
+            dashInRail
+              ? tabs.map((t) => ({
+                  id: t.id,
+                  // ⚡ est déjà le dossier : Raccourcis y prend 🔗 (son icône dans les Réglages)
+                  icon: t.id === 'links' ? '🔗' : t.icon,
+                  label: t.label,
+                  badge: t.badge,
+                  badgeAlert: t.badgeAlert,
+                  badgeTitle: t.badgeTitle,
+                  onContext: t.onContext,
+                  active: shown === t.id,
+                }))
+              : undefined
+          }
+          onHomeMenu={homeMenu}
+          onHomeTab={(id) => {
+            search.setQuery('')
+            selectTab(id as TabId)
+          }}
         />
-      ) : (
-        <button
-          className={`rail-reopen${tabUnread ? ' has-unread' : ''}`}
-          onClick={() => showRail(true)}
-          title={tabUnread ? `Afficher la barre de gauche · ${tabUnread} non lu(s)` : 'Afficher la barre de gauche'}
-        >
-          »{tabUnread ? <span className="rail-reopen-badge">{tabUnread > 99 ? '99+' : tabUnread}</span> : null}
-        </button>
-      )}
+      ) : null}
 
       {/* Barre de gauche affichée : un site ou Réglages a la page pour lui, comme un
           serveur Discord ; la barre d'onglets de homedash revient avec ⚡. */}
@@ -2079,6 +2419,10 @@ export default function App() {
           tabs={strip}
           active={shown}
           onSelect={selectTab}
+          onMenu={railOn ? undefined : stripMenu}
+          size={stripSize}
+          autoHide={!railOn && hideBars}
+          look={tabLook}
           onAdd={railOn ? undefined : addTab}
           onNewTemp={railOn || !desktop ? undefined : newTemp}
           onMove={(id, before) => {
@@ -2147,7 +2491,7 @@ export default function App() {
               setWarmLoaded((l) => (l.includes(tabKey(t)) ? l : [...l, tabKey(t)]))
             }}
             muted={!!muted[tabKey(t)]}
-            merged={railOn && view === tabKey(t)}
+            merged={view === tabKey(t)}
           />
         ))}
 
@@ -2293,6 +2637,7 @@ export default function App() {
           onReload={reload}
           saving={saveState.kind === 'saving'}
           changelog={changelog}
+          bars={bars}
         />
       ) : view === 'github' ? (
         <GithubView
@@ -2340,7 +2685,7 @@ export default function App() {
             </div>
           ) : null}
 
-          <div className="board" style={{ ['--rail-w' as string]: `${ui.railWidth}px` }}>
+          <div className="board" style={{ ['--cat-w' as string]: `${ui.railWidth}px` }}>
             {cfg.sections.map((s) => (
               <Section key={s.key} section={s} ctx={ctx} />
             ))}
@@ -2394,10 +2739,7 @@ export default function App() {
         <RailLayoutPicker
           x={railPicker.clientX}
           y={railPicker.clientY}
-          labels={railLabels}
-          size={railSize}
-          onLabels={changeRailLabels}
-          onSize={changeRailSize}
+          bars={bars}
           onClose={() => setRailPicker(null)}
         />
       ) : null}
@@ -2419,6 +2761,20 @@ export default function App() {
               session: sessionOf(t, tabSessions),
             }
           })}
+        />
+      ) : null}
+      {whatsNewOpen && newsShown.length ? (
+        <WhatsNew
+          versions={newsShown}
+          from={cl?.upgraded_from ?? null}
+          onClose={() => setWhatsNewOpen(false)}
+          onGo={(go) => {
+            setWhatsNewOpen(false)
+            if ('tab' in go) {
+              search.setQuery('')
+              selectTab(go.tab)
+            } else openSection(go.section)
+          }}
         />
       ) : null}
       <ConfirmHost />

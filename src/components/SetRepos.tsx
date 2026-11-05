@@ -148,7 +148,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
     <>
       <p className="set-hint">
         Un repo suivi alimente les cartes de l'onglet GitHub, la carte Repos et l'onglet Local. Chaque
-        pastille s'allume ou s'éteint d'un clic — survole-la pour voir l'effet. <b>GitHub</b> et{' '}
+        bouton s'allume ou s'éteint d'un clic — survole-le pour voir l'effet. <b>GitHub</b> et{' '}
         <b>Accueil</b> placent le repo dans la carte Repos de l'onglet GitHub et / ou de Raccourcis.
       </p>
 
@@ -268,7 +268,7 @@ export default function SetRepos({ account, owners, uses, connected, onTrack, on
           autoComplete="off"
           data-1p-ignore
         />
-        <button onClick={addManual}>+ suivre</button>
+        <button onClick={addManual}>＋ Suivre</button>
       </div>
       <p className="set-hint">
         Un onglet par compte que voit le jeton, repos triés par activité. Un repo absent n'est pas visible

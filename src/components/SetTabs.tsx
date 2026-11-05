@@ -174,7 +174,7 @@ export default function SetTabs({
       title: `Configuration recommandée pour ${advised.length} site${advised.length > 1 ? 's' : ''} ?`,
       body: [
         ...advised.map(({ t, advice }) => `${t.label} : ${advice.changes.join(', ')}`),
-        'Noms, adresses, dossiers, comptes et icônes déjà choisies ne bougent pas. Un site chargé au 1er clic ou en veille n’a plus de pastille à jour tant qu’il n’est pas ouvert. Rien n’est gardé avant « Enregistrer ».',
+        'Noms, adresses, dossiers, comptes et icônes déjà choisies ne bougent pas. Un site chargé au 1er clic ou en veille n’a plus de compteur à jour tant qu’il n’est pas ouvert. Rien n’est gardé avant « Enregistrer ».',
       ],
       confirmLabel: 'Appliquer',
     }).then((ok) => {
@@ -510,7 +510,7 @@ export default function SetTabs({
                 </button>
               </span>
               <em className="xs-note">
-                Coupées : pas de pastille de non-lus (ni dans le total du Dock), et le site ne peut plus afficher
+                Coupées : pas de compteur de non-lus (ni dans le total du Dock), et le site ne peut plus afficher
                 de notification depuis sa page. Aussi au clic droit sur l'icône.
               </em>
             </div>
@@ -573,7 +573,7 @@ export default function SetTabs({
 
         <div className="xs-actions xs-wide">
           <button type="button" className="set-danger-link" onClick={() => remove(t)}>
-            Supprimer l'onglet
+            Supprimer le site
           </button>
           <span className="set-spacer" />
           {adviceFor(t) ? (
@@ -817,8 +817,8 @@ export default function SetTabs({
                         t.notify !== false,
                         t.notify !== false ? '🔔 notifs' : '🔕 notifs coupées',
                         t.notify !== false
-                          ? 'Pastille de non-lus et notifications du site : clic pour les couper'
-                          : 'Ni pastille ni notifications : clic pour les rétablir',
+                          ? 'Compteur de non-lus et notifications du site : clic pour les couper'
+                          : 'Ni compteur ni notifications : clic pour les rétablir',
                         () => patch(t.id, { notify: t.notify === false ? undefined : false }),
                       )
                     : null}
@@ -916,7 +916,7 @@ export default function SetTabs({
 
         <section className="xs-group">
           <header>
-            <h3 className="set-sub">Comptes de connexion</h3>
+            <h3 className="set-sub">Comptes</h3>
             <button type="button" className="xs-btn" onClick={() => void addSession()}>
               ＋ Nouveau
             </button>
@@ -968,7 +968,7 @@ export default function SetTabs({
           <li>
             <strong>Afficher dans homedash</strong> : le site ou le fichier s'ouvre sous la barre d'onglets, et reste
             chargé quand tu changes d'onglet. Dans l'appli de bureau, tous les sites s'affichent, avec leurs non-lus en
-            pastille. Dans un navigateur, Gmail, Google Chat, GitHub et beaucoup d'autres refusent (page blanche).
+            compteur. Dans un navigateur, Gmail, Google Chat, GitHub et beaucoup d'autres refusent (page blanche).
           </li>
           <li>
             <strong>Ouvrir dans le navigateur</strong> : l'icône est un simple raccourci.

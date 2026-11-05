@@ -4,6 +4,7 @@ import { newerThan, type Changelog, type ChangelogEntry } from '../lib/changelog
 import { desktop } from '../lib/desktop'
 import { inline } from '../lib/markdown'
 import { isMac, isWindows } from '../lib/keys'
+import { WHATS_NEW_EVENT, whatsNewSince } from '../lib/whatsNew'
 
 /**
  * Version installée, dans la barre du haut. Discrète quand tout est à jour,
@@ -61,6 +62,17 @@ export default function VersionMenu({
 
             <div className="modal-foot">
               <span className="modal-hint">Échap pour fermer</span>
+              {whatsNewSince(null, data.current).length ? (
+                <button
+                  className="btn"
+                  onClick={() => {
+                    setOpen(false)
+                    window.dispatchEvent(new Event(WHATS_NEW_EVENT))
+                  }}
+                >
+                  ✨ Quoi de neuf
+                </button>
+              ) : null}
               <button className="btn" onClick={onCheck} disabled={busy}>
                 {busy ? 'vérification…' : 'Vérifier les mises à jour'}
               </button>

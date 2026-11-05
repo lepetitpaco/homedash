@@ -1,5 +1,7 @@
-import type { ReactNode } from 'react'
+import { useState, type ReactNode } from 'react'
+import { desktop } from '../lib/desktop'
 import type { Ci, Gate } from '../lib/ghboard'
+import { getGroupOpener, linksToOpen, openAll } from '../lib/openTabs'
 
 /** Coquille commune aux cartes GitHub : reprend l'entête des cartes homedash. */
 export function GhCard({
@@ -143,22 +145,67 @@ export function groupByBranch<T>(items: T[], branchOf: (t: T) => string | undefi
 }
 
 /** Enveloppe d'un groupe « même branche, plusieurs repos ». */
+/** Hors appli (page dans un navigateur) : `window.open`, `false` si la fenêtre surgissante a été bloquée. */
+function openInBrowserWindow(url: string): boolean {
+  const w = window.open(url, '_blank')
+  if (!w) return false
+  try {
+    w.opener = null
+  } catch {
+    /* fenêtre d'un autre site : rien à couper */
+  }
+  return true
+}
+
 export function BranchGroup({
   branch,
   summary,
+  links,
+  linksLabel = 'PR',
   children,
 }: {
   branch: string
   summary: ReactNode
+  /** Liens des lignes du groupe, ouverts d'un coup par le bouton ↗ (issue #127). */
+  links?: readonly (string | null | undefined)[]
+  /** Ce qu'ouvre le bouton, pour sa bulle : « PR », « PR ou branches »… */
+  linksLabel?: string
   children: ReactNode
 }) {
+  const [blocked, setBlocked] = useState(0)
+  const toOpen = linksToOpen(links ?? [])
+  const openGroup = (e: { metaKey: boolean; ctrlKey: boolean; shiftKey: boolean }) => {
+    const inApp = desktop ? getGroupOpener() : null
+    if (inApp) {
+      inApp(toOpen, e.metaKey || e.ctrlKey || e.shiftKey)
+      setBlocked(0)
+      return
+    }
+    setBlocked(openAll(toOpen, openInBrowserWindow).blocked.length)
+  }
   return (
     <div className="gh-prgroup">
       <div className="gh-prgroup-head" title="Même branche dans plusieurs repos : à merger ensemble">
         <span aria-hidden="true">🔗</span>
         <span className="gh-branch-inline">{branch}</span>
+        {toOpen.length > 1 ? (
+          <button
+            type="button"
+            className="gh-prgroup-open"
+            onClick={openGroup}
+            title={`Ouvrir les ${toOpen.length} ${linksLabel} de cette branche, une par onglet${desktop ? ' · ⌘clic : l’inverse du réglage des liens (appli ↔ navigateur)' : ''}`}
+          >
+            ↗ ouvrir les {toOpen.length}
+          </button>
+        ) : null}
         <span className="gh-prgroup-count">{summary}</span>
       </div>
+      {blocked > 0 ? (
+        <div className="gh-prgroup-blocked" role="status">
+          {blocked} onglet{blocked > 1 ? 's' : ''} bloqué{blocked > 1 ? 's' : ''} par le navigateur : autorise les fenêtres
+          surgissantes pour homedash, puis réessaie.
+        </div>
+      ) : null}
       {children}
     </div>
   )

@@ -3,6 +3,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, typ
 export type MasonryItem = { key: string; node: ReactNode; wide?: boolean }
 
 const GAP = 14
+/** Largeur mini d'une carte quand le nombre de colonnes est choisi (Réglages → Affichage). */
+const FIXED_MIN = 360
 /** Un nouveau placement n'est adopté que s'il raccourcit la page d'au moins 15 %. */
 const GAIN = 0.85
 
@@ -28,7 +30,7 @@ export default function Masonry({
   className,
 }: {
   items: MasonryItem[]
-  /** Nombre fixe de colonnes ; 0 = autant que la largeur en contient. */
+  /** Nombre de colonnes au plus (moins si l'écran est trop étroit) ; 0 = autant que la largeur en contient. */
   columns: number
   /** Largeur mini d'une colonne en mode auto, en px. */
   minWidth: number
@@ -79,7 +81,10 @@ export default function Masonry({
     [observer],
   )
 
-  const n = Math.max(1, columns > 0 ? columns : Math.floor((width + GAP) / (minWidth + GAP)))
+  // Colonnes choisies : un plafond, pas une obligation. Sur un écran étroit, une carte ne descend pas
+  // sous FIXED_MIN (à 800 px, deux colonnes faisaient des cartes de 290 px aux en-têtes coupés).
+  const fits = (min: number) => Math.max(1, Math.floor((width + GAP) / (min + GAP)))
+  const n = Math.max(1, columns > 0 ? (width ? Math.min(columns, fits(FIXED_MIN)) : columns) : fits(minWidth))
   const colW = width ? (width - GAP * (n - 1)) / n : 0
 
   const layout = useMemo(() => {

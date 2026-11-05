@@ -146,6 +146,11 @@ export type UiConfig = {
   browserAccess: boolean
   /** Accueil : carte « Pour commencer » masquée (Réglages → Affichage la remet). */
   setupHidden: boolean
+  /**
+   * Cloche, par type d'événement (Réglages → Notifications, issue #131) : `quiet` = dans la liste sans
+   * compter ni notifier, `hide` = nulle part. Absent = compté, comme avant.
+   */
+  bellKinds: Partial<Record<string, 'notify' | 'quiet' | 'hide'>>
 }
 
 /**
@@ -265,7 +270,7 @@ export type Config = {
   tabSessions?: TabSession[]
   /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
   features?: Partial<Record<Feature, boolean>>
-  /** Liens vers les containers Docker (Réglages → Docker). Absent = désactivé. */
+  /** Liens vers les containers Docker (Réglages → Mes sites → Docker). Absent = désactivé. */
   docker?: {
     enabled?: boolean
     /** Liens décochés (`nom-port`). Absent = tous, y compris les nouveaux. */
@@ -277,6 +282,8 @@ export type Config = {
     hidden?: string[]
     /** Repos où créer les issues (`propriétaire/repo`). Absent ou vide = tous les repos suivis. */
     repos?: string[]
+    /** Stats préparées en arrière-plan (mises à jour toutes les 15 min). Absent = désactivé. */
+    statsBackground?: boolean
   }
   /** Onglet Trello. Tout est facultatif : absent = défaut. */
   trello?: {

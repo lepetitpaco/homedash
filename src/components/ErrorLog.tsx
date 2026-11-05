@@ -69,7 +69,7 @@ export default function ErrorLog({ repo }: { repo?: string }) {
       </p>
       <div className="set-bk-bar">
         <button className="set-inline-btn" onClick={() => void load()}>
-          actualiser
+          Actualiser
         </button>
         <span className="set-spacer" />
         {items?.length ? (

@@ -28,7 +28,7 @@ export default function DockHint() {
   }
   const mac = desktop?.platform === 'darwin'
   return (
-    <div className="toast dock-hint" role="dialog" aria-label="Pastille de l'icône">
+    <div className="toast dock-hint" role="dialog" aria-label="Compteur sur l'icône">
       <span className="dock-hint-text">
         <strong>🔔 Les non-lus sur l'icône {mac ? 'du Dock' : 'de la barre des tâches'}</strong>
         <small>

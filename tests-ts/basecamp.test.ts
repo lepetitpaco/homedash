@@ -1,7 +1,7 @@
 /** Basecamp : lecture seule, secrets jamais servis, journal amorcé sans bruit. */
 
 import fs from 'node:fs'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import * as basecamp from '../server/basecamp.ts'
 import * as events from '../server/events.ts'
@@ -451,5 +451,223 @@ describe('journal', () => {
     net.readings.unreads.push(notif(12))
     await build()
     expect(recorded()).toEqual([])
+  })
+})
+
+describe('stats des tâches créées (#118)', () => {
+  const ago = (days: number) => new Date(Date.now() - days * 86400_000).toISOString()
+  const rec = (i: number, days: number, extra: Record<string, unknown> = {}) => ({
+    id: i,
+    type: 'Todo',
+    title: `T${i}`,
+    app_url: `https://3.basecamp.com/123/buckets/9/todos/${i}`,
+    creator: { id: 1, name: 'Léa' },
+    bucket: { id: 9, name: 'Projet' },
+    created_at: ago(days),
+    updated_at: ago(days),
+    completed: false,
+    ...extra,
+  })
+  const url = (type: string, sort = 'created_at', page = 0) =>
+    `${HREF}/projects/recordings.json?${new URLSearchParams({ type, sort, direction: 'desc' })}${page ? `&page=${page}` : ''}`
+  const statsReq = () => net.requests.filter((r) => r.url.includes('/projects/recordings.json'))
+  /** Deux types vides, sauf ce qu'on donne. */
+  const serve = (todo: unknown[], cards: unknown[] = [], sort = 'created_at') => {
+    net.extra[url('Todo', sort)] = todo
+    net.extra[url('Kanban::Card', sort)] = cards
+  }
+
+  it('par créateur, en GET seulement, et la lecture s’arrête à la fin de la période', async () => {
+    await connect()
+    serve(
+      [rec(1, 1, { completed: true }), rec(2, 3), rec(3, 40)],
+      [
+        rec(4, 2, { type: 'Kanban::Card', creator: { id: 2, name: 'Max' }, parent: { type: 'Kanban::DoneColumn' } }),
+        // 2,5 jours et pas 2 : deux `ago(2)` lus à une milliseconde d'écart inversaient l'ordre (#148)
+        rec(5, 2.5, { type: 'Kanban::Card', creator: { id: 2, name: 'Max' }, parent: { type: 'Kanban::Column' } }),
+      ],
+    )
+    // page suivante jamais lue : la page 1 sort déjà de la période
+    net.links[url('Todo')] = `<${url('Todo', 'created_at', 2)}>; rel="next"`
+    const got = await basecamp.stats(30)
+    expect(got.partial).toBe(false)
+    expect(got.items.map((i: any) => [i.id, i.who, i.done, i.kind])).toEqual([
+      [1, 'Léa', true, 'todo'],
+      [4, 'Max', true, 'card'],
+      [5, 'Max', false, 'card'],
+      [2, 'Léa', false, 'todo'],
+    ])
+    expect(statsReq().map((r) => r.method)).toEqual(['GET', 'GET'])
+    expect(statsReq().every((r) => r.body === null && r.url.startsWith(HREF))).toBe(true)
+  })
+
+  it('une période déjà couverte ne relit rien ; une plus longue étend la réserve', async () => {
+    await connect()
+    serve([rec(1, 1), rec(2, 20), rec(3, 200)])
+    await basecamp.stats(30)
+    const n = statsReq().length
+    expect((await basecamp.stats(7)).items.map((i: any) => i.id)).toEqual([1])
+    expect(statsReq().length).toBe(n)
+    expect((await basecamp.stats(365)).items.map((i: any) => i.id)).toEqual([1, 2, 3])
+    expect(statsReq().length).toBe(n + 2)
+  })
+
+  it('ensuite, seulement ce qui a changé (tri par modification), fusionné', async () => {
+    await connect()
+    serve([rec(1, 1), rec(2, 3)])
+    await basecamp.stats(30)
+    // la 2 vient d'être cochée, une 6 vient d'être créée ; la 7, trop vieille, reste hors des stats
+    serve([rec(6, 0), rec(2, 3, { completed: true, updated_at: ago(0) }), rec(7, 400, { updated_at: ago(0) }), rec(1, 1, { updated_at: ago(30) })], [], 'updated_at')
+    const n = statsReq().length
+    const got = await basecamp.stats(30, true)
+    expect(statsReq().slice(n).every((r) => r.url.includes('sort=updated_at'))).toBe(true)
+    expect(got.items.map((i: any) => [i.id, i.done])).toEqual([
+      [6, false],
+      [1, false],
+      [2, true],
+    ])
+  })
+
+  it('pages suivies par Link (jamais construites), jusqu’à la fin de la période', async () => {
+    await connect()
+    serve([rec(1, 1)])
+    net.links[url('Todo')] = `<${url('Todo', 'created_at', 2)}>; rel="next"`
+    net.extra[url('Todo', 'created_at', 2)] = [rec(2, 2)]
+    net.links[url('Todo', 'created_at', 2)] = `<${HREF}/projects/recordings.json?cursor=xyz>; rel="next"`
+    net.extra[`${HREF}/projects/recordings.json?cursor=xyz`] = [rec(3, 3), rec(4, 99)]
+    net.links[`${HREF}/projects/recordings.json?cursor=xyz`] = `<${url('Todo', 'created_at', 9)}>; rel="next"`
+    const got = await basecamp.stats(30)
+    expect(got.items.map((i: any) => i.id)).toEqual([1, 2, 3])
+    // la page 3 sort de la période : rien au-delà
+    expect(statsReq().some((r) => r.url.endsWith('page=9'))).toBe(false)
+  })
+
+  it('rythme : pas plus de 3 requêtes par seconde', async () => {
+    await connect()
+    serve([rec(1, 1)], [rec(2, 1, { type: 'Kanban::Card' })])
+    net.links[url('Todo')] = `<${url('Todo', 'created_at', 2)}>; rel="next"`
+    net.extra[url('Todo', 'created_at', 2)] = [rec(3, 99)]
+    const t0 = Date.now()
+    await basecamp.stats(7)
+    const n = statsReq().length
+    expect(n).toBe(3)
+    expect(Date.now() - t0).toBeGreaterThanOrEqual((n - 1) * 300)
+  })
+
+  it('deux demandes en même temps : une seule lecture', async () => {
+    await connect()
+    serve([rec(1, 1)])
+    await Promise.all([basecamp.stats(30), basecamp.stats(30)])
+    expect(statsReq().length).toBe(2)
+  })
+
+  it('« trop d’appels » : attend puis réessaie', async () => {
+    await connect()
+    serve([rec(1, 1)])
+    let refused = 0
+    const open = net.open
+    basecamp.setOpen(async (u, init) => {
+      if (u === url('Todo') && !refused++) return new Response('', { status: 429, headers: { 'Retry-After': '1' } })
+      return open(u, init)
+    })
+    expect((await basecamp.stats(7)).items.map((i: any) => i.id)).toEqual([1])
+    expect(refused).toBe(2)
+  })
+
+  it('« attends 2 min » : respecté en entier, pour toutes les lectures Basecamp', async () => {
+    await connect()
+    serve([rec(1, 1)])
+    const open = net.open
+    basecamp.setOpen(async (u, init) => (u === url('Todo') ? new Response('', { status: 429, headers: { 'Retry-After': '120' } }) : open(u, init)))
+    await expect(basecamp.stats(7)).rejects.toThrow(/attendre|limite/)
+    const n = net.requests.length
+    // une nouvelle demande n'envoie rien tant que l'attente court
+    await expect(basecamp.stats(30, true)).rejects.toThrow('attendre')
+    expect(net.requests.length).toBe(n)
+  })
+
+  it('Retry-After : secondes ou date HTTP', () => {
+    expect(basecamp.retryAfter(new Headers({ 'Retry-After': '12' }))).toBe(12)
+    expect(basecamp.retryAfter(new Headers({ 'Retry-After': new Date(Date.now() + 90_000).toUTCString() }))).toBeGreaterThanOrEqual(88)
+    expect(basecamp.retryAfter(new Headers())).toBe(30)
+  })
+
+  it('page suivante hors du compte : pas suivie', async () => {
+    await connect()
+    serve([rec(1, 1)])
+    net.links[url('Todo')] = '<https://ailleurs.example/recordings.json?page=2>; rel="next"'
+    await basecamp.stats(7)
+    expect(net.requests.some((r) => r.url.includes('ailleurs'))).toBe(false)
+  })
+
+  describe('arrière-plan (#118) : petit à petit', () => {
+    /** Chaîne de pages d'une tâche chacune, reliées par Link, pour les to-dos. */
+    const chain = (days: number[]) => {
+      serve([rec(100, days[0])])
+      days.forEach((d, i) => {
+        const here = i ? url('Todo', 'created_at', i + 1) : url('Todo')
+        if (i) net.extra[here] = [rec(100 + i, d)]
+        if (i < days.length - 1) net.links[here] = `<${url('Todo', 'created_at', i + 2)}>; rel="next"`
+      })
+    }
+    afterEach(() => basecamp.setStatsBackground(false))
+
+    it('une tranche à la fois, qui reprend où la précédente s’est arrêtée', async () => {
+      await connect()
+      chain([1, 2, 3, 4, 5, 6])
+      basecamp.setStatsBackground(true)
+      await basecamp.prepareStats()
+      // 4 pages de to-dos au plus (et la seule page de cartes)
+      expect(statsReq().filter((r) => r.url.includes('Todo')).length).toBe(4)
+      let got = await basecamp.stats(7)
+      expect(got.filling).toBeTruthy()
+      expect(got.items.map((i: any) => i.id)).toEqual([100, 101, 102, 103])
+      const n = statsReq().length
+      await basecamp.prepareStats()
+      expect(statsReq().slice(n).map((r) => r.url)).toEqual([url('Todo', 'created_at', 5), url('Todo', 'created_at', 6)])
+      got = await basecamp.stats(7)
+      expect(got.filling).toBeNull()
+      expect(got.items.map((i: any) => i.id)).toEqual([100, 101, 102, 103, 104, 105])
+    })
+
+    it('le panneau ne lance jamais la grosse lecture : il montre ce qui est prêt', async () => {
+      await connect()
+      chain([1, 2, 3, 4, 5, 6])
+      basecamp.setStatsBackground(true)
+      const got = await basecamp.stats(365)
+      expect(statsReq().filter((r) => r.url.includes('Todo')).length).toBe(4)
+      expect(got.filling).toBeTruthy()
+    })
+
+    it('tour de la semaine : les tâches disparues de Basecamp quittent la réserve', async () => {
+      await connect()
+      serve([rec(1, 1), rec(2, 2)])
+      basecamp.setStatsBackground(true)
+      await basecamp.prepareStats()
+      expect((await basecamp.stats(7)).items.map((i: any) => i.id)).toEqual([1, 2])
+      // une semaine plus tard, la 2 a été supprimée
+      const file = store.read<any>('bc_stats.json', null)
+      store.write('bc_stats.json', { ...file, filled: Date.now() - 8 * 86400_000 })
+      basecamp.resetAll()
+      basecamp.setOpen(net.open)
+      store.writeSecret(basecamp.SECRET_KEY, null)
+      await connect()
+      store.write('bc_stats.json', { ...file, filled: Date.now() - 8 * 86400_000 })
+      serve([rec(1, 1)])
+      basecamp.setStatsBackground(true)
+      await basecamp.prepareStats()
+      expect((await basecamp.stats(7)).items.map((i: any) => i.id)).toEqual([1])
+    })
+  })
+
+  it('période inconnue ou Basecamp non connecté : refusé ; déconnexion : réserve effacée', async () => {
+    await expect(basecamp.stats(30)).rejects.toThrow('non connecté')
+    await connect()
+    await expect(basecamp.stats(12)).rejects.toBeInstanceOf(RangeError)
+    serve([rec(1, 1)])
+    await basecamp.stats(7)
+    expect(fs.existsSync(store.pathOf('bc_stats.json'))).toBe(true)
+    basecamp.disconnect()
+    expect(fs.existsSync(store.pathOf('bc_stats.json'))).toBe(false)
   })
 })

@@ -11,6 +11,7 @@ import type {
 } from '../types'
 import { featureOn, repoTabs, type Feature, type RepoTab } from '../types'
 import { keys } from './keys'
+import { cleanPrefs } from './bellPrefs'
 
 export const DEFAULT_UI: UiConfig = {
   theme: 'dark',
@@ -40,33 +41,8 @@ export const DEFAULT_UI: UiConfig = {
   perfLog: false,
   browserAccess: false,
   setupHidden: false,
+  bellKinds: {},
 }
-
-/**
- * Presets d'affichage (Réglages → Affichage). Les valeurs par défaut sont
- * celles du 49" : l'écran de la plupart des utilisateurs. La largeur de page ne
- * descend jamais sous 1 400 px (base.css), donc 60 % reste sain sur un portable.
- */
-export const DISPLAY_PRESETS: { id: string; label: string; hint: string; ui: Partial<UiConfig> }[] = [
-  {
-    id: 'uw49',
-    label: 'Ultra-wide 49"',
-    hint: '5120 px : page centrée à 60 %, GitHub sur 2 colonnes',
-    ui: { pageWidth: 60, cardColumns: 2, linkWidth: 260, railWidth: 220, sidebarWidth: 420, maxTiles: 12 },
-  },
-  {
-    id: 'uw34',
-    label: 'Ultra-wide 34"',
-    hint: '3440 px : page à 75 %, GitHub sur 2 colonnes',
-    ui: { pageWidth: 75, cardColumns: 2, linkWidth: 240, railWidth: 220, sidebarWidth: 380, maxTiles: 10 },
-  },
-  {
-    id: 'mbp',
-    label: 'MacBook Pro',
-    hint: '14" / 16" (1512–1728 px) : toute la largeur, GitHub sur 2 colonnes',
-    ui: { pageWidth: 100, cardColumns: 2, linkWidth: 220, railWidth: 180, sidebarWidth: 300, maxTiles: 8 },
-  },
-]
 
 /** Réglages de taille : [clé, minimum, maximum]. 0 ou vide = valeur par défaut. */
 export const SIZE_LIMITS: [keyof UiConfig & ('railWidth' | 'linkWidth' | 'sidebarWidth' | 'cardWidth' | 'pageWidth'), number, number][] = [
@@ -270,6 +246,7 @@ export function normalizeConfig(raw: Config): Normalized {
   if (ui.theme !== 'light' && ui.theme !== 'dark') ui.theme = DEFAULT_UI.theme
   if (ui.openLinks !== 'browser') ui.openLinks = DEFAULT_UI.openLinks
   ui.linkTabsKept = ui.linkTabsKept === true
+  ui.bellKinds = cleanPrefs(ui.bellKinds)
   // Tailles de mise en page : 0, vide ou absurde = défaut ; sinon bornées. Une
   // colonne de titres ou un lien à 0 px cassait toute la grille.
   {

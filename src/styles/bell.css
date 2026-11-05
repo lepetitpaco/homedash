@@ -153,3 +153,82 @@
   flex-wrap: wrap;
   row-gap: 6px;
 }
+
+/* Regroupement (issue #131) : « ×6 » après le titre, les autres repos sous lui. */
+.ev-group-count {
+  margin-left: 0.45rem;
+  padding: 0 0.4rem;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 0.68rem;
+  font-weight: 600;
+  vertical-align: 1px;
+}
+.ev-group-more {
+  color: var(--text-faint);
+}
+
+/* Réglages → Notifications : un type par ligne, son choix à droite. */
+.set-bell-kinds {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.35rem 1rem;
+  align-items: center;
+}
+.set-bell-kinds > span:nth-child(odd) {
+  font-size: 0.86rem;
+}
+/* L'icône a sa colonne : un emoji déborde de sa place et collait au texte, les libellés s'alignent */
+.set-bell-kinds .set-bell-icon {
+  display: inline-block;
+  width: 1.6em;
+  text-align: center;
+}
+
+/* Sites à lire, à gauche de la cloche, quand les barres sont masquées (issue #130). */
+.unread-sites {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.unread-site {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+.unread-site-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  font-size: 15px;
+  line-height: 1;
+}
+.unread-site-icon img,
+.unread-site-icon .site-icon {
+  width: 18px;
+  height: 18px;
+}
+.unread-site-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+.unread-site.is-asleep {
+  opacity: 0.55;
+}
+.unread-more {
+  font-size: 0.78rem;
+  font-weight: 600;
+}

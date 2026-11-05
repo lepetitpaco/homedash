@@ -8,6 +8,7 @@
  * en tête du commentaire-rapport (lus par `github.fetch_bc_issues`).
  */
 import type { BcIssue, BcPosted, BcTask } from './basecamp'
+import { exchangesMarkdown, foldDescription, forGitHub, issueSections, reposPrompt, reposRule, sectionsRule, type IssueParts } from './issueText'
 
 export const REPORT_MARK = '<!-- homedash:bc-report -->'
 
@@ -90,25 +91,23 @@ export const REPORT_TEMPLATE = [
  */
 export function claudeRules(close: string): string[] {
   return [
-    "Lis le besoin et tous les échanges : sur Basecamp, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques** (problème, cause probable, solution retenue, ce qui sera touché). Ne modifie pas le corps de l'issue : il porte le lien vers la tâche, et sa section Besoin est la demande d'origine (reprise telle quelle de Basecamp) : en cas de doute, c'est elle qui fait foi, pas ta reformulation. Les captures (🖼) restent sur Basecamp, hors de ta portée : si l'une est indispensable, demande ce qu'elle montre.",
+    `Lis le besoin et tous les échanges : sur Basecamp, une demande est souvent une conversation décousue. Dégage le vrai besoin et la meilleure solution au vu de l'ensemble, puis, si ce n'est pas déjà limpide, poste-les en commentaire de l'issue **reformulés en termes techniques** (problème, cause probable, solution retenue, ce qui sera touché). Ne modifie pas le corps de l'issue : il porte le lien vers la tâche. ${sectionsRule('Basecamp')} En cas de doute, c'est le corps qui fait foi, pas ta reformulation. Les captures (🖼) restent sur Basecamp, hors de ta portée : si l'une est indispensable, demande ce qu'elle montre.`,
     "Donne-lui la ou les étiquettes qui conviennent (bug, amélioration…), choisies parmi celles du repo (`gh label list`) : n'en crée pas.",
     'Fais le travail en suivant les règles du repo (CLAUDE.md).',
+    reposRule(),
     `Une fois livré, poste **un** commentaire de rapport sur l'issue, exactement au format ci-dessous (il commence par \`${REPORT_MARK}\`) : il est publié tel quel sur la tâche Basecamp. Si on te redemande un rapport final, poste-en un nouveau : le dernier fait foi.`,
     `Puis ferme l'issue : ${close}.`,
     "Si le besoin n'est pas clair, demande avant de coder plutôt que d'inventer.",
   ]
 }
 
-/** Corps d'une issue liée à une tâche : le besoin, puis le lien et la consigne pour Claude Code. */
-export function issueBody(task: IssueTask, need = ''): string {
+/** Corps d'une issue liée à une tâche : le lien, une section par source, puis la consigne pour Claude Code. */
+export function issueBody(task: IssueTask, parts: IssueParts): string {
   return [
     `> 🏕 **Tâche Basecamp** : [${task.title || 'tâche'}](${task.url})`,
     ...(task.where ? [`> ${task.where}`] : []),
     '',
-    '## Besoin',
-    '',
-    need.trim() || '_À compléter._',
-    '',
+    ...issueSections('Basecamp', '🏕', parts),
     '---',
     `<!-- homedash:bc ${task.url} -->`,
     '<details><summary>Consigne pour Claude Code (issue liée à Basecamp par homedash)</summary>',
@@ -123,6 +122,11 @@ export function issueBody(task: IssueTask, need = ''): string {
   ].join('\n')
 }
 
+/** Description de la tâche (et ses étapes), prête pour la section « Carte Basecamp ». */
+export function cardMarkdown(text: string): string {
+  return forGitHub(foldDescription(text, '### Étapes'))
+}
+
 /** Formulaire « nouvelle issue » de GitHub, pré-rempli (il faut y être connecté). */
 export function newIssueUrl(repo: string, title: string, body: string): string {
   return `https://github.com/${repo}/issues/new?${new URLSearchParams({ title, body })}`
@@ -133,14 +137,15 @@ export function newIssueUrl(repo: string, title: string, body: string): string {
  * fermeture) est dans l'issue. Sans apostrophe droite (’) : il tient entre
  * guillemets simples dans `claudeCommand`, sous zsh, bash comme PowerShell.
  */
-export function claudePrompt(repo: string, number: number): string {
+export function claudePrompt(repo: string, number: number, others: { repo: string; dir: string | null }[] = []): string {
   return (
     `Occupe-toi de l’issue ${repo}#${number} : lis-la avec \`gh issue view ${number} -R ${repo} --comments\`. ` +
     `Elle vient d’une tâche Basecamp, souvent une conversation décousue : commence par en tirer le vrai besoin et ` +
     `la meilleure solution, reformulés en termes techniques (en commentaire de l’issue si ce n’est pas limpide), ` +
-    `sans toucher au corps de l’issue ; en cas de doute, reviens à la demande d’origine (section Besoin). ` +
+    `sans toucher au corps de l’issue. ${sectionsRule('Basecamp')} ` +
     `Donne-lui ses étiquettes, parmi celles du repo (\`gh label list -R ${repo}\`) sans en créer. ` +
-    `Puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).`
+    `Puis suis la consigne en bas de l’issue (rapport au format indiqué, puis fermeture).` +
+    reposPrompt(others)
   )
 }
 
@@ -151,7 +156,8 @@ export function claudePrompt(repo: string, number: number): string {
  */
 export function reportPrompt(repo: string, number: number, notes = ''): string {
   return [
-    `Le travail sur l’issue ${repo}#${number} est terminé. Vérifie tout ce qui a été fait (commits, diff, tests, ce qui est livré) par rapport à la demande d’origine (section Besoin de l’issue) et aux échanges (\`gh issue view ${number} -R ${repo} --comments\`).`,
+    `Le travail sur l’issue ${repo}#${number} est terminé. Vérifie tout ce qui a été fait (commits, diff, tests, ce qui est livré) par rapport au corps de l’issue et aux échanges (\`gh issue view ${number} -R ${repo} --comments\`).`,
+    sectionsRule('Basecamp'),
     `Puis poste le rapport final en commentaire de l’issue (\`gh issue comment ${number} -R ${repo}\`), exactement au format ci-dessous : il est publié tel quel sur la tâche Basecamp et lu par des non-développeurs, donc clair, concret et sans jargon. S’il y a déjà un rapport, poste-en un nouveau : le dernier fait foi.`,
     `Si l’issue n’a pas encore d’étiquette, donne-lui celle qui convient parmi celles du repo (\`gh label list -R ${repo}\`, sans en créer).`,
     `Enfin, ferme l’issue si elle est encore ouverte : \`gh issue close ${number} -R ${repo} --reason completed\`.`,
@@ -165,7 +171,7 @@ export function reportPrompt(repo: string, number: number, notes = ''): string {
 export function claudeCommand(dir: string, prompt: string): string {
   // `~` ne s'étend pas entre guillemets : seul le reste du chemin y va
   const at = !/\s/.test(dir) ? dir : dir.startsWith('~/') ? `~/"${dir.slice(2)}"` : `"${dir}"`
-  return `cd ${at} && claude '${prompt.replace(/'/g, '’')}'`
+  return `cd ${at} && claude '${prompt}'`
 }
 
 /** Un échange (commentaire) de la tâche, en Markdown ; `date` complète (ISO). */
@@ -193,12 +199,9 @@ export async function taskText(
   return { text: out?.text ?? '', creator: out?.creator ?? { who: '', date: '' }, comments: out?.comments ?? [], images: out?.images ?? {} }
 }
 
-/** Échanges retenus, en fin de Besoin (ordre chronologique). */
+/** Échanges retenus, pour la section « Échanges Basecamp » (ordre chronologique). */
 export function commentsMarkdown(list: BcComment[]): string {
-  if (!list.length) return ''
-  return ['### Échanges retenus (Basecamp)', '', ...list.map((c) => `**${c.who}** (${c.date.slice(0, 10)}) :\n${c.text}\n`)]
-    .join('\n')
-    .trim()
+  return exchangesMarkdown(list)
 }
 
 /** Création directe, avec le jeton du compte GitHub de homedash. */

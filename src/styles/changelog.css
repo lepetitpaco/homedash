@@ -320,7 +320,7 @@
    de la barre de gauche, quelle que soit la page ouverte. */
 .toast.update-progress {
   right: auto;
-  left: calc(var(--rail-w, 0px) + 18px);
+  left: calc(var(--page-left, var(--rail-w, 0px)) + 18px);
   max-width: 460px;
   cursor: default;
 }
@@ -371,7 +371,7 @@
 /* Carte unique « autoriser les pastilles » (appli de bureau), au-dessus de l'avancement. */
 .toast.dock-hint {
   right: auto;
-  left: calc(var(--rail-w, 0px) + 18px);
+  left: calc(var(--page-left, var(--rail-w, 0px)) + 18px);
   bottom: 18px;
   max-width: 560px;
   flex-direction: column;
