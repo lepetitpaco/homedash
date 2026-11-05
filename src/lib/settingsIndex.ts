@@ -45,7 +45,7 @@ export const SETTINGS_INDEX: SettingsEntry[] = [
   { id: 'backups', icon: '💾', label: 'Sauvegardes', section: 'set-backups', keywords: 'sauvegarde restaurer backup export importer autre machine' },
   { id: 'guide', icon: '📖', label: 'Guide', section: 'help-guide', keywords: 'aide guide comment faire documentation raccourcis clavier' },
   { id: 'diag', icon: '🩺', label: 'Diagnostic', section: 'help-diag', keywords: 'erreurs journal performance lenteur bug mémoire' },
-  { id: 'news', icon: '📜', label: 'Nouveautés', section: 'help-news', keywords: 'version mise à jour changelog nouveautés' },
+  { id: 'news', icon: '📜', label: 'Nouveautés', section: 'help-news', keywords: 'version mise à jour changelog nouveautés quoi de neuf what s new' },
 ]
 
 /** Les entrées visibles : sans celles des fonctionnalités coupées. */

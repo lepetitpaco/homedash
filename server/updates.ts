@@ -105,11 +105,20 @@ export function onStart(): void {
   const now = current()
   const before = readState().version
   if (before === now) return
-  if (before && fs.existsSync(store.pathOf(store.CONFIG))) {
+  const upgraded = !!before && fs.existsSync(store.pathOf(store.CONFIG))
+  if (upgraded) {
     const name = backup.snapshot(`avant-${now}`)
     console.log(`💾 mise à jour ${before} → ${now} : données sauvegardées (${name})`)
   }
-  store.write(VERSION, { ...readState(), version: now })
+  // `from` : la version d'avant une vraie mise à jour, pour la fenêtre « Quoi de neuf ».
+  // Une première installation n'en a pas : rien à présenter à qui découvre l'appli.
+  store.write(VERSION, { ...readState(), version: now, from: upgraded ? before : null })
+}
+
+/** Version d'où l'on vient (dernière mise à jour), ou null après une première installation. */
+export function upgradedFrom(): string | null {
+  const from = readState().from
+  return typeof from === 'string' && /^\d+\.\d+\.\d+$/.test(from) ? from : null
 }
 
 // ── Version disponible sur GitHub ───────────────────────────────────────────────
@@ -196,6 +205,7 @@ export function payload(): Record<string, unknown> {
     release: state.release,
     checked_at: state.checkedAt,
     error: state.error,
+    upgraded_from: upgradedFrom(),
   }
 }
 

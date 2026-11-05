@@ -34,6 +34,8 @@ export type Changelog = {
   desktop_command_windows?: string
   checked_at: number | null
   error: string | null
+  /** Version d'avant la dernière mise à jour (null : première installation ; absent : serveur plus ancien). */
+  upgraded_from?: string | null
 }
 
 const POLL = 60_000

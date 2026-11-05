@@ -124,6 +124,8 @@ pull request ce qui a changé ou « rien à changer » : `README.md`, `GUIDE.md`
 
   Plusieurs changements livrés ensemble (tout ce que `preprod` apporte à `main`) = une seule version.
 - Comportement visible modifié → `GUIDE.md` à jour.
+- Version mineure ou majeure → ses cartes dans `src/lib/whatsNew.ts` : la fenêtre « Quoi de neuf » s'ouvre une fois
+  après la mise à jour (jamais à la première installation), puis à la demande. Sans carte, elle ne s'ouvre pas.
 - Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
   cause, la solution et la version qui la livre ; fermée avec le hash du commit. Une issue déjà ouverte
   (collègue, utilisateur) sert de support : on y répond plutôt que d'en créer une autre.

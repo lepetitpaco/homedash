@@ -29,6 +29,8 @@ Branches : `<qui>/<type>/<nom>`. Le tag et la Release partent seuls à la fusion
 2. Numéro : table de `CLAUDE.md`.
 3. Relire : `README.md`, `GUIDE.md`, `DEVELOPING.md`, `ARCHITECTURE.md`, `PRIVACY.md`, `CLAUDE.md`, `AGENTS.md`, `.cursor/`, `aidd_docs/`, `docs/` (site GitHub Pages). Captures périmées : `sh docs/demo/capture.sh`, sinon les lister.
 4. `CHANGELOG-dev.md` devient une entrée de `CHANGELOG.md`, écrite pour l'utilisateur ; même numéro dans `desktop/package.json`.
+   Version mineure ou majeure : ses cartes « Quoi de neuf » dans `src/lib/whatsNew.ts` (l'essentiel, une phrase chacune,
+   une capture du guide recadrée quand elle parle d'elle-même, « Essayer » vers le bon endroit). Un correctif : rien.
 5. Créer les issues manquantes (`CLAUDE.md`).
 6. Tests, PR vers `preprod` avec la checklist remplie, fusion comme ci-dessus.
 

@@ -17,3 +17,9 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Un site pas encore prêt ne laisse plus d'erreur « The WebView must be attached… » au journal d'erreurs.
 - Doc : Guide (paragraphe Docker remis d'aplomb, ⌘⇧F, Extensions dans le tableau des Réglages), PRIVACY (extensions),
   ARCHITECTURE, captures `github` et `cloche` refaites, cas de la 2.5.0 dans la liste de `/test-app full`.
+
+## paco/feature/quoi-de-neuf
+
+- **✨ Quoi de neuf** : après une mise à jour, une fenêtre présente les nouveautés, une carte chacune, avec une capture
+  quand elle parle d'elle-même et *Essayer* qui mène au bon endroit. Une seule fois par version, jamais à la première
+  installation ; à revoir depuis le numéro de version, en haut à droite. Touche : Mise à jour.

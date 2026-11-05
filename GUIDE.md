@@ -134,6 +134,9 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 - **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli
   télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance. Sous Windows, si
   l'installation échoue, homedash reste ouvert ou se rouvre, et te le dit.
+- **✨ Quoi de neuf** : après une mise à jour qui apporte quelque chose de nouveau, une fenêtre le présente, une
+  carte par nouveauté ; *Essayer* t'y emmène. Elle ne s'ouvre qu'une fois ; pour la revoir, clique le numéro de version
+  en haut à droite.
 - **homedash n'existe que dans l'appli** : elle n'ouvre aucun port, et http://localhost:7777 dans un
   navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Fonctionnalités →
   Accès depuis le navigateur* ; http://localhost:7777 marche alors, sur ta machine seulement, tant que
@@ -355,7 +358,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
 | 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
-| 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. Les nouveautés : le bouton de version, en haut |
+| 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |
 
 **Couper une fonctionnalité** (🧩 Fonctionnalités) : décochée, elle disparaît de la page (onglet,
 recherche, cartes de l'accueil, ses parties de Réglages, ses notifications dans la cloche et
