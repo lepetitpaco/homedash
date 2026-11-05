@@ -1,0 +1,249 @@
+{
+  "title": "homedash",
+  "subtitle": "DÉMO",
+  "ui": {
+    "theme": "dark",
+    "perfLog": false,
+    "setupHidden": true
+  },
+  "pinnedOrder": [],
+  "groups": [
+    {
+      "name": "Quotidien",
+      "icon": "⚡",
+      "color": "#60a5fa",
+      "links": [
+        {
+          "name": "Gmail",
+          "url": "https://mail.google.com/",
+          "pinned": true,
+          "note": "boîte pro"
+        },
+        {
+          "name": "Agenda",
+          "url": "https://calendar.google.com/",
+          "pinned": true
+        },
+        {
+          "name": "Drive",
+          "url": "https://drive.google.com/"
+        },
+        {
+          "name": "Notion",
+          "url": "https://www.notion.so/",
+          "pinned": true,
+          "note": "wiki d'équipe"
+        },
+        {
+          "name": "Figma",
+          "url": "https://www.figma.com/"
+        }
+      ]
+    },
+    {
+      "name": "Dev",
+      "icon": "🛠",
+      "color": "#a78bfa",
+      "links": [
+        {
+          "name": "GitHub",
+          "url": "https://github.com/",
+          "pinned": true
+        },
+        {
+          "name": "MDN",
+          "url": "https://developer.mozilla.org/"
+        },
+        {
+          "name": "Can I use",
+          "url": "https://caniuse.com/"
+        },
+        {
+          "name": "Regex101",
+          "url": "https://regex101.com/"
+        },
+        {
+          "name": "Status GitHub",
+          "url": "https://www.githubstatus.com/",
+          "check": true
+        }
+      ]
+    },
+    {
+      "name": "Lecture",
+      "icon": "📚",
+      "color": "#f59e0b",
+      "links": [
+        {
+          "name": "Hacker News",
+          "url": "https://news.ycombinator.com/"
+        },
+        {
+          "name": "Wikipédia",
+          "url": "https://fr.wikipedia.org/"
+        },
+        {
+          "name": "OpenStreetMap",
+          "url": "https://www.openstreetmap.org/"
+        }
+      ]
+    }
+  ],
+  "infos": {
+    "title": "Infos & accès",
+    "groups": [
+      {
+        "title": "Wi-Fi",
+        "icon": "📶",
+        "items": [
+          {
+            "label": "Bureau",
+            "value": "demo-wifi-2026",
+            "secret": true,
+            "note": "postes fixes"
+          },
+          {
+            "label": "Invités",
+            "value": "bienvenue",
+            "secret": true,
+            "note": "visiteurs"
+          }
+        ]
+      },
+      {
+        "title": "Réseau",
+        "icon": "🌐",
+        "items": [
+          {
+            "label": "Passerelle",
+            "value": "192.168.1.1"
+          },
+          {
+            "label": "Imprimante",
+            "value": "192.168.1.42"
+          }
+        ]
+      }
+    ]
+  },
+  "notes": {
+    "enabled": true
+  },
+  "stats": {
+    "enabled": true
+  },
+  "repos": {
+    "defaultOwner": "acme",
+    "items": [
+      {
+        "name": "api",
+        "owner": "acme"
+      },
+      {
+        "name": "web",
+        "owner": "acme"
+      },
+      {
+        "name": "design-system",
+        "owner": "acme"
+      }
+    ]
+  },
+  "github_accounts": [
+    {
+      "id": "main",
+      "label": "Acme",
+      "me": "ada",
+      "users": [
+        "ada",
+        "linus"
+      ],
+      "repos": [
+        "acme/api",
+        "acme/web",
+        "acme/design-system"
+      ],
+      "branch_repos": [
+        "acme/api",
+        "acme/web"
+      ]
+    }
+  ],
+  "tabSessions": [
+    {
+      "id": "s-perso",
+      "name": "perso",
+      "color": "#af51f5"
+    },
+    {
+      "id": "s-pro",
+      "name": "pro",
+      "color": "#37adff"
+    }
+  ],
+  "tabFolders": [
+    {
+      "id": "f-dev",
+      "name": "Dev",
+      "color": "#37adff"
+    },
+    {
+      "id": "f-lecture",
+      "name": "Lecture",
+      "color": "#ff9f00"
+    }
+  ],
+  "tabs": [
+    {
+      "id": "x-wiki",
+      "label": "Wikipédia",
+      "url": "https://fr.wikipedia.org/wiki/Accueil",
+      "embed": true
+    },
+    {
+      "id": "x-osm",
+      "label": "OpenStreetMap",
+      "url": "https://www.openstreetmap.org/",
+      "embed": true,
+      "session": "s-pro"
+    },
+    {
+      "id": "x-mail",
+      "label": "Boîte mail",
+      "url": "https://example.com/",
+      "embed": true,
+      "session": "s-pro",
+      "preload": true
+    },
+    {
+      "id": "x-mdn",
+      "label": "MDN",
+      "url": "https://developer.mozilla.org/fr/",
+      "embed": true,
+      "folder": "f-dev"
+    },
+    {
+      "id": "x-caniuse",
+      "label": "Can I use",
+      "url": "https://caniuse.com/",
+      "embed": true,
+      "folder": "f-dev",
+      "sleep": true
+    },
+    {
+      "id": "x-hn",
+      "label": "Hacker News",
+      "url": "https://news.ycombinator.com/",
+      "embed": true,
+      "folder": "f-lecture",
+      "session": "s-perso"
+    },
+    {
+      "id": "x-yt",
+      "label": "YouTube",
+      "url": "https://www.youtube.com/",
+      "embed": false,
+      "session": "s-perso"
+    }
+  ]
+}
