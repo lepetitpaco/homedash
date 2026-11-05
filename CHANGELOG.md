@@ -31,6 +31,12 @@ Appli de bureau : 2.5.0
   compteur ni notification) ou *Masqué*.
 - **Sites bord à bord** : un site affiché prend toute la place qui reste, presque sans marge, et son en-tête (← → ↻)
   est dans la barre du haut quelle que soit la disposition, barres masquées comprises.
+- **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F même en tapant dans le site : le site prend toute la fenêtre, les barres
+  reviennent quand la souris touche leur bord.
+- **Barres masquées, non-lus visibles** : les sites qui ont des messages non lus apparaissent à gauche de la cloche (les 3
+  plus chargés, puis *+N*) ; un clic ouvre le site.
+- **Extensions de navigateur dans tes sites** (appli de bureau) : *Réglages → Mes sites → Extensions*, le dossier d'une
+  extension non empaquetée. Ce qu'elle fait dans la page marche ; son icône, sa fenêtre et son clic droit non.
 - **Dates GitHub lisibles** : « 14:12 », « hier 14:12 », « 3 nov. 14:12 », à ton heure (avant : `11-05T14:12` en heure
   UTC), la date complète au survol.
 - **Corrigé** : sur un écran étroit, les cartes GitHub et Local ne sont plus trop serrées, *Réglages → Affichage* ne
