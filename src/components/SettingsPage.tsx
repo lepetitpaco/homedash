@@ -31,6 +31,7 @@ import { hostOf } from '../lib/customTabs'
 import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetDocker from './SetDocker'
+import SetExtensions, { extensionsAvailable } from './SetExtensions'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
 import SetTrello from './SetTrello'
@@ -947,6 +948,12 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                 hidden={asList(draft.docker?.hidden)}
                 onChange={(enabled, hidden) => setDraft({ ...draft, docker: { enabled, hidden } })}
               />
+            </details>
+          ) : null}
+          {extensionsAvailable() ? (
+            <details className="set-more" open={fold === 'extensions' || undefined}>
+              <summary>🧩 Extensions de navigateur dans tes sites</summary>
+              <SetExtensions />
             </details>
           ) : null}
         </Card>

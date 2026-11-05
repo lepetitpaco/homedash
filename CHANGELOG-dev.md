@@ -15,3 +15,10 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
   toute la fenêtre ; la barre du haut revient au survol du bord haut (ou ⌘K), celle de gauche au bord gauche. ⤡,
   ⌘⇧F ou quitter le site en sortent. Sans réglage. Issue #144.
 
+## paco/feature/extensions-sites
+
+- Appli de bureau, *Réglages → Mes sites → Extensions* : des extensions de navigateur non empaquetées (un dossier avec
+  `manifest.json`) tournent dans les sites, tous comptes compris. Ajouter (choix du dossier), retirer, recharger les
+  sites ouverts ; état de chaque extension (chargée, ou l'erreur). Propre à la machine, rien par défaut. Ce qu'elle fait
+  dans la page marche ; ni icône, ni popup, ni clic droit, ni `storage.sync`. Issue #132.
+

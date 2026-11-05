@@ -1069,3 +1069,41 @@
   color: var(--text);
   border-color: #6366f177;
 }
+
+/* Réglages → Mes sites → Extensions (issue #132). */
+.set-ext-list {
+  list-style: none;
+  margin: 0.5rem 0;
+  padding: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.set-ext-list li {
+  display: grid;
+  grid-template-columns: minmax(8rem, auto) 1fr auto auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.4rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 0.4rem;
+  font-size: 0.85rem;
+}
+.set-ext-name em {
+  color: var(--text-faint);
+  font-style: normal;
+}
+.set-ext-path {
+  color: var(--text-faint);
+  font-size: 0.75rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.set-ext-state {
+  color: var(--sig-ok);
+  font-size: 0.78rem;
+}
+.set-ext-list li.is-bad .set-ext-state,
+.set-ext-error {
+  color: var(--sig-bad);
+}

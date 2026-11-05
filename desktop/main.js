@@ -448,7 +448,7 @@ function createWindow() {
 
   // Mode dev : l'éclair passe à l'orange (Dock, barre des tâches) pour ne pas confondre les deux appli.
   if (DEV) wc.once('did-finish-load', () => void devIcon())
-  void win.loadURL(HOME)
+  void extensionsReady().finally(() => win?.loadURL(HOME))
 }
 
 /** L'icône en orange, dessinée par la page (le processus principal n'a pas de quoi teinter une image). */
@@ -502,6 +502,82 @@ function setupTabsSession(partition) {
   const allowed = new Set(['notifications', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen', 'media'])
   s.setPermissionRequestHandler((_wc, permission, done) => done(allowed.has(permission)))
   s.setPermissionCheckHandler((_wc, permission) => allowed.has(permission))
+  void loadExtensions(partition)
+}
+
+// ── Extensions de navigateur dans les sites (issue #132) ────────────────────
+// Dossiers d'extensions non empaquetées choisis dans Réglages → Mes sites, gardés dans desktop.json
+// (des chemins de cette machine : ni dans config.json, ni dans les sauvegardes). Chargées dans chaque
+// session de sites, jamais dans celle de homedash. Vide par défaut. Electron 44 : content scripts,
+// storage.local, runtime ; pas de popup, de clic droit, ni de storage.sync (erreur à l'appel).
+const EXT_MAX = 20
+/** partition → (dossier → id de l'extension chargée) */
+const extLoaded = new Map()
+/** dossier → { name, version, error } du dernier chargement */
+const extStatus = new Map()
+const extQueue = new Map()
+
+function extPaths() {
+  const v = readSettings().extensions
+  return Array.isArray(v) ? v.filter((p) => typeof p === 'string' && path.isAbsolute(p)).slice(0, EXT_MAX) : []
+}
+
+/** Charge dans cette session les extensions pas encore chargées ; une file par session. */
+function loadExtensions(partition) {
+  const run = async () => {
+    const api = session.fromPartition(partition).extensions
+    if (!api) return
+    const mine = extLoaded.get(partition) ?? new Map()
+    extLoaded.set(partition, mine)
+    for (const p of extPaths()) {
+      if (mine.has(p)) continue
+      try {
+        const ext = await api.loadExtension(p)
+        mine.set(p, ext.id)
+        extStatus.set(p, { name: ext.name, version: ext.version, error: '' })
+      } catch (err) {
+        extStatus.set(p, { name: path.basename(p), version: '', error: String(err?.message || err) })
+      }
+    }
+  }
+  const next = (extQueue.get(partition) ?? Promise.resolve()).then(run, run)
+  extQueue.set(partition, next)
+  return next
+}
+
+/** Sessions de sites déjà connues sur ce disque : la commune et celles des comptes. */
+function knownTabPartitions() {
+  let names = []
+  try {
+    names = fs.readdirSync(path.join(app.getPath('userData'), 'Partitions'))
+  } catch {
+    /* premier lancement : aucune */
+  }
+  return [PARTITION, ...names.map((n) => `persist:${n}`).filter((p) => OWN_PARTITION.test(p))]
+}
+
+/**
+ * Au démarrage, avant la page : les sites montés tout de suite (non-lus) ont déjà leurs extensions.
+ * Rien à faire sans extension ; jamais plus de 3 s d'attente.
+ */
+function extensionsReady() {
+  if (!extPaths().length) return Promise.resolve()
+  const all = knownTabPartitions().map((p) => {
+    setupTabsSession(p)
+    return extQueue.get(p) ?? loadExtensions(p)
+  })
+  return Promise.race([Promise.all(all), new Promise((ok) => setTimeout(ok, 3000))])
+}
+
+function extList() {
+  return extPaths().map((p) => ({
+    path: p,
+    name: path.basename(p),
+    version: '',
+    error: '',
+    ...(extStatus.get(p) ?? {}),
+    loaded: [...extLoaded.values()].some((m) => m.has(p)),
+  }))
 }
 
 // ── Appli de dev : changer de branche ───────────────────────────────────────
@@ -905,6 +981,45 @@ ipcMain.handle('homedash:tab-memory', (e) => {
     if (m) tabs[id] = { mb: Math.round(m.memory.workingSetSize / 1024), pid } // Ko → Mo
   }
   return { total_mb: Math.round(metrics.reduce((s, m) => s + m.memory.workingSetSize / 1024, 0)), tabs }
+})
+
+/** Réglages → Mes sites → Extensions (#132) : lister, ajouter (choix du dossier), retirer, recharger les sites. */
+ipcMain.handle('homedash:extensions', async (e, req) => {
+  if (!fromHome(e)) return null
+  const action = String(req?.action || 'list')
+  if (action === 'add') {
+    const pick = await dialog.showOpenDialog(win, {
+      title: "Dossier de l'extension",
+      message: "Choisis le dossier qui contient manifest.json (l'extension non empaquetée).",
+      properties: ['openDirectory'],
+    })
+    const p = pick.canceled ? '' : pick.filePaths[0] || ''
+    if (!p) return { list: extList() }
+    if (!fs.existsSync(path.join(p, 'manifest.json')))
+      return { list: extList(), error: "Ce dossier n'a pas de manifest.json : choisis celui de l'extension, qui le contient." }
+    const cur = extPaths()
+    if (cur.length >= EXT_MAX) return { list: extList(), error: `${EXT_MAX} extensions au plus.` }
+    if (!cur.includes(p)) writeSettings({ extensions: [...cur, p] })
+    await Promise.all([...ready].map((part) => loadExtensions(part)))
+  } else if (action === 'remove') {
+    const p = String(req?.path || '')
+    writeSettings({ extensions: extPaths().filter((x) => x !== p) })
+    for (const [part, mine] of extLoaded) {
+      const id = mine.get(p)
+      if (!id) continue
+      try {
+        session.fromPartition(part).extensions.removeExtension(id)
+      } catch {
+        /* déjà partie */
+      }
+      mine.delete(p)
+    }
+    extStatus.delete(p)
+  } else if (action === 'reload') {
+    // Un content script ne s'applique qu'au prochain chargement de la page.
+    for (const id of guests) webContents.fromId(id)?.reload()
+  }
+  return { list: extList() }
 })
 
 ipcMain.handle('homedash:clear-data', async (e, req) => {

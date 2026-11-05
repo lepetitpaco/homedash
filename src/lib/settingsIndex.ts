@@ -33,6 +33,7 @@ export const SETTINGS_INDEX: SettingsEntry[] = [
   { id: 'accounts', icon: '👤', label: 'Mes sites › Comptes', section: 'set-tabs', keywords: 'comptes plusieurs connexion session profil' },
   { id: 'folders', icon: '📁', label: 'Mes sites › Dossiers', section: 'set-tabs', keywords: 'dossiers ranger grouper' },
   { id: 'docker', icon: '🐳', label: 'Mes sites › Docker', section: 'set-tabs:docker', keywords: 'docker containers compose ports' },
+  { id: 'extensions', icon: '🧩', label: 'Mes sites › Extensions', section: 'set-tabs:extensions', keywords: 'extensions navigateur chrome content script bc layout anilist manifest' },
   { id: 'bars', icon: '🧭', label: 'Barres et onglets', section: 'set-bars', keywords: 'disposition barre gauche onglets en haut pastilles soulignés masquer cacher taille icônes' },
   { id: 'display', icon: '🎛', label: 'Affichage', section: 'set-display', keywords: 'largeur page centrée colonnes densité tuiles horloge voyants écran' },
   { id: 'notifs', icon: '🔔', label: 'Notifications', section: 'set-notifs', keywords: 'notifications bureau alertes compteur icône dock sourdine' },
