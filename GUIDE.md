@@ -65,8 +65,9 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Extensions de navigateur** (appli de bureau) : *Réglages → Mes sites → Extensions* → *Ajouter un dossier*, celui
   d'une extension non empaquetée (avec `manifest.json`). Elle tourne dans tous tes sites, tous comptes compris, sur
   cette machine seulement ; *↻ Recharger les sites ouverts* pour l'appliquer tout de suite. Ce qu'elle fait dans la
-  page marche ; son icône, sa fenêtre (popup), son clic droit et `storage.sync` non (elle doit se rabattre sur
-  `storage.local`). N'ajoute que des extensions que tu connais : elles voient tout ce que tes sites affichent.
+  page marche, et **⚙ Réglages** ouvre sa fenêtre (popup) ou sa page d'options : ses réglages valent pour tes sites
+  sans compte à part (chaque compte garde les siens). Son icône, son clic droit et `storage.sync` non (elle doit se
+  rabattre sur `storage.local`). N'ajoute que des extensions que tu connais : elles voient tout ce que tes sites affichent.
 - **Tout le reste** : clic droit sur l'icône du site (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse

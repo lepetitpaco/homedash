@@ -2,8 +2,10 @@ import { useEffect, useState } from 'react'
 import { desktop, type ExtensionInfo } from '../lib/desktop'
 import { confirmDialog } from './ConfirmHost'
 
-/** L'appli sait-elle charger des extensions (≥ 2.6) ? Sinon, ce bloc n'existe pas. */
+/** L'appli sait-elle charger des extensions (≥ 2.5) ? Sinon, ce bloc n'existe pas. */
 export const extensionsAvailable = () => !!desktop?.extensions && !!desktop.features?.includes('extensions')
+/** Et ouvrir leurs réglages (⚙) ? Une appli plus ancienne n'a pas le bouton. */
+const settingsAvailable = () => !!desktop?.features?.includes('extension-settings')
 
 /**
  * Réglages → Mes sites → Extensions (issue #132) : des extensions de navigateur non empaquetées
@@ -15,7 +17,7 @@ export default function SetExtensions() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const run = async (action: 'list' | 'add' | 'remove' | 'reload', path?: string) => {
+  const run = async (action: 'list' | 'add' | 'remove' | 'reload' | 'settings', path?: string) => {
     if (!desktop?.extensions) return
     setBusy(true)
     try {
@@ -40,9 +42,14 @@ export default function SetExtensions() {
       <p className="set-hint">
         Une extension de navigateur <strong>non empaquetée</strong> (le dossier qui contient <code>manifest.json</code>)
         tourne dans tes sites, tous comptes compris : elle voit tout ce qu'ils affichent. N'ajoute que les tiennes ou
-        celles que tu connais. Ce qui marche : ce qu'elle fait dans la page. Ce qui ne marche pas : son icône et sa
-        fenêtre (popup), son clic droit, et <code>storage.sync</code> (l'extension doit se rabattre sur{' '}
-        <code>storage.local</code>).
+        celles que tu connais. Ce qui marche : ce qu'elle fait dans la page
+        {settingsAvailable() ? (
+          <>
+            , et ses réglages par <strong>⚙</strong> (pour tes sites sans compte à part : chaque compte garde les siens)
+          </>
+        ) : null}
+        . Ce qui ne marche pas : son icône{settingsAvailable() ? '' : ' et sa fenêtre (popup)'}, son clic droit, et{' '}
+        <code>storage.sync</code> (l'extension doit se rabattre sur <code>storage.local</code>).
       </p>
       {list?.length ? (
         <ul className="set-ext-list">
@@ -56,6 +63,11 @@ export default function SetExtensions() {
                 {x.path}
               </span>
               <span className="set-ext-state">{x.error ? `✗ ${x.error}` : x.loaded ? '✓ chargée' : '… au prochain site ouvert'}</span>
+              {x.settings && !x.error && settingsAvailable() ? (
+                <button type="button" disabled={busy} onClick={() => void run('settings', x.path)} title={`Réglages de ${x.name}, dans leur fenêtre`}>
+                  ⚙ Réglages
+                </button>
+              ) : null}
               <button
                 type="button"
                 disabled={busy}

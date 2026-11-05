@@ -50,7 +50,8 @@ desktop/                  l'appli (Electron)
                           d'exposé), badge du Dock / barre des tâches, icône près de l'horloge (Windows),
                           menus, connexion Basecamp interceptée, cookies de l'export complet,
                           reprise des données Docker au premier lancement, extensions des sites
-                          (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions), relais de
+                          (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions, ⚙ réglages dans
+                          leur fenêtre : openExtSettings), relais de
                           ⌘⇧F depuis un site vers le mode focus (watchFocusKey)
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)

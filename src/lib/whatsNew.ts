@@ -87,7 +87,7 @@ export const WHATS_NEW: Record<string, WhatsNewCard[]> = {
       id: 'extensions',
       icon: '🧩',
       title: 'Extensions dans tes sites',
-      text: 'Le dossier d’une extension non empaquetée, et elle tourne dans tous tes sites. N’ajoute que celles que tu connais : elles voient ce que tes sites affichent.',
+      text: 'Le dossier d’une extension non empaquetée, et elle tourne dans tous tes sites ; ⚙ ouvre ses réglages. N’ajoute que celles que tu connais : elles voient ce que tes sites affichent.',
       go: { section: 'set-tabs:extensions' },
       desktop: 'extensions',
     },
