@@ -17,7 +17,7 @@ export default function SetBellKinds({ prefs, onChange }: { prefs: BellPrefs; on
         const cur = levelOf(prefs, f.kinds[0])
         return [
           <span key={`${f.id}-l`}>
-            <span aria-hidden="true">{f.icon} </span>
+            <span className="set-bell-icon" aria-hidden="true">{f.icon}</span>
             {f.label}
           </span>,
           <span key={`${f.id}-c`} className="xs-seg" role="radiogroup" aria-label={f.label}>

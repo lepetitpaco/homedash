@@ -179,6 +179,12 @@
 .set-bell-kinds > span:nth-child(odd) {
   font-size: 0.86rem;
 }
+/* L'icône a sa colonne : un emoji déborde de sa place et collait au texte, les libellés s'alignent */
+.set-bell-kinds .set-bell-icon {
+  display: inline-block;
+  width: 1.6em;
+  text-align: center;
+}
 
 /* Sites à lire, à gauche de la cloche, quand les barres sont masquées (issue #130). */
 .unread-sites {

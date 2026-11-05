@@ -139,10 +139,15 @@ const ev = (kind, level, source, title, body, h, repoName = '') => ({
 })
 const list = [
   ev('pr-merged', 'ok', 'github', '🎉 PR mergée — design-system #31', 'Boutons : variante « danger »', 15, 'design-system'),
-  ev('ci-fixed', 'ok', 'github', '✅ CI réparée — web #88', 'Nouvelle page de paiement', 4, 'web'),
+  ev('pr-pass', 'ok', 'github', '✓ CI pass — web #88', 'Nouvelle page de paiement', 4, 'web'),
+  ev('ren-new', 'info', 'github', '🤖 Renovate disponible — design-system', 'Update dependency vite to v7.2.4', 2.2, 'design-system'),
+  ev('ren-new', 'info', 'github', '🤖 Renovate disponible — web', 'Update dependency vite to v7.2.4', 2.1, 'web'),
+  ev('ren-new', 'info', 'github', '🤖 Renovate disponible — api', 'Update dependency vite to v7.2.4', 2, 'api'),
   ev('bc-notif', 'info', 'basecamp', '💬 Grace — Re: Démo de vendredi', 'Produit · Je peux montrer le paiement si tu veux.', 1),
-  ev('ci-failed', 'error', 'github', '❌ CI cassée — api #142', 'Export des commandes en CSV · 2 échecs', 0.5, 'api'),
+  ev('pr-fail', 'bad', 'github', '✗ CI fail — api #142', 'Export des commandes en CSV', 0.5, 'api'),
 ]
+// Comme le serveur : la plus récente en haut
+list.sort((x, y) => y.ts - x.ts)
 export const events = { events: list, seq, total: list.length }
 
 const tc = (n, title, list, o = {}) => ({

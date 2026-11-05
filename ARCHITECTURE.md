@@ -41,13 +41,17 @@ src/
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
                           tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
                           dockerTabs (lignes Docker), settingsIndex (ce que la recherche trouve dans Réglages),
-                          issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats)
+                          issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats),
+                          bellPrefs (ce qui compte dans la cloche), unreadSites (non-lus près de la cloche),
+                          ghDate (dates GitHub à l'heure locale)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  l'appli (Electron)
   main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
                           d'exposé), badge du Dock / barre des tâches, icône près de l'horloge (Windows),
                           menus, connexion Basecamp interceptée, cookies de l'export complet,
-                          reprise des données Docker au premier lancement
+                          reprise des données Docker au premier lancement, extensions des sites
+                          (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions), relais de
+                          ⌘⇧F depuis un site vers le mode focus (watchFocusKey)
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)
   updater.js              mise à jour par la dernière Release (sha512 vérifié, données sauvegardées, journal Windows)

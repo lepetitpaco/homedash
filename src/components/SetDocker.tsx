@@ -1,6 +1,6 @@
 import { useDocker } from '../lib/docker'
 
-/** Réglages → Docker : activer le dossier de la barre, choisir ce qu'il montre. */
+/** Réglages → Mes sites → Docker : activer le dossier de la barre, choisir ce qu'il montre. */
 export default function SetDocker({
   enabled,
   hidden,

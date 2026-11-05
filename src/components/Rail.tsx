@@ -410,7 +410,7 @@ export default function Rail({
               onDragEnd={endDrag}
             >
               <span className="rail-pill" aria-hidden="true" />
-              <button className="rail-btn rail-folder-btn" onClick={() => toggle(DOCKER_FOLDER)} title="Docker · Réglages → Docker pour choisir"
+              <button className="rail-btn rail-folder-btn" onClick={() => toggle(DOCKER_FOLDER)} title="Docker · Réglages → Mes sites → Docker pour choisir"
                 // Un dossier se place devant lui ; un site n'y entre pas, la liste est calculée.
                 onDragOver={(e) => {
                   if (!draggedFolder || draggedFolder === DOCKER_FOLDER) return

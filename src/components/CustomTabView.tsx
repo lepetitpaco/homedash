@@ -17,6 +17,15 @@ import type { CustomTab } from '../types'
 /** Relecture des non-lus dans la page (`pageCounter`), sites concernés seulement. */
 const PAGE_POLL_MS = 2_000
 
+/** Appel à une webview qui n'est peut-être pas encore prête (ou déjà détachée) : rien plutôt qu'une erreur. */
+function guarded<T>(f: () => T): T | undefined {
+  try {
+    return f()
+  } catch {
+    return undefined
+  }
+}
+
 /**
  * Onglet perso affiché dans la page : le site ou le fichier dans un cadre.
  *
@@ -159,11 +168,18 @@ export default function CustomTabView({
     reportRef.current = counter.report
     const readPage = () => {
       if (!code) return
-      el.executeJavaScript(code)
-        .then(counter.page)
-        .catch(() => {
-          /* page en cours de chargement */
-        })
+      // Le minuteur part avant `dom-ready` : executeJavaScript lève alors une erreur tout de suite,
+      // que le .catch ne voit pas (« The WebView must be attached… » au journal d'erreurs).
+      if (!ready.current) return
+      try {
+        el.executeJavaScript(code)
+          .then(counter.page)
+          .catch(() => {
+            /* page en cours de chargement */
+          })
+      } catch {
+        /* webview détachée entre-temps */
+      }
     }
     const poll = code ? window.setInterval(readPage, PAGE_POLL_MS) : 0
     const onTitle = (e: Event) => {
@@ -297,7 +313,7 @@ export default function CustomTabView({
     }
   }, [key])
   // Dans l'appli : l'adresse où l'on est arrivé, pas celle de départ.
-  const openOutside = () => desktop?.openExternal(view.current?.getURL() || src)
+  const openOutside = () => desktop?.openExternal(guarded(() => view.current?.getURL()) || src)
 
   // Emplacement réservé dans la barre du haut (TopBar), présent quand un site est affiché.
   const [slot, setSlot] = useState<HTMLElement | null>(null)
@@ -322,7 +338,7 @@ export default function CustomTabView({
         <>
           <button
             className="xtab-btn xtab-icon-btn"
-            onClick={() => view.current?.canGoBack() && view.current.goBack()}
+            onClick={() => guarded(() => view.current?.canGoBack() && view.current.goBack())}
             title="Page précédente"
             aria-label="Page précédente"
           >
@@ -330,7 +346,7 @@ export default function CustomTabView({
           </button>
           <button
             className="xtab-btn xtab-icon-btn"
-            onClick={() => view.current?.canGoForward() && view.current.goForward()}
+            onClick={() => guarded(() => view.current?.canGoForward() && view.current.goForward())}
             title="Page suivante"
             aria-label="Page suivante"
           >
