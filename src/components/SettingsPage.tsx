@@ -36,6 +36,7 @@ import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
 import SetTrello from './SetTrello'
 import SetToolRepos from './SetToolRepos'
+import { WHATS_NEW_EVENT, whatsNewSince } from '../lib/whatsNew'
 import SetBcStats from './SetBcStats'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
@@ -983,7 +984,12 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                       : ''}{' '}
                 <button className="set-inline-btn" onClick={() => void changelog.check()} disabled={changelog.busy}>
                   {changelog.busy ? 'vérification…' : 'Vérifier maintenant'}
-                </button>
+                </button>{' '}
+                {whatsNewSince(null, changelog.data.current).length ? (
+                  <button className="set-inline-btn" onClick={() => window.dispatchEvent(new Event(WHATS_NEW_EVENT))}>
+                    ✨ Quoi de neuf
+                  </button>
+                ) : null}
               </p>
               <ChangelogBody data={changelog.data} />
             </div>

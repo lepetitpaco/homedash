@@ -43,7 +43,7 @@ src/
                           dockerTabs (lignes Docker), settingsIndex (ce que la recherche trouve dans Réglages),
                           issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats),
                           bellPrefs (ce qui compte dans la cloche), unreadSites (non-lus près de la cloche),
-                          ghDate (dates GitHub à l'heure locale)
+                          ghDate (dates GitHub à l'heure locale), whatsNew (cartes « Quoi de neuf » par version)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  l'appli (Electron)
   main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien

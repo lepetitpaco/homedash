@@ -21,6 +21,7 @@ import SiteSwitcher from './components/SiteSwitcher'
 import EventBell from './components/EventBell'
 import EventFeed from './components/EventFeed'
 import VersionMenu from './components/VersionMenu'
+import WhatsNew from './components/WhatsNew'
 import Footer from './components/Footer'
 import GithubView from './components/GithubView'
 import LocalRepos from './components/LocalRepos'
@@ -70,6 +71,7 @@ import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
 import { loadNotes, type Note } from './lib/notes'
 import { useChangelog } from './lib/changelog'
+import { shouldShowWhatsNew, WHATS_NEW_EVENT, WHATS_NEW_SEEN, whatsNewSince } from './lib/whatsNew'
 import { setUnread } from './lib/notifications'
 import { settingsEntries } from './lib/settingsIndex'
 import { NEW_TAB_EVENT, presetEditTab, presetNewTab, presetSettingsSection, showSettingsSection } from './lib/settingsNav'
@@ -651,6 +653,35 @@ export default function App() {
   const bc = useBasecamp(tab === 'basecamp')
   const tr = useTrello(tab === 'trello')
   const changelog = useChangelog()
+  // « Quoi de neuf » : une fois après une mise à jour, puis à la demande (WHATS_NEW_EVENT).
+  const [whatsNewOpen, setWhatsNewOpen] = useState(false)
+  const cl = changelog.data
+  const newsSinceUpdate = cl ? whatsNewSince(cl.upgraded_from, cl.current, on, desktop?.features ?? null) : []
+  // Rouverte à la main sans mise à jour connue : les nouveautés de la dernière version qui en a.
+  const newsShown = cl?.upgraded_from ? newsSinceUpdate : cl ? whatsNewSince(null, cl.current, on, desktop?.features ?? null).slice(0, 1) : []
+  useEffect(() => {
+    if (!cl) return
+    let seen: string | null = null
+    try {
+      seen = localStorage.getItem(WHATS_NEW_SEEN)
+    } catch {
+      /* stockage indisponible : on la montre, une fois par chargement au pire */
+    }
+    if (!shouldShowWhatsNew(cl.upgraded_from, cl.current, seen, newsSinceUpdate)) return
+    setWhatsNewOpen(true)
+    try {
+      localStorage.setItem(WHATS_NEW_SEEN, cl.current)
+    } catch {
+      /* idem */
+    }
+    // une seule décision par version et par chargement
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cl?.current, cl?.upgraded_from])
+  useEffect(() => {
+    const open = () => setWhatsNewOpen(true)
+    window.addEventListener(WHATS_NEW_EVENT, open)
+    return () => window.removeEventListener(WHATS_NEW_EVENT, open)
+  }, [])
   // « rapport prêt » : la vue Issues de l'onglet Basecamp, d'où on le publie
   const openBcIssues = useCallback(() => {
     showBcIssues()
@@ -2730,6 +2761,20 @@ export default function App() {
               session: sessionOf(t, tabSessions),
             }
           })}
+        />
+      ) : null}
+      {whatsNewOpen && newsShown.length ? (
+        <WhatsNew
+          versions={newsShown}
+          from={cl?.upgraded_from ?? null}
+          onClose={() => setWhatsNewOpen(false)}
+          onGo={(go) => {
+            setWhatsNewOpen(false)
+            if ('tab' in go) {
+              search.setQuery('')
+              selectTab(go.tab)
+            } else openSection(go.section)
+          }}
         />
       ) : null}
       <ConfirmHost />

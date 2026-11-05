@@ -55,6 +55,12 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 - Formulaire GitHub, Copier la commande et le prompt (focus simulé), Voir sur GitHub.
 - Sur le repo de test : créer, rapport, publier, fermer.
 
+## Quoi de neuf
+
+- Après une mise à jour (`data/version.json` à une version plus ancienne, puis relance) : s'ouvre une fois, pas au rechargement suivant ; jamais après une première installation.
+- Cartes et captures recadrées, deux colonnes puis une seule sous 860 px, Échap, ✕, clic dehors, *Essayer* mène au bon endroit.
+- Rouverte par le numéro de version et par la page Nouveautés (recherche « nouveautés ») ; une fonctionnalité coupée n'a pas sa carte.
+
 ## Réglages
 
 - Vue d'ensemble, chaque page (tient sur un écran), Enregistrer, Annuler, sauvegardes ; la recherche ouvre la bonne page.
