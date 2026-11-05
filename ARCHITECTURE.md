@@ -32,11 +32,12 @@ server/                   TypeScript « effaçable » : lancé tel quel en dev, 
   backup.ts               instantanés, export, restauration, réparation d'une config abîmée
   fullexport.ts           export complet chiffré (.homedash : scrypt + AES-256-GCM), aperçu, import
   errlog.ts               journal d'erreurs (data/logs/, 30 jours) : message vu + détail technique
-  updates.ts              version installée (CHANGELOG.md), dernière Release GitHub, GUIDE.md servi
+  updates.ts              version installée (CHANGELOG.md), dernière Release GitHub, GUIDE.md servi,
+                          version d'avant une mise à jour (data/version.json `from`, pour ✨ Quoi de neuf)
 src/
   App.tsx                 assemblage : barre du haut, onglets, barre de gauche (Rail), vue courante
   hooks/                  état de la page (config, recherche, onglets, menus, préférences…)
-  components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell, BcStats…) ; IssueComposer :
+  components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell, BcStats, WhatsNew…) ; IssueComposer :
                           la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
                           tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
@@ -112,7 +113,7 @@ data/                     (non versionné, dev) ; dans l'appli : <userData>/data
 | `/api/local/browse`, `/api/local/roots` | GET | Choix des dossiers (dossier personnel et disque monté ; `&files=1` liste aussi les fichiers, dossier personnel seulement) |
 | `/api/backup`, `/api/backup/restore` | GET, POST | Export, restauration d'un fichier |
 | `/api/backups[/{nom}[/restore]]` | GET, POST, DELETE | Instantanés |
-| `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible |
+| `/api/changelog`, `/api/changelog/check` | GET, POST | Changelog, version installée, mise à jour disponible, version d'avant la dernière mise à jour (`upgraded_from`, pour ✨ Quoi de neuf) |
 | `/api/guide` | GET | Texte de GUIDE.md (Réglages → Aide) |
 | `/api/errors` | GET, POST, DELETE | Journal d'erreurs : lire, noter une erreur de la page, vider |
 | `/api/perf/report?days=` | GET | Journal de performance résumé, jour par jour (Réglages → Diagnostic) |

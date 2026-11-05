@@ -7,6 +7,8 @@ plus récente sur GitHub déclenche la notification « mise à jour disponible �
 ## 2.5.0 — 2026-11-05
 Appli de bureau : 2.5.0
 
+- **✨ Quoi de neuf** : après une mise à jour, une fenêtre présente les nouveautés, une carte chacune, et *Essayer*
+  t'emmène au bon endroit. Elle ne s'ouvre qu'une fois ; pour la revoir, clique le numéro de version, en haut à droite.
 - **Ouvrir toutes les PR d'une branche d'un coup** : dans GitHub, une branche présente dans plusieurs repos a un bouton
   **↗ ouvrir les N**. Dans l'appli, chaque PR s'ouvre dans un onglet ; ⌘clic les ouvre dans le navigateur (ou l'inverse,
   selon ton réglage des liens).
@@ -36,11 +38,16 @@ Appli de bureau : 2.5.0
 - **Barres masquées, non-lus visibles** : les sites qui ont des messages non lus apparaissent à gauche de la cloche (les 3
   plus chargés, puis *+N*) ; un clic ouvre le site.
 - **Extensions de navigateur dans tes sites** (appli de bureau) : *Réglages → Mes sites → Extensions*, le dossier d'une
-  extension non empaquetée. Ce qu'elle fait dans la page marche ; son icône, sa fenêtre et son clic droit non.
+  extension non empaquetée. Ce qu'elle fait dans la page marche, et **⚙ Réglages** ouvre sa fenêtre de réglages (pour
+  tes sites sans compte à part). Son icône et son clic droit, non.
 - **Dates GitHub lisibles** : « 14:12 », « hier 14:12 », « 3 nov. 14:12 », à ton heure (avant : `11-05T14:12` en heure
   UTC), la date complète au survol.
+- **La recherche des Réglages** trouve aussi *Liens qui ouvrent un nouvel onglet*, *Onglets temporaires gardés* et
+  *Repos où créer les issues*.
 - **Corrigé** : sur un écran étroit, les cartes GitHub et Local ne sont plus trop serrées, *Réglages → Affichage* ne
-  déborde plus, et « synchro il y a… » reste sur une ligne dans Local.
+  déborde plus, et « synchro il y a… » reste sur une ligne dans Local. 📊 Stats : le plein écran ne se vide plus, et le
+  détail par mois défile au lieu de couper la colonne Total. La bulle de Docker et le message « GitHub non connecté »
+  mènent à la bonne page de Réglages.
 
 ## 2.4.1 — 2026-11-01
 Appli de bureau : 2.4.1
