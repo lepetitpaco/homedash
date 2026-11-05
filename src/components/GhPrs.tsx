@@ -20,7 +20,7 @@ function PrGroup({ branch, items }: { branch: string; items: Pr[] }) {
   const ok = items.filter((p) => p.ci.state === 'pass').length
   const tag = ok === items.length ? '✅ toutes vertes' : `${ok}/${items.length} vertes`
   return (
-    <BranchGroup branch={branch} summary={`${items.length} PRs · ${tag}`}>
+    <BranchGroup branch={branch} summary={`${items.length} PRs · ${tag}`} links={items.map((p) => p.url)}>
       {items.map((p) => (
         <PrRow key={`${p.repo}#${p.number}`} p={p} grouped />
       ))}

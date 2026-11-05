@@ -66,6 +66,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.gh-prgroup-open {
+  flex-shrink: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-faint);
+  font: inherit;
+  padding: 0 0.45rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.gh-prgroup-open:hover,
+.gh-prgroup-open:focus-visible {
+  color: var(--sig-branch);
+  border-color: var(--sig-branch);
+}
+.gh-prgroup-blocked {
+  padding: 0.15rem 0.7rem 0;
+  font-size: 0.66rem;
+  color: var(--text-faint);
+}
 .gh-prgroup-count {
   margin-left: auto;
   color: var(--text-faint);

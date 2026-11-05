@@ -80,6 +80,7 @@ import { keys } from './lib/keys'
 import { RECOUNT_TABS } from './lib/tabCount'
 import SetupCard, { type SetupStep } from './components/SetupCard'
 import { updateGroup } from './lib/mutate'
+import { setGroupOpener } from './lib/openTabs'
 
 const RAIL_KEY = 'homedash:rail'
 const SWITCHER_DELAY_MS = 180
@@ -825,6 +826,12 @@ export default function App() {
   // les actions de homedash. `openTempRef` : défini plus bas, avec les éphémères.
   const iconRef = useRef<Record<string, React.ReactNode>>({})
   const openTempRef = useRef<(url: string) => void>(() => undefined)
+  const openGroupRef = useRef<(urls: string[], flip: boolean) => void>(() => undefined)
+  const openGroupOneRef = useRef<(url: string) => void>(() => undefined)
+  useEffect(() => {
+    setGroupOpener((urls, flip) => openGroupRef.current(urls, flip))
+    return () => setGroupOpener(null)
+  }, [])
   const siteActionsRef = useRef<Record<'mute' | 'notify' | 'clear', (t: CustomTab) => void>>({
     mute: () => undefined,
     notify: () => undefined,
@@ -1404,6 +1411,21 @@ export default function App() {
     return true
   }
   openTempRef.current = (url) => openTemp(url)
+  // ↗ d'un groupe de branche (cartes GitHub, issue #127) : une page par onglet temporaire, pas le site
+  // GitHub de la barre (chaque lien y remplacerait le précédent). Une page déjà ouverte n'est pas doublée.
+  openGroupOneRef.current = (url) => {
+    if (allTabs.some((t) => (t.id.startsWith('tmp-') || t.parent) && samePage(t.url, url))) return
+    openTemp(url)
+  }
+  openGroupRef.current = (urls, flip) => {
+    if ((ui.openLinks === 'browser') !== flip) {
+      for (const url of urls) desktop?.openExternal(url)
+      return
+    }
+    // Une ouverture par rendu : l'id d'un onglet temporaire se calcule sur les onglets déjà là, deux
+    // ouvertures dans le même rendu prendraient le même.
+    urls.forEach((url, i) => window.setTimeout(() => openGroupOneRef.current(url), i * 60))
+  }
   /** ⧉ de la barre : un onglet éphémère vierge (Google), avec le compte choisi s'il y en a. */
   const newTemp = (e: { clientX: number; clientY: number }) => {
     const start = 'https://www.google.com/'
