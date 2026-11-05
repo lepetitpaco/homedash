@@ -23,6 +23,8 @@ type Props = {
   version?: React.ReactNode
   /** Un site est affiché (barre de gauche) : son en-tête prend la place du logo. */
   site?: boolean
+  /** Sites à lire, quand les barres masquées cachent leurs compteurs (issue #130). */
+  unread?: React.ReactNode
 }
 
 /** Où CustomTabView place l'en-tête du site affiché (une rangée de moins). */
@@ -54,6 +56,7 @@ export default function TopBar({
   bell,
   version,
   site = false,
+  unread,
 }: Props) {
   const now = useClock(showClock)
   const barRef = useRef<HTMLElement>(null)
@@ -122,6 +125,7 @@ export default function TopBar({
           </div>
         ) : null}
         {version}
+        {unread}
         {bell}
         <button
           className={`icon-btn${refreshing ? ' is-spinning' : ''}`}
