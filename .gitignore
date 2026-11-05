@@ -2,6 +2,8 @@
 # Jamais versionnées : chacun a les siennes, créées au premier démarrage.
 data/
 data-*/
+# Sauf l'instance de démo des captures : données inventées (équipe « acme »), aucun jeton (#136)
+!docs/demo/data/
 *.json.bak
 backups/
 

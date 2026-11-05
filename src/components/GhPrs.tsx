@@ -1,4 +1,5 @@
 import type { GithubData, Pr } from '../lib/ghboard'
+import { ghDate, ghDateFull } from '../lib/ghDate'
 import { BranchGroup, CiBadge, GhCard, GhEmpty, GhRow, groupByBranch } from './GhCard'
 
 function PrRow({ p, grouped }: { p: Pr; grouped?: boolean }) {
@@ -10,7 +11,7 @@ function PrRow({ p, grouped }: { p: Pr; grouped?: boolean }) {
       <div className="gh-meta">
         <span className="gh-num">#{p.number}</span>
         {p.branch && !grouped ? <span className="gh-branch-inline"> {p.branch}</span> : null}
-        {p.created_at ? ` · ${p.created_at.slice(5, 16)}` : null}
+        {p.created_at ? <span title={ghDateFull(p.created_at)}> · {ghDate(p.created_at)}</span> : null}
       </div>
     </GhRow>
   )

@@ -16,7 +16,9 @@ const json = (body) => ({ status: 200, contentType: 'application/json', body: JS
 for (const [name, body] of Object.entries({ github: fx.github, local: fx.local, basecamp: fx.basecamp, trello: fx.trello, events: fx.events }))
   await page.route(new RegExp(`/api/${name}(\\?.*)?$`), (r) => r.fulfill(json(body)))
 
-const tab = (label) => page.locator('button', { hasText: label }).first().click()
+// Onglets de homedash : dans la barre de gauche (défaut, bulle = nom), ou en haut (texte du bouton).
+const tab = (label) =>
+  page.locator(`.rail-btn[title="${label}"], .rail-btn[title^="${label} · "], button:has-text("${label}")`).first().click()
 const shots = {
   accueil: async () => {},
   github: () => tab('GitHub'),
