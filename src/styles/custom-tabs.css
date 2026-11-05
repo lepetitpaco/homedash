@@ -628,15 +628,25 @@
   font-weight: 600;
 }
 
-/* Site ouvert depuis la barre de gauche : sans la barre d'onglets au-dessus,
-   et son en-tête monté dans la barre du haut (une seule rangée, issue #2), le
-   cadre récupère toute la hauteur. */
-.app.is-site .xtab-frame {
-  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 30px);
+/* Site affiché (issue #129) : son en-tête est monté dans la barre du haut (une seule rangée, issue #2)
+   et il va bord à bord : ni largeur de page, ni grande gouttière, ni cadre. Sa hauteur est ce qui reste
+   réellement sous la barre du haut et la barre d'onglets mesurée (`--strip-h`, 0 sans elle), au lieu
+   d'un forfait. */
+.app.is-site {
+  --gutter: 6px;
+  --site-gap: 6px;
+  max-width: none;
 }
-/* …avec ses onglets ouverts par un lien en haut : la hauteur de leur barre en moins. */
-.app.is-site.has-strip .xtab-frame {
-  height: calc(100vh - var(--topbar-h, 0px) - var(--footer-h, 0px) - 30px - var(--strip-h, 0px));
+.app.is-site .topbar {
+  margin-bottom: var(--site-gap);
+}
+.app.is-site .tabs-shell {
+  margin-bottom: 0;
+}
+.app.is-site .xtab-frame {
+  height: calc(100vh - var(--topbar-h, 0px) - var(--strip-h, 0px) - 2 * var(--site-gap));
+  border: 0;
+  border-radius: 4px;
 }
 .topbar-site {
   display: flex;
