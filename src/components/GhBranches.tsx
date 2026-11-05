@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Branch, GithubData, Pr } from '../lib/ghboard'
+import { ghDate, ghDateFull } from '../lib/ghDate'
 import { BranchGroup, GhCard, GhEmpty, GhRow, groupByBranch } from './GhCard'
 
 const ROLE_LABEL: Record<string, [string, string]> = {
@@ -26,7 +27,7 @@ function Row({ b, me, openPr, grouped }: { b: Branch; me: string; openPr?: Pr; g
       className={b.merged ? 'is-stale' : undefined}
       right={
         <>
-          <span className="gh-date">{b.date.slice(5, 16)}</span>
+          <span className="gh-date" title={ghDateFull(b.date)}>{ghDate(b.date)}</span>
           {b.last_author && b.last_author !== me ? (
             <span className="gh-sub" title="Auteur du dernier commit">par {b.last_author}</span>
           ) : null}
