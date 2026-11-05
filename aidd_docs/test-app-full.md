@@ -25,7 +25,7 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 - Mode focus : ⤢ et ⌘⇧F (aussi en tapant dans le site), barres au bord, sortie par ⤡, ⌘⇧F ou en quittant le site.
 - Barres masquées : sites à non-lus à gauche de la cloche (3 au plus, puis +N), un clic ouvre le site.
 - Compteurs : clic droit sur Local, Basecamp, Trello (ce qu'il compte, le masquer) ; clic droit sur ⚡ (fermer les onglets ouverts).
-- Extensions (appli) : ajouter un dossier, recharger les sites, l'extension agit, la retirer.
+- Extensions (appli) : ajouter un dossier, recharger les sites, l'extension agit, ⚙ Réglages (fenêtre à la largeur de sa popup, sans barre horizontale, un 2e clic la ramène, un lien part dans le navigateur, un réglage gardé à la réouverture), la retirer (sa fenêtre se ferme).
 
 ## GitHub et Local
 

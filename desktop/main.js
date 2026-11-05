@@ -509,7 +509,8 @@ function setupTabsSession(partition) {
 // Dossiers d'extensions non empaquetées choisis dans Réglages → Mes sites, gardés dans desktop.json
 // (des chemins de cette machine : ni dans config.json, ni dans les sauvegardes). Chargées dans chaque
 // session de sites, jamais dans celle de homedash. Vide par défaut. Electron 44 : content scripts,
-// storage.local, runtime ; pas de popup, de clic droit, ni de storage.sync (erreur à l'appel).
+// storage.local, runtime ; ni icône, ni clic droit, ni storage.sync (erreur à l'appel), ni
+// permissions. Sa popup ou sa page d'options s'ouvre à part, ⚙ dans Réglages (openExtSettings).
 const EXT_MAX = 20
 /** partition → (dossier → id de l'extension chargée) */
 const extLoaded = new Map()
@@ -534,7 +535,7 @@ function loadExtensions(partition) {
       try {
         const ext = await api.loadExtension(p)
         mine.set(p, ext.id)
-        extStatus.set(p, { name: ext.name, version: ext.version, error: '' })
+        extStatus.set(p, { name: ext.name, version: ext.version, error: '', ...settingsPage(ext.manifest) })
       } catch (err) {
         extStatus.set(p, { name: path.basename(p), version: '', error: String(err?.message || err) })
       }
@@ -543,6 +544,82 @@ function loadExtensions(partition) {
   const next = (extQueue.get(partition) ?? Promise.resolve()).then(run, run)
   extQueue.set(partition, next)
   return next
+}
+
+/** Ses réglages : la popup de son icône, sinon sa page d'options (chemin dans l'extension). */
+function settingsPage(m) {
+  const popup = (m?.action || m?.browser_action || {}).default_popup
+  const options = m?.options_page || m?.options_ui?.page
+  const page = String(popup || options || '').replace(/^\/+/, '')
+  return page && !page.includes('..') ? { settings: page, popup: !!popup } : {}
+}
+
+/** Fenêtres de réglages ouvertes, par id d'extension : un 2e clic ramène la même devant. */
+const extWindows = new Map()
+
+/**
+ * Réglages d'une extension dans leur fenêtre, sur la session commune des sites : c'est là que ses
+ * content scripts lisent storage.local (les comptes ont chacun leur stockage, non réglés ici).
+ * Sans Node ; navigation limitée à l'extension, un lien web part dans le navigateur.
+ */
+function openExtSettings(id, page, name, popup) {
+  const open = extWindows.get(id)
+  if (open && !open.isDestroyed()) {
+    open.show()
+    open.focus()
+    return
+  }
+  const base = `chrome-extension://${id}/`
+  const w = new BrowserWindow({
+    // Une popup prend sa taille une fois chargée (plus bas) ; une page d'options, celle d'un onglet.
+    width: popup ? 800 : 900,
+    height: popup ? 600 : 720,
+    minWidth: 240,
+    minHeight: 200,
+    show: false,
+    title: name,
+    parent: win ?? undefined,
+    autoHideMenuBar: true,
+    webPreferences: { session: session.fromPartition(PARTITION), sandbox: true, contextIsolation: true, nodeIntegration: false },
+  })
+  w.webContents.setWindowOpenHandler(({ url }) => {
+    if (isWeb(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  w.webContents.on('will-navigate', (e, url) => {
+    if (url.startsWith(base)) return
+    e.preventDefault()
+    if (isWeb(url)) void shell.openExternal(url)
+  })
+  // Le titre reste le nom de l'extension (sa page peut n'en avoir aucun).
+  w.on('page-title-updated', (e) => e.preventDefault())
+  w.on('closed', () => extWindows.delete(id))
+  extWindows.set(id, w)
+  w.once('ready-to-show', () => w.show())
+  if (popup)
+    // Comme Chrome : la popup à la largeur de son contenu (souvent fixée en CSS), 600 de haut, 800 × 600 au plus ;
+    // au-delà, elle défile. (La taille « préférée » de Chromium figeait la fenêtre sous Electron 44.)
+    w.webContents.once('did-finish-load', () => {
+      w.webContents
+        .executeJavaScript(
+          // bord droit du contenu + sa marge + la barre de défilement verticale : sans elles, une barre horizontale
+          '(() => { const b = document.body, r = b.getBoundingClientRect(); return r.width < innerWidth - 20 ? r.right + parseFloat(getComputedStyle(b).marginRight || 0) + innerWidth - document.documentElement.clientWidth : 0 })()',
+        )
+        .then((cw) => {
+          if (w.isDestroyed()) return
+          const width = Math.max(240, cw > 0 && cw <= 800 ? Math.ceil(cw) : 420)
+          w.setContentSize(width, 600)
+          w.center()
+          // Ce qui dépasse encore (la barre verticale prend sa place au contenu) : élargie d'autant, une fois.
+          return new Promise((ok) => setTimeout(ok, 250))
+            .then(() => (w.isDestroyed() ? 0 : w.webContents.executeJavaScript('document.documentElement.scrollWidth - document.documentElement.clientWidth')))
+            .then((over) => {
+              if (!w.isDestroyed() && over > 0 && over < 80) w.setContentSize(Math.min(800, width + over), 600)
+            })
+        })
+        .catch(() => undefined)
+    })
+  void w.loadURL(base + page)
 }
 
 /** Sessions de sites déjà connues sur ce disque : la commune et celles des comptes. */
@@ -570,14 +647,17 @@ function extensionsReady() {
 }
 
 function extList() {
-  return extPaths().map((p) => ({
-    path: p,
-    name: path.basename(p),
-    version: '',
-    error: '',
-    ...(extStatus.get(p) ?? {}),
-    loaded: [...extLoaded.values()].some((m) => m.has(p)),
-  }))
+  return extPaths().map((p) => {
+    const st = extStatus.get(p) ?? {}
+    return {
+      path: p,
+      name: st.name ?? path.basename(p),
+      version: st.version ?? '',
+      error: st.error ?? '',
+      settings: !!st.settings,
+      loaded: [...extLoaded.values()].some((m) => m.has(p)),
+    }
+  })
 }
 
 // ── Appli de dev : changer de branche ───────────────────────────────────────
@@ -983,7 +1063,7 @@ ipcMain.handle('homedash:tab-memory', (e) => {
   return { total_mb: Math.round(metrics.reduce((s, m) => s + m.memory.workingSetSize / 1024, 0)), tabs }
 })
 
-/** Réglages → Mes sites → Extensions (#132) : lister, ajouter (choix du dossier), retirer, recharger les sites. */
+/** Réglages → Mes sites → Extensions (#132) : lister, ajouter (choix du dossier), retirer, recharger les sites, ⚙ réglages. */
 ipcMain.handle('homedash:extensions', async (e, req) => {
   if (!fromHome(e)) return null
   const action = String(req?.action || 'list')
@@ -1007,6 +1087,7 @@ ipcMain.handle('homedash:extensions', async (e, req) => {
     for (const [part, mine] of extLoaded) {
       const id = mine.get(p)
       if (!id) continue
+      extWindows.get(id)?.close()
       try {
         session.fromPartition(part).extensions.removeExtension(id)
       } catch {
@@ -1015,6 +1096,15 @@ ipcMain.handle('homedash:extensions', async (e, req) => {
       mine.delete(p)
     }
     extStatus.delete(p)
+  } else if (action === 'settings') {
+    const p = String(req?.path || '')
+    if (!extPaths().includes(p)) return { list: extList() }
+    setupTabsSession(PARTITION)
+    await loadExtensions(PARTITION)
+    const id = extLoaded.get(PARTITION)?.get(p)
+    const st = extStatus.get(p)
+    if (!id || !st?.settings) return { list: extList(), error: "Cette extension n'a pas de réglages à ouvrir." }
+    openExtSettings(id, st.settings, st.name || path.basename(p), st.popup)
   } else if (action === 'reload') {
     // Un content script ne s'applique qu'au prochain chargement de la page.
     for (const id of guests) webContents.fromId(id)?.reload()

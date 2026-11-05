@@ -37,15 +37,18 @@ export type Desktop = {
   /** Ctrl+Tab (`site-switch` dans features) ; un nombre = ouvrir la tuile de ce rang ; renvoie de quoi se désabonner. */
   onSiteSwitch?: (cb: (step: 'next' | 'prev' | 'open' | 'cancel' | number) => void) => () => void
   /** Extensions de navigateur dans les sites (`extensions` dans features, #132). */
-  extensions?: (req: { action: 'list' | 'add' | 'remove' | 'reload'; path?: string }) => Promise<{ list: ExtensionInfo[]; error?: string } | null>
+  extensions?: (req: { action: 'list' | 'add' | 'remove' | 'reload' | 'settings'; path?: string }) => Promise<{ list: ExtensionInfo[]; error?: string } | null>
   /** ⌘⇧F tapé dans un site (`focus-key` dans features, #144) ; renvoie de quoi se désabonner. */
   onFocusToggle?: (cb: () => void) => () => void
   /** ⇧⌘R du menu de l'appli (≥ 1.1.0) ; renvoie de quoi se désabonner. */
   onReloadTab?: (cb: () => void) => () => void
 }
 
-/** Une extension de Réglages → Mes sites → Extensions : son dossier, et l'état de son chargement. */
-export type ExtensionInfo = { path: string; name: string; version: string; error: string; loaded: boolean }
+/**
+ * Une extension de Réglages → Mes sites → Extensions : son dossier, l'état de son chargement, et `settings` quand elle
+ * a une popup ou une page d'options, que ⚙ ouvre (`extension-settings` dans features).
+ */
+export type ExtensionInfo = { path: string; name: string; version: string; error: string; loaded: boolean; settings?: boolean }
 
 export const desktop: Desktop | undefined = (window as unknown as { homedashDesktop?: Desktop }).homedashDesktop
 

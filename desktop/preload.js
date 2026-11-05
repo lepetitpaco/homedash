@@ -37,6 +37,8 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     'focus-key',
     // Extensions de navigateur dans les sites (#132).
     'extensions',
+    // ⚙ : la popup ou la page d'options d'une extension, dans sa fenêtre.
+    'extension-settings',
   ],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),

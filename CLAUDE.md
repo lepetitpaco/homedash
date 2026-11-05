@@ -286,8 +286,10 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   déconnecte pas). Compte supprimé = `sessionOf()` vide = connexion commune.
 - Extensions (#132) : dossiers dans `desktop.json` (`extensions`, chemins de la machine : jamais dans `config.json`),
   chargées par `loadExtensions()` dans chaque session de sites (jamais celle de homedash), avant la page au démarrage
-  (`extensionsReady()`, 3 s au plus). Electron 44 : `storage.sync` existe mais échoue à l'appel ; ni popup ni
-  `contextMenus`. Testé dans Electron (Docker + xvfb : `--shm-size=1g`, sinon Chromium plante).
+  (`extensionsReady()`, 3 s au plus). Electron 44 : `storage.sync` existe mais échoue à l'appel ; pas de
+  `permissions` ni `contextMenus`. Popup ou page d'options : ⚙ dans Réglages, `openExtSettings()` (fenêtre sans Node,
+  session commune `PARTITION`, navigation bornée à l'extension, mot `extension-settings`). Jamais
+  `enablePreferredSizeMode` : sous Electron 44 la fenêtre ne chargeait plus ou se figeait. Testé dans Electron (Docker + xvfb : `--shm-size=1g`, sinon Chromium plante).
 - Icônes de Mes sites : `SiteIcon` (recadrage canvas) via `/api/favicon?host=` ; le serveur ne
   contacte que le service de favicons, ou le site lui-même s'il est un onglet de la config. Jamais une
   adresse venue de la page.
