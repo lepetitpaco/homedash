@@ -282,6 +282,10 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   doit savoir qu'une appli ancienne ne l'a pas. UA sans « Electron » : sinon Google refuse sa page de connexion.
 - Comptes : `tab.session` = id de `tabSessions` ; partition `persist:homedash-tabs-<id>` (renommer ne
   déconnecte pas). Compte supprimé = `sessionOf()` vide = connexion commune.
+- Extensions (#132) : dossiers dans `desktop.json` (`extensions`, chemins de la machine : jamais dans `config.json`),
+  chargées par `loadExtensions()` dans chaque session de sites (jamais celle de homedash), avant la page au démarrage
+  (`extensionsReady()`, 3 s au plus). Electron 44 : `storage.sync` existe mais échoue à l'appel ; ni popup ni
+  `contextMenus`. Testé dans Electron (Docker + xvfb : `--shm-size=1g`, sinon Chromium plante).
 - Icônes de Mes sites : `SiteIcon` (recadrage canvas) via `/api/favicon?host=` ; le serveur ne
   contacte que le service de favicons, ou le site lui-même s'il est un onglet de la config. Jamais une
   adresse venue de la page.

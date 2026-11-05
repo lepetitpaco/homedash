@@ -61,6 +61,11 @@ même sans aucun site : son **＋** ajoute le premier.
   dans la barre d'onglets du haut (un clic sur ⚡, puis l'onglet).
 - **Containers Docker** (développeurs) : *Réglages → Mes sites → Docker*, proposé quand Docker tourne sur la machine, ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
   ou container, reconnaissable à ses deux lettres et sa couleur. Un clic ouvre son premier port, un clic droit ses autres ports.
+- **Extensions de navigateur** (appli de bureau) : *Réglages → Mes sites → Extensions* → *Ajouter un dossier*, celui
+  d'une extension non empaquetée (avec `manifest.json`). Elle tourne dans tous tes sites, tous comptes compris, sur
+  cette machine seulement ; *↻ Recharger les sites ouverts* pour l'appliquer tout de suite. Ce qu'elle fait dans la
+  page marche ; son icône, sa fenêtre (popup), son clic droit et `storage.sync` non (elle doit se rabattre sur
+  `storage.local`). N'ajoute que des extensions que tu connais : elles voient tout ce que tes sites affichent.
   Le dossier se glisse où tu veux. Ceux qui sont éteints restent visibles en plus fade, sans clic. Tu choisis lesquels ; homedash lit la liste et ne change rien.
 - **Tout le reste** : clic droit sur l'icône du site (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
