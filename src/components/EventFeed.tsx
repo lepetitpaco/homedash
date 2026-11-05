@@ -1,6 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { dayOf, hhmm, type EventSource, type HdEvent, type InApp } from '../lib/events'
 import { confirmDialog } from './ConfirmHost'
+import { groupEvents, othersOf, type EventGroup } from '../lib/bellPrefs'
 
 type Filter = 'all' | 'code' | 'basecamp' | 'trello' | 'bad'
 
@@ -62,12 +63,13 @@ export default function EventFeed({
   )
 
   const days = useMemo(() => {
-    const out: { key: string; label: string; items: HdEvent[] }[] = []
-    for (const e of shown) {
-      const { key, label } = dayOf(e.ts)
+    // Une version Renovate sur six repos = une ligne (issue #131).
+    const out: { key: string; label: string; items: EventGroup<HdEvent>[] }[] = []
+    for (const g of groupEvents(shown)) {
+      const { key, label } = dayOf(g.head.ts)
       const last = out[out.length - 1]
-      if (last && last.key === key) last.items.push(e)
-      else out.push({ key, label, items: [e] })
+      if (last && last.key === key) last.items.push(g)
+      else out.push({ key, label, items: [g] })
     }
     return out
   }, [shown])
@@ -138,11 +140,13 @@ export default function EventFeed({
               {day.label}
               <span className="ev-day-count">{day.items.length}</span>
             </div>
-            {day.items.map((e) => (
+            {day.items.map((g) => (
               <EventRow
-                key={e.seq}
-                event={e}
-                fresh={e.seq > mark.current}
+                key={g.head.seq}
+                event={g.head}
+                others={othersOf(g)}
+                count={g.items.length}
+                fresh={g.items.some((e) => e.seq > mark.current)}
                 showAccount={multiAccount}
                 inApp={inApp}
               />
@@ -160,8 +164,13 @@ export function EventRow({
   showAccount,
   showDay = false,
   inApp,
+  others = [],
+  count = 1,
 }: {
   event: HdEvent
+  /** Regroupement (issue #131) : les repos des autres lignes, et le nombre d'événements de la ligne. */
+  others?: string[]
+  count?: number
   fresh: boolean
   showAccount: boolean
   /** Sans séparateurs de jour (panneau de la cloche), l'heure dit aussi le jour. */
@@ -180,8 +189,18 @@ export function EventRow({
         <div className="ev-title">
           {showAccount && e.account ? <span className="ev-account">{e.account}</span> : null}
           {e.title}
+          {count > 1 ? (
+            <span className="ev-group-count" title={`${count} événements regroupés : même type, même version`}>
+              ×{count}
+            </span>
+          ) : null}
         </div>
-        {e.body ? <div className="ev-body">{e.body}</div> : null}
+        {e.body || others.length ? (
+          <div className="ev-body">
+            {e.body}
+            {others.length ? <span className="ev-group-more">{e.body ? ' · ' : ''}aussi : {others.join(', ')}</span> : null}
+          </div>
+        ) : null}
       </div>
     </>
   )

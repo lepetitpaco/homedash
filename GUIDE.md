@@ -168,6 +168,9 @@ version).
   non-lus de tes sites (ceux en veille sont réveillés).
 - **Notifications du système** : *activer* en bas de la cloche (coupées au départ).
 - **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications*.
+- **Trop de bruit ?** *Réglages → Notifications → Ce qui compte dans la cloche* : pour chaque type (CI en échec,
+  CI qui repasse au vert, PR mergées, Renovate, branches à nettoyer, Basecamp, Trello), *Compter* (le défaut),
+  *Discret* (dans la liste, sans compteur ni notification) ou *Masqué*.
 - **Le nombre sur l'icône de l'appli** : non-lus des sites, cloche, ou les deux (*Réglages →
   Notifications*).
 
@@ -177,6 +180,8 @@ version).
   pas lue dans Basecamp ou Trello.
 - **🧹 Branche mergée** : annoncée une seule fois, en une ligne même si elle est dans plusieurs dépôts ;
   un clic ouvre l'onglet Local et sa commande.
+- **🤖 Renovate** : une même version sur plusieurs dépôts ne fait qu'**une ligne** (« ×6 », les autres
+  dépôts dessous), et ne compte qu'une fois.
 - **Rien sur l'icône du Dock ?** macOS l'affiche seulement si *Pastilles de l'app* est activé pour
   homedash : *Réglages → Notifications → ouvrir les réglages de notifications du Mac*.
 
@@ -337,7 +342,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, veille, Docker |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
-| 🔔 Notifications | Notifications du bureau, compteur sur l'icône de l'appli |
+| 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
 | 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. Les nouveautés : le bouton de version, en haut |
 

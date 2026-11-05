@@ -36,6 +36,7 @@ export const SETTINGS_INDEX: SettingsEntry[] = [
   { id: 'bars', icon: '🧭', label: 'Barres et onglets', section: 'set-bars', keywords: 'disposition barre gauche onglets en haut pastilles soulignés masquer cacher taille icônes' },
   { id: 'display', icon: '🎛', label: 'Affichage', section: 'set-display', keywords: 'largeur page centrée colonnes densité tuiles horloge voyants écran' },
   { id: 'notifs', icon: '🔔', label: 'Notifications', section: 'set-notifs', keywords: 'notifications bureau alertes compteur icône dock sourdine' },
+  { id: 'bell-kinds', icon: '🔕', label: 'Notifications › Ce qui compte dans la cloche', section: 'set-notifs', keywords: 'cloche trop de notifications types renovate ci discret masquer compteur bruit' },
   { id: 'backups', icon: '💾', label: 'Sauvegardes', section: 'set-backups', keywords: 'sauvegarde restaurer backup export importer autre machine' },
   { id: 'guide', icon: '📖', label: 'Guide', section: 'help-guide', keywords: 'aide guide comment faire documentation raccourcis clavier' },
   { id: 'diag', icon: '🩺', label: 'Diagnostic', section: 'help-diag', keywords: 'erreurs journal performance lenteur bug mémoire' },
