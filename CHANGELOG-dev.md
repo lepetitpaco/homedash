@@ -4,6 +4,14 @@ Où en est le dev : ce qui est fait sur les branches et pas encore publié. Ce f
 l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque livraison ».
 
 
+## paco/feature/ouvrir-prs-branche
+
+- GitHub, cartes PRs ouvertes et Branches : quand une branche regroupe plusieurs repos, **↗ ouvrir les N** à côté de
+  son nom ouvre toutes ses PR d'un coup (dans la carte Branches, la branche elle-même pour un repo sans PR). Dans
+  l'appli : un onglet temporaire par PR, comme le réglage des liens ; ⌘clic (Ctrl, ⇧) : l'inverse, donc le navigateur
+  si les liens s'ouvrent dans l'appli. Une PR déjà ouverte n'est pas doublée. Dans un navigateur qui bloque les
+  fenêtres surgissantes, un message dit combien d'onglets n'ont pas pu s'ouvrir. Issue #127.
+
 ## paco/fix/compteurs-barre
 
 - Compteurs de Local, Basecamp et Trello : clic droit sur l'onglet (barre de gauche ou du haut) → ce qu'il compte,

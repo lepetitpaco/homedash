@@ -190,7 +190,9 @@ la cloche te le dit, et *Réglages → Sauvegardes* garde la liste d'avant.
 ![L'onglet GitHub](docs/screenshots/github.jpg)
 
 - **GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) : 🌿 branches actives avec leur
-  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir). Quand un workflow
+  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir). Une branche présente
+  dans plusieurs repos est regroupée sous 🔗 son nom : **↗ ouvrir les N** ouvre toutes ses PR d'un coup, un
+  onglet chacune (⌘clic : l'inverse du réglage des liens, appli ou navigateur). Quand un workflow
   tourne sur un repo suivi, ⚙️ *En cours* apparaît en haut avec le détail de ses jobs, puis disparaît à la fin.
 - **Local** : tes clones, branche par branche, avec un verdict.
 

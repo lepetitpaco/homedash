@@ -134,8 +134,16 @@ export default function GhBranches({
         if (g.length === 1) return row(g[0])
         const withPr = g.filter((b) => b.pr || openPrs.has(prKey(b.repo, b.name))).length
         const tag = withPr === g.length ? '✅ toutes en PR' : `${withPr}/${g.length} avec PR`
+        // ↗ du groupe : la PR ouverte de chaque repo, sinon la branche elle-même.
+        const links = g.map((b) => openPrs.get(prKey(b.repo, b.name))?.url ?? (b.pr && !b.pr.merged ? b.pr.url : b.url))
         return (
-          <BranchGroup key={`branch:${g[0].name}`} branch={g[0].name} summary={`${g.length} repos · ${tag}`}>
+          <BranchGroup
+            key={`branch:${g[0].name}`}
+            branch={g[0].name}
+            summary={`${g.length} repos · ${tag}`}
+            links={links}
+            linksLabel="PR (ou branches sans PR)"
+          >
             {g.map((b) => row(b, true))}
           </BranchGroup>
         )
