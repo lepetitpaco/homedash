@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { keys } from '../lib/keys'
 
 type Props = {
   query: string
@@ -25,6 +26,8 @@ type Props = {
   site?: boolean
   /** Sites à lire, quand les barres masquées cachent leurs compteurs (issue #130). */
   unread?: React.ReactNode
+  /** Site affiché : le bouton du mode focus (issue #144). */
+  focus?: { on: boolean; toggle: () => void }
 }
 
 /** Où CustomTabView place l'en-tête du site affiché (une rangée de moins). */
@@ -57,6 +60,7 @@ export default function TopBar({
   version,
   site = false,
   unread,
+  focus,
 }: Props) {
   const now = useClock(showClock)
   const barRef = useRef<HTMLElement>(null)
@@ -123,6 +127,17 @@ export default function TopBar({
             <strong>{time}</strong>
             <em>{date}</em>
           </div>
+        ) : null}
+        {focus ? (
+          <button
+            className={`icon-btn focus-btn${focus.on ? ' is-on' : ''}`}
+            onClick={focus.toggle}
+            title={focus.on ? `Quitter le mode focus (${keys('F', true)})` : `Mode focus : le site prend toute la fenêtre, les barres reviennent au bord (${keys('F', true)})`}
+            aria-label={focus.on ? 'Quitter le mode focus' : 'Mode focus'}
+            aria-pressed={focus.on}
+          >
+            {focus.on ? '⤡' : '⤢'}
+          </button>
         ) : null}
         {version}
         {unread}

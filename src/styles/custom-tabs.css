@@ -1027,3 +1027,45 @@
   border-color: color-mix(in srgb, var(--c, var(--border)) 60%, var(--border));
 }
 .tab-folder-list .tab-wrap { display: flex; }
+
+/* Mode focus (issue #144) : le site prend toute la fenêtre. La barre du haut sort de l'écran et revient
+   au survol du bord haut (bande .topbar-hot), ou dès qu'elle a le focus (⌘K, Tab) ; la barre de gauche
+   passe en masquage automatique (App.tsx). */
+.app.is-site.is-focus {
+  --gutter: 0px;
+  --site-gap: 0px;
+  padding-top: 0;
+}
+.app.is-site.is-focus .topbar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding-inline: 12px;
+  background: var(--bg);
+  box-shadow: 0 14px 24px -14px rgb(0 0 0 / 45%);
+  transform: translateY(-100%);
+  transition: transform 0.15s ease 0.35s;
+}
+.topbar-hot {
+  position: fixed;
+  inset: 0 0 auto 0;
+  height: 6px;
+  z-index: 41;
+}
+/* même poids que la règle qui la cache, sinon le survol ne gagne pas */
+.app.is-site.is-focus .topbar-hot:hover + .topbar,
+.app.is-site.is-focus .topbar:hover,
+.app.is-site.is-focus .topbar:has(:focus-visible) {
+  transform: none;
+  transition-delay: 0s;
+}
+.app.is-site.is-focus .xtab-frame {
+  height: calc(100vh - var(--strip-h, 0px));
+  border-radius: 0;
+}
+.focus-btn.is-on {
+  color: var(--text);
+  border-color: #6366f177;
+}
