@@ -41,7 +41,8 @@ même sans aucun site : son **＋** ajoute le premier.
 
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
-  L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
+  L'adresse s'affiche au survol du nom. **⚡** ramène à homedash. Ces boutons sont dans la barre du haut, à
+  côté de la recherche, et le site prend toute la place qui reste, bord à bord, quelle que soit la disposition.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
   et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
   automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page). Puis les

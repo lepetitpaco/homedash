@@ -2168,11 +2168,13 @@ export default function App() {
 
   return (
     <div
-      className={`app${railOn && shown.startsWith('x:') ? ' is-site' : ''}${railOn && strip ? ' has-strip' : ''}`}
+      // Site affiché : en-tête remonté dans la barre du haut et cadre bord à bord, que la barre de
+      // gauche soit visible ou non (issue #129 : barres masquées, c'était le rendu le plus gaspilleur).
+      className={`app${shown.startsWith('x:') ? ' is-site' : ''}${strip ? ' has-strip' : ''}`}
       style={layoutVars(ui)}
     >
       <TopBar
-        site={railOn && view.startsWith('x:')}
+        site={view.startsWith('x:')}
         query={search.query}
         onQuery={search.setQuery}
         placeholder={ui.searchPlaceholder}
@@ -2382,7 +2384,7 @@ export default function App() {
               setWarmLoaded((l) => (l.includes(tabKey(t)) ? l : [...l, tabKey(t)]))
             }}
             muted={!!muted[tabKey(t)]}
-            merged={railOn && view === tabKey(t)}
+            merged={view === tabKey(t)}
           />
         ))}
 
