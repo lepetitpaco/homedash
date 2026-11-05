@@ -25,6 +25,14 @@ Appli de bureau : 2.5.0
   repos concernés à cocher, et plus aucun `@` devant un nom (GitHub prévenait le compte de ce nom).
 - **Compteurs de la barre** : clic droit sur Local, Basecamp ou Trello pour savoir ce qu'il compte, ou le masquer ; clic
   droit sur ⚡ pour fermer les onglets ouverts depuis homedash.
+- **Cloche moins bavarde** : une version Renovate publiée sur plusieurs dépôts ne fait plus qu'une ligne (« ×6 », les
+  autres dépôts dessous), et le compteur compte des lignes. *Réglages → Notifications → Ce qui compte dans la cloche* :
+  pour chaque type (CI, PR mergées, Renovate, Basecamp…), *Compter* (comme avant), *Discret* (dans la liste, sans
+  compteur ni notification) ou *Masqué*.
+- **Sites bord à bord** : un site affiché prend toute la place qui reste, presque sans marge, et son en-tête (← → ↻)
+  est dans la barre du haut quelle que soit la disposition, barres masquées comprises.
+- **Dates GitHub lisibles** : « 14:12 », « hier 14:12 », « 3 nov. 14:12 », à ton heure (avant : `11-05T14:12` en heure
+  UTC), la date complète au survol.
 - **Corrigé** : sur un écran étroit, les cartes GitHub et Local ne sont plus trop serrées, *Réglages → Affichage* ne
   déborde plus, et « synchro il y a… » reste sur une ligne dans Local.
 
