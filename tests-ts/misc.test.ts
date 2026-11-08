@@ -102,6 +102,20 @@ describe('changelog', () => {
     updates.onStart()
     expect(backup.listing().length).toBe(n)
   })
+  it('« Quoi de neuf » : la version d’avant une mise à jour, rien après une première installation', () => {
+    store.write(store.CONFIG, { groups: [] })
+    store.write('version.json', { version: '0.0.1' })
+    updates.onStart()
+    expect(updates.upgradedFrom()).toBe('0.0.1')
+    expect(updates.payload().upgraded_from).toBe('0.0.1')
+    // relancée sur la même version : on garde d'où l'on vient
+    updates.onStart()
+    expect(updates.upgradedFrom()).toBe('0.0.1')
+    // première installation : pas de version d'avant
+    store.write('version.json', {})
+    updates.onStart()
+    expect(updates.upgradedFrom()).toBe(null)
+  })
 })
 
 describe('Mes sites : fichiers du disque', () => {

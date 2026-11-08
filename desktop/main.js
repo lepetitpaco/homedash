@@ -249,6 +249,18 @@ function watchSiteSwitch(wc) {
   })
 }
 
+/**
+ * ⌘⇧F (Ctrl+Maj+F) dans un site : mode focus de la page (issue #144). Seulement sur les sites :
+ * sur la page homedash, c'est elle qui écoute le clavier. Pas de preventDefault (voir plus haut).
+ */
+function watchFocusKey(wc) {
+  wc.on('before-input-event', (_e, input) => {
+    const mod = process.platform === 'darwin' ? input.meta : input.control
+    if (input.type === 'keyDown' && mod && input.shift && !input.alt && String(input.key).toLowerCase() === 'f')
+      win?.webContents.send('homedash:focus')
+  })
+}
+
 function fallbackPage(reason) {
   const why = reason ? String(reason).replace(/[<>&]/g, '') : ''
   const html = DEV
@@ -408,6 +420,7 @@ function createWindow() {
     })
     guests.add(guest.id)
     watchSiteSwitch(guest)
+    watchFocusKey(guest)
     guest.once('destroyed', () => guests.delete(guest.id))
     // Un site se met à émettre du son, ou s'arrête : 🔊 sur son onglet.
     guest.on('audio-state-changed', (e) => {
@@ -435,7 +448,7 @@ function createWindow() {
 
   // Mode dev : l'éclair passe à l'orange (Dock, barre des tâches) pour ne pas confondre les deux appli.
   if (DEV) wc.once('did-finish-load', () => void devIcon())
-  void win.loadURL(HOME)
+  void extensionsReady().finally(() => win?.loadURL(HOME))
 }
 
 /** L'icône en orange, dessinée par la page (le processus principal n'a pas de quoi teinter une image). */
@@ -489,6 +502,162 @@ function setupTabsSession(partition) {
   const allowed = new Set(['notifications', 'clipboard-read', 'clipboard-sanitized-write', 'fullscreen', 'media'])
   s.setPermissionRequestHandler((_wc, permission, done) => done(allowed.has(permission)))
   s.setPermissionCheckHandler((_wc, permission) => allowed.has(permission))
+  void loadExtensions(partition)
+}
+
+// ── Extensions de navigateur dans les sites (issue #132) ────────────────────
+// Dossiers d'extensions non empaquetées choisis dans Réglages → Mes sites, gardés dans desktop.json
+// (des chemins de cette machine : ni dans config.json, ni dans les sauvegardes). Chargées dans chaque
+// session de sites, jamais dans celle de homedash. Vide par défaut. Electron 44 : content scripts,
+// storage.local, runtime ; ni icône, ni clic droit, ni storage.sync (erreur à l'appel), ni
+// permissions. Sa popup ou sa page d'options s'ouvre à part, ⚙ dans Réglages (openExtSettings).
+const EXT_MAX = 20
+/** partition → (dossier → id de l'extension chargée) */
+const extLoaded = new Map()
+/** dossier → { name, version, error } du dernier chargement */
+const extStatus = new Map()
+const extQueue = new Map()
+
+function extPaths() {
+  const v = readSettings().extensions
+  return Array.isArray(v) ? v.filter((p) => typeof p === 'string' && path.isAbsolute(p)).slice(0, EXT_MAX) : []
+}
+
+/** Charge dans cette session les extensions pas encore chargées ; une file par session. */
+function loadExtensions(partition) {
+  const run = async () => {
+    const api = session.fromPartition(partition).extensions
+    if (!api) return
+    const mine = extLoaded.get(partition) ?? new Map()
+    extLoaded.set(partition, mine)
+    for (const p of extPaths()) {
+      if (mine.has(p)) continue
+      try {
+        const ext = await api.loadExtension(p)
+        mine.set(p, ext.id)
+        extStatus.set(p, { name: ext.name, version: ext.version, error: '', ...settingsPage(ext.manifest) })
+      } catch (err) {
+        extStatus.set(p, { name: path.basename(p), version: '', error: String(err?.message || err) })
+      }
+    }
+  }
+  const next = (extQueue.get(partition) ?? Promise.resolve()).then(run, run)
+  extQueue.set(partition, next)
+  return next
+}
+
+/** Ses réglages : la popup de son icône, sinon sa page d'options (chemin dans l'extension). */
+function settingsPage(m) {
+  const popup = (m?.action || m?.browser_action || {}).default_popup
+  const options = m?.options_page || m?.options_ui?.page
+  const page = String(popup || options || '').replace(/^\/+/, '')
+  return page && !page.includes('..') ? { settings: page, popup: !!popup } : {}
+}
+
+/** Fenêtres de réglages ouvertes, par id d'extension : un 2e clic ramène la même devant. */
+const extWindows = new Map()
+
+/**
+ * Réglages d'une extension dans leur fenêtre, sur la session commune des sites : c'est là que ses
+ * content scripts lisent storage.local (les comptes ont chacun leur stockage, non réglés ici).
+ * Sans Node ; navigation limitée à l'extension, un lien web part dans le navigateur.
+ */
+function openExtSettings(id, page, name, popup) {
+  const open = extWindows.get(id)
+  if (open && !open.isDestroyed()) {
+    open.show()
+    open.focus()
+    return
+  }
+  const base = `chrome-extension://${id}/`
+  const w = new BrowserWindow({
+    // Une popup prend sa taille une fois chargée (plus bas) ; une page d'options, celle d'un onglet.
+    width: popup ? 800 : 900,
+    height: popup ? 600 : 720,
+    minWidth: 240,
+    minHeight: 200,
+    show: false,
+    title: name,
+    parent: win ?? undefined,
+    autoHideMenuBar: true,
+    webPreferences: { session: session.fromPartition(PARTITION), sandbox: true, contextIsolation: true, nodeIntegration: false },
+  })
+  w.webContents.setWindowOpenHandler(({ url }) => {
+    if (isWeb(url)) void shell.openExternal(url)
+    return { action: 'deny' }
+  })
+  w.webContents.on('will-navigate', (e, url) => {
+    if (url.startsWith(base)) return
+    e.preventDefault()
+    if (isWeb(url)) void shell.openExternal(url)
+  })
+  // Le titre reste le nom de l'extension (sa page peut n'en avoir aucun).
+  w.on('page-title-updated', (e) => e.preventDefault())
+  w.on('closed', () => extWindows.delete(id))
+  extWindows.set(id, w)
+  w.once('ready-to-show', () => w.show())
+  if (popup)
+    // Comme Chrome : la popup à la largeur de son contenu (souvent fixée en CSS), 600 de haut, 800 × 600 au plus ;
+    // au-delà, elle défile. (La taille « préférée » de Chromium figeait la fenêtre sous Electron 44.)
+    w.webContents.once('did-finish-load', () => {
+      w.webContents
+        .executeJavaScript(
+          // bord droit du contenu + sa marge + la barre de défilement verticale : sans elles, une barre horizontale
+          '(() => { const b = document.body, r = b.getBoundingClientRect(); return r.width < innerWidth - 20 ? r.right + parseFloat(getComputedStyle(b).marginRight || 0) + innerWidth - document.documentElement.clientWidth : 0 })()',
+        )
+        .then((cw) => {
+          if (w.isDestroyed()) return
+          const width = Math.max(240, cw > 0 && cw <= 800 ? Math.ceil(cw) : 420)
+          w.setContentSize(width, 600)
+          w.center()
+          // Ce qui dépasse encore (la barre verticale prend sa place au contenu) : élargie d'autant, une fois.
+          return new Promise((ok) => setTimeout(ok, 250))
+            .then(() => (w.isDestroyed() ? 0 : w.webContents.executeJavaScript('document.documentElement.scrollWidth - document.documentElement.clientWidth')))
+            .then((over) => {
+              if (!w.isDestroyed() && over > 0 && over < 80) w.setContentSize(Math.min(800, width + over), 600)
+            })
+        })
+        .catch(() => undefined)
+    })
+  void w.loadURL(base + page)
+}
+
+/** Sessions de sites déjà connues sur ce disque : la commune et celles des comptes. */
+function knownTabPartitions() {
+  let names = []
+  try {
+    names = fs.readdirSync(path.join(app.getPath('userData'), 'Partitions'))
+  } catch {
+    /* premier lancement : aucune */
+  }
+  return [PARTITION, ...names.map((n) => `persist:${n}`).filter((p) => OWN_PARTITION.test(p))]
+}
+
+/**
+ * Au démarrage, avant la page : les sites montés tout de suite (non-lus) ont déjà leurs extensions.
+ * Rien à faire sans extension ; jamais plus de 3 s d'attente.
+ */
+function extensionsReady() {
+  if (!extPaths().length) return Promise.resolve()
+  const all = knownTabPartitions().map((p) => {
+    setupTabsSession(p)
+    return extQueue.get(p) ?? loadExtensions(p)
+  })
+  return Promise.race([Promise.all(all), new Promise((ok) => setTimeout(ok, 3000))])
+}
+
+function extList() {
+  return extPaths().map((p) => {
+    const st = extStatus.get(p) ?? {}
+    return {
+      path: p,
+      name: st.name ?? path.basename(p),
+      version: st.version ?? '',
+      error: st.error ?? '',
+      settings: !!st.settings,
+      loaded: [...extLoaded.values()].some((m) => m.has(p)),
+    }
+  })
 }
 
 // ── Appli de dev : changer de branche ───────────────────────────────────────
@@ -892,6 +1061,55 @@ ipcMain.handle('homedash:tab-memory', (e) => {
     if (m) tabs[id] = { mb: Math.round(m.memory.workingSetSize / 1024), pid } // Ko → Mo
   }
   return { total_mb: Math.round(metrics.reduce((s, m) => s + m.memory.workingSetSize / 1024, 0)), tabs }
+})
+
+/** Réglages → Mes sites → Extensions (#132) : lister, ajouter (choix du dossier), retirer, recharger les sites, ⚙ réglages. */
+ipcMain.handle('homedash:extensions', async (e, req) => {
+  if (!fromHome(e)) return null
+  const action = String(req?.action || 'list')
+  if (action === 'add') {
+    const pick = await dialog.showOpenDialog(win, {
+      title: "Dossier de l'extension",
+      message: "Choisis le dossier qui contient manifest.json (l'extension non empaquetée).",
+      properties: ['openDirectory'],
+    })
+    const p = pick.canceled ? '' : pick.filePaths[0] || ''
+    if (!p) return { list: extList() }
+    if (!fs.existsSync(path.join(p, 'manifest.json')))
+      return { list: extList(), error: "Ce dossier n'a pas de manifest.json : choisis celui de l'extension, qui le contient." }
+    const cur = extPaths()
+    if (cur.length >= EXT_MAX) return { list: extList(), error: `${EXT_MAX} extensions au plus.` }
+    if (!cur.includes(p)) writeSettings({ extensions: [...cur, p] })
+    await Promise.all([...ready].map((part) => loadExtensions(part)))
+  } else if (action === 'remove') {
+    const p = String(req?.path || '')
+    writeSettings({ extensions: extPaths().filter((x) => x !== p) })
+    for (const [part, mine] of extLoaded) {
+      const id = mine.get(p)
+      if (!id) continue
+      extWindows.get(id)?.close()
+      try {
+        session.fromPartition(part).extensions.removeExtension(id)
+      } catch {
+        /* déjà partie */
+      }
+      mine.delete(p)
+    }
+    extStatus.delete(p)
+  } else if (action === 'settings') {
+    const p = String(req?.path || '')
+    if (!extPaths().includes(p)) return { list: extList() }
+    setupTabsSession(PARTITION)
+    await loadExtensions(PARTITION)
+    const id = extLoaded.get(PARTITION)?.get(p)
+    const st = extStatus.get(p)
+    if (!id || !st?.settings) return { list: extList(), error: "Cette extension n'a pas de réglages à ouvrir." }
+    openExtSettings(id, st.settings, st.name || path.basename(p), st.popup)
+  } else if (action === 'reload') {
+    // Un content script ne s'applique qu'au prochain chargement de la page.
+    for (const id of guests) webContents.fromId(id)?.reload()
+  }
+  return { list: extList() }
 })
 
 ipcMain.handle('homedash:clear-data', async (e, req) => {

@@ -8,7 +8,7 @@ homedash sert à toute l'équipe, et ce qui est poussé sur `main` arrive chez c
 jour. On peut tout améliorer, mais pas dénaturer ce qui suit.
 
 1. **Accueil** : liens, tuiles des plus utilisés, notes, infos à copier, recherche.
-2. **Mes sites** (onglets perso) : sites dans l'appli avec leurs non-lus, dossiers, plusieurs comptes par site ; la
+2. **Mes sites** : les sites dans l'appli avec leurs non-lus, dossiers, plusieurs comptes par site ; la
    page marche aussi sans l'appli, dans un navigateur.
 3. **GitHub** : branches, PRs, CI, Renovate, équipe, plusieurs comptes ; cache ETag (quota de l'API).
 4. **Onglet Local** : lecture seule du disque, verdicts des branches, commandes à copier.
@@ -35,6 +35,31 @@ Même chose si la demande contredit une règle absolue : la signaler, proposer u
 
 Un goût personnel (couleur, ordre, raccourci, texte) ne change pas le défaut de tout le monde : il
 devient un réglage.
+
+## Réglages et vocabulaire : ne pas recréer le désordre
+
+**Un nouveau réglage**, seulement si deux vrais utilisateurs veulent des comportements différents et qu'aucun défaut
+ne convient. Sinon : un bon défaut, sans réglage. Un choix qui se fait sur place (clic droit, glisser) ne crée pas de
+page. Chaque page de Réglages tient sur un écran : le reste va sous *Plus de réglages* ou *Avancé* (`.set-more`).
+Toute page ou réglage nouveau entre dans `src/lib/settingsIndex.ts` (la recherche le trouve) et dans le tableau
+*Réglages* de `GUIDE.md`. Choisir parmi des modèles à miniature plutôt que taper des chiffres.
+
+**Lexique** : un mot pour une chose, partout (page, menus, bulles, guide).
+
+| Mot | Pour | Pas |
+| --- | --- | --- |
+| site | une icône de la barre de gauche (Gmail, ~/dev…) | onglet perso |
+| onglet temporaire | une page ouverte par un lien, fermée au redémarrage | éphémère |
+| compteur | le nombre de non-lus ou d'actions (barre, Dock, onglets) | pastille, badge |
+| pastille | seulement le style « Pastilles » des onglets du haut | |
+| tuiles | les liens épinglés et les plus utilisés de Raccourcis | (disposition de la barre) |
+| compte | une connexion à part pour un même site (pro / perso) | compte de connexion, session |
+| Activité | la cloche et sa page | événements, journal |
+| Local | l'onglet et ses réglages (les dépôts de ton disque) | Dépôts locaux |
+| Raccourcis | la page d'accueil (⚡) | |
+
+Boutons : une majuscule au premier mot (« Déconnecter », « Restaurer »), le même verbe pour la même action d'un
+service à l'autre (Basecamp, Trello).
 
 **Une branche par sujet ; `preprod` les réunit ; `main` = une version.** Branches : `<qui>/<type>/<nom>` (ci-dessous),
 sans toucher au `CHANGELOG.md` ni aux versions. Une fois la branche testée : pull request vers `preprod`, sans approbation
@@ -99,6 +124,8 @@ pull request ce qui a changé ou « rien à changer » : `README.md`, `GUIDE.md`
 
   Plusieurs changements livrés ensemble (tout ce que `preprod` apporte à `main`) = une seule version.
 - Comportement visible modifié → `GUIDE.md` à jour.
+- Version mineure ou majeure → ses cartes dans `src/lib/whatsNew.ts` : la fenêtre « Quoi de neuf » s'ouvre une fois
+  après la mise à jour (jamais à la première installation), puis à la demande. Sans carte, elle ne s'ouvre pas.
 - Bug constaté ou feature faite → **une issue GitHub** qui le documente : le problème (ou le besoin), la
   cause, la solution et la version qui la livre ; fermée avec le hash du commit. Une issue déjà ouverte
   (collègue, utilisateur) sert de support : on y répond plutôt que d'en créer une autre.
@@ -212,7 +239,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - `events.ts` est le **seul** endroit qui décide ce qui est un événement ; le front affiche.
 - `seq` (jamais réutilisé, même après `clear()`) et non `ts` pour repérer le nouveau.
 - Amorçage : une section jamais vue ne produit rien (sinon le premier fetch déverse tout l'état).
-- Front : `baseline` (en mémoire, rien notifié au chargement) ≠ `seen` (localStorage, la pastille).
+- Front : `baseline` (en mémoire, rien notifié au chargement) ≠ `seen` (localStorage, le compteur).
 - Notifications système en sourdine par défaut (`homedash:notif-v2`).
 
 **Trello**
@@ -220,7 +247,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   les rendait invisibles, `tr-issue` sur une fenêtre et une ligne faisait passer la ligne en plein écran.
 - Le tableau affiché vient de `GET /boards/{id}?lists=open&cards=visible` (toutes les cartes des listes
   ouvertes). `/members/me/cards` ne donne que les cartes du membre, y compris sur une liste archivée :
-  ça ne sert qu'au drapeau `mine` (À traiter, pastille, cloche). `cards=visible` sur la collection
+  ça ne sert qu'au drapeau `mine` (À traiter, compteur, cloche). `cards=visible` sur la collection
   `/members/me/boards` ne renvoie aucune carte.
 - Le fond du tableau n'est gardé que s'il est `https` sur `trello-backgrounds.s3.amazonaws.com`. La page
   le charge en CSS. Jamais le proxy d'images : celui-ci envoie le jeton, et cet hôte n'est pas le sien.
@@ -257,6 +284,12 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   doit savoir qu'une appli ancienne ne l'a pas. UA sans « Electron » : sinon Google refuse sa page de connexion.
 - Comptes : `tab.session` = id de `tabSessions` ; partition `persist:homedash-tabs-<id>` (renommer ne
   déconnecte pas). Compte supprimé = `sessionOf()` vide = connexion commune.
+- Extensions (#132) : dossiers dans `desktop.json` (`extensions`, chemins de la machine : jamais dans `config.json`),
+  chargées par `loadExtensions()` dans chaque session de sites (jamais celle de homedash), avant la page au démarrage
+  (`extensionsReady()`, 3 s au plus). Electron 44 : `storage.sync` existe mais échoue à l'appel ; pas de
+  `permissions` ni `contextMenus`. Popup ou page d'options : ⚙ dans Réglages, `openExtSettings()` (fenêtre sans Node,
+  session commune `PARTITION`, navigation bornée à l'extension, mot `extension-settings`). Jamais
+  `enablePreferredSizeMode` : sous Electron 44 la fenêtre ne chargeait plus ou se figeait. Testé dans Electron (Docker + xvfb : `--shm-size=1g`, sinon Chromium plante).
 - Icônes de Mes sites : `SiteIcon` (recadrage canvas) via `/api/favicon?host=` ; le serveur ne
   contacte que le service de favicons, ou le site lui-même s'il est un onglet de la config. Jamais une
   adresse venue de la page.
@@ -267,10 +300,10 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   `window.__homedashMenu`, via `executeJavaScript`) ; absents (page ancienne) = navigateur / rien. Les
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
 - Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
-  son titre (les pastilles).
-- Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un onglet perso (`x:<id>`),
+  son titre (les compteurs).
+- Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
-  barre de gauche = onglets perso et éphémères **sans** espace. Espace disparu = éphémère seul.
+  barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
 
 **Docker** (`docker.ts`)
 - Le socket donne le contrôle de la machine : une seule requête, `GET /containers/json?all=1`, écrite en dur. Rien d'autre,
@@ -287,12 +320,12 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - `accounts.remoteVersion()` ne bouge que si le distant change : chaque nouvelle version relance un
   scan Local complet du disque.
 - Une écriture de config déclenche `reloadAll()` (relecture GitHub) : ne pas écrire à chaque
-  navigation (cf. éphémères gardés).
+  navigation (cf. onglets temporaires gardés).
 
 **Front**
 - Erreurs : jamais de jargon à l'écran (nom de fichier, code HTTP, `Failed to fetch`). `shown(où, e)`
   (`src/lib/errors.ts`) donne la phrase lisible et note le détail au journal (`errlog.ts`,
-  Réglages → Aide → Journal d'erreurs). Serveur injoignable = passager : la page réessaie seule.
+  Réglages → Diagnostic). Serveur injoignable = passager : la page réessaie seule.
 - `reloadAll()` est le seul chemin après une écriture de config côté serveur.
 - Tout déclenchement manuel du polling relance la boucle (`pulse`), pas seulement `load()`.
 - Couleurs de signal via `--sig-*` (lisibles en thème clair) ; pas de teinte claire en dur dans `color:`.
@@ -301,7 +334,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - `src/styles/index.css` : l'ordre des imports **est** la cascade.
 - Carte Repos : `repos.items[].in` (absent = `['github']`) dit dans quel onglet chaque repo apparaît.
   `normalizeConfig` met toujours `repos` dans les deux listes d'onglets et filtre par onglet ; une carte
-  sans repo pour cet onglet n'est pas affichée. Ce sont les pastilles GitHub / Accueil qui décident.
+  sans repo pour cet onglet n'est pas affichée. Ce sont les boutons GitHub / Accueil qui décident.
 - Tailles d'affichage : `SIZE_LIMITS` (config.ts) — 0 ou vide = défaut, sinon bornées ; une taille à 0 px
   cassait la grille. Les défauts = le preset 49" (`DISPLAY_PRESETS`) ; la page ne descend jamais sous
   1 400 px (`base.css`), sinon 60 % rendrait un portable illisible.

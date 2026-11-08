@@ -33,6 +33,12 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     'tab-memory',
     // Ctrl+Tab : changer de site (#102).
     'site-switch',
+    // ⌘⇧F dans un site : mode focus (#144).
+    'focus-key',
+    // Extensions de navigateur dans les sites (#132).
+    'extensions',
+    // ⚙ : la popup ou la page d'options d'une extension, dans sa fenêtre.
+    'extension-settings',
   ],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
@@ -91,6 +97,14 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     return () => ipcRenderer.removeListener('homedash:guest-down', handler)
   },
   /** Ctrl+Tab : `next`, `prev`, puis `open` (Ctrl relâché), un rang (chiffre) ou `cancel`. Renvoie de quoi se désabonner. */
+  /** Extensions des sites (#132) : { action: list | add | remove | reload, path? } → { list, error? }. */
+  extensions: (req) => ipcRenderer.invoke('homedash:extensions', req),
+  /** ⌘⇧F tapé dans un site : basculer le mode focus (#144). Renvoie de quoi se désabonner. */
+  onFocusToggle: (cb) => {
+    const handler = () => cb()
+    ipcRenderer.on('homedash:focus', handler)
+    return () => ipcRenderer.removeListener('homedash:focus', handler)
+  },
   onSiteSwitch: (cb) => {
     const handler = (_e, step) => cb(step)
     ipcRenderer.on('homedash:site-switch', handler)

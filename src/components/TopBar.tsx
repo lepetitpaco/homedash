@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { keys } from '../lib/keys'
 
 type Props = {
   query: string
@@ -7,6 +8,8 @@ type Props = {
   showClock: boolean
   theme: 'dark' | 'light'
   onTheme: () => void
+  /** « ? » : le guide (Réglages → Aide). */
+  onHelp?: () => void
   searchRef: React.RefObject<HTMLInputElement | null>
   resultCount: number | null
   /** Où cherche la barre (issue #38) : son icône, son nom, `null` = partout ; clic = le menu des portées. */
@@ -21,6 +24,10 @@ type Props = {
   version?: React.ReactNode
   /** Un site est affiché (barre de gauche) : son en-tête prend la place du logo. */
   site?: boolean
+  /** Sites à lire, quand les barres masquées cachent leurs compteurs (issue #130). */
+  unread?: React.ReactNode
+  /** Site affiché : le bouton du mode focus (issue #144). */
+  focus?: { on: boolean; toggle: () => void }
 }
 
 /** Où CustomTabView place l'en-tête du site affiché (une rangée de moins). */
@@ -43,6 +50,7 @@ export default function TopBar({
   showClock,
   theme,
   onTheme,
+  onHelp,
   searchRef,
   resultCount,
   scope,
@@ -51,6 +59,8 @@ export default function TopBar({
   bell,
   version,
   site = false,
+  unread,
+  focus,
 }: Props) {
   const now = useClock(showClock)
   const barRef = useRef<HTMLElement>(null)
@@ -118,17 +128,34 @@ export default function TopBar({
             <em>{date}</em>
           </div>
         ) : null}
+        {focus ? (
+          <button
+            className={`icon-btn focus-btn${focus.on ? ' is-on' : ''}`}
+            onClick={focus.toggle}
+            title={focus.on ? `Quitter le mode focus (${keys('F', true)})` : `Mode focus : le site prend toute la fenêtre, les barres reviennent au bord (${keys('F', true)})`}
+            aria-label={focus.on ? 'Quitter le mode focus' : 'Mode focus'}
+            aria-pressed={focus.on}
+          >
+            {focus.on ? '⤡' : '⤢'}
+          </button>
+        ) : null}
         {version}
+        {unread}
         {bell}
         <button
           className={`icon-btn${refreshing ? ' is-spinning' : ''}`}
           onClick={onRefresh}
           disabled={refreshing}
-          title="Tout actualiser : GitHub, Basecamp, Trello, dépôts locaux, la cloche et les non-lus des sites (ceux en veille sont réveillés)"
+          title="Tout actualiser : GitHub, Basecamp, Trello, Local, la cloche et les non-lus des sites (ceux en veille sont réveillés)"
           aria-label="Tout actualiser"
         >
           ⟳
         </button>
+        {onHelp ? (
+          <button className="icon-btn" onClick={onHelp} title="Guide : comment faire, raccourcis clavier" aria-label="Guide">
+            ?
+          </button>
+        ) : null}
         <button
           className="icon-btn"
           onClick={onTheme}

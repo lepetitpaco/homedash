@@ -1,7 +1,7 @@
 # Guide
 
-Installation : voir le [README](README.md). Ce guide est aussi dans homedash : **Réglages → Aide →
-Guide**, une partie par pastille.
+Installation : voir le [README](README.md). Ce guide est aussi dans homedash : **?** en haut à droite
+(ou *Réglages → Aide → Guide*), une partie par bouton.
 
 ## ⚡ Raccourcis
 
@@ -41,19 +41,38 @@ même sans aucun site : son **＋** ajoute le premier.
 
 - **Ajouter** : ＋ en bas de la barre, puis une adresse ou un site courant.
 - **Ouvrir** : clic sur l'icône. En haut : ← → ↻, ↗ (navigateur), partager (copie le lien), ⚙ (modifier).
-  L'adresse s'affiche au survol du nom. **⚡** ramène à homedash.
-- **Disposition et taille** : clic droit sur la barre, hors d'une icône, puis *Disposition et taille…*. Icônes, icônes et titres, titres,
-  ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre
-  aux icônes, **›** la redéplie.
-- **Containers Docker** (développeurs) : *Réglages → Docker* ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
+  L'adresse s'affiche au survol du nom. **⚡** ramène à homedash. Ces boutons sont dans la barre du haut, à
+  côté de la recherche, et le site prend toute la place qui reste, bord à bord, quelle que soit la disposition.
+- **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F (Ctrl+Maj+F), même en tapant dans le site : le site prend toute la
+  fenêtre. La barre du haut revient quand la souris touche le bord haut (ou avec ⌘K), celle de gauche au bord gauche.
+  ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi.
+- **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
+  et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
+  automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page ; les sites
+  qui ont des non-lus apparaissent alors à gauche de la cloche, les 3 plus chargés puis *+N*, un clic ouvre le site). Puis
+  les options du mode choisi :
+  - *Barre de gauche* : icônes, icônes et titres, titres, ou tuiles (le titre sous l'icône) sur 1 à 3 colonnes ; petit, normal
+    ou grand. Un titre long est coupé, complet au survol. **‹** en bas réduit la barre aux icônes, **›** la redéplie.
+  - *En haut* : plus de barre de gauche, tous les onglets en haut de la page, sur plusieurs rangées si besoin ; style
+    (pastilles, par défaut, ou soulignés) et taille des onglets. Un dossier est un onglet : un clic montre ses sites. On
+    revient à la barre de gauche par ce même choix.
+- **Raccourcis, GitHub, Local… à un clic** : par défaut dans un dossier ⚡ en haut de la barre. Un clic sur ⚡ replie ou
+  déplie le dossier ; replié, il montre le total des compteurs. Clic droit sur **⚡** → *En haut de la page* : ils passent
+  dans la barre d'onglets du haut (un clic sur ⚡, puis l'onglet).
+- **Containers Docker** (développeurs) : *Réglages → Mes sites → Docker*, proposé quand Docker tourne sur la machine, ajoute un dossier 🐳 dans la barre, avec une ligne par projet Compose
   ou container, reconnaissable à ses deux lettres et sa couleur. Un clic ouvre son premier port, un clic droit ses autres ports.
   Le dossier se glisse où tu veux. Ceux qui sont éteints restent visibles en plus fade, sans clic. Tu choisis lesquels ; homedash lit la liste et ne change rien.
-- **Tout le reste** : clic droit sur l'icône (copier le lien, dossier, compte, notifications, son, veille,
+- **Extensions de navigateur** (appli de bureau) : *Réglages → Mes sites → Extensions* → *Ajouter un dossier*, celui
+  d'une extension non empaquetée (avec `manifest.json`). Elle tourne dans tous tes sites, tous comptes compris, sur
+  cette machine seulement ; *↻ Recharger les sites ouverts* pour l'appliquer tout de suite. Ce qu'elle fait dans la
+  page marche, et **⚙ Réglages** ouvre sa fenêtre (popup) ou sa page d'options : ses réglages valent pour tes sites
+  sans compte à part (chaque compte garde les siens). Son icône, son clic droit et `storage.sync` non (elle doit se
+  rabattre sur `storage.local`). N'ajoute que des extensions que tu connais : elles voient tout ce que tes sites affichent.
+- **Tout le reste** : clic droit sur l'icône du site (copier le lien, dossier, compte, notifications, son, veille,
   modifier, supprimer).
 - **Partager un onglet** : le bouton partager en haut (ou clic droit → *Copier le lien*) copie l'adresse
   de la page affichée, sans l'ouvrir dans le navigateur.
 - **Ranger** : glisse une icône sur une autre pour créer un dossier. Glisse un dossier sur un site ou un autre dossier pour le placer devant, ou tout en bas de la barre pour le mettre à la fin.
-- **Cacher la barre** : clic droit sur la barre, hors d'une icône.
 
 ![Disposition et taille de la barre](docs/screenshots/barre-disposition.jpg)
 
@@ -63,7 +82,12 @@ même sans aucun site : son **＋** ajoute le premier.
 
 #### Bon à savoir
 
-- La **pastille rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
+- Le **compteur rouge** compte les non-lus du site. Un onglet trop bavard : *Couper les notifications*.
+- Le **compteur vert** de Local compte les branches déjà fusionnées encore sur ton disque ; celui de Basecamp
+  ou Trello, tes tâches ou cartes en retard. Clic droit sur l'onglet : ce qu'il compte exactement, et *Masquer le
+  compteur* : il revient dès que le nombre change.
+- Le **compteur bleu** de ⚡ compte les onglets ouverts depuis homedash (liens cliqués), en haut de la page.
+  Clic droit sur ⚡ → *Fermer les onglets ouverts depuis homedash*.
 - **Comptes** : deux connexions pour un même site (Gmail « pro » et « perso »), *Nouveau compte…* Pour
   tout un dossier : clic droit sur le dossier → *Compte de tout le dossier* ; la lettre du compte ne
   s'affiche alors que sur les sites qui font exception.
@@ -111,8 +135,11 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 - **Mettre à jour** : *Aide → Vérifier les mises à jour*, ou le bouton des nouveautés. L'appli
   télécharge, vérifie, sauvegarde tes données, puis se remplace et se relance. Sous Windows, si
   l'installation échoue, homedash reste ouvert ou se rouvre, et te le dit.
+- **✨ Quoi de neuf** : après une mise à jour qui apporte quelque chose de nouveau, une fenêtre le présente, une
+  carte par nouveauté ; *Essayer* t'y emmène. Elle ne s'ouvre qu'une fois ; pour la revoir, clique le numéro de version
+  en haut à droite.
 - **homedash n'existe que dans l'appli** : elle n'ouvre aucun port, et http://localhost:7777 dans un
-  navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Affichage →
+  navigateur ne montre rien. Pour l'ouvrir aussi dans un navigateur : coche *Réglages → Fonctionnalités →
   Accès depuis le navigateur* ; http://localhost:7777 marche alors, sur ta machine seulement, tant que
   l'appli tourne.
 
@@ -126,12 +153,13 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 | `⇧⌘R` | `Ctrl+Maj+R` | Recharger tout homedash (tous les sites se rechargent) |
 | `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
 | `Ctrl+Tab` | `Ctrl+Tab` | Revenir au site d'avant. `Ctrl` gardé appuyé : tes sites s'affichent en tuiles. `Tab` ou `Maj+Tab` pour choisir, relâcher `Ctrl` ou cliquer pour ouvrir, `1` à `9` pour ouvrir directement, `Échap` pour rester (⌘Tab et Alt+Tab restent ceux du système) |
+| `⌘⇧F` | `Ctrl+Maj+F` | Mode focus : le site affiché prend toute la fenêtre, même quand tu tapes dans le site ; les barres reviennent au bord. Encore une fois pour en sortir |
 | `⌘,` | `Ctrl+,` | Réglages |
-| `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : pastilles et cloche continuent |
+| `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : compteurs et cloche continuent |
 
 #### Bon à savoir
 
-- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés, l'un après l'autre (leurs pastilles arrivent dans les premières secondes) ; les autres au premier clic.
+- **Mémoire** : au démarrage, seuls les mails et messageries sont chargés, l'un après l'autre (leurs compteurs arrivent dans les premières secondes) ; les autres au premier clic.
   *Réglages → Mes sites* affiche ce que consomme chaque site : 💤 *Libérer* le décharge tout de suite, jusqu'au
   prochain clic. Clic droit → *Mettre en veille si inutilisé* libère un onglet après 5 min sans y aller.
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
@@ -155,6 +183,9 @@ version).
   non-lus de tes sites (ceux en veille sont réveillés).
 - **Notifications du système** : *activer* en bas de la cloche (coupées au départ).
 - **Faire taire un onglet** : clic droit sur son icône → *Couper les notifications*.
+- **Trop de bruit ?** *Réglages → Notifications → Ce qui compte dans la cloche* : pour chaque type (CI en échec,
+  CI qui repasse au vert, PR mergées, Renovate, branches à nettoyer, Basecamp, Trello), *Compter* (le défaut),
+  *Discret* (dans la liste, sans compteur ni notification) ou *Masqué*.
 - **Le nombre sur l'icône de l'appli** : non-lus des sites, cloche, ou les deux (*Réglages →
   Notifications*).
 
@@ -164,6 +195,8 @@ version).
   pas lue dans Basecamp ou Trello.
 - **🧹 Branche mergée** : annoncée une seule fois, en une ligne même si elle est dans plusieurs dépôts ;
   un clic ouvre l'onglet Local et sa commande.
+- **🤖 Renovate** : une même version sur plusieurs dépôts ne fait qu'**une ligne** (« ×6 », les autres
+  dépôts dessous), et ne compte qu'une fois.
 - **Rien sur l'icône du Dock ?** macOS l'affiche seulement si *Pastilles de l'app* est activé pour
   homedash : *Réglages → Notifications → ouvrir les réglages de notifications du Mac*.
 
@@ -177,7 +210,9 @@ la cloche te le dit, et *Réglages → Sauvegardes* garde la liste d'avant.
 ![L'onglet GitHub](docs/screenshots/github.jpg)
 
 - **GitHub** (dès qu'un compte est connecté, rafraîchi toutes les 15 s) : 🌿 branches actives avec leur
-  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir). Quand un workflow
+  PR et leur CI, 🔀 PRs ouvertes (CI, revues, conflits), ✅ mergées (🧹 = la copie locale peut partir). Une branche présente
+  dans plusieurs repos est regroupée sous 🔗 son nom : **↗ ouvrir les N** ouvre toutes ses PR d'un coup, un
+  onglet chacune (⌘clic : l'inverse du réglage des liens, appli ou navigateur). Quand un workflow
   tourne sur un repo suivi, ⚙️ *En cours* apparaît en haut avec le détail de ses jobs, puis disparaît à la fin.
 - **Local** : tes clones, branche par branche, avec un verdict.
 
@@ -192,7 +227,7 @@ la cloche te le dit, et *Réglages → Sauvegardes* garde la liste d'avant.
 
 #### Bon à savoir
 
-- **Tes clones peuvent être n'importe où** : *Réglages → Dépôts locaux → + ajouter un dossier*, puis
+- **Tes clones peuvent être n'importe où** : *Réglages → Local → ＋ Ajouter un dossier*, puis
   🏠 dossier personnel ou 💽 le disque (`C:` sous Windows, `/Volumes` sur Mac pour les disques externes).
   Tout est lu en lecture seule.
 - **Rien n'est exécuté** : les commandes proposées (`git branch -d …`) sont à copier et lancer toi-même.
@@ -209,6 +244,13 @@ les rapports que tu publies.
 ![L'onglet Basecamp](docs/screenshots/basecamp.jpg)
 
 - **🔥 À traiter** : ce qui est en retard ou dû dans les 7 jours. À gauche, un projet : ses tableaux et to-dos.
+- **📊 Stats** : qui a créé combien de tâches et de cartes, et combien sont faites (cochées, ou cartes dans la
+  colonne Done). Période : 7 ou 30 jours, ce mois-ci, le mois dernier, 3 ou 12 mois, ou *Personnalisé* (du mois…
+  au mois…). *Par personne* (un projet ou tous cumulés) ou *par projet* ; *📅 détail par mois* met une colonne par
+  mois. Un clic sur un titre de colonne trie, un clic sur une ligne déroule ses tâches ; ⤢ passe en plein écran.
+  Seulement les projets dont tu es membre : Basecamp ne montre pas les autres. La première lecture d'un an prend
+  environ une minute, ensuite seulement ce qui a changé ; *Réglages → Basecamp → Stats en arrière-plan* les
+  prépare petit à petit, puis les tient à jour toutes les 15 min (désactivé par défaut). « Mis à jour à … » dit de quand elles datent.
 - **Se connecter** (une fois, pas besoin d'être admin) : pas-à-pas dans *Réglages → Basecamp*.
 - **Lire une tâche** : un clic sur son titre (⌘ clic : Basecamp) : description, étapes, issues liées, échanges
   avec leurs captures.
@@ -220,6 +262,12 @@ les rapports que tu publies.
    *Tout inclure*, *Rien inclure* ; tout est coché au départ), ajoute tes précisions, relis l'*Aperçu*, puis
    **Créer sur GitHub** (⌘ Entrée).
    *Ouvrir le formulaire* passe plutôt par github.com.
+   L'issue a une section par source : *🎯 Mon besoin* (tes précisions, qui priment), *Carte* (la description,
+   reprise telle quelle) et *💬 Échanges* ; une section vide n'apparaît pas.
+   Le travail touche plusieurs repos ? Coche-les dans *Autres repos concernés* : l'issue reste dans le repo choisi,
+   les autres y sont cités (*🔗 Repos concernés*), et Claude Code fait une pull request dans chacun, puis un seul
+   rapport. Rien n'est créé dans les autres repos. Les mentions y perdent leur `@`, pour
+   ne notifier personne sur GitHub.
 2. **La confier à Claude Code** : à la création, une commande est copiée (`cd ~/dev/api && claude '…'`) :
    colle-la dans un terminal. La consigne est dans l'issue : faire le travail, poster un rapport
    (`<!-- homedash:bc-report -->`), fermer l'issue.
@@ -257,7 +305,7 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
   *Repos où créer les issues*). Le rapport se publie en commentaire de la carte, une fois, après confirmation.
 - Le tableau suit le thème clair ou sombre, avec étiquettes, échéances en couleur et photos de profil.
   ✕ écarte une issue sans rien envoyer.
-- La pastille de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
+- Le compteur de l'onglet compte tes cartes en retard. trello.com ne s'ouvre pas dans un onglet intégré
   de Mes sites : le site refuse ce cadre.
 
 ## 🔎 Recherche
@@ -290,25 +338,28 @@ demandes. Les notifications ne sont jamais marquées lues. Les listes archivées
 
 ## ⚙️ Réglages
 
-Tout ce qui se règle, rangé par thème. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale
-ce qui ne l'est pas encore. Tu quittes Réglages sans enregistrer ? homedash te le propose ; *Plus tard*
+Tout ce qui se règle, rangé par thème. **Le plus court : la recherche du haut** trouve chaque réglage
+(tape « veille », « sauvegarde », « jeton »…). *Vue d'ensemble* montre d'un coup d'œil ce qui est branché et ce
+qui manque. `⌘S` (ou le bouton du bas) enregistre ; la barre du bas signale ce qui ne l'est pas encore. Les
+réglages rarement utiles sont repliés sous *Plus de réglages* ou *Avancé*. Tu quittes Réglages sans enregistrer ? homedash te le propose ; *Plus tard*
 garde tes modifications en brouillon, retrouvées au retour.
 
 ![Réglages → Mes sites](docs/screenshots/reglages-onglets.jpg)
 
 | Partie | Ce qu'on y fait |
 | --- | --- |
-| 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas |
-| 🐙 GitHub | Pour le compte choisi en haut : connexion, repos suivis (et où ils apparaissent), équipe, ce que montre l'onglet ; ＋ compte pour un autre compte GitHub |
-| 💻 Dépôts locaux | Les dossiers où chercher tes clones |
-| 🏕 Basecamp | La connexion, les repos où créer les issues |
+| 🏠 Vue d'ensemble | Ce qui est branché, ce qui manque, la dernière sauvegarde ; un bouton vers chaque page |
+| 🧩 Fonctionnalités | Couper GitHub, Local, Basecamp ou Trello si tu ne t'en sers pas ; accès depuis le navigateur (appli) |
+| 🐙 GitHub | Pour le compte choisi en haut, en sous-onglets : *Compte* (jeton), *Repos suivis*, *Équipe*, *Ce que montre l'onglet* (Renovate sous *Avancé*) ; ＋ Compte pour un autre compte GitHub |
+| 💻 Local | Les dossiers où chercher tes clones |
+| 🏕 Basecamp | La connexion, les repos où créer les issues, les stats en arrière-plan |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
-| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes, où s'ouvrent les liens, mise en veille |
-| 🐳 Docker | Afficher tes containers dans la barre, et choisir lesquels |
-| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), taille de l'écran, journal de performance |
-| 🔔 Notifications | Notifications du bureau, pastille de l'icône de l'appli |
-| 💾 Sauvegardes | Restaurer, télécharger, faire le ménage |
-| 📖 Aide | Nouveautés, ce guide, journal d'erreurs, journal de performance (s'il est activé) |
+| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) |
+| 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
+| 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
+| 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
+| 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
+| 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |
 
 **Couper une fonctionnalité** (🧩 Fonctionnalités) : décochée, elle disparaît de la page (onglet,
 recherche, cartes de l'accueil, ses parties de Réglages, ses notifications dans la cloche et
@@ -340,17 +391,17 @@ homedash sauvegarde tes liens, réglages et notes tout seul : chaque jour, et av
 | « Connexion à homedash… » | homedash redémarre (mise à jour, réveil) : la page revient toute seule. Si ça dure, quitte et relance l'appli |
 | « La mise à jour n'a pas été installée » (Windows) | Tes données n'ont pas changé. Réessaie, ou installe la nouvelle version à la main depuis la page des versions. Si ça recommence, *Aide → Signaler un problème* en joignant le fichier `update.log` indiqué dans le message |
 | « homedash n'a pas pu démarrer » | Le serveur de l'appli s'est arrêté : quitte et relance homedash. Si ça recommence, *Aide → Signaler un problème* |
-| http://localhost:7777 ne montre rien dans le navigateur | Normal : coche *Réglages → Affichage → Accès depuis le navigateur*, l'appli ouverte |
+| http://localhost:7777 ne montre rien dans le navigateur | Normal : coche *Réglages → Fonctionnalités → Accès depuis le navigateur*, l'appli ouverte |
 | Accès navigateur : « le port 7777 est déjà pris » | Un autre programme l'utilise (un ancien homedash ?) : ferme-le |
 | « Tes réglages ne se lisent plus » | Le fichier a été abîmé (souvent une modification à la main) : *Revenir à la dernière sauvegarde* |
-| Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Connexion*, le pas-à-pas « Comment créer un jeton » y est ouvert |
+| Pas d'onglet GitHub | Aucun jeton : *Réglages → GitHub → Compte*, le pas-à-pas « Comment créer un jeton » y est ouvert |
 | Un repo n'est pas proposé | Repo d'un collègue où tu es collaborateur : onglet *Partagés avec toi*. Sinon le jeton n'y a pas accès : ajoute-le dans *Repository access* du jeton, sur GitHub |
-| Onglet Local vide | Ajoute un dossier dans *Réglages → Dépôts locaux* (dossier personnel, ou 💽 ailleurs sur le disque) |
-| Une pastille ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
+| Onglet Local vide | Ajoute un dossier dans *Réglages → Local* (dossier personnel, ou 💽 ailleurs sur le disque) |
+| Un compteur ne bouge pas | L'onglet est peut-être en veille : clique dessus pour le recharger |
 | Des lettres au lieu des icônes | *Réglages → Affichage → Icônes des sites* doit être coché |
 | Un site boude (captcha refusé, page qui tourne en boucle) | Clic droit sur son icône → *Effacer les données de ce site*, puis reconnecte-toi. Sinon ↗ l'ouvre dans ton navigateur |
 | Rien sur l'icône du Dock | *Pastilles de l'app* désactivé dans macOS : voir *Notifications* ci-dessus |
 
 Autre chose ? Ouvre une **[issue sur GitHub](https://github.com/lepetitpaco/homedash/issues/new)** :
 ce que tu faisais, ce que tu attendais, ce qui s'est passé, et ta version (en haut à droite). *Réglages
-→ Aide → Journal d'erreurs → Copier pour une issue* donne le détail technique à coller dedans.
+→ Aide → Diagnostic → Copier pour une issue* donne le détail technique à coller dedans.

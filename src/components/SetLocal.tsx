@@ -106,7 +106,7 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
                 ✓ lire ce dossier
               </button>
             ) : null}
-            <button onClick={() => setOpen(false)}>fermer</button>
+            <button onClick={() => setOpen(false)}>Fermer</button>
           </div>
           {error ? <p className="set-hint set-bad">✗ {error}</p> : null}
           {(view?.starts?.length ?? 0) > 1 ? (
@@ -141,7 +141,7 @@ export default function SetLocal({ roots, maxDepth, onRoots, onMaxDepth }: Props
         </div>
       ) : (
         <div className="set-add">
-          <button onClick={() => setOpen(true)}>+ ajouter un dossier</button>
+          <button onClick={() => setOpen(true)}>＋ Ajouter un dossier</button>
         </div>
       )}
 

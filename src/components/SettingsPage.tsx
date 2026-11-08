@@ -16,7 +16,7 @@ import {
   toggleNotifications,
   type NotifState,
 } from '../lib/notifications'
-import { DEFAULT_GH_LAYOUT, DEFAULT_UI, DISPLAY_PRESETS, SIZE_LIMITS } from '../lib/config'
+import { DEFAULT_GH_LAYOUT, DEFAULT_UI } from '../lib/config'
 import {
   EDIT_TAB_EVENT,
   NEW_TAB_EVENT,
@@ -31,14 +31,21 @@ import { hostOf } from '../lib/customTabs'
 import { featureOn, repoTabs, type Config, type CustomTab, type Feature, type RepoItem, type RepoTab } from '../types'
 import { confirmDialog } from './ConfirmHost'
 import SetDocker from './SetDocker'
+import SetExtensions, { extensionsAvailable } from './SetExtensions'
 import SetBackups from './SetBackups'
 import SetBasecamp from './SetBasecamp'
 import SetTrello from './SetTrello'
 import SetToolRepos from './SetToolRepos'
+import { WHATS_NEW_EVENT, whatsNewSince } from '../lib/whatsNew'
+import SetBcStats from './SetBcStats'
 import SetConnect from './SetConnect'
 import SetLocal from './SetLocal'
 import SetRenovate from './SetRenovate'
+import SetBellKinds from './SetBellKinds'
 import SetRepos, { type Use } from './SetRepos'
+import BarLayoutForm, { type Bars } from './BarLayoutForm'
+import SetDisplay from './SetDisplay'
+import SetOverview from './SetOverview'
 import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
 import ErrorLog from './ErrorLog'
@@ -64,21 +71,36 @@ const NOTIF_LABEL: Record<NotifState, string> = {
 const ACCOUNT_SECTIONS: string[] = ['set-github']
 /** Anciennes parties (avant 1.31) réunies dans « GitHub » : un lien ou une partie mémorisée y mène. */
 // « Liens & onglets » est une partie de Mes sites depuis l'issue #59 : même composant, deux entrées de menu.
-const MERGED: Record<string, string> = { 'set-account': 'set-github', 'set-repos': 'set-github', 'set-ghtab': 'set-github', 'set-links': 'set-tabs' }
-const sectionOf = (id: string) => MERGED[id] ?? id
+// Rangement des Réglages : Docker est un bloc de Mes sites ; erreurs et performance forment Diagnostic.
+const MERGED: Record<string, string> = {
+  'set-account': 'set-github:account',
+  'set-repos': 'set-github:repos',
+  'set-ghtab': 'set-github:tab',
+  'set-links': 'set-tabs',
+  'set-docker': 'set-tabs',
+  'help-errors': 'help-diag',
+  'help-perf': 'help-diag',
+}
+/** `set-github:repos` → la partie et son sous-onglet ; un ancien id → sa nouvelle place. */
+const parse = (raw: string): [string, string | null] => {
+  const [id, part] = (MERGED[raw] ?? raw).split(':')
+  return [MERGED[id]?.split(':')[0] ?? id, part ?? null]
+}
+const sectionOf = (raw: string) => parse(raw)[0]
 
 /**
  * Parties de la page, dans l'ordre, rangées par thème : le menu de gauche les
  * groupe sous un intertitre et affiche l'une ou l'autre.
  */
 const SECTIONS = [
+  { id: 'set-home', icon: '🏠', label: "Vue d'ensemble", group: 'Général' },
   { id: 'set-features', icon: '🧩', label: 'Fonctionnalités', group: 'Général' },
-  { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'GitHub' },
-  { id: 'set-local', icon: '💻', label: 'Dépôts locaux', group: 'GitHub' },
-  { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Connexions' },
-  { id: 'set-trello', icon: '📋', label: 'Trello', group: 'Connexions' },
+  { id: 'set-github', icon: '🐙', label: 'GitHub', group: 'Services' },
+  { id: 'set-local', icon: '💻', label: 'Local', group: 'Services' },
+  { id: 'set-basecamp', icon: '🏕', label: 'Basecamp', group: 'Services' },
+  { id: 'set-trello', icon: '📋', label: 'Trello', group: 'Services' },
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
-  { id: 'set-docker', icon: '🐳', label: 'Docker', group: 'La page' },
+  { id: 'set-bars', icon: '🧭', label: 'Barres et onglets', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
@@ -98,45 +120,6 @@ const FEATURE_LIST: { id: Feature; icon: string; label: string; hint: string }[]
   { id: 'local', icon: '💻', label: 'Local', hint: 'onglet Local : les dépôts de ton disque et leurs branches à nettoyer' },
   { id: 'basecamp', icon: '🏕', label: 'Basecamp', hint: 'onglet Basecamp (tes tâches), ses non-lus dans la cloche, recherche dans Basecamp' },
   { id: 'trello', icon: '📋', label: 'Trello', hint: 'onglet Trello (tes cartes), ses non-lus dans la cloche, recherche dans Trello' },
-]
-
-/** Bornes d'un réglage de taille (vide = défaut), ou rien pour les autres. */
-const limitOf = (key: string) => SIZE_LIMITS.find(([k]) => k === key)
-
-/** Réglages numériques de « Affichage » : ce que chacun change, en une phrase. */
-const DISPLAY_FIELDS: {
-  title: string
-  icon: string
-  hint: string
-  fields: {
-    key: 'maxTiles' | 'linkWidth' | 'railWidth' | 'sidebarWidth' | 'healthcheckInterval' | 'pageWidth' | 'cardColumns' | 'cardWidth'
-    label: string
-    unit?: string
-    hint: string
-  }[]
-}[] = [
-  {
-    title: 'Onglet Raccourcis',
-    icon: '🔗',
-    hint: 'Tailles et rythme de l’accueil. Vide = la valeur par défaut.',
-    fields: [
-      { key: 'maxTiles', label: 'Tuiles « les plus utilisés »', hint: 'nombre de liens dans la rangée des plus cliqués' },
-      { key: 'linkWidth', label: 'Largeur d’un lien', unit: 'px', hint: 'plus petit = plus de liens par ligne' },
-      { key: 'railWidth', label: 'Largeur des noms de catégorie', unit: 'px', hint: 'la colonne de gauche de chaque catégorie de liens, où s’affiche son nom' },
-      { key: 'sidebarWidth', label: 'Blocs Notes / Stats', unit: 'px', hint: 'largeur mini de chaque bloc sous les tuiles' },
-      { key: 'healthcheckInterval', label: 'Test des voyants', unit: 's', hint: 'fréquence de vérification des liens surveillés' },
-    ],
-  },
-  {
-    title: 'Mise en page',
-    icon: '📐',
-    hint: 'Largeur de la page et des cartes GitHub / Local.',
-    fields: [
-      { key: 'pageWidth', label: 'Largeur de la page', unit: '%', hint: 'part de l’écran occupée, centrée — 100 = tout l’écran ; jamais moins de 1 400 px' },
-      { key: 'cardColumns', label: 'Colonnes GitHub / Local', hint: 'nombre de cartes côte à côte — 0 = selon la largeur de l’écran' },
-      { key: 'cardWidth', label: 'Largeur d’une carte', unit: 'px', hint: 'onglets GitHub et Local, quand « Colonnes » est à 0 : largeur minimum d’une carte. Exemple sur un écran de 1 800 px : 560 → 3 cartes par ligne, 400 → 4' },
-    ],
-  },
 ]
 
 /** Une partie d'une carte de réglages : icône, titre et une phrase qui dit à quoi elle sert. */
@@ -203,16 +186,26 @@ type Props = {
   saving: boolean
   /** Version et changelog (Aide → Nouveautés), le même état que la barre du haut. */
   changelog: ReturnType<typeof useChangelog>
+  /** Les choix des barres (propres à cet écran, appliqués tout de suite) : Barres et onglets. */
+  bars?: Bars
 }
 
-/** Pages de l'Aide qui ne viennent pas de GUIDE.md. */
+/** Pages de l'Aide qui ne viennent pas de GUIDE.md. Nouveautés n'est pas au menu (bouton de version, menu de l'appli). */
 const NEWS = { id: 'help-news', icon: '📜', label: 'Nouveautés', group: 'Aide' }
-const ERRORS = { id: 'help-errors', icon: '🧾', label: "Journal d'erreurs", group: 'Aide' }
+/** Diagnostic : journal d'erreurs et journal de performance, sur une page. */
+const DIAG = { id: 'help-diag', icon: '🩺', label: 'Diagnostic', group: 'Aide' }
 /** Le guide (GUIDE.md) : une seule entrée du menu, ses parties en pastilles dans la page. */
 const GUIDE = { id: 'help-guide', icon: '📖', label: 'Guide', group: 'Aide' }
-/** Seulement si le journal de performance a des mesures (Réglages → Affichage). */
-const PERF = { id: 'help-perf', icon: '📈', label: 'Journal de performance', group: 'Aide' }
 const GUIDE_PART_KEY = 'homedash:guide-part'
+/** Sous-onglets de GitHub, mémorisés. */
+type GhPart = 'account' | 'repos' | 'team' | 'tab'
+const GH_PARTS: { id: GhPart; label: string }[] = [
+  { id: 'account', label: 'Compte' },
+  { id: 'repos', label: 'Repos suivis' },
+  { id: 'team', label: 'Équipe' },
+  { id: 'tab', label: "Ce que montre l'onglet" },
+]
+const GH_PART_KEY = 'homedash:gh-part'
 
 type GhCfg = {
   id?: string
@@ -231,7 +224,7 @@ type GhCfg = {
 
 const asList = (v: unknown): string[] => (Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [])
 
-export default function SettingsPage({ config, onSave, onReload, saving, changelog }: Props) {
+export default function SettingsPage({ config, onSave, onReload, saving, changelog, bars }: Props) {
   // Brouillon local : rien n'est écrit avant « Enregistrer ».
   const [draft, setDraft] = useState<Config | null>(() => (config && cachedDraft(config)) ?? config)
   const [auth, setAuth] = useState<Auth | null>(null)
@@ -317,7 +310,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }, [])
   // Une fonctionnalité décochée quitte le menu tout de suite (brouillon compris).
   const shown = (id: string) => !SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id])
-  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), NEWS, GUIDE, ERRORS, ...(hasPerf ? [PERF] : [])]
+  const nav = [...SECTIONS.filter((sec) => shown(sec.id)), GUIDE, DIAG]
   const [guidePart, setGuidePart] = useState<string | null>(() => {
     try {
       return localStorage.getItem(GUIDE_PART_KEY)
@@ -336,12 +329,15 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
   }
 
   const cleanedRef = useRef<(c: Config) => Config>((c) => c)
+  // Sous-onglet demandé avec la partie (`set-github:repos`, recherche ou ancien lien).
+  const initialPart = useRef<string | null>(null)
   // Une seule partie à l'écran ; le menu de gauche passe de l'une à l'autre.
   // Mémorisée : on revient là où on réglait.
   const [active, setActive] = useState<string>(() => {
     try {
       const raw = localStorage.getItem(SECTION_KEY)
       const saved = raw && sectionOf(raw)
+      if (raw) initialPart.current = parse(raw)[1]
       // `help-…` : une page de l'Aide (le guide arrive après, son menu aussi).
       if (saved && (SECTIONS.some((sec) => sec.id === saved) || saved.startsWith('help-'))) return saved
     } catch {
@@ -349,14 +345,49 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     }
     return SECTIONS[0].id
   })
+  // GitHub en sous-onglets : une chose à la fois au lieu de deux écrans empilés.
+  const [ghPart, setGhPartState] = useState<GhPart>(() => {
+    const asked = initialPart.current
+    if (asked && GH_PARTS.some((g) => g.id === asked)) return asked as GhPart
+    try {
+      const v = localStorage.getItem(GH_PART_KEY)
+      if (v && GH_PARTS.some((g) => g.id === v)) return v as GhPart
+    } catch {
+      /* stockage indisponible */
+    }
+    return 'account'
+  })
+  const setGhPart = (part: GhPart) => {
+    setGhPartState(part)
+    try {
+      localStorage.setItem(GH_PART_KEY, part)
+    } catch {
+      /* stockage indisponible */
+    }
+  }
+  // Repli à ouvrir en arrivant (`set-tabs:more`, `set-tabs:docker` : une recherche vise un réglage replié).
+  const [fold, setFold] = useState<string | null>(() => initialPart.current)
+  // Docker : proposé seulement s'il tourne sur cette machine, ou déjà activé.
+  const [dockerHere, setDockerHere] = useState(false)
+  useEffect(() => {
+    fetch('api/docker?probe=1', { cache: 'no-store' })
+      .then((r) => r.json() as Promise<{ available?: boolean }>)
+      .then((d) => setDockerHere(!!d.available))
+      .catch(() => undefined)
+  }, [])
   // Ancienne page du guide mémorisée (`help-raccourcis`…) : le guide, sur cette partie.
   useEffect(() => {
-    if (!guide || !active.startsWith('help-') || [NEWS.id, GUIDE.id, ERRORS.id, PERF.id].includes(active)) return
+    if (!guide || !active.startsWith('help-') || [NEWS.id, GUIDE.id, DIAG.id].includes(active)) return
     if (guide.some((p) => p.id === active)) setGuidePart(active)
     setActive(GUIDE.id)
   }, [active, guide])
   useEffect(() => {
-    const go = (e: Event) => setActive(sectionOf((e as CustomEvent<string>).detail))
+    const go = (e: Event) => {
+      const [id, part] = parse((e as CustomEvent<string>).detail)
+      setActive(id)
+      setFold(part)
+      if (part && GH_PARTS.some((g) => g.id === part)) setGhPart(part as GhPart)
+    }
     window.addEventListener(SECTION_EVENT, go)
     return () => window.removeEventListener(SECTION_EVENT, go)
   }, [])
@@ -378,8 +409,11 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
     }
   }, [])
 
-  const jump = (id: string) => {
+  const jump = (raw: string) => {
+    const [id, part] = parse(raw)
     setActive(id)
+    setFold(part)
+    if (part && GH_PARTS.some((g) => g.id === part)) setGhPart(part as GhPart)
     window.scrollTo({ top: 0 })
     presetSettingsSection(id)
   }
@@ -657,7 +691,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           })}
           {newLabel === null ? (
             <button className="gh-account set-account-add" onClick={() => !needsSave() && setNewLabel('')}>
-              ＋ compte
+              ＋ Compte
             </button>
           ) : (
             <span className="set-account-new">
@@ -674,9 +708,9 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                 data-1p-ignore
               />
               <button onClick={createAccount} disabled={!newLabel.trim()}>
-                créer
+                Créer
               </button>
-              <button onClick={() => setNewLabel(null)}>annuler</button>
+              <button onClick={() => setNewLabel(null)}>Annuler</button>
             </span>
           )}
           <span className="set-hint set-accounts-hint">
@@ -687,6 +721,12 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         ) : null}
 
         <div className="set-cards">
+        {active === 'set-home' ? (
+        <Card id="set-home" icon="🏠" title="Vue d'ensemble">
+          <SetOverview config={draft} bars={bars} onJump={jump} />
+        </Card>
+        ) : null}
+
         {active === 'set-features' ? (
         <Card id="set-features" icon="🧩" title="Fonctionnalités">
           <p className="set-hint">
@@ -712,12 +752,42 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </label>
             ))}
           </div>
+          {desktop?.features?.includes('app-server') ? (
+            <Block
+              icon="🌐"
+              title="Accès depuis le navigateur"
+              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
+            >
+              <div className="set-toggles">
+                <label className="set-toggle">
+                  <input
+                    type="checkbox"
+                    checked={draft.ui?.browserAccess === true}
+                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
+                  />
+                  <span>
+                    Ouvrir homedash sur <code>http://localhost:7777</code>
+                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
+                  </span>
+                </label>
+              </div>
+              <BrowserAccessState />
+            </Block>
+          ) : null}
         </Card>
         ) : null}
 
         {active === 'set-github' ? (
         <Card id="set-github" icon="🐙" title={`GitHub · ${labelOf(gh)}`}>
-          <Block icon="🔑" title="Connexion" hint="Le jeton qui permet à homedash de lire ce compte GitHub.">
+          <nav className="set-subtabs" aria-label="Parties de GitHub">
+            {GH_PARTS.map((g) => (
+              <button key={g.id} type="button" className={ghPart === g.id ? 'is-on' : ''} aria-pressed={ghPart === g.id} onClick={() => setGhPart(g.id)}>
+                {g.label}
+              </button>
+            ))}
+          </nav>
+          {ghPart === 'account' ? (
+          <Block icon="🔑" title="Compte" hint="Le jeton qui permet à homedash de lire ce compte GitHub.">
             <div className="set-grid">
               <label className="set-field">
                 <span>
@@ -734,6 +804,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             </div>
             <SetConnect account={selId} auth={auth} onChange={onAuth} />
           </Block>
+          ) : null}
+          {ghPart === 'repos' ? (
           <Block
             icon="📦"
             title="Repos suivis"
@@ -749,6 +821,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               onRemove={untrack}
             />
           </Block>
+          ) : null}
+          {ghPart === 'team' ? (
           <Block icon="👥" title="Équipe" hint="Qui tu es, et les personnes dont l'onglet GitHub montre le travail.">
             <SetTeam
               account={selId}
@@ -761,6 +835,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               onMe={(me) => patchGh({ me })}
             />
           </Block>
+          ) : null}
+          {ghPart === 'tab' ? (
           <Block icon="🐙" title="Ce que montre l'onglet" hint="PRs mergées, rythme de lecture de GitHub, Renovate.">
             <div className="set-grid">
               <label className="set-field">
@@ -788,6 +864,9 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                 />
               </label>
             </div>
+            {/* Propre à l'équipe (dépôt amont, bot) : replié tant qu'on ne le cherche pas. */}
+            <details className="set-more">
+              <summary>Avancé : Renovate</summary>
             <SetRenovate
               shown={layout.includes('gh:renovate')}
               upstream={gh.upstream_repo ?? 'base-site'}
@@ -799,7 +878,9 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               onAuthor={(renovate_author) => patchGh({ renovate_author })}
               onWatched={(base_site_repos) => patchGh({ base_site_repos })}
             />
+            </details>
           </Block>
+          ) : null}
           {accList.length > 1 ? (
             <div className="set-add">
               <button className="set-danger-link" onClick={deleteAccount}>
@@ -814,6 +895,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         <Card id="set-basecamp" icon="🏕" title="Basecamp">
           <SetBasecamp />
           <SetToolRepos tool="Basecamp" followed={followed} chosen={asList(draft.basecamp?.repos)} onChange={(l) => setToolRepos('basecamp', l)} />
+          <SetBcStats
+            on={draft.basecamp?.statsBackground === true}
+            onChange={(v) => {
+              const { statsBackground: _old, ...rest } = draft.basecamp ?? {}
+              setDraft({ ...draft, basecamp: v ? { ...rest, statsBackground: true } : rest })
+            }}
+          />
         </Card>
         ) : null}
         {active === 'set-trello' ? (
@@ -836,7 +924,9 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             openLinks={draft.ui?.openLinks === 'browser' ? 'browser' : 'app'}
             onOpenLinks={(openLinks) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), openLinks } })}
           />
-          <h3 className="set-sub set-sub-gap">🔗 Liens, onglets et veille</h3>
+          {/* Bons défauts (liens dans l'appli, veille à 15 min) : replié tant qu'on ne le cherche pas. */}
+          <details className="set-more" open={fold === 'more' || undefined}>
+            <summary>Plus de réglages : liens qui ouvrent un onglet, veille, onglets temporaires</summary>
           <SetTabs
             part="links"
             tabs={draft.tabs ?? []}
@@ -850,10 +940,27 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
             openLinks={draft.ui?.openLinks === 'browser' ? 'browser' : 'app'}
             onOpenLinks={(openLinks) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), openLinks } })}
           />
+          </details>
+          {dockerHere || draft.docker?.enabled ? (
+            <details className="set-more" open={draft.docker?.enabled || fold === 'docker' || undefined}>
+              <summary>🐳 Docker : tes containers dans la barre (développeurs)</summary>
+              <SetDocker
+                enabled={draft.docker?.enabled === true}
+                hidden={asList(draft.docker?.hidden)}
+                onChange={(enabled, hidden) => setDraft({ ...draft, docker: { enabled, hidden } })}
+              />
+            </details>
+          ) : null}
+          {extensionsAvailable() ? (
+            <details className="set-more" open={fold === 'extensions' || undefined}>
+              <summary>🧩 Extensions de navigateur dans tes sites</summary>
+              <SetExtensions />
+            </details>
+          ) : null}
         </Card>
         ) : null}
         {active === 'set-local' ? (
-        <Card id="set-local" icon="💻" title="Dépôts locaux">
+        <Card id="set-local" icon="💻" title="Local">
           <SetLocal
             roots={local.roots ?? []}
             maxDepth={local.max_depth ?? 3}
@@ -876,8 +983,13 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
                       ? '✓ À jour (homedash vérifie toutes les 10 min).'
                       : ''}{' '}
                 <button className="set-inline-btn" onClick={() => void changelog.check()} disabled={changelog.busy}>
-                  {changelog.busy ? 'vérification…' : 'vérifier maintenant'}
-                </button>
+                  {changelog.busy ? 'vérification…' : 'Vérifier maintenant'}
+                </button>{' '}
+                {whatsNewSince(null, changelog.data.current).length ? (
+                  <button className="set-inline-btn" onClick={() => window.dispatchEvent(new Event(WHATS_NEW_EVENT))}>
+                    ✨ Quoi de neuf
+                  </button>
+                ) : null}
               </p>
               <ChangelogBody data={changelog.data} />
             </div>
@@ -887,15 +999,24 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
 
-        {active === ERRORS.id ? (
-        <Card id={ERRORS.id} icon={ERRORS.icon} title={ERRORS.label}>
-          <ErrorLog repo={changelog.data?.repo} />
-        </Card>
-        ) : null}
-
-        {active === PERF.id ? (
-        <Card id={PERF.id} icon={PERF.icon} title={PERF.label}>
-          <PerfLog />
+        {active === DIAG.id ? (
+        <Card id={DIAG.id} icon={DIAG.icon} title="Diagnostic">
+          <p className="set-hint">Pour comprendre un souci : ce qui a échoué, et ce qui prend du temps. Inutile au quotidien.</p>
+          <Block icon="🧾" title="Journal d'erreurs" hint="Les erreurs de la page et du serveur, à copier dans une issue.">
+            <ErrorLog repo={changelog.data?.repo} />
+          </Block>
+          <Block icon="⏱" title="Journal de performance" hint="Mémoire et CPU, jour par jour. Désactivé par défaut.">
+            <SetPerf
+              enabled={draft.ui?.perfLog === true}
+              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
+            />
+            {hasPerf || config?.ui?.perfLog === true ? (
+              <details className="set-more">
+                <summary>Voir les mesures</summary>
+                <PerfLog />
+              </details>
+            ) : null}
+          </Block>
         </Card>
         ) : null}
 
@@ -929,19 +1050,22 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
         </Card>
         ) : null}
 
-        {active === 'set-docker' ? (
-        <Card id="set-docker" icon="🐳" title="Docker">
-          <SetDocker
-            enabled={draft.docker?.enabled === true}
-            hidden={asList(draft.docker?.hidden)}
-            onChange={(enabled, hidden) => setDraft({ ...draft, docker: { enabled, hidden } })}
-          />
-        </Card>
-        ) : null}
-
         {active === 'set-backups' ? (
         <Card id="set-backups" icon="💾" title="Sauvegardes">
           <SetBackups />
+        </Card>
+        ) : null}
+
+        {active === 'set-bars' ? (
+        <Card id="set-bars" icon="🧭" title="Barres et onglets">
+          <p className="set-hint">
+            Appliqué tout de suite, propre à cet écran. Aussi au clic droit sur une barre.
+          </p>
+          {bars ? (
+            <BarLayoutForm bars={bars} withDash />
+          ) : (
+            <p className="set-hint">Indisponible ici.</p>
+          )}
         </Card>
         ) : null}
 
@@ -982,90 +1106,23 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
               </label>
             </div>
           </Block>
-          <Block icon="🖥" title="Taille de l'écran" hint="Un clic règle toutes les tailles ci-dessous d'un coup ; ajuste ensuite si besoin.">
-            <div className="set-presets">
-              {DISPLAY_PRESETS.map((p) => {
-                const on = Object.entries(p.ui).every(
-                  ([k, v]) => ((draft.ui?.[k as keyof typeof p.ui] as number | undefined) || DEFAULT_UI[k as keyof typeof p.ui]) === v,
-                )
-                return (
-                  <button
-                    key={p.id}
-                    className={`set-preset${on ? ' is-on' : ''}`}
-                    onClick={() => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...p.ui } })}
-                  >
-                    <strong>{p.label}</strong>
-                    <span>{p.hint}</span>
-                  </button>
-                )
-              })}
-            </div>
-          </Block>
-          {DISPLAY_FIELDS.map((section) => (
-            <Block key={section.title} icon={section.icon} title={section.title} hint={section.hint}>
-              <div className="set-grid">
-                {section.fields.map(({ key, label, unit, hint }) => (
-                  <label className="set-field" key={key}>
-                    <span>
-                      {label} {unit ? <b className="set-unit">{unit}</b> : null}
-                      <em>{hint}</em>
-                    </span>
-                    <input
-                      type="number"
-                      min={limitOf(key)?.[1] ?? 0}
-                      max={limitOf(key)?.[2]}
-                      placeholder={`${DEFAULT_UI[key]} (défaut)`}
-                      value={(draft.ui?.[key] as number | undefined) || (limitOf(key) ? '' : (draft.ui?.[key] ?? ''))}
-                      onChange={(e) => {
-                        const ui: Record<string, unknown> = { ...(draft.ui ?? {}) }
-                        const v = num(e.target.value, 0)
-                        // Taille vidée ou à 0 : on retire la clé, le défaut s'applique.
-                        if (limitOf(key) && v <= 0) delete ui[key]
-                        else ui[key] = v
-                        setDraft({ ...draft, ui })
-                      }}
-                    />
-                  </label>
-                ))}
-              </div>
-            </Block>
-          ))}
-          {desktop?.features?.includes('app-server') ? (
-            <Block
-              icon="🌐"
-              title="Accès depuis le navigateur"
-              hint="L'appli n'ouvre aucun port : homedash n'existe qu'en elle. Coché, il s'ouvre aussi dans un navigateur, sur cette machine seulement."
-            >
-              <div className="set-toggles">
-                <label className="set-toggle">
-                  <input
-                    type="checkbox"
-                    checked={draft.ui?.browserAccess === true}
-                    onChange={(e) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), browserAccess: e.target.checked } })}
-                  />
-                  <span>
-                    Ouvrir homedash sur <code>http://localhost:7777</code>
-                    <em>tant que l'appli tourne ; jamais visible des autres machines du réseau</em>
-                  </span>
-                </label>
-              </div>
-              <BrowserAccessState />
-            </Block>
-          ) : null}
-          <Block
-            icon="⏱"
-            title="Journal de performance"
-            hint="Pour comprendre une lenteur : note ce qui prend du temps. Inutile au quotidien."
-          >
-            <SetPerf
-              enabled={draft.ui?.perfLog === true}
-              onEnabled={(perfLog) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), perfLog } })}
-            />
+          <Block icon="📐" title="Mise en page" hint="Des modèles plutôt que des chiffres. Appliqué à « Enregistrer ».">
+            <SetDisplay ui={draft.ui ?? {}} onChange={(patch) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...patch } })} />
           </Block>
         </Card>
         ) : null}
         {active === 'set-notifs' ? (
         <Card id="set-notifs" icon="🔔" title="Notifications">
+          <Block
+            icon="🔕"
+            title="Ce qui compte dans la cloche"
+            hint="Compter : dans le compteur et en notification. Discret : dans la liste seulement. Masqué : nulle part. Une version Renovate sur plusieurs repos ne fait déjà qu'une ligne."
+          >
+            <SetBellKinds
+              prefs={draft.ui?.bellKinds ?? {}}
+              onChange={(bellKinds) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), bellKinds } })}
+            />
+          </Block>
           <Block
             icon="💬"
             title="Notifications du bureau"
@@ -1105,8 +1162,8 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           </Block>
           <Block
             icon="🔴"
-            title="Pastille de l'icône de l'appli"
-            hint="Le nombre sur l'icône de l'appli de bureau (Dock sur Mac, barre des tâches sur Windows). Les pastilles de la barre de gauche et de la cloche ne changent pas."
+            title="Compteur sur l'icône de l'appli"
+            hint="Le nombre sur l'icône de l'appli de bureau (Dock sur Mac, barre des tâches sur Windows). Les compteurs de la barre de gauche et de la cloche ne changent pas."
           >
             <div className="set-toggles">
               {(

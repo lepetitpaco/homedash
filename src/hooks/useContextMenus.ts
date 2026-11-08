@@ -56,33 +56,39 @@ export function useContextMenus(
       const groupSize = raw.groups.find((g) => g.name === link.group)?.links.length ?? 0
       const items: MenuItem[] = [
         {
+          icon: '✎',
           label: 'Modifier…',
           onSelect: () => setDraft({ kind: 'link', ref, group: link.group, values: { ...link } }),
         },
         {
+          icon: '📌',
           label: link.pinned ? 'Retirer des tuiles' : 'Épingler en tuile',
           onSelect: () => persist(toggleLinkFlag(raw, ref, 'pinned')),
         },
         {
+          icon: '●',
           label: link.check ? 'Ne plus surveiller' : 'Surveiller (voyant)',
           onSelect: () => persist(toggleLinkFlag(raw, ref, 'check')),
         },
         { sep: true },
-        { label: "Copier le lien", onSelect: () => void copy(`ctx:${link.id}`, link.url) },
-        { label: 'Dupliquer', onSelect: () => persist(duplicateLink(raw, ref)) },
+        { icon: '⧉', label: 'Copier le lien', onSelect: () => void copy(`ctx:${link.id}`, link.url) },
+        { icon: '⿻', label: 'Dupliquer', onSelect: () => persist(duplicateLink(raw, ref)) },
         {
+          icon: '↑',
           label: 'Monter',
           disabled: link.index === 0,
           onSelect: () => persist(moveLink(raw, ref, -1)),
         },
         {
+          icon: '↓',
           label: 'Descendre',
           disabled: link.index >= groupSize - 1,
           onSelect: () => persist(moveLink(raw, ref, 1)),
         },
         { sep: true },
         {
-          label: 'Supprimer',
+          icon: '✕',
+          label: 'Supprimer…',
           danger: true,
           onSelect: () => {
             void confirmDialog({

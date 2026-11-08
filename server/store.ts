@@ -297,6 +297,8 @@ export function validateConfig(cfg: unknown): string | null {
     if (hidden !== undefined && hidden !== null && !strList(hidden)) return '"basecamp.hidden" doit être une liste de textes'
     const repos = bc.repos
     if (repos !== undefined && repos !== null && !strList(repos)) return '"basecamp.repos" doit être une liste de textes'
+    const bg = bc.statsBackground
+    if (bg !== undefined && bg !== null && typeof bg !== 'boolean') return '"basecamp.statsBackground" doit valoir true ou false'
   }
   const tr = cfg.trello
   if (tr !== undefined && tr !== null) {

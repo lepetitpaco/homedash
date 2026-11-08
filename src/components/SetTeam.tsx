@@ -137,7 +137,7 @@ export default function SetTeam({ account, orgs, users, me, connected, login, on
           data-lpignore="true"
         />
         <button onClick={addManual} disabled={checking || !manual.trim()}>
-          {checking ? '…' : '+ ajouter'}
+          {checking ? '…' : '＋ Ajouter'}
         </button>
       </div>
       {error ? <p className="set-hint set-bad">✗ {error}</p> : null}

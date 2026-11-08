@@ -223,6 +223,15 @@ describe('repos par outil (#26)', () => {
     expect((await issue('o/perso', `besoin\n${TR}`)).status).toBe(200)
     expect(posted.length).toBe(1)
   })
+  it('autres repos concernés : tous les repos suivis, même hors du choix de l’outil', () => {
+    store.write(store.CONFIG, { ...CFG, github_accounts: [{ ...CFG.github_accounts[0], me: 'moi' }], trello: { repos: ['o/perso'] } })
+    loadSections()
+    accounts.setToken('main', 't')
+    const got = accounts.trIssues()
+    expect(got.repos.map((r) => r.repo)).toEqual(['o/perso'])
+    expect(got.linked).toEqual(['o/admin', 'o/perso'])
+    expect(accounts.bcIssues().linked).toEqual(['o/admin', 'o/perso'])
+  })
   it('liste invalide : config refusée', async () => {
     expect((await call('PUT', '/api/config', { body: { ...BASE, basecamp: { repos: 'o/x' } } })).status).toBe(422)
   })

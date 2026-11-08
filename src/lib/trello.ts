@@ -83,7 +83,8 @@ export type TrData = {
   unreads: TrNotif[]
   loaded: boolean
   posted: Record<string, TrPosted>
-  github?: { issues: TrIssue[]; repos: { account: string; repo: string }[] }
+  /** `linked` : tous les repos suivis, proposés comme « autres repos concernés ». */
+  github?: { issues: TrIssue[]; repos: { account: string; repo: string }[]; linked?: string[] }
 }
 
 export type TrFound = {

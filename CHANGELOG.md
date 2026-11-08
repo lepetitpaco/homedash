@@ -4,6 +4,51 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.5.0 — 2026-11-05
+Appli de bureau : 2.5.0
+
+- **✨ Quoi de neuf** : après une mise à jour, une fenêtre présente les nouveautés, une carte chacune, et *Essayer*
+  t'emmène au bon endroit. Elle ne s'ouvre qu'une fois ; pour la revoir, clique le numéro de version, en haut à droite.
+- **Ouvrir toutes les PR d'une branche d'un coup** : dans GitHub, une branche présente dans plusieurs repos a un bouton
+  **↗ ouvrir les N**. Dans l'appli, chaque PR s'ouvre dans un onglet ; ⌘clic les ouvre dans le navigateur (ou l'inverse,
+  selon ton réglage des liens).
+- **Onglets du haut en pastilles** : toutes à la même hauteur, elles passent à la ligne quand la place manque. Un dossier
+  de sites devient une pastille qui les montre au clic. Les soulignés d'avant restent au choix.
+- **Réglages → Barres et onglets** : où sont les onglets (barre de gauche ou en haut), *Masquer automatiquement*, puis
+  seulement les options du mode choisi. Aussi au clic droit sur une barre, *Disposition et taille…*.
+- **Des Réglages plus clairs** : la recherche trouve les réglages (« veille », « sauvegarde », « jeton »…) et ouvre la bonne
+  page ; une *Vue d'ensemble* en tête dit ce qui est branché et ce qui manque ; pages regroupées et plus courtes. Docker
+  passe dans *Mes sites*, journal d'erreurs et de performance dans *Diagnostic*. **?** en haut à droite ouvre le Guide.
+- **Affichage en modèles à miniature** : largeur de la page, densité des raccourcis, colonnes des cartes GitHub et Local,
+  plus de chiffres à taper. Une valeur réglée à la main avant est gardée.
+- **Basecamp, 📊 Stats** : qui a créé combien de tâches et de cartes, et combien sont faites, par personne ou par projet,
+  mois par mois. Mise à jour en arrière-plan au choix dans *Réglages → Basecamp* (désactivée par défaut).
+- **Créer une issue depuis Basecamp ou Trello** : une section par source (*Mon besoin*, la carte, les échanges), d'autres
+  repos concernés à cocher, et plus aucun `@` devant un nom (GitHub prévenait le compte de ce nom).
+- **Compteurs de la barre** : clic droit sur Local, Basecamp ou Trello pour savoir ce qu'il compte, ou le masquer ; clic
+  droit sur ⚡ pour fermer les onglets ouverts depuis homedash.
+- **Cloche moins bavarde** : une version Renovate publiée sur plusieurs dépôts ne fait plus qu'une ligne (« ×6 », les
+  autres dépôts dessous), et le compteur compte des lignes. *Réglages → Notifications → Ce qui compte dans la cloche* :
+  pour chaque type (CI, PR mergées, Renovate, Basecamp…), *Compter* (comme avant), *Discret* (dans la liste, sans
+  compteur ni notification) ou *Masqué*.
+- **Sites bord à bord** : un site affiché prend toute la place qui reste, presque sans marge, et son en-tête (← → ↻)
+  est dans la barre du haut quelle que soit la disposition, barres masquées comprises.
+- **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F même en tapant dans le site : le site prend toute la fenêtre, les barres
+  reviennent quand la souris touche leur bord.
+- **Barres masquées, non-lus visibles** : les sites qui ont des messages non lus apparaissent à gauche de la cloche (les 3
+  plus chargés, puis *+N*) ; un clic ouvre le site.
+- **Extensions de navigateur dans tes sites** (appli de bureau) : *Réglages → Mes sites → Extensions*, le dossier d'une
+  extension non empaquetée. Ce qu'elle fait dans la page marche, et **⚙ Réglages** ouvre sa fenêtre de réglages (pour
+  tes sites sans compte à part). Son icône et son clic droit, non.
+- **Dates GitHub lisibles** : « 14:12 », « hier 14:12 », « 3 nov. 14:12 », à ton heure (avant : `11-05T14:12` en heure
+  UTC), la date complète au survol.
+- **La recherche des Réglages** trouve aussi *Liens qui ouvrent un nouvel onglet*, *Onglets temporaires gardés* et
+  *Repos où créer les issues*.
+- **Corrigé** : sur un écran étroit, les cartes GitHub et Local ne sont plus trop serrées, *Réglages → Affichage* ne
+  déborde plus, et « synchro il y a… » reste sur une ligne dans Local. 📊 Stats : le plein écran ne se vide plus, et le
+  détail par mois défile au lieu de couper la colonne Total. La bulle de Docker et le message « GitHub non connecté »
+  mènent à la bonne page de Réglages.
+
 ## 2.4.1 — 2026-11-01
 Appli de bureau : 2.4.1
 

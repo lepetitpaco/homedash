@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useCallback, useRef, useState } from 'react'
+import { useDismiss } from '../hooks/useDismiss'
 
 /** `x:<id>` = onglet perso (`config.tabs`). */
 export type TabId = 'links' | 'github' | 'basecamp' | 'trello' | 'events' | 'local' | 'settings' | `x:${string}`
@@ -31,7 +32,16 @@ export type Tab = {
   /** Son : 🔊 joue, 🔇 coupé ; un clic sur l'icône bascule. */
   audio?: 'on' | 'muted'
   onToggleMute?: () => void
+  /** Dossier : une pastille qui déplie ses sites (`kids`) sous elle ; son compteur = la somme des leurs. */
+  kids?: Tab[]
+  /** Couleur du dossier (point devant son nom). */
+  color?: string
 }
+
+/** Taille des pastilles (menu Disposition, quand les onglets sont en haut). */
+export type StripSize = 'mini' | 'icons' | 'large'
+/** Style des onglets du haut : pastilles (défaut) ou soulignés (le rendu d'avant les pastilles). */
+export type TabLook = 'pills' | 'underline'
 
 function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect: (id: TabId) => void }) {
   const inner = (
@@ -129,6 +139,62 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
   )
 }
 
+/** Un dossier : une pastille, ses sites dans une liste qui s'ouvre au clic. */
+function FolderPill({ t, active, single }: { t: Tab; active: TabId; single: (t: Tab) => React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  const wrap = useRef<HTMLSpanElement>(null)
+  const close = useCallback(() => setOpen(false), [])
+  useDismiss(open, wrap, close)
+  const kids = t.kids ?? []
+  const here = kids.find((k) => k.id === active)
+  const sum = kids.reduce((n, k) => n + (k.badge ?? 0), 0)
+  return (
+    <span ref={wrap} className={`tab-wrap tab-folder${open ? ' is-open' : ''}`} style={t.color ? { ['--folder' as string]: t.color } : undefined}>
+      <button
+        type="button"
+        className={`tab${here ? ' is-active' : ''}`}
+        aria-expanded={open}
+        aria-haspopup="true"
+        onClick={() => setOpen(!open)}
+        onContextMenu={
+          t.onContext
+            ? (e) => {
+                e.preventDefault()
+                t.onContext!(e)
+              }
+            : undefined
+        }
+        title={`${t.label} · ${kids.length} site(s)${here ? ` · ${here.label} affiché` : ''}`}
+      >
+        <span aria-hidden="true">{t.icon}</span>
+        {t.label}
+        {here ? <span className="tab-folder-here">› {here.label}</span> : null}
+        {sum ? (
+          <span className="tab-badge is-alert" title={`${sum} non lu(s) dans le dossier`}>
+            {sum > 99 ? '99+' : sum}
+          </span>
+        ) : null}
+        <span className="tab-folder-caret" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {open ? (
+        <span
+          className="tab-folder-list"
+          role="group"
+          aria-label={t.label}
+          // un site choisi : la liste se referme
+          onClick={(e) => {
+            if ((e.target as HTMLElement).closest('.tab:not(.tab-close)')) setOpen(false)
+          }}
+        >
+          {kids.length ? kids.map(single) : <span className="tab-folder-empty">Dossier vide</span>}
+        </span>
+      ) : null}
+    </span>
+  )
+}
+
 export default function Tabs({
   id,
   tabs,
@@ -137,6 +203,10 @@ export default function Tabs({
   onAdd,
   onNewTemp,
   onMove,
+  onMenu,
+  size = 'icons',
+  autoHide = false,
+  look = 'pills',
 }: {
   id?: string
   tabs: Tab[]
@@ -148,6 +218,12 @@ export default function Tabs({
   onNewTemp?: (e: React.MouseEvent) => void
   /** Onglet `id` glissé avant `before` (onglets `movable`). */
   onMove?: (id: TabId, before: TabId) => void
+  /** Clic droit sur la barre (hors onglet qui a son propre menu). */
+  onMenu?: (e: React.MouseEvent) => void
+  size?: StripSize
+  /** Masquée : une fine bande à sa place, la barre apparaît par-dessus la page au survol. */
+  autoHide?: boolean
+  look?: TabLook
 }) {
   const [drag, setDrag] = useState<TabId | null>(null)
   const [over, setOver] = useState<TabId | null>(null)
@@ -193,14 +269,33 @@ export default function Tabs({
   // Onglets voisins d'un même groupe rassemblés dans un seul bloc.
   const runs: Tab[][] = []
   for (const t of tabs) {
+    if (t.kids) {
+      runs.push([t])
+      continue
+    }
     const last = runs[runs.length - 1]
     if (t.group && last?.[0].group?.id === t.group.id) last.push(t)
     else runs.push([t])
   }
-  return (
-    <nav id={id} className="tabs" role="tablist">
+  const nav = (
+    <nav
+      id={autoHide ? undefined : id}
+      className={`tabs is-${size}${look === 'underline' ? ' is-underline' : ''}`}
+      role="tablist"
+      onContextMenu={
+        onMenu
+          ? (e) => {
+              if (e.defaultPrevented) return
+              e.preventDefault()
+              onMenu(e)
+            }
+          : undefined
+      }
+    >
       {runs.map((run) =>
-        run.length > 1 && run[0].group ? (
+        run[0].kids ? (
+          <FolderPill key={run[0].id} t={run[0]} active={active} single={single} />
+        ) : run.length > 1 && run[0].group ? (
           <div
             key={run[0].group.id}
             className={`tab-duo${run.some((t) => t.id === active) ? ' is-active' : ''}`}
@@ -232,5 +327,12 @@ export default function Tabs({
         </button>
       ) : null}
     </nav>
+  )
+  if (!autoHide) return nav
+  // La bande garde l'id : c'est elle que mesure `--strip-h` (un site dessous prend le reste).
+  return (
+    <div id={id} className="tabs-shell">
+      {nav}
+    </div>
   )
 }

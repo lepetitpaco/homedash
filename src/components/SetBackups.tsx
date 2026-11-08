@@ -21,7 +21,9 @@ const REASON: Record<string, string> = {
 const reasonOf = (r: string) => {
   const update = /^avant-(\d+)-(\d+)-(\d+)(?:-\d+)?$/.exec(r)
   if (update) return `avant ${update[1]}.${update[2]}.${update[3]}`
-  return REASON[r.replace(/-\d+$/, '')] ?? r
+  const base = r.replace(/-\d+$/, '')
+  // `avant-retrait-depots` (prise avant une migration) : lisible plutôt que brut.
+  return REASON[base] ?? base.replace(/-/g, ' ')
 }
 
 const when = (ts: number) =>
@@ -39,6 +41,9 @@ export default function SetBackups() {
   // Cochées pour « supprimer la sélection » (noms de fichier).
   const [picked, setPicked] = useState<string[]>([])
   const fileRef = useRef<HTMLInputElement>(null)
+  // On restaure presque toujours une des dernières : les 5 plus récentes, le reste sur demande
+  // (avec la sélection pour faire le ménage).
+  const [all, setAll] = useState(false)
 
   const load = () =>
     listBackups()
@@ -119,13 +124,13 @@ export default function SetBackups() {
     <>
       <div className="set-add">
         <button onClick={() => run(createBackup(), 'sauvegarde créée')} disabled={busy}>
-          💾 sauvegarder maintenant
+          💾 Sauvegarder maintenant
         </button>
         <a className="set-button" href="api/backup" download>
-          ⬇ télécharger
+          ⬇ Télécharger
         </a>
         <button onClick={() => fileRef.current?.click()} disabled={busy}>
-          ⬆ restaurer un fichier…
+          ⬆ Restaurer un fichier…
         </button>
         <input
           ref={fileRef}
@@ -147,6 +152,7 @@ export default function SetBackups() {
         <p className="set-hint">Aucune sauvegarde pour l'instant — la première automatique arrive au démarrage.</p>
       ) : (
         <>
+        {all ? (
         <div className="set-bk-bar">
           <label className="set-bk-check">
             <input
@@ -181,10 +187,12 @@ export default function SetBackups() {
             <span className="set-hint">coche des sauvegardes pour les supprimer d'un coup</span>
           )}
         </div>
+        ) : null}
         <table className="set-table set-backups">
           <tbody>
-            {items.map((b) => (
+            {[...items].sort((a, b) => b.created - a.created).slice(0, all ? undefined : 5).map((b) => (
               <tr key={b.name} className={picked.includes(b.name) ? 'is-picked' : undefined}>
+                {all ? (
                 <td className="set-bk-cell">
                   <input
                     type="checkbox"
@@ -193,12 +201,13 @@ export default function SetBackups() {
                     aria-label={`Sélectionner la sauvegarde du ${when(b.created)}`}
                   />
                 </td>
+                ) : null}
                 <td>{when(b.created)}</td>
                 <td className="set-hint">{reasonOf(b.reason)}</td>
                 <td className="set-hint">{(b.size / 1024).toFixed(0)} ko</td>
                 <td className="set-row-actions">
                   <button onClick={() => restore(b.name)} disabled={busy}>
-                    restaurer
+                    Restaurer
                   </button>
                   <a href={`api/backups/${b.name}`} download title="Télécharger">
                     ⬇
@@ -222,14 +231,21 @@ export default function SetBackups() {
             ))}
           </tbody>
         </table>
+        {items.length > 5 ? (
+          <button className="set-inline-btn" onClick={() => setAll(!all)}>
+            {all ? 'Seulement les 5 dernières' : `Voir tout (${items.length}) et faire le ménage`}
+          </button>
+        ) : null}
         </>
       )}
       <p className="set-hint">
         Contient liens, infos, réglages, notes et compteurs — pas le jeton GitHub ni le journal.
         Automatique une fois par jour et avant chaque mise à jour, {30} conservées.
       </p>
-      <h3 className="set-sub set-sub-gap">🔐 Export complet (autre machine)</h3>
-      <SetFullExport />
+      <details className="set-more">
+        <summary>🔐 Autre machine : export complet</summary>
+        <SetFullExport />
+      </details>
     </>
   )
 }

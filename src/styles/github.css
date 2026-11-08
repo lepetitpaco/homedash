@@ -66,6 +66,27 @@
   overflow: hidden;
   text-overflow: ellipsis;
 }
+.gh-prgroup-open {
+  flex-shrink: 0;
+  border: 1px solid var(--border-soft);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-faint);
+  font: inherit;
+  padding: 0 0.45rem;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.gh-prgroup-open:hover,
+.gh-prgroup-open:focus-visible {
+  color: var(--sig-branch);
+  border-color: var(--sig-branch);
+}
+.gh-prgroup-blocked {
+  padding: 0.15rem 0.7rem 0;
+  font-size: 0.66rem;
+  color: var(--text-faint);
+}
 .gh-prgroup-count {
   margin-left: auto;
   color: var(--text-faint);
@@ -402,50 +423,134 @@ a.gh-badge:hover {
   }
 }
 
-/* ═══ Onglets ════════════════════════════════════════════════════════════════ */
+/* ═══ Onglets ════════════════════════════════════════════════════════════════
+   Barre du haut en pastilles : elles passent à la ligne quand la place manque
+   (deux rangées plutôt qu'un défilement horizontal qui cache des onglets). */
 .tabs {
   display: flex;
-  gap: 0.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
   margin-bottom: 14px;
+  padding-bottom: 10px;
   border-bottom: 1px solid var(--border);
 }
 .tab {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  background: none;
-  border: 0;
-  border-bottom: 2px solid transparent;
-  color: var(--text-faint);
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  color: var(--text-dim);
   font: inherit;
-  font-size: 0.82rem;
   font-weight: 500;
-  padding: 0.4rem 0.85rem;
+  line-height: 1.2;
+  /* hauteur fixe : compteur, icône ou lettre de compte ne décalent pas les rangées */
+  box-sizing: border-box;
+  height: var(--tab-h, 1.9rem);
+  padding: 0 var(--tab-px, 0.8rem);
+  font-size: var(--tab-fs, 0.82rem);
   cursor: pointer;
-  margin-bottom: -1px;
+  white-space: nowrap;
 }
 .tab:hover {
   color: var(--text);
+  background: var(--panel-2);
+  border-color: color-mix(in srgb, var(--text-faint) 45%, var(--border));
 }
 .tab.is-active {
   color: var(--text);
+  font-weight: 600;
+  background: color-mix(in srgb, #60a5fa 18%, var(--panel));
+  border-color: color-mix(in srgb, #60a5fa 65%, transparent);
+}
+/* Tailles (menu Disposition) : Normal = les valeurs par défaut ci-dessus. */
+.tabs.is-mini {
+  --tab-h: 1.55rem;
+  --tab-px: 0.6rem;
+  --tab-fs: 0.74rem;
+  gap: 4px;
+}
+.tabs.is-large {
+  --tab-h: 2.3rem;
+  --tab-px: 1rem;
+  --tab-fs: 0.9rem;
+  gap: 8px;
+}
+/* Soulignés (menu Disposition) : le rendu d'avant, sans fond ni contour ; l'onglet affiché
+   est souligné en bleu. Les rangées passent à la ligne comme les pastilles. */
+.tabs.is-underline {
+  gap: 0 2px;
+  padding-bottom: 0;
+}
+.tabs.is-underline .tab {
+  background: none;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  border-radius: 0;
+  color: var(--text-faint);
+}
+.tabs.is-underline .tab:hover {
+  color: var(--text);
+  background: none;
+}
+.tabs.is-underline .tab.is-active {
+  color: var(--text);
+  background: none;
   border-bottom-color: #60a5fa;
+}
+.tabs.is-underline .tab-duo {
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+}
+.tabs.is-underline .tab-duo .tab.is-active {
+  box-shadow: none;
+}
+.tabs.is-underline .tab.has-session {
+  box-shadow: inset 0 -2px 0 color-mix(in srgb, var(--session) 70%, transparent);
+}
+.tabs.is-underline .tab.has-session.is-active {
+  box-shadow: none;
+  border-bottom-color: var(--session);
+}
+.tabs.is-underline .tab.is-temp {
+  border: 1px dashed color-mix(in srgb, var(--text-faint) 60%, transparent);
+  border-radius: 0.4rem 0.4rem 0 0;
+}
+.tabs.is-underline .tab-folder-list .tab {
+  border-radius: 0.4rem;
+}
+.tab:focus-visible {
+  outline: 2px solid #60a5fa;
+  outline-offset: 2px;
 }
 
 /* Duo GitHub ⇄ Local : un seul bloc d'onglet (cadre commun), deux moitiés
    cliquables, reliées par ⇄ — le même code, en ligne et sur le disque. */
 .tab-duo {
   display: flex;
-  align-items: stretch;
-  margin-bottom: -1px;
-  border: 1px solid var(--border-soft);
-  border-bottom: 0;
-  border-radius: 0.5rem 0.5rem 0 0;
-  background: color-mix(in srgb, #60a5fa 4%, transparent);
+  align-items: center;
+  gap: 2px;
+  padding: 2px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in srgb, #60a5fa 5%, var(--panel));
+}
+/* Moitiés sans bordure, marge réduite : le bloc a la hauteur d'une pastille seule. */
+.tab-duo .tab {
+  border: 0;
+  background: transparent;
+  height: calc(var(--tab-h, 1.9rem) - 6px);
+}
+.tab-duo .tab.is-active {
+  background: color-mix(in srgb, #60a5fa 18%, var(--panel));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, #60a5fa 65%, transparent);
 }
 .tab-duo.is-active {
   border-color: color-mix(in srgb, #60a5fa 40%, var(--border));
-  background: color-mix(in srgb, #60a5fa 8%, transparent);
 }
 .tab-duo-part {
   display: flex;

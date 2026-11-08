@@ -22,7 +22,7 @@ de son choix, dans le navigateur, ou le copier. Sur du texte : copier, recherche
 | ![](screenshots/menu-d-un-onglet.jpg) | ![](screenshots/barre-clic-droit.jpg) |
 
 Sur une icône : copier le lien, dossier, compte, notifications, son, mise en veille, modifier, supprimer.
-Sur la barre : ajouter un site, un onglet temporaire, sa disposition et sa taille, la cacher.
+Sur la barre : ajouter un site, un onglet temporaire, sa disposition et sa taille.
 
 ## Onglet temporaire
 
@@ -39,7 +39,8 @@ Clic droit dessus : le garder, copier son lien, ou l'ajouter à *Mes sites*.
 
 Clic droit sur la barre, *Disposition et taille…* : icônes, icônes et titres, titres, ou tuiles sur 1 à 3 colonnes, en
 petit, normal ou grand. Les dossiers se placent où tu veux, se replient et montrent leurs quatre premières icônes et le
-total des non-lus. `Ctrl+Tab` passe d'un site à l'autre.
+total des non-lus. Le même panneau met les onglets en haut de la page, en pastilles ou soulignés.
+`Ctrl+Tab` passe d'un site à l'autre.
 
 ![Ctrl+Tab : changer de site](screenshots/changer-de-site.jpg)
 
