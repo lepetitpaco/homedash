@@ -47,14 +47,14 @@ src/
                           ghDate (dates GitHub à l'heure locale), whatsNew (cartes « Quoi de neuf » par version)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  l'appli (Electron)
-  main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
+  main.js                 vue scindée (IPC `homedash:split-*` : config, touches, survol, molette, actions) ; fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
                           d'exposé), badge du Dock / barre des tâches, icône près de l'horloge (Windows),
                           menus, connexion Basecamp interceptée, cookies de l'export complet,
                           reprise des données Docker au premier lancement, extensions des sites
                           (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions, ⚙ réglages dans
                           leur fenêtre : openExtSettings), relais de
                           ⌘⇧F depuis un site vers le mode focus (watchFocusKey)
-  site-adapters.js        vue scindée (IPC `homedash:split-*` : config, touches, survol, molette, actions) : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
+  site-adapters.js        vue scindée : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
                           reprendre quand un de ces sites change ses pages
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)

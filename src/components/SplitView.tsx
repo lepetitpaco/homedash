@@ -65,6 +65,7 @@ export default function SplitView(p: Props) {
   const root = useRef<HTMLDivElement>(null)
   const bodies = useRef<(HTMLDivElement | null)[]>([])
   const lastRects = useRef('')
+  const rectsNow = useRef<(Rect | null)[]>([])
   const [ratios, setRatios] = useState<Record<string, number[]>>({})
   const [dragging, setDragging] = useState(false)
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
@@ -86,6 +87,7 @@ export default function SplitView(p: Props) {
     const sig = JSON.stringify(out)
     if (sig === lastRects.current) return
     lastRects.current = sig
+    rectsNow.current = out
     p.onRects(out)
   }, [p.onRects, p.zoom, zoomed, lay.n]) // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(measure)
@@ -119,10 +121,10 @@ export default function SplitView(p: Props) {
   // La note d'un panneau (« action indisponible ») passe par <body> : les sites, posés en position fixe,
   // sont au-dessus de tout ce qui est dans la grille.
   const note = (i: number) => {
-    const r = bodies.current[i]?.getBoundingClientRect()
+    const r = rectsNow.current[i]
     if (!r) return null
     return createPortal(
-      <span className="split-note" role="status" style={{ left: r.left + 10, width: Math.max(0, r.width - 20), top: r.bottom - 46 }}>
+      <span className="split-note" role="status" style={{ left: r.x + 10, width: Math.max(0, r.w - 20), top: r.y + r.h - 46 }}>
         {p.notes[i]}
       </span>,
       document.body,
@@ -292,7 +294,7 @@ export default function SplitView(p: Props) {
         {p.prefs.keys ? (
           <span className="split-legend" title="Raccourcis du mode actuel">
             {p.prefs.mixer
-              ? `Mixage (remplace J K, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
+              ? `Mixage (remplace J K, N P, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
               : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`}
           </span>
         ) : (

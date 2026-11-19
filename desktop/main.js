@@ -266,13 +266,34 @@ function watchFocusKey(wc) {
 // La page dit ce qui est ouvert et quelles touches intercepter (table tirée de src/lib/splitView.ts) ; les sites
 // (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou raccourcis
 // décochés (Classic) : table vide, les sites ne retiennent ni ne relaient rien.
-const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', sync: false, ids: [] }
+const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false, ids: [] }
 let splitConfig = NO_SPLIT
 // Molette recopiée dans un panneau : son écho (la recopie est aussi une molette) ne repart pas.
 const splitEcho = new Map()
+// Un site hors de la grille ne retient rien : il reçoit la config « fermée ».
+const splitFor = (id) => (splitConfig.open && splitConfig.ids.includes(id) ? splitConfig : NO_SPLIT)
 function sendSplitConfig(wc) {
-  if (wc && !wc.isDestroyed()) wc.send('homedash:split-config', splitConfig)
+  if (wc && !wc.isDestroyed()) wc.send('homedash:split-config', splitFor(wc.id))
 }
+// Avant d'envoyer une touche native à un site, on prévient son préload (qui retiendrait sinon cette touche : boucle).
+const splitPassWait = new Map()
+function announcePass(wc, name) {
+  return new Promise((resolve) => {
+    splitPassWait.set(wc.id, resolve)
+    wc.send('homedash:split-pass', name)
+    setTimeout(() => {
+      if (splitPassWait.get(wc.id) === resolve) splitPassWait.delete(wc.id)
+      resolve()
+    }, 300)
+  })
+}
+ipcMain.on('homedash:split-pass-ok', (e) => {
+  const done = splitPassWait.get(e.sender.id)
+  if (done) {
+    splitPassWait.delete(e.sender.id)
+    done()
+  }
+})
 ipcMain.on('homedash:split-config', (e, cfg) => {
   if (!fromHome(e)) return
   const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 80) : [])
@@ -283,16 +304,17 @@ ipcMain.on('homedash:split-config', (e, cfg) => {
         table: { keys: list(t.keys), alt: list(t.alt), relay: list(t.relay) },
         // Champ de saisie : la même liste que la page (splitView.ts), pour les sites et pour le focus du survol.
         field: typeof cfg.field === 'string' ? cfg.field.slice(0, 300) : '',
+        spaceKeep: typeof cfg.spaceKeep === 'string' ? cfg.spaceKeep.slice(0, 200) : '',
         sync: !!cfg.sync,
         ids: (Array.isArray(cfg.ids) ? cfg.ids : []).filter((n) => guests.has(n)).slice(0, 4),
       }
     : NO_SPLIT
   for (const id of guests) sendSplitConfig(webContents.fromId(id))
 })
-ipcMain.handle('homedash:split-get', (e) => (guests.has(e.sender.id) ? splitConfig : NO_SPLIT))
+ipcMain.handle('homedash:split-get', (e) => (guests.has(e.sender.id) ? splitFor(e.sender.id) : NO_SPLIT))
 // Touche retenue, ou survol, dans un site : la page sait de quel panneau il s'agit par l'id.
 ipcMain.on('homedash:split-key', (e, k) => {
-  if (!guests.has(e.sender.id) || !splitConfig.open || !k || typeof k !== 'object') return
+  if (!guests.has(e.sender.id) || splitFor(e.sender.id) === NO_SPLIT || !k || typeof k !== 'object') return
   win?.webContents.send('homedash:split-key', {
     id: e.sender.id,
     key: String(k.key || '').slice(0, 20),
@@ -302,10 +324,10 @@ ipcMain.on('homedash:split-key', (e, k) => {
   })
 })
 ipcMain.on('homedash:split-hover', (e, kind) => {
-  if (guests.has(e.sender.id) && splitConfig.open) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover')
+  if (guests.has(e.sender.id) && splitFor(e.sender.id) !== NO_SPLIT) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover')
 })
 // Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »).
-ipcMain.on('homedash:split-wheel', (e, dy) => {
+ipcMain.on('homedash:split-wheel', async (e, dy) => {
   const from = e.sender.id
   if (!splitConfig.open || !splitConfig.sync || !guests.has(from) || !Number.isFinite(dy)) return
   if ((splitEcho.get(from) || 0) > Date.now()) return
@@ -314,7 +336,14 @@ ipcMain.on('homedash:split-wheel', (e, dy) => {
     const g = webContents.fromId(id)
     if (!g || g.isDestroyed()) continue
     splitEcho.set(id, Date.now() + 150)
-    g.sendInputEvent({ type: 'mouseWheel', x: 200, y: 200, deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
+    // Au centre du panneau visé.
+    let size = [400, 400]
+    try {
+      size = await g.executeJavaScript('[innerWidth, innerHeight]')
+    } catch {
+      /* page en cours de chargement */
+    }
+    g.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
   }
 })
 const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft'])
@@ -332,7 +361,7 @@ ipcMain.handle('homedash:split-do', async (e, msg) => {
     if (cur && cur.id !== g.id && guests.has(cur.id) && splitConfig.field) {
       try {
         const busy = await cur.executeJavaScript(
-          `(() => { const a = document.activeElement; return !!a && (a.isContentEditable === true || a.matches(${JSON.stringify(splitConfig.field)})) })()`,
+          `(() => { const a = document.activeElement; return !!a && (a.isContentEditable === true || a.closest(${JSON.stringify(splitConfig.field)})) })()`,
         )
         if (busy) return false
       } catch {
@@ -342,7 +371,7 @@ ipcMain.handle('homedash:split-do', async (e, msg) => {
     return g.focus(), true
   }
   try {
-    return await adapters.run(g, op)
+    return await adapters.run(g, op, { before: (name) => announcePass(g, name) })
   } catch {
     return false
   }

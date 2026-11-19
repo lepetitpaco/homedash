@@ -57,7 +57,7 @@ import { Markdown } from '../lib/markdown'
 import type { useChangelog } from '../lib/changelog'
 import SetTeam from './SetTeam'
 import { keys } from '../lib/keys'
-import { desktop } from '../lib/desktop'
+import { desktop, hasSplitView } from '../lib/desktop'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'Non supportées par ce navigateur',
@@ -311,7 +311,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
       .catch(() => undefined)
   }, [])
   // Une fonctionnalité décochée quitte le menu tout de suite (brouillon compris).
-  const shown = (id: string) => !SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id])
+  const shown = (id: string) => (id !== 'set-split' || hasSplitView) && (!SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id]))
   const nav = [...SECTIONS.filter((sec) => shown(sec.id)), GUIDE, DIAG]
   const [guidePart, setGuidePart] = useState<string | null>(() => {
     try {

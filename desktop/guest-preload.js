@@ -60,7 +60,13 @@ window.addEventListener(
 // aucune touche retenue, rien relayé. Sinon : les touches de la table sont retenues (le site ne les voit pas,
 // pour ne pas doubler ses propres raccourcis) et relayées à la page, qui décide de l'action. Jamais dans un
 // champ de saisie. Échap est relayé sans être retenu, et seulement si le site ne s'en est pas servi.
-let split = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', sync: false }
+let split = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false }
+// Touche que homedash va envoyer lui-même à ce site (site-adapters.js) : on la laisse passer une fois.
+let pass = { name: '', until: 0 }
+ipcRenderer.on('homedash:split-pass', (_e, name) => {
+  pass = { name: String(name || ''), until: Date.now() + 500 }
+  ipcRenderer.send('homedash:split-pass-ok')
+})
 ipcRenderer.on('homedash:split-config', (_e, cfg) => {
   if (cfg && typeof cfg === 'object') split = cfg
 })
@@ -83,6 +89,10 @@ window.addEventListener(
     if (!split.open || e.isComposing || inField(e.target) || inField(document.activeElement)) return
     const send = () => ipcRenderer.send('homedash:split-key', { key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey })
     if (e.ctrlKey || e.metaKey) return
+    if (pass.name && Date.now() < pass.until && e.key.toLowerCase() === pass.name) {
+      pass = { name: '', until: 0 }
+      return
+    }
     if (e.key === 'Escape') {
       // Le site ferme sa fenêtre avec Échap : la vue reste. On attend que ses propres écouteurs aient joué.
       if (!split.table.relay.includes('escape') || document.querySelector(DIALOG)) return
@@ -93,6 +103,8 @@ window.addEventListener(
       ? !e.shiftKey && split.table.alt.includes(e.code)
       : split.table.keys.includes(e.key.toLowerCase())
     if (!hit) return
+    // Espace garde son sens sur un bouton, un lien, une vidéo (même règle que la page).
+    if (e.key === ' ' && split.spaceKeep && e.target?.closest?.(split.spaceKeep)) return
     e.preventDefault()
     e.stopImmediatePropagation()
     send()

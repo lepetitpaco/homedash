@@ -36,11 +36,13 @@ function siteOf(url) {
 }
 
 const key = (k) => ({ key: k })
-const dom = (scope, selectors) => ({ dom: { scope, selectors } })
+// `skip` : ce qui ne compte pas dans la publication (le cœur d'un commentaire n'est pas le « J'aime » du post).
+const dom = (scope, selectors, skip = '') => ({ dom: { scope, selectors, skip } })
 
 // Publication visée = celle qui contient le centre de l'écran (ou la plus proche).
 const TT = '[data-e2e="recommend-list-item-container"], article'
 const IG = 'article'
+const IGSKIP = 'ul, li'
 
 const PLANS = {
   x: {
@@ -62,10 +64,10 @@ const PLANS = {
   instagram: {
     next: { scroll: 1 },
     prev: { scroll: -1 },
-    like: dom(IG, ['svg[aria-label="J’aime"]', "svg[aria-label=\"J'aime\"]", 'svg[aria-label="Like"]']),
-    save: dom(IG, ['svg[aria-label="Enregistrer"]', 'svg[aria-label="Save"]']),
-    share: dom(IG, ['svg[aria-label="Partager"]', 'svg[aria-label="Share"]', 'svg[aria-label="Partager la publication"]']),
-    comment: dom(IG, ['svg[aria-label="Commenter"]', 'svg[aria-label="Comment"]']),
+    like: dom(IG, ['svg[aria-label="J’aime"]', "svg[aria-label=\"J'aime\"]", 'svg[aria-label="Like"]'], IGSKIP),
+    save: dom(IG, ['svg[aria-label="Enregistrer"]', 'svg[aria-label="Save"]'], IGSKIP),
+    share: dom(IG, ['svg[aria-label="Partager"]', 'svg[aria-label="Share"]', 'svg[aria-label="Partager la publication"]'], IGSKIP),
+    comment: dom(IG, ['svg[aria-label="Commenter"]', 'svg[aria-label="Comment"]'], IGSKIP),
   },
 }
 
@@ -73,8 +75,8 @@ const PLANS = {
  * Script exécuté dans la page : clique sur l'élément de l'action DANS la publication centrée (`scope`) ;
  * renvoie true si trouvé, false (rien cliqué) sinon, y compris sans publication à l'écran.
  */
-function clickScript({ scope, selectors }) {
-  return `(function (scope, sel) {
+function clickScript({ scope, selectors, skip = '' }) {
+  return `(function (scope, sel, skip) {
     var cy = innerHeight / 2, post = null, pd = 1e9;
     document.querySelectorAll(scope).forEach(function (p) {
       var r = p.getBoundingClientRect();
@@ -86,14 +88,14 @@ function clickScript({ scope, selectors }) {
     var best = null, bd = 1e9;
     sel.forEach(function (s) { try { post.querySelectorAll(s).forEach(function (e) {
       var r = e.getBoundingClientRect();
-      if (r.width < 2 || r.height < 2) return;
+      if (r.width < 2 || r.height < 2 || (skip && e.closest(skip))) return;
       var d = Math.abs((r.top + r.bottom) / 2 - cy);
       if (d < bd) { bd = d; best = e }
     }) } catch (e) {} });
     if (!best) return false;
     (best.closest('button, [role=button], a') || best).click();
     return true;
-  })(${JSON.stringify(scope)}, ${JSON.stringify(selectors)})`
+  })(${JSON.stringify(scope)}, ${JSON.stringify(selectors)}, ${JSON.stringify(skip)})`
 }
 
 /** Défilement programmatique d'un cran (Instagram) : le conteneur qui défile sous le centre de l'écran. */
@@ -111,8 +113,16 @@ function scrollScript(dir) {
   })(${dir})`
 }
 
-/** Touche native : appui complet (keyDown, char, keyUp), comme au clavier. */
-function sendKey(wc, k) {
+/** Le nom que le site verra dans `event.key` pour une touche d'`sendInputEvent` (celui que le préload compare). */
+const keyName = (k) => ({ Down: 'arrowdown', Up: 'arrowup' })[k] || k.toLowerCase()
+
+/**
+ * Touche native : appui complet (keyDown, char, keyUp), comme au clavier. Le préload du site retient les touches
+ * de la vue scindée (J, K, L, flèches…) : sans prévenir, il reprendrait celle-ci et on tournerait en rond. `before`
+ * l'annonce (accusé de réception attendu) juste avant l'envoi.
+ */
+async function sendKey(wc, k, before) {
+  if (before) await before(keyName(k))
   wc.sendInputEvent({ type: 'keyDown', keyCode: k })
   if (k.length === 1) wc.sendInputEvent({ type: 'char', keyCode: k })
   wc.sendInputEvent({ type: 'keyUp', keyCode: k })
@@ -140,7 +150,7 @@ const lastNav = new WeakMap()
  * Résout true si c'est fait, false si l'action n'existe pas pour ce site ou que sa cible est introuvable
  * (la page affiche alors « action indisponible »).
  */
-async function run(wc, op) {
+async function run(wc, op, hooks = {}) {
   const plan = PLANS[siteOf(wc.getURL())]?.[op]
   if (op in NAV) {
     const page = op.startsWith('page')
@@ -148,14 +158,14 @@ async function run(wc, op) {
     const now = Date.now()
     if (!page && now - (lastNav.get(wc) || 0) < 250) return true
     if (!page) lastNav.set(wc, now)
-    if (!page && plan?.key) return sendKey(wc, plan.key), true
+    if (!page && plan?.key) return await sendKey(wc, plan.key, hooks.before), true
     if (!page && plan?.scroll) return !!(await wc.executeJavaScript(scrollScript(plan.scroll)))
     return wheel(wc, NAV[op], page)
   }
   if (!plan) return false
-  if (plan.key) return sendKey(wc, plan.key), true
+  if (plan.key) return await sendKey(wc, plan.key, hooks.before), true
   if (plan.dom) return !!(await wc.executeJavaScript(clickScript(plan.dom)))
   return false
 }
 
-module.exports = { siteOf, run, PLANS, clickScript, scrollScript }
+module.exports = { siteOf, run, PLANS, clickScript, scrollScript, keyName }

@@ -127,6 +127,9 @@ export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'keep'; l
 
 /** Un champ de saisie : les touches ne sont jamais prises dedans (page, sites et focus du survol). */
 export const FIELD_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
+/** Espace garde son sens natif sur un bouton, un lien ou une vidéo (page et sites : la même règle). */
+export const SPACE_KEEPS = 'button, a, [role="button"], video, summary'
+/** Un champ de saisie, ou un contenteditable. */
 export function isEditing(el: { closest?: (s: string) => unknown; isContentEditable?: boolean } | null | undefined): boolean {
   return !!el && (!!el.closest?.(FIELD_SELECTOR) || el.isContentEditable === true)
 }

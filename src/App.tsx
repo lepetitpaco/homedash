@@ -43,6 +43,7 @@ import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
   DEFAULT_SPLIT_LAYOUT,
   FIELD_SELECTOR,
+  SPACE_KEEPS,
   isEditing,
   applyProfile,
   assignSites,
@@ -943,7 +944,7 @@ export default function App() {
       { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
       { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config paramètres', run: () => selectTab('settings') },
       // Chaque page et réglage des Réglages, avec les mots qu'on tape vraiment : on ne cherche plus où c'est rangé.
-      ...settingsEntries(on).map((e) => ({
+      ...settingsEntries(on).filter((e) => e.id !== 'split' || hasSplitView).map((e) => ({
         id: `set:${e.id}`,
         icon: e.icon,
         label: `Réglages › ${e.label}`,
@@ -1208,6 +1209,7 @@ export default function App() {
       open: true,
       table: interceptTable(split.prefs, splitPreset, splitN),
       field: FIELD_SELECTOR,
+      spaceKeep: SPACE_KEEPS,
       sync: split.prefs.sync,
       ids: splitIds,
     })
@@ -1294,7 +1296,7 @@ export default function App() {
       // Les Échap rejoués par la page pour fermer ses menus (`onGuestDown`) ne sont pas des touches : jamais pris.
       if (!s || !e.isTrusted) return
       const t = e.target as HTMLElement | null
-      if (e.key === ' ' && t?.closest?.('button, a')) return
+      if (e.key === ' ' && t?.closest?.(SPACE_KEEPS)) return
       const a = resolveKey(
         { key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey, meta: e.metaKey },
         s.prefs,

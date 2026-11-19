@@ -1,10 +1,12 @@
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_SPLIT, PRESETS, applyProfile, interceptTable } from '../src/lib/splitView'
 
 // desktop/site-adapters.js est du CommonJS de l'appli : chargé tel quel, sans Electron.
 const adapters = createRequire(import.meta.url)('../desktop/site-adapters.js') as {
   siteOf: (url: string) => string | null
-  run: (wc: unknown, op: string) => Promise<boolean>
+  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void }) => Promise<boolean>
+  keyName: (k: string) => string
   PLANS: Record<string, Record<string, unknown>>
   clickScript: (a: { scope: string; selectors: string[] }) => string
 }
@@ -51,12 +53,41 @@ describe('adaptateurs de sites (vue scindée)', () => {
     expect(wc.scripts).toEqual([])
   })
 
+  it('une touche envoyée à un site que sa table retiendrait est annoncée avant (sinon : boucle site → page → site)', async () => {
+    const table = interceptTable(applyProfile(DEFAULT_SPLIT, 'scroll'), PRESETS.azerty, 3)
+    const retained = new Set(table.keys)
+    for (const [url, ops] of [
+      ['https://x.com/home', ['next', 'prev', 'like', 'save', 'share', 'comment']],
+      ['https://www.tiktok.com/foryou', ['next', 'prev', 'like']],
+    ] as const) {
+      for (const op of ops) {
+        const order: string[] = []
+        const wc = fakeWc(url)
+        const orig = wc.sendInputEvent
+        wc.sendInputEvent = (e: unknown) => {
+          const ev = e as { type: string; keyCode: string }
+          if (ev.type === 'keyDown' && retained.has(adapters.keyName(ev.keyCode))) order.push(`key:${adapters.keyName(ev.keyCode)}`)
+          orig(e)
+        }
+        // la molette « suivant » est limitée à un cran par quart de seconde : une webview neuve à chaque essai
+        await adapters.run(wc, op, { before: (name) => void order.push(`announce:${name}`) })
+        const sent = order.filter((o) => o.startsWith('key:'))
+        for (const k of sent) {
+          expect(order.indexOf(`announce:${k.slice(4)}`), `${url} ${op}`).toBeGreaterThanOrEqual(0)
+          expect(order.indexOf(`announce:${k.slice(4)}`)).toBeLessThan(order.indexOf(k))
+        }
+      }
+    }
+  })
+
   it('Instagram : clic borné à la publication centrée, échec = false', async () => {
     const wc = fakeWc('https://www.instagram.com/', true)
     expect(await adapters.run(wc, 'like')).toBe(true)
     expect(wc.scripts[0]).toContain('"article"')
     expect(wc.scripts[0]).toContain('post.querySelectorAll')
     expect(wc.scripts[0]).not.toContain('textContent')
+    // le « J'aime » d'un commentaire (dans une liste) ne compte pas
+    expect(wc.scripts[0]).toContain('"ul, li"')
     expect(await adapters.run(fakeWc('https://www.instagram.com/', false), 'save')).toBe(false)
   })
 

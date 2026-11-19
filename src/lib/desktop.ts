@@ -66,6 +66,8 @@ export type SplitConfig =
       table: { keys: string[]; alt: string[]; relay: string[] }
       /** Sélecteur d'un champ de saisie (splitView.ts) : les sites n'y retiennent aucune touche. */
       field: string
+      /** Où Espace garde son sens natif (bouton, lien, vidéo). */
+      spaceKeep: string
       sync: boolean
       /** Webviews des panneaux affichés (molette synchronisée). */
       ids: number[]
