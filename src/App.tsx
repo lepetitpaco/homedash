@@ -1303,13 +1303,22 @@ export default function App() {
   // Fermer la vue : voir CLOSE_KEEPS_PARKED_PAUSED (seul le site affiché reprend).
   const pausedNow = useRef<Record<string, { id: number; paused: boolean }>>({})
   const pauseVer = useRef(0)
+  // Les sites de la vue qui vient de se fermer, si la pause était active : ce sont eux qu'on garde en pause.
+  const leftOpen = useRef<string[]>([])
   useEffect(() => {
     if (!desktop?.splitDo) return
     const reload = pauseVer.current !== guestVer
     pauseVer.current = guestVer
     const want: Record<string, boolean> = {}
-    if (split) for (const k of splitShown) want[k] = effectivePaused(k, split.prefs, splitShown, splitSoundKey)
-    else for (const k of Object.keys(pausedNow.current)) want[k] = CLOSE_KEEPS_PARKED_PAUSED && k !== tab
+    if (split) {
+      for (const k of splitShown) want[k] = effectivePaused(k, split.prefs, splitShown, splitSoundKey)
+      leftOpen.current = split.prefs.pause && split.prefs.follow !== 'all' ? splitShown : []
+    } else {
+      const parked = new Set([...leftOpen.current, ...Object.keys(pausedNow.current).filter((k) => pausedNow.current[k].paused)])
+      for (const k of parked) want[k] = CLOSE_KEEPS_PARKED_PAUSED && k !== tab
+      // un site affiché reprend et n'est plus suivi : une fois quitté, il vit sa vie comme avant
+      leftOpen.current = CLOSE_KEEPS_PARKED_PAUSED ? leftOpen.current.filter((k) => k !== tab) : []
+    }
     for (const k of new Set([...Object.keys(want), ...Object.keys(pausedNow.current)])) {
       const id = guestIdOf(k)
       const prev = pausedNow.current[k]
