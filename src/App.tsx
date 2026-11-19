@@ -1157,6 +1157,10 @@ export default function App() {
     window.setTimeout(() => setSplitNotes((n) => n.map((x, i) => (i === pane && x === text ? null : x))), 2200)
   }, [])
   const closeSplit = useCallback(() => setSplit(null), [])
+  // Fermée, la grille libère les sites : plus aucun emplacement.
+  useEffect(() => {
+    if (!split) setSplitRects([])
+  }, [!!split]) // eslint-disable-line react-hooks/exhaustive-deps
   const openSplit = () => {
     const embeds = allTabs.filter((t) => t.embed).map(tabKey)
     let last: { layout?: string; slots?: unknown } = {}

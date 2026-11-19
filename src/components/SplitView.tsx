@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Pick from './Pick'
 import {
@@ -81,7 +82,7 @@ export default function SplitView(p: Props) {
   const lastRects = useRef('')
   const [ratios, setRatios] = useState<Record<string, number[]>>({})
   const [dragging, setDragging] = useState(false)
-  const [menu, setMenu] = useState(false)
+  const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
   const lay = layoutOf(p.layout)
   const zoomed = p.zoom !== null && p.zoom < lay.n
 
@@ -114,14 +115,12 @@ export default function SplitView(p: Props) {
       window.removeEventListener('resize', measure)
     }
   }, [measure])
-  // Fermée, la grille libère les sites : plus aucun emplacement.
-  useEffect(() => () => p.onRects([null, null, null, null]), []) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Menu des cases à cocher : se ferme au clic ailleurs.
   useEffect(() => {
     if (!menu) return
     const down = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest?.('.split-menu, .split-menu-btn')) setMenu(false)
+      if (!(e.target as HTMLElement).closest?.('.split-menu, .split-menu-btn, .pick-menu')) setMenu(null)
     }
     window.addEventListener('mousedown', down)
     return () => window.removeEventListener('mousedown', down)
@@ -287,28 +286,31 @@ export default function SplitView(p: Props) {
           />
           <button
             className="split-chip split-menu-btn"
-            aria-expanded={menu}
-            onClick={() => setMenu((v) => !v)}
+            aria-expanded={!!menu}
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect()
+              setMenu((v) => (v ? null : { left: Math.max(8, Math.min(r.left, window.innerWidth - 436)), top: r.bottom + 4 }))
+            }}
             title="Raccourcis clavier, actions, mixage…"
           >
             Options ▾
           </button>
         </div>
-        <span className="set-spacer" />
         {p.prefs.keys ? (
-          <span className="split-legend">
+          <span className="split-legend" title="Raccourcis du mode actuel">
             {p.prefs.mixer
               ? p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')
               : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`}
           </span>
         ) : (
-          <span className="split-legend">Aucune touche interceptée : tu tapes dans les sites comme d'habitude.</span>
+          <span className="split-legend" title="Raccourcis du mode actuel">Aucune touche interceptée : tu tapes dans les sites comme d'habitude.</span>
         )}
         <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (Échap)">
           Fermer
         </button>
-        {menu ? (
-          <div className="split-menu" role="dialog" aria-label="Options de la vue scindée">
+        {menu
+          ? createPortal(
+          <div className="split-menu" role="dialog" aria-label="Options de la vue scindée" style={{ left: menu.left, top: menu.top }}>
             <div className="set-toggles">
               {flag('keys', 'Raccourcis clavier', 'Alt + chiffre, J K, N P, Z, Échap')}
               {flag('actions', 'Actions par site', "L j'aime, B enregistrer, T repartager, C commenter, F suivre")}
@@ -325,8 +327,10 @@ export default function SplitView(p: Props) {
               />
               <span className="split-menu-note">Préréglage utilisé : {p.preset.name}</span>
             </div>
-          </div>
-        ) : null}
+          </div>,
+          document.body,
+          )
+          : null}
       </div>
       <div className="split-grid">
         {zoomed ? (

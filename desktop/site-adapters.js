@@ -146,4 +146,4 @@ async function run(wc, op) {
   return false
 }
 
-module.exports = { siteOf, run, PLANS }
+module.exports = { siteOf, run, PLANS, clickScript, scrollScript }
