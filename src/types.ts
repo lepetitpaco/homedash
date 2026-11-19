@@ -229,6 +229,17 @@ export type TabFolder = {
  * Compte de connexion, comme un conteneur Firefox : ses onglets partagent des
  * cookies à part. La session suit l'`id` : renommer ne déconnecte pas.
  */
+/** Vue scindée enregistrée (#169) : s'ouvre depuis la barre de gauche comme un site. */
+export type SavedSplitView = {
+  id: string
+  name: string
+  layout: string
+  /** Proportions des séparateurs, par nœud de la disposition (`splitView.ts`). */
+  ratios?: Record<string, number[]>
+  /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
+  slots: (string | null)[]
+}
+
 export type TabSession = {
   id: string
   name: string
@@ -270,6 +281,8 @@ export type Config = {
   tabFolders?: TabFolder[]
   /** Comptes de connexion des onglets perso (appli de bureau). Absent = aucun. */
   tabSessions?: TabSession[]
+  /** Vues scindées gardées (#169). Absent = aucune. */
+  splitViews?: SavedSplitView[]
   /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
   features?: Partial<Record<Feature, boolean>>
   /** Liens vers les containers Docker (Réglages → Mes sites → Docker). Absent = désactivé. */
