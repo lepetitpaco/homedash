@@ -192,6 +192,14 @@ raccourcis les décoche ; **la table de mixage remplace J K, N P, Z et les actio
 lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
 *Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
 
+**Garder une vue** : *Garder cette vue* (barre de la vue) demande un nom et range la vue dans la barre de gauche, sous
+tes sites, avec son icône ◫ et un compteur (la somme de ceux de ses sites). Un clic l'ouvre (mêmes sites vivants, rien
+n'est rechargé), le clic droit propose *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Ouverte, le
+bouton devient *Mettre à jour « nom »*. Une vue garde ses sites et sa disposition ; si tu supprimes un site de *Mes
+sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire n'est jamais gardé. Quand un
+même site existe avec plusieurs comptes, le menu d'un panneau les distingue (« X · pro », « X · perso ») et grise celui
+qu'un autre panneau de la vue utilise déjà.
+
 **Clavier** (mode Scroll, ou raccourcis cochés ; **en Classic, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
 chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
 

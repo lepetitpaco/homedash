@@ -39,6 +39,7 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
+import { makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
   DEFAULT_SPLIT_LAYOUT,
@@ -1126,7 +1127,7 @@ export default function App() {
   // ── vue scindée (issue #160) ──────────────────────────────────────────────
   // Plusieurs sites côte à côte : les sites déjà vivants sont posés en grille par CSS (`tile`), jamais
   // rechargés. Les réglages (`ui.split`) donnent le départ ; ceux de la barre de la vue ne durent que la vue.
-  type SplitState = { layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
+  type SplitState = { viewId?: string; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
   const [split, setSplit] = useState<SplitState | null>(null)
   const splitRef = useRef(split)
   splitRef.current = split
@@ -1179,6 +1180,63 @@ export default function App() {
     const slots = assignSites(kept, layout.n, orderSites(recentSites.current, embeds))
     setSplitNotes([null, null, null, null])
     setSplit({ layout: layout.id, slots, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
+  }
+  // Vues enregistrées (#169) : lues dans la config, jamais d'erreur si la clé manque.
+  const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
+  const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
+  const openSavedView = (v: (typeof savedViews)[number]) => {
+    const { keys } = viewSlots(v, embedSites)
+    setSplitNotes([null, null, null, null])
+    setSplit({ viewId: v.id, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
+  }
+  /** « Garder cette vue » : une nouvelle vue (nom demandé), ou la mise à jour de celle qui est ouverte. */
+  const saveView = async () => {
+    const s = splitRef.current
+    if (!s || !raw) return
+    const cur = s.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
+    let name = cur?.name
+    if (!name) {
+      const r = await askNameColor({ title: 'Garder cette vue', name: `Vue ${savedViews.length + 1}`, hint: 'Elle apparaît dans la barre de gauche, avec le compteur de ses sites.' })
+      if (!r) return
+      name = r.name
+    }
+    const id = cur?.id ?? newViewId(savedViews.map((v) => v.id))
+    const view = makeView(id, name, s.layout, s.slots, embedSites)
+    persist({ ...raw, splitViews: cur ? savedViews.map((v) => (v.id === id ? view : v)) : [...savedViews, view] })
+    setSplit((x) => (x ? { ...x, viewId: id } : x))
+  }
+  const viewMenu = (e: React.MouseEvent, v: (typeof savedViews)[number]) => {
+    e.preventDefault()
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: v.name,
+      items: [
+        {
+          icon: '✎',
+          label: 'Renommer',
+          onSelect: async () => {
+            const r = await askNameColor({ title: 'Renommer la vue', name: v.name })
+            if (r && raw) persist({ ...raw, splitViews: renameView(savedViews, v.id, r.name) })
+          },
+        },
+        {
+          icon: '🗑',
+          label: 'Supprimer',
+          onSelect: () =>
+            void confirmDialog({
+              title: `Supprimer la vue « ${v.name} » ?`,
+              body: ['Seule la vue disparaît de la barre : tes sites et leurs connexions ne bougent pas.', 'Tu peux revenir en arrière depuis Réglages → Sauvegardes.'],
+              confirmLabel: 'Supprimer',
+              danger: true,
+            }).then((ok) => {
+              if (!ok || !raw) return
+              persist({ ...raw, splitViews: removeView(savedViews, v.id) })
+              if (splitRef.current?.viewId === v.id) setSplit(null)
+            }),
+        },
+      ],
+    })
   }
   // Un site de la grille est monté et réveillé ; jamais mis en veille tant qu'il est affiché.
   const splitShownKey = splitShown.join('|')
@@ -2622,6 +2680,14 @@ export default function App() {
             selectTab(key)
           }}
           onAdd={addTab}
+          views={savedViews.map((v) => ({
+            id: v.id,
+            name: v.name,
+            counter: viewCounter(v, tabCounts, embedSites),
+            open: split?.viewId === v.id,
+            onOpen: () => openSavedView(v),
+            onContext: (e) => viewMenu(e, v),
+          }))}
           onMenu={railMenu}
           onTabs={(next) => saveTabs([...next, ...keptTabs])}
           onFolders={(next) => saveTabs(customTabs, next)}
@@ -2760,6 +2826,10 @@ export default function App() {
           }}
           slots={split.slots}
           sites={splitSites}
+          names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
+          savedName={split.viewId ? savedViews.find((v) => v.id === split.viewId)?.name : undefined}
+          onSave={() => void saveView()}
+          gone={split.viewId ? viewSlots(savedViews.find((v) => v.id === split.viewId) ?? { id: '', name: '', layout: 'c2', slots: [] }, embedSites).gone : [false, false, false, false]}
           onSite={(slot, key) => {
             const slots = [...split.slots]
             const from = key ? slots.indexOf(key) : -1

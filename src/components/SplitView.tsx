@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom'
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Pick from './Pick'
 import {
   FLAG_HELP,
@@ -27,6 +27,13 @@ type Props = {
   slots: (string | null)[]
   sites: PaneSite[]
   onSite: (slot: number, key: string | null) => void
+  /** Nom de chaque site dans le sélecteur : « X · pro » quand il a un compte. */
+  names: Record<string, string>
+  /** Vue enregistrée ouverte (son nom) : « Garder cette vue » la met alors à jour. */
+  savedName?: string
+  onSave: () => void
+  /** Cases dont le site a été retiré de Mes sites. */
+  gone: boolean[]
   prefs: SplitPrefs
   preset: Preset
   onProfile: (id: 'classic' | 'scroll') => void
@@ -113,10 +120,14 @@ export default function SplitView(p: Props) {
     return () => window.removeEventListener('mousedown', down)
   }, [menu])
 
-  const siteOptions = useMemo(
-    () => [{ value: '', label: '— aucun —' }, ...p.sites.map((s) => ({ value: s.key, label: s.label }))],
-    [p.sites],
-  )
+  // Un site n'est que dans une case : celui d'une autre case est grisé (« déjà dans cette vue »).
+  const siteOptions = (i: number) => [
+    { value: '', label: '— aucun —' },
+    ...p.sites.map((s) => {
+      const used = p.slots.some((k, j) => k === s.key && j !== i && j < lay.n)
+      return { value: s.key, label: p.names[s.key] ?? s.label, disabled: used, hint: used ? 'déjà dans cette vue' : undefined }
+    }),
+  ]
 
   // La note d'un panneau (« action indisponible ») passe par <body> : les sites, posés en position fixe,
   // sont au-dessus de tout ce qui est dans la grille.
@@ -151,7 +162,7 @@ export default function SplitView(p: Props) {
           </span>
           <Pick
             value={key ?? ''}
-            options={siteOptions}
+            options={siteOptions(i)}
             onChange={(v) => p.onSite(i, v || null)}
             title="Site de ce panneau"
           />
@@ -177,7 +188,8 @@ export default function SplitView(p: Props) {
             bodies.current[i] = el
           }}>
           {!key ? <p className="split-empty">Choisis un site pour ce panneau.</p> : null}
-          {key && !site ? <p className="split-empty">Ce site n'existe plus.</p> : null}
+          {key && !site ? <p className="split-empty">Site retiré de Mes sites.</p> : null}
+          {!key && p.gone[i] ? <p className="split-empty">Site retiré de Mes sites : choisis-en un autre.</p> : null}
         </div>
         {p.notes[i] ? note(i) : null}
       </div>
@@ -300,6 +312,9 @@ export default function SplitView(p: Props) {
         ) : (
           <span className="split-legend" title="Raccourcis du mode actuel">Aucune touche interceptée : tu tapes dans les sites comme d'habitude.</span>
         )}
+        <button className="split-chip" onClick={p.onSave} title="Garder cette vue dans la barre de gauche, avec son compteur">
+          {p.savedName ? `Mettre à jour « ${p.savedName} »` : 'Garder cette vue'}
+        </button>
         <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
           Fermer
         </button>

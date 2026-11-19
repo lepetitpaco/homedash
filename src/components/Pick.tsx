@@ -7,6 +7,8 @@ export type PickOption = {
   /** Pastille de couleur devant le libellé (compte, dossier). */
   color?: string
   hint?: string
+  /** Grisé : visible mais pas choisissable (le `hint` dit pourquoi). */
+  disabled?: boolean
 }
 
 /**
@@ -111,7 +113,8 @@ export default function Pick({
               type="button"
               role="option"
               aria-selected={o.value === value}
-              className={`pick-item${o.value === value ? ' is-on' : ''}`}
+              className={`pick-item${o.value === value ? ' is-on' : ''}${o.disabled ? ' is-disabled' : ''}`}
+              disabled={o.disabled}
               onClick={() => {
                 onChange(o.value)
                 setOpen(false)

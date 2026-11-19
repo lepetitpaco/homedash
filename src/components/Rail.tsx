@@ -86,6 +86,8 @@ type Props = {
   onSelect: (key: `x:${string}`) => void
   /** ＋ : nouvel onglet (une fenêtre, sans passer par Réglages). */
   onAdd: () => void
+  /** Vues scindées gardées (#169) : une entrée chacune, avec la somme des compteurs de ses sites. */
+  views?: { id: string; name: string; counter: number; open: boolean; onOpen: () => void; onContext: (e: React.MouseEvent) => void }[]
   /** Clic droit sur la barre hors d'une icône : ajouter, éphémère, largeur, cacher. */
   onMenu: (e: React.MouseEvent) => void
   /** Ordre ou dossier changé par glisser-déposer : écrit dans la config. */
@@ -152,6 +154,7 @@ export default function Rail({
   onHomeTab,
   onHomeMenu,
   onAdd,
+  views = [],
   onMenu,
   onTabs,
   onFolders,
@@ -657,6 +660,23 @@ export default function Rail({
                 </div>
               )
             })}
+          </div>
+        ) : null}
+
+        {views.length ? (
+          <div className="rail-views" aria-label="Vues scindées">
+            {views.map((v) => (
+              <div key={v.id} className={`rail-item${v.open ? ' is-active' : ''}`} onContextMenu={v.onContext}>
+                <span className="rail-pill" aria-hidden="true" />
+                <button className="rail-btn" onClick={v.onOpen} title={`Vue scindée « ${v.name} » : ses sites côte à côte · clic droit : renommer, supprimer`}>
+                  <span className="rail-icon">
+                    {textOnly ? null : <span aria-hidden="true">◫</span>}
+                    {badge(v.counter)}
+                  </span>
+                  {wide ? <span className="rail-label">{v.name}</span> : null}
+                </button>
+              </div>
+            ))}
           </div>
         ) : null}
 
