@@ -266,7 +266,7 @@ function watchFocusKey(wc) {
 // La page dit ce qui est ouvert et quelles touches intercepter (table tirée de src/lib/splitView.ts) ; les sites
 // (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou raccourcis
 // décochés (Classic) : table vide, les sites ne retiennent ni ne relaient rien.
-const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, hover: false, sync: false, ids: [] }
+const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, sync: false, ids: [] }
 let splitConfig = NO_SPLIT
 // Molette recopiée dans un panneau : son écho (la recopie est aussi une molette) ne repart pas.
 const splitEcho = new Map()
@@ -281,7 +281,6 @@ ipcMain.on('homedash:split-config', (e, cfg) => {
     ? {
         open: true,
         table: { keys: list(t.keys), alt: list(t.alt), relay: list(t.relay) },
-        hover: !!cfg.hover,
         sync: !!cfg.sync,
         ids: (Array.isArray(cfg.ids) ? cfg.ids : []).filter((n) => guests.has(n)).slice(0, 4),
       }
@@ -300,8 +299,8 @@ ipcMain.on('homedash:split-key', (e, k) => {
     alt: !!k.alt,
   })
 })
-ipcMain.on('homedash:split-hover', (e) => {
-  if (guests.has(e.sender.id) && splitConfig.open) win?.webContents.send('homedash:split-hover', e.sender.id)
+ipcMain.on('homedash:split-hover', (e, kind) => {
+  if (guests.has(e.sender.id) && splitConfig.open) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick')
 })
 // Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »).
 ipcMain.on('homedash:split-wheel', (e, dy) => {

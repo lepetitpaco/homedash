@@ -19,6 +19,8 @@ describe('la recherche trouve les Réglages', () => {
     ['soulignés', 'set-bars'],
     ['notifications', 'set-notifs'],
     ['largeur', 'set-display'],
+    ['scindée', 'set-split'],
+    ['azerty', 'set-split'],
     ['docker', 'set-tabs:docker'],
     ['erreurs', 'help-diag'],
     ['guide', 'help-guide'],

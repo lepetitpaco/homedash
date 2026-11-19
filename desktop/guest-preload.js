@@ -58,7 +58,7 @@ window.addEventListener(
 // aucune touche retenue, rien relayé. Sinon : les touches de la table sont retenues (le site ne les voit pas,
 // pour ne pas doubler ses propres raccourcis) et relayées à la page, qui décide de l'action. Jamais dans un
 // champ de saisie. Échap est relayé sans être retenu.
-let split = { open: false, table: { keys: [], alt: [], relay: [] }, hover: false, sync: false }
+let split = { open: false, table: { keys: [], alt: [], relay: [] }, sync: false }
 ipcRenderer.on('homedash:split-config', (_e, cfg) => {
   if (cfg && typeof cfg === 'object') split = cfg
 })
@@ -88,16 +88,22 @@ window.addEventListener(
   true,
 )
 
-// Survol : la page donne le son (et les touches) au panneau sous la souris.
+// Survol et clic : la page sait ainsi quel panneau est visé (le son et les touches le suivent, selon le réglage).
 let lastHover = 0
 document.addEventListener(
   'mouseover',
   () => {
     const now = Date.now()
-    if (!split.open || !split.hover || now - lastHover < 300) return
+    if (!split.open || now - lastHover < 300) return
     lastHover = now
     ipcRenderer.send('homedash:split-hover')
   },
+  true,
+)
+
+window.addEventListener(
+  'pointerdown',
+  () => split.open && ipcRenderer.send('homedash:split-hover', 'pick'),
   true,
 )
 

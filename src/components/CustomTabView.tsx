@@ -55,7 +55,10 @@ export default function CustomTabView({
   onLoaded,
   muted = false,
   merged = false,
+  tile = null,
 }: {
+  /** Vue scindée : l'emplacement (px de la fenêtre) où ce site est placé ; `null` = pas dans la grille. */
+  tile?: { x: number; y: number; w: number; h: number } | null
   /** Site affiché en grand (ouvert depuis la barre de gauche) : son en-tête va dans la barre du haut. */
   merged?: boolean
   /** Son coupé (clic droit, ou 🔊 de l'onglet) : réappliqué à chaque chargement. */
@@ -441,7 +444,14 @@ export default function CustomTabView({
   return (
     // Dans l'appli, une webview masquée (display: none) cesse de suivre sa page :
     // on la gare hors de l'écran, pour que les pastilles continuent d'arriver.
-    <section className={`xtab${desktop && hidden ? ' is-parked' : ''}`} hidden={!desktop && hidden} aria-hidden={hidden}>
+    // Vue scindée : placé par CSS à l'emplacement de sa case (fixed), jamais déplacé dans le DOM : une
+    // webview reparentée se recharge.
+    <section
+      className={`xtab${desktop && hidden ? ' is-parked' : ''}${tile ? ' is-tiled' : ''}`}
+      hidden={!desktop && hidden}
+      aria-hidden={hidden}
+      style={tile ? { left: tile.x, top: tile.y, width: tile.w, height: tile.h } : undefined}
+    >
       {/* Site ouvert depuis la barre de gauche : l'en-tête monte dans la barre du
           haut (une rangée de moins) ; sinon il reste ici. */}
       {merged && slot ? createPortal(bar, slot) : bar}

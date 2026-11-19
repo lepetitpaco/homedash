@@ -136,6 +136,8 @@ export type UiConfig = {
    * perso) est gardé à la relance (`true`) ou éphémère (défaut).
    */
   linkTabsKept: boolean
+  /** Vue scindée (Réglages → Vue scindée) : mode, son, clavier. Absent = les défauts du code (`normalizeSplit`). */
+  split?: Partial<import('./lib/splitView').SplitPrefs>
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
   /**
