@@ -19,6 +19,7 @@ const fs = require('node:fs')
 const path = require('node:path')
 const server = require('./server')
 const { afterStart, runUpdate } = require('./updater')
+const adapters = require('./site-adapters')
 
 // Profil à part (tests, seconde instance) : HOMEDASH_PROFILE=/un/dossier. Sans
 // lui, ~/Library/Application Support/homedash (Mac), %APPDATA%\homedash (Windows).
@@ -261,6 +262,76 @@ function watchFocusKey(wc) {
   })
 }
 
+// ── Vue scindée (issue #160) ────────────────────────────────────────────────
+// La page dit ce qui est ouvert et quelles touches intercepter (table tirée de src/lib/splitView.ts) ; les sites
+// (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou raccourcis
+// décochés (Classic) : table vide, les sites ne retiennent ni ne relaient rien.
+const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, hover: false, sync: false, ids: [] }
+let splitConfig = NO_SPLIT
+// Molette recopiée dans un panneau : son écho (la recopie est aussi une molette) ne repart pas.
+const splitEcho = new Map()
+function sendSplitConfig(wc) {
+  if (wc && !wc.isDestroyed()) wc.send('homedash:split-config', splitConfig)
+}
+ipcMain.on('homedash:split-config', (e, cfg) => {
+  if (!fromHome(e)) return
+  const list = (v) => (Array.isArray(v) ? v.filter((x) => typeof x === 'string').slice(0, 80) : [])
+  const t = cfg && typeof cfg.table === 'object' && cfg.table ? cfg.table : {}
+  splitConfig = cfg && cfg.open
+    ? {
+        open: true,
+        table: { keys: list(t.keys), alt: list(t.alt), relay: list(t.relay) },
+        hover: !!cfg.hover,
+        sync: !!cfg.sync,
+        ids: (Array.isArray(cfg.ids) ? cfg.ids : []).filter((n) => guests.has(n)).slice(0, 4),
+      }
+    : NO_SPLIT
+  for (const id of guests) sendSplitConfig(webContents.fromId(id))
+})
+ipcMain.handle('homedash:split-get', (e) => (guests.has(e.sender.id) ? splitConfig : NO_SPLIT))
+// Touche retenue, ou survol, dans un site : la page sait de quel panneau il s'agit par l'id.
+ipcMain.on('homedash:split-key', (e, k) => {
+  if (!guests.has(e.sender.id) || !splitConfig.open || !k || typeof k !== 'object') return
+  win?.webContents.send('homedash:split-key', {
+    id: e.sender.id,
+    key: String(k.key || '').slice(0, 20),
+    code: String(k.code || '').slice(0, 20),
+    shift: !!k.shift,
+    alt: !!k.alt,
+  })
+})
+ipcMain.on('homedash:split-hover', (e) => {
+  if (guests.has(e.sender.id) && splitConfig.open) win?.webContents.send('homedash:split-hover', e.sender.id)
+})
+// Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »).
+ipcMain.on('homedash:split-wheel', (e, dy) => {
+  const from = e.sender.id
+  if (!splitConfig.open || !splitConfig.sync || !guests.has(from) || !Number.isFinite(dy)) return
+  if ((splitEcho.get(from) || 0) > Date.now()) return
+  for (const id of splitConfig.ids) {
+    if (id === from) continue
+    const g = webContents.fromId(id)
+    if (!g || g.isDestroyed()) continue
+    splitEcho.set(id, Date.now() + 150)
+    g.sendInputEvent({ type: 'mouseWheel', x: 200, y: 200, deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
+  }
+})
+const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'follow', 'focus'])
+// Une action de la vue scindée sur un panneau (scroll, touche native ou clic du site). Résout true si faite.
+ipcMain.handle('homedash:split-do', async (e, msg) => {
+  if (!fromHome(e) || !msg || typeof msg !== 'object') return false
+  const { id, op } = msg
+  if (!guests.has(id) || !SPLIT_OPS.has(op)) return false
+  const g = webContents.fromId(id)
+  if (!g || g.isDestroyed()) return false
+  if (op === 'focus') return g.focus(), true
+  try {
+    return await adapters.run(g, op)
+  } catch {
+    return false
+  }
+})
+
 function fallbackPage(reason) {
   const why = reason ? String(reason).replace(/[<>&]/g, '') : ''
   const html = DEV
@@ -421,6 +492,7 @@ function createWindow() {
     guests.add(guest.id)
     watchSiteSwitch(guest)
     watchFocusKey(guest)
+    guest.on('dom-ready', () => sendSplitConfig(guest))
     guest.once('destroyed', () => guests.delete(guest.id))
     // Un site se met à émettre du son, ou s'arrête : 🔊 sur son onglet.
     guest.on('audio-state-changed', (e) => {

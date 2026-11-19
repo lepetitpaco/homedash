@@ -52,3 +52,60 @@ window.addEventListener(
   },
   true,
 )
+
+// ── Vue scindée (issue #160) ────────────────────────────────────────────────
+// Rien ne se passe tant que la vue n'est pas ouverte, ni en mode Classic (table de touches vide) :
+// aucune touche retenue, rien relayé. Sinon : les touches de la table sont retenues (le site ne les voit pas,
+// pour ne pas doubler ses propres raccourcis) et relayées à la page, qui décide de l'action. Jamais dans un
+// champ de saisie. Échap est relayé sans être retenu.
+let split = { open: false, table: { keys: [], alt: [], relay: [] }, hover: false, sync: false }
+ipcRenderer.on('homedash:split-config', (_e, cfg) => {
+  if (cfg && typeof cfg === 'object') split = cfg
+})
+ipcRenderer.invoke('homedash:split-get').then((cfg) => cfg && (split = cfg)).catch(() => undefined)
+
+const EDITING = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
+const inField = (t) => !!t?.closest?.(EDITING)
+
+window.addEventListener(
+  'keydown',
+  (e) => {
+    if (!split.open || e.isComposing || inField(e.target) || inField(document.activeElement)) return
+    const send = () => ipcRenderer.send('homedash:split-key', { key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey })
+    if (e.ctrlKey || e.metaKey) return
+    if (e.key === 'Escape') {
+      if (split.table.relay.includes('escape')) send()
+      return
+    }
+    const hit = e.altKey
+      ? !e.shiftKey && split.table.alt.includes(e.code)
+      : split.table.keys.includes(e.key.toLowerCase())
+    if (!hit) return
+    e.preventDefault()
+    e.stopImmediatePropagation()
+    send()
+  },
+  true,
+)
+
+// Survol : la page donne le son (et les touches) au panneau sous la souris.
+let lastHover = 0
+document.addEventListener(
+  'mouseover',
+  () => {
+    const now = Date.now()
+    if (!split.open || !split.hover || now - lastHover < 300) return
+    lastHover = now
+    ipcRenderer.send('homedash:split-hover')
+  },
+  true,
+)
+
+// Molette d'un panneau, recopiée dans les autres quand « Scroll synchronisé » est coché.
+window.addEventListener(
+  'wheel',
+  (e) => {
+    if (split.open && split.sync && e.isTrusted) ipcRenderer.send('homedash:split-wheel', -e.deltaY)
+  },
+  { capture: true, passive: true },
+)
