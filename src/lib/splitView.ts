@@ -25,18 +25,20 @@ export type SplitPrefs = {
   mixer: boolean
   /** Une molette pour tous les panneaux. */
   sync: boolean
+  /** Pause : les vidéos des panneaux qui n'ont pas le son (#168). */
+  pause: boolean
   /** Garder le son du dernier panneau à la sortie de la souris. */
   keep: boolean
   keyboard: KeyboardChoice
 }
 
 /** Les cases qui définissent un mode ; `keep` et `keyboard` n'en font pas partie. */
-type ProfileBoxes = Pick<SplitPrefs, 'follow' | 'keys' | 'actions' | 'mixer' | 'sync'>
+type ProfileBoxes = Pick<SplitPrefs, 'follow' | 'keys' | 'actions' | 'mixer' | 'sync' | 'pause'>
 
 /** Les deux préréglages : Classic = double écran, rien d'intercepté ; Scroll = multi-scroll de flux. */
 export const PROFILES: Record<'classic' | 'scroll', ProfileBoxes> = {
-  classic: { follow: 'all', keys: false, actions: false, mixer: false, sync: false },
-  scroll: { follow: 'hover', keys: true, actions: true, mixer: false, sync: false },
+  classic: { follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false },
+  scroll: { follow: 'hover', keys: true, actions: true, mixer: false, sync: false, pause: true },
 }
 
 export const DEFAULT_SPLIT: SplitPrefs = { mode: 'scroll', ...PROFILES.scroll, keep: true, keyboard: 'auto' }
@@ -91,6 +93,7 @@ export function normalizeSplit(raw: unknown): SplitPrefs {
     actions: bool('actions', base.actions),
     mixer: bool('mixer', base.mixer),
     sync: bool('sync', base.sync),
+    pause: bool('pause', base.pause),
     keep: bool('keep', base.keep),
     keyboard,
   })
@@ -117,11 +120,12 @@ export const KEYBOARD_OPTIONS: { value: KeyboardChoice; label: string }[] = [
 ]
 
 /** Les cases à cocher, avec leur aide : la même dans la barre de la vue et dans Réglages. */
-export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'keep'; label: string; hint: string }[] = [
+export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'pause' | 'keep'; label: string; hint: string }[] = [
   { key: 'keys', label: 'Raccourcis clavier', hint: 'Alt + chiffre, J K ou ↓ ↑, N P, Espace, Z, Échap' },
   { key: 'actions', label: 'Actions par site', hint: "L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram) ; coche aussi les raccourcis" },
   { key: 'mixer', label: 'Table de mixage', hint: 'une paire de touches par panneau pour le défiler d’une main ; remplace J K, N P, Z et les actions tant qu’elle est cochée ; coche aussi les raccourcis' },
   { key: 'sync', label: 'Scroll synchronisé', hint: 'une molette pour tous les panneaux' },
+  { key: 'pause', label: 'Pause : les panneaux inactifs', hint: 'les vidéos du panneau qui n\'a pas le son sont mises en pause, et reprennent quand il le retrouve' },
   { key: 'keep', label: 'Garder le son à la sortie', hint: 'le dernier panneau garde le son quand la souris sort de la grille' },
 ]
 
@@ -229,6 +233,19 @@ export function effectiveMuted(
   if (manual) return true
   if (!split.open || split.follow === 'all' || !split.shown.includes(key)) return false
   return split.sound !== key
+}
+
+/**
+ * Pause des vidéos (#168) : un site de la grille est en pause tant qu'il n'a pas le son (même panneau que
+ * le son, donc « garder » vaut aussi pour l'image). Jamais en « tous les sons » (Classic), ni hors de la grille.
+ */
+export function effectivePaused(
+  key: string,
+  prefs: Pick<SplitPrefs, 'pause' | 'follow'>,
+  shown: string[],
+  sound: string | null,
+): boolean {
+  return prefs.pause && prefs.follow !== 'all' && shown.includes(key) && sound !== key
 }
 
 // ── clavier ────────────────────────────────────────────────────────────────

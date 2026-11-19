@@ -189,7 +189,7 @@ Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : 
 recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
 *Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
 raccourcis les décoche ; **la table de mixage remplace J K, N P, Z et les actions** tant qu'elle est cochée, car leurs
-lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux), *Garder le son à la sortie*,
+lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
 *Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
 
 **Clavier** (mode Scroll, ou raccourcis cochés ; **en Classic, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +

@@ -113,6 +113,34 @@ function scrollScript(dir) {
   })(${dir})`
 }
 
+/**
+ * Pause des vidéos d'un panneau inactif (#168). Chaque <video> en lecture est marquée puis mise en pause ; tant que
+ * le panneau reste inactif, une vidéo que le site relance seul est remise en pause (écouteur `play`). La reprise
+ * ne relance que les vidéos marquées : une vidéo mise en pause à la main n'est jamais relancée par homedash.
+ */
+const PAUSE_SCRIPT = `(function () {
+  window.__hdHold = true;
+  if (!window.__hdHoldOn) {
+    window.__hdHoldOn = true;
+    document.addEventListener('play', function (e) {
+      var v = e.target;
+      if (window.__hdHold && v && v.tagName === 'VIDEO') { v.setAttribute('data-hd-paused', '1'); v.pause() }
+    }, true);
+  }
+  document.querySelectorAll('video').forEach(function (v) {
+    if (!v.paused && !v.ended) { v.setAttribute('data-hd-paused', '1'); v.pause() }
+  });
+  return true;
+})()`
+const RESUME_SCRIPT = `(function () {
+  window.__hdHold = false;
+  document.querySelectorAll('video[data-hd-paused]').forEach(function (v) {
+    v.removeAttribute('data-hd-paused');
+    try { var p = v.play(); if (p && p.catch) p.catch(function () {}) } catch (e) {}
+  });
+  return true;
+})()`
+
 /** Le nom que le site verra dans `event.key` pour une touche d'`sendInputEvent` (celui que le préload compare). */
 const keyName = (k) => ({ Down: 'arrowdown', Up: 'arrowup' })[k] || k.toLowerCase()
 
@@ -151,6 +179,9 @@ const lastNav = new WeakMap()
  * (la page affiche alors « action indisponible »).
  */
 async function run(wc, op, hooks = {}) {
+  // Avec un geste de la personne (2e argument) : sans lui, `play()` peut être refusé par le site.
+  if (op === 'pause') return !!(await wc.executeJavaScript(PAUSE_SCRIPT, true))
+  if (op === 'resume') return !!(await wc.executeJavaScript(RESUME_SCRIPT, true))
   const plan = PLANS[siteOf(wc.getURL())]?.[op]
   if (op in NAV) {
     const page = op.startsWith('page')
@@ -168,4 +199,4 @@ async function run(wc, op, hooks = {}) {
   return false
 }
 
-module.exports = { siteOf, run, PLANS, clickScript, scrollScript, keyName }
+module.exports = { PAUSE_SCRIPT, RESUME_SCRIPT, siteOf, run, PLANS, clickScript, scrollScript, keyName }

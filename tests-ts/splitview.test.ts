@@ -10,6 +10,7 @@ import {
   detectProfile,
   dragRatios,
   effectiveMuted,
+  effectivePaused,
   focusOnHover,
   focusOnLeave,
   focusOnPick,
@@ -162,6 +163,29 @@ describe('son', () => {
   })
 })
 
+describe('pause des vidéos (#168)', () => {
+  const shown = ['x:a', 'x:b']
+  it('Scroll : seul le panneau qui a le son lit ; il suit le son, « garder » compris', () => {
+    expect(effectivePaused('x:a', scroll, shown, 'x:a')).toBe(false)
+    expect(effectivePaused('x:b', scroll, shown, 'x:a')).toBe(true)
+    // la souris sort et le son se coupe (garder décoché) : tout est en pause, comme le son
+    expect(effectivePaused('x:a', scroll, shown, null)).toBe(true)
+  })
+  it('Classic et « tous les sons » : rien n’est touché ; hors de la grille non plus', () => {
+    expect(classic.pause).toBe(false)
+    expect(effectivePaused('x:b', classic, shown, 'x:a')).toBe(false)
+    expect(effectivePaused('x:b', patchPrefs(scroll, { follow: 'all' }), shown, 'x:a')).toBe(false)
+    expect(effectivePaused('x:z', scroll, shown, 'x:a')).toBe(false)
+  })
+  it('c’est une case du mode : la décocher donne Personnalisé', () => {
+    expect(scroll.pause).toBe(true)
+    expect(patchPrefs(scroll, { pause: false }).mode).toBe('custom')
+    expect(normalizeSplit({ mode: 'scroll' }).pause).toBe(true)
+    expect(normalizeSplit({ mode: 'classic' }).pause).toBe(false)
+    expect(normalizeSplit({ pause: 'oui' }).pause).toBe(DEFAULT_SPLIT.pause)
+  })
+})
+
 describe('clavier : touche + préréglage → action', () => {
   const az = PRESETS.azerty
   const qw = PRESETS.qwerty
@@ -281,7 +305,7 @@ describe('préréglage clavier', () => {
 
 describe('libellés partagés et champs de saisie', () => {
   it('chaque case a son aide, et la table de mixage dit ce qu’elle remplace', () => {
-    expect(FLAG_HELP.map((f) => f.key)).toEqual(['keys', 'actions', 'mixer', 'sync', 'keep'])
+    expect(FLAG_HELP.map((f) => f.key)).toEqual(['keys', 'actions', 'mixer', 'sync', 'pause', 'keep'])
     expect(FLAG_HELP.find((f) => f.key === 'mixer')?.hint).toMatch(/remplace/)
     expect(MODE_LABELS.map((m) => m.id)).toEqual(['classic', 'scroll', 'custom'])
   })

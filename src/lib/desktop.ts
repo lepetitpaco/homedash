@@ -58,7 +58,7 @@ export type Desktop = {
  */
 export type ExtensionInfo = { path: string; name: string; version: string; error: string; loaded: boolean; settings?: boolean }
 
-export type SplitOp = 'next' | 'prev' | 'pageNext' | 'pagePrev' | 'like' | 'save' | 'share' | 'comment' | 'focus' | 'focusSoft'
+export type SplitOp = 'next' | 'prev' | 'pageNext' | 'pagePrev' | 'like' | 'save' | 'share' | 'comment' | 'focus' | 'focusSoft' | 'pause' | 'resume'
 export type SplitConfig =
   | { open: false }
   | {

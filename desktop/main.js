@@ -346,7 +346,7 @@ ipcMain.on('homedash:split-wheel', async (e, dy) => {
     g.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
   }
 })
-const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft'])
+const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft', 'pause', 'resume'])
 // Une action de la vue scindée sur un panneau (scroll, touche native ou clic du site). Résout true si faite.
 ipcMain.handle('homedash:split-do', async (e, msg) => {
   if (!fromHome(e) || !msg || typeof msg !== 'object') return false

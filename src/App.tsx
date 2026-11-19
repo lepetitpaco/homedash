@@ -49,6 +49,7 @@ import {
   assignSites,
   detectKeyboard,
   effectiveMuted,
+  effectivePaused,
   focusOnHover,
   focusOnLeave,
   focusOnPick,
@@ -1216,6 +1217,20 @@ export default function App() {
   }, [!!split, split?.prefs, splitPreset, splitN, splitIdsKey, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => desktop?.splitConfig?.({ open: false }), [])
 
+  // Pause des vidéos (#168) : suit le panneau qui a le son ; fermer la vue relance tout ce qui était en pause.
+  const pausedNow = useRef<Record<string, boolean>>({})
+  useEffect(() => {
+    if (!desktop?.splitDo) return
+    const want: Record<string, boolean> = {}
+    if (split) for (const k of splitShown) want[k] = effectivePaused(k, split.prefs, splitShown, splitSoundKey)
+    for (const k of new Set([...Object.keys(want), ...Object.keys(pausedNow.current)])) {
+      const w = !!want[k]
+      const id = guestIdOf(k)
+      if (w === !!pausedNow.current[k] || id === null) continue
+      pausedNow.current[k] = w
+      void desktop.splitDo(id, w ? 'pause' : 'resume')
+    }
+  }, [split?.prefs.pause, split?.prefs.follow, splitShownKey, splitSoundKey, !!split, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
   const doPick = useCallback(
     (pane: number, focusSite = true) => {
       const s = splitRef.current
