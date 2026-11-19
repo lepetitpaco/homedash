@@ -301,6 +301,13 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
 - Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
   son titre (les compteurs).
+- Vue scindée (#160) : les sites déjà montés sont posés en grille par CSS (`.xtab.is-tiled`, `position: fixed` aux
+  coordonnées de la case), **jamais reparentés** (une webview déplacée se recharge) ; hors grille ils restent garés.
+  Le muet automatique se calcule là où `muted` est passé (`effectiveMuted`) : le muet manuel prime. Les touches sont
+  décidées dans `guest-preload.js` (seul à voir si le focus est dans un champ), d'après la table que la page tire de
+  `splitView.ts` (`interceptTable`) et envoie à `main.js` (`homedash:split-config`) ; table vide en Classic et vue
+  fermée : rien retenu, rien relayé. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
+  `site-adapters.js`.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
