@@ -46,8 +46,8 @@ export type Desktop = {
   splitDo?: (id: number, op: SplitOp) => Promise<boolean>
   /** Touche retenue dans un site de la vue scindée ; renvoie de quoi se désabonner. */
   onSplitKey?: (cb: (k: { id: number; key: string; code: string; shift: boolean; alt: boolean }) => void) => () => void
-  /** La souris entre (ou clique : `pick`) dans un site de la vue scindée (id de sa webview) ; renvoie de quoi se désabonner. */
-  onSplitHover?: (cb: (id: number, pick: boolean) => void) => () => void
+  /** La souris entre, clique (`pick`) ou sort (`leave`) d'un site de la vue scindée (id de sa webview) ; renvoie de quoi se désabonner. */
+  onSplitHover?: (cb: (id: number, kind: 'hover' | 'pick' | 'leave') => void) => () => void
   /** ⇧⌘R du menu de l'appli (≥ 1.1.0) ; renvoie de quoi se désabonner. */
   onReloadTab?: (cb: () => void) => () => void
 }
@@ -58,12 +58,14 @@ export type Desktop = {
  */
 export type ExtensionInfo = { path: string; name: string; version: string; error: string; loaded: boolean; settings?: boolean }
 
-export type SplitOp = 'next' | 'prev' | 'pageNext' | 'pagePrev' | 'like' | 'save' | 'share' | 'comment' | 'follow' | 'focus'
+export type SplitOp = 'next' | 'prev' | 'pageNext' | 'pagePrev' | 'like' | 'save' | 'share' | 'comment' | 'focus' | 'focusSoft'
 export type SplitConfig =
   | { open: false }
   | {
       open: true
       table: { keys: string[]; alt: string[]; relay: string[] }
+      /** Sélecteur d'un champ de saisie (splitView.ts) : les sites n'y retiennent aucune touche. */
+      field: string
       sync: boolean
       /** Webviews des panneaux affichés (molette synchronisée). */
       ids: number[]

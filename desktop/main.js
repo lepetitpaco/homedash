@@ -266,7 +266,7 @@ function watchFocusKey(wc) {
 // La page dit ce qui est ouvert et quelles touches intercepter (table tirée de src/lib/splitView.ts) ; les sites
 // (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou raccourcis
 // décochés (Classic) : table vide, les sites ne retiennent ni ne relaient rien.
-const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, sync: false, ids: [] }
+const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', sync: false, ids: [] }
 let splitConfig = NO_SPLIT
 // Molette recopiée dans un panneau : son écho (la recopie est aussi une molette) ne repart pas.
 const splitEcho = new Map()
@@ -281,6 +281,8 @@ ipcMain.on('homedash:split-config', (e, cfg) => {
     ? {
         open: true,
         table: { keys: list(t.keys), alt: list(t.alt), relay: list(t.relay) },
+        // Champ de saisie : la même liste que la page (splitView.ts), pour les sites et pour le focus du survol.
+        field: typeof cfg.field === 'string' ? cfg.field.slice(0, 300) : '',
         sync: !!cfg.sync,
         ids: (Array.isArray(cfg.ids) ? cfg.ids : []).filter((n) => guests.has(n)).slice(0, 4),
       }
@@ -300,7 +302,7 @@ ipcMain.on('homedash:split-key', (e, k) => {
   })
 })
 ipcMain.on('homedash:split-hover', (e, kind) => {
-  if (guests.has(e.sender.id) && splitConfig.open) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick')
+  if (guests.has(e.sender.id) && splitConfig.open) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover')
 })
 // Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »).
 ipcMain.on('homedash:split-wheel', (e, dy) => {
@@ -315,7 +317,7 @@ ipcMain.on('homedash:split-wheel', (e, dy) => {
     g.sendInputEvent({ type: 'mouseWheel', x: 200, y: 200, deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
   }
 })
-const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'follow', 'focus'])
+const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft'])
 // Une action de la vue scindée sur un panneau (scroll, touche native ou clic du site). Résout true si faite.
 ipcMain.handle('homedash:split-do', async (e, msg) => {
   if (!fromHome(e) || !msg || typeof msg !== 'object') return false
@@ -324,6 +326,21 @@ ipcMain.handle('homedash:split-do', async (e, msg) => {
   const g = webContents.fromId(id)
   if (!g || g.isDestroyed()) return false
   if (op === 'focus') return g.focus(), true
+  // Focus donné par le survol : jamais au détriment d'un champ de saisie en cours dans le panneau qui l'a.
+  if (op === 'focusSoft') {
+    const cur = webContents.getFocusedWebContents()
+    if (cur && cur.id !== g.id && guests.has(cur.id) && splitConfig.field) {
+      try {
+        const busy = await cur.executeJavaScript(
+          `(() => { const a = document.activeElement; return !!a && (a.isContentEditable === true || a.matches(${JSON.stringify(splitConfig.field)})) })()`,
+        )
+        if (busy) return false
+      } catch {
+        /* page en cours de chargement : le focus passe */
+      }
+    }
+    return g.focus(), true
+  }
   try {
     return await adapters.run(g, op)
   } catch {
@@ -373,6 +390,14 @@ function createWindow() {
     },
   })
   win.once('ready-to-show', () => win.show())
+  // Page rechargée ou plantée : plus de vue scindée ouverte, les sites ne retiennent plus rien.
+  const resetSplit = () => {
+    if (!splitConfig.open) return
+    splitConfig = NO_SPLIT
+    for (const id of guests) sendSplitConfig(webContents.fromId(id))
+  }
+  win.webContents.on('render-process-gone', resetSplit)
+  win.webContents.on('did-start-navigation', (_e, _url, _inPlace, isMainFrame) => isMainFrame && resetSplit())
 
   // Taille / position enregistrées une fois le geste fini : `resize` et `move`
   // arrivent par dizaines par seconde pendant qu'on glisse la fenêtre.

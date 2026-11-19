@@ -171,10 +171,11 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 *Appli de bureau.* Le bouton **◫** de la barre du haut (visible dès que tu as deux sites) affiche **2 à 4 sites côte à
 côte dans un seul onglet** : une grille de panneaux, chacun avec le site que tu choisis (le titre du panneau est un
 menu). Les sites sont ceux déjà ouverts dans homedash, avec leur connexion : **rien n'est rechargé**, et en fermant
-la vue (*Fermer*, `Échap`, ou en ouvrant une autre page) chaque site retrouve sa place. Un site affiché ne se met
+la vue (*Fermer*, `Échap` en mode Scroll, ou en ouvrant une autre page) chaque site retrouve sa place. Un site affiché ne se met
 pas en veille. La barre de la vue propose 6 dispositions (2 colonnes, 2 lignes, 3 colonnes, 1 grand et 2 petits,
-2 par 2, 4 colonnes) ; **glisse un séparateur** pour redimensionner ; **double-clic sur le titre** (ou `Z`) agrandit un
-panneau. La dernière disposition est rouverte telle quelle.
+2 par 2, 4 colonnes) ; **glisse un séparateur** pour redimensionner ; **double-clic sur le titre** (ou `Z` en mode Scroll)
+agrandit un panneau. La dernière disposition et ses sites sont mémorisés automatiquement (dans ce navigateur) et
+rouverts à la prochaine ouverture ; la position des séparateurs n'est pas gardée.
 
 Deux **modes**, un clic dans la barre (*Classic*, *Scroll*), et au départ dans *Réglages → Vue scindée* :
 
@@ -187,10 +188,11 @@ Deux **modes**, un clic dans la barre (*Classic*, *Scroll*), et au départ dans 
 Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : en changer une donne *Personnalisé*, et
 recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
 *Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
-raccourcis les décoche), *Scroll synchronisé* (une molette pour tous les panneaux), *Garder le son à la sortie*,
+raccourcis les décoche ; **la table de mixage remplace J K, N P, Z et les actions** tant qu'elle est cochée, car leurs
+lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux), *Garder le son à la sortie*,
 *Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
 
-**Clavier** (mode Scroll ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
+**Clavier** (mode Scroll, ou raccourcis cochés ; **en Classic, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
 chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
 
 | Touche | Effet |
@@ -199,9 +201,9 @@ chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
 | `J` `K` ou `↓` `↑` | Défiler le panneau actif d'un cran (une carte sur TikTok, Reels) |
 | `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente |
 | `Z` | Agrandir / restaurer le panneau actif |
-| `Échap` | Quitter l'agrandissement, puis la vue |
-| `L` `B` `T` `C` `F` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), suivre, sur X, TikTok et Instagram ; « Action indisponible sur ce site » sinon |
-| *Table de mixage* : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main |
+| `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
+| `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant |
+| *Table de mixage* (remplace J K, N P, Z et les actions) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main |
 
 Chaque touche = une action de ta part : homedash ne boucle jamais, ne lit ni ne collecte rien des pages.
 

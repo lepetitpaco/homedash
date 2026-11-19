@@ -3,6 +3,10 @@
  * et Instagram. Un adaptateur par site, reconnu par son hôte. C'est LE fichier qui casse quand un site change
  * ses pages : rien d'autre ne connaît leurs noms de classes ou de boutons.
  *
+ * Une action ne vise que la publication centrée à l'écran (`scope`) : jamais un bouton pris au hasard ailleurs
+ * dans la page. « Suivre » n'existe pas ici : sans vérification sur de vraies pages, il pourrait faire suivre un
+ * compte suggéré (voir #166).
+ *
  * Deux façons d'agir : envoyer au site sa propre touche (`key`), ou cliquer dans la page (`dom`) sur l'élément
  * de l'action le plus proche du centre de l'écran. Attributs stables seulement (`data-testid`, `data-e2e`,
  * `aria-label` en français ET en anglais), jamais des classes générées.
@@ -32,7 +36,11 @@ function siteOf(url) {
 }
 
 const key = (k) => ({ key: k })
-const dom = (selectors, texts = []) => ({ dom: { selectors, texts } })
+const dom = (scope, selectors) => ({ dom: { scope, selectors } })
+
+// Publication visée = celle qui contient le centre de l'écran (ou la plus proche).
+const TT = '[data-e2e="recommend-list-item-container"], article'
+const IG = 'article'
 
 const PLANS = {
   x: {
@@ -42,46 +50,50 @@ const PLANS = {
     save: key('b'),
     share: key('t'),
     comment: key('r'),
-    follow: dom(['[data-testid$="-follow"]'], ['suivre', 'follow']),
   },
   tiktok: {
     next: key('Down'),
     prev: key('Up'),
     like: key('l'),
-    save: dom(['[data-e2e="bookmark-icon"]', '[data-e2e="undefined-icon"]', '[data-e2e="collect-icon"]'], []),
-    share: dom(['[data-e2e="share-icon"]'], []),
-    comment: dom(['[data-e2e="comment-icon"]'], []),
-    follow: dom(['[data-e2e="feed-follow"]', '[data-e2e="browse-follow"]'], ['suivre', 'follow']),
+    save: dom(TT, ['[data-e2e="bookmark-icon"]', '[data-e2e="undefined-icon"]', '[data-e2e="collect-icon"]']),
+    share: dom(TT, ['[data-e2e="share-icon"]']),
+    comment: dom(TT, ['[data-e2e="comment-icon"]']),
   },
   instagram: {
     next: { scroll: 1 },
     prev: { scroll: -1 },
-    like: dom(['svg[aria-label="J’aime"]', "svg[aria-label=\"J'aime\"]", 'svg[aria-label="Like"]']),
-    save: dom(['svg[aria-label="Enregistrer"]', 'svg[aria-label="Save"]']),
-    share: dom(['svg[aria-label="Partager"]', 'svg[aria-label="Share"]', 'svg[aria-label="Partager la publication"]']),
-    comment: dom(['svg[aria-label="Commenter"]', 'svg[aria-label="Comment"]']),
-    follow: dom([], ['suivre', 'follow']),
+    like: dom(IG, ['svg[aria-label="J’aime"]', "svg[aria-label=\"J'aime\"]", 'svg[aria-label="Like"]']),
+    save: dom(IG, ['svg[aria-label="Enregistrer"]', 'svg[aria-label="Save"]']),
+    share: dom(IG, ['svg[aria-label="Partager"]', 'svg[aria-label="Share"]', 'svg[aria-label="Partager la publication"]']),
+    comment: dom(IG, ['svg[aria-label="Commenter"]', 'svg[aria-label="Comment"]']),
   },
 }
 
-/** Script exécuté dans la page : clique sur l'élément de l'action le plus proche du centre ; renvoie true si trouvé. */
-function clickScript({ selectors, texts }) {
-  return `(function (sel, texts) {
-    var cy = innerHeight / 2, best = null, bd = 1e9, els = [];
-    sel.forEach(function (s) { try { document.querySelectorAll(s).forEach(function (e) { els.push(e) }) } catch (e) {} });
-    if (texts.length) document.querySelectorAll('button, [role=button], a').forEach(function (e) {
-      if (texts.indexOf((e.textContent || '').trim().toLowerCase()) >= 0) els.push(e)
+/**
+ * Script exécuté dans la page : clique sur l'élément de l'action DANS la publication centrée (`scope`) ;
+ * renvoie true si trouvé, false (rien cliqué) sinon, y compris sans publication à l'écran.
+ */
+function clickScript({ scope, selectors }) {
+  return `(function (scope, sel) {
+    var cy = innerHeight / 2, post = null, pd = 1e9;
+    document.querySelectorAll(scope).forEach(function (p) {
+      var r = p.getBoundingClientRect();
+      if (r.height < 2 || r.bottom < 0 || r.top > innerHeight) return;
+      var d = r.top <= cy && r.bottom >= cy ? 0 : Math.min(Math.abs(r.top - cy), Math.abs(r.bottom - cy));
+      if (d < pd) { pd = d; post = p }
     });
-    els.forEach(function (e) {
+    if (!post) return false;
+    var best = null, bd = 1e9;
+    sel.forEach(function (s) { try { post.querySelectorAll(s).forEach(function (e) {
       var r = e.getBoundingClientRect();
-      if (r.width < 2 || r.height < 2 || r.bottom < 0 || r.top > innerHeight) return;
+      if (r.width < 2 || r.height < 2) return;
       var d = Math.abs((r.top + r.bottom) / 2 - cy);
       if (d < bd) { bd = d; best = e }
-    });
+    }) } catch (e) {} });
     if (!best) return false;
     (best.closest('button, [role=button], a') || best).click();
     return true;
-  })(${JSON.stringify(selectors)}, ${JSON.stringify(texts)})`
+  })(${JSON.stringify(scope)}, ${JSON.stringify(selectors)})`
 }
 
 /** Défilement programmatique d'un cran (Instagram) : le conteneur qui défile sous le centre de l'écran. */
@@ -124,7 +136,7 @@ const NAV = { next: 1, prev: -1, pageNext: 1, pagePrev: -1 }
 const lastNav = new WeakMap()
 
 /**
- * Exécute `op` (next, prev, pageNext, pagePrev, like, save, share, comment, follow) sur la page `wc`.
+ * Exécute `op` (next, prev, pageNext, pagePrev, like, save, share, comment) sur la page `wc`.
  * Résout true si c'est fait, false si l'action n'existe pas pour ce site ou que sa cible est introuvable
  * (la page affiche alors « action indisponible »).
  */

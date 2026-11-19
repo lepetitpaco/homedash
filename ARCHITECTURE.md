@@ -54,7 +54,7 @@ desktop/                  l'appli (Electron)
                           (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions, ⚙ réglages dans
                           leur fenêtre : openExtSettings), relais de
                           ⌘⇧F depuis un site vers le mode focus (watchFocusKey)
-  site-adapters.js        vue scindée : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
+  site-adapters.js        vue scindée (IPC `homedash:split-*` : config, touches, survol, molette, actions) : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
                           reprendre quand un de ces sites change ses pages
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)

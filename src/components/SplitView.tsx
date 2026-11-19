@@ -2,14 +2,17 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import Pick from './Pick'
 import {
+  FLAG_HELP,
+  FOLLOW_OPTIONS,
+  KEYBOARD_OPTIONS,
   LAYOUTS,
+  MODE_LABELS,
   dragRatios,
   layoutOf,
   mixLabel,
   type Follow,
   type KeyboardChoice,
   type Preset,
-  type SplitMode,
   type SplitNode,
   type SplitPrefs,
 } from '../lib/splitView'
@@ -43,24 +46,6 @@ type Props = {
   /** Message discret d'un panneau (« action indisponible »). */
   notes: (string | null)[]
 }
-
-const MODES: { id: SplitMode; label: string; hint: string }[] = [
-  { id: 'classic', label: 'Classic', hint: 'Double écran : tous les sons, aucune touche interceptée' },
-  { id: 'scroll', label: 'Scroll', hint: 'Défiler des flux : le son suit la souris, raccourcis et actions par site' },
-  { id: 'custom', label: 'Personnalisé', hint: 'Tes cases à cocher ne correspondent à aucun mode' },
-]
-
-const FOLLOWS: { value: Follow; label: string }[] = [
-  { value: 'all', label: 'Tous les sons' },
-  { value: 'hover', label: 'Le son suit la souris' },
-  { value: 'keyboard', label: 'Le son suit le clavier' },
-]
-
-const KEYBOARDS: { value: KeyboardChoice; label: string }[] = [
-  { value: 'auto', label: 'Clavier : automatique' },
-  { value: 'azerty', label: 'Clavier : AZERTY' },
-  { value: 'qwerty', label: 'Clavier : QWERTY' },
-]
 
 /** Une disposition en miniature, dessinée avec le même arbre que la grille. */
 function Mini({ node }: { node: SplitNode }) {
@@ -131,6 +116,19 @@ export default function SplitView(p: Props) {
     [p.sites],
   )
 
+  // La note d'un panneau (« action indisponible ») passe par <body> : les sites, posés en position fixe,
+  // sont au-dessus de tout ce qui est dans la grille.
+  const note = (i: number) => {
+    const r = bodies.current[i]?.getBoundingClientRect()
+    if (!r) return null
+    return createPortal(
+      <span className="split-note" role="status" style={{ left: r.left + 10, width: Math.max(0, r.width - 20), top: r.bottom - 46 }}>
+        {p.notes[i]}
+      </span>,
+      document.body,
+    )
+  }
+
   let slot = 0
   const renderPane = (i: number) => {
     const key = p.slots[i]
@@ -143,7 +141,6 @@ export default function SplitView(p: Props) {
         key={i}
         className={`split-pane${isActive ? ' is-active' : ''}`}
         onMouseEnter={() => p.onHover(i)}
-        onMouseLeave={p.onLeave}
         onMouseDown={() => p.onPick(i)}
       >
         <div className="split-head" onDoubleClick={() => p.onZoom(zoomed ? null : i)}>
@@ -168,7 +165,7 @@ export default function SplitView(p: Props) {
           <button
             className="split-btn"
             onClick={() => p.onZoom(zoomed ? null : i)}
-            title={zoomed ? 'Restaurer la grille (Z)' : 'Agrandir ce panneau (double-clic sur le titre, ou Z)'}
+            title={zoomed ? 'Restaurer la grille (en mode Scroll : Z)' : 'Agrandir ce panneau (double-clic sur le titre ; en mode Scroll : Z)'}
             aria-label={zoomed ? 'Restaurer la grille' : 'Agrandir ce panneau'}
           >
             {zoomed ? '⤡' : '⤢'}
@@ -179,12 +176,8 @@ export default function SplitView(p: Props) {
           }}>
           {!key ? <p className="split-empty">Choisis un site pour ce panneau.</p> : null}
           {key && !site ? <p className="split-empty">Ce site n'existe plus.</p> : null}
-          {p.notes[i] ? (
-            <span className="split-note" role="status">
-              {p.notes[i]}
-            </span>
-          ) : null}
         </div>
+        {p.notes[i] ? note(i) : null}
       </div>
     )
   }
@@ -236,21 +229,21 @@ export default function SplitView(p: Props) {
     return <div className={`split-node is-${node.dir}`}>{parts}</div>
   }
 
-  const flag = (key: 'keys' | 'actions' | 'mixer' | 'sync' | 'keep', label: string, hint: string) => (
-    <label className="set-toggle" key={key}>
-      <input type="checkbox" checked={p.prefs[key]} onChange={(e) => p.onPrefs({ [key]: e.target.checked })} />
+  const flag = (f: (typeof FLAG_HELP)[number]) => (
+    <label className="set-toggle" key={f.key}>
+      <input type="checkbox" checked={p.prefs[f.key]} onChange={(e) => p.onPrefs({ [f.key]: e.target.checked })} />
       <span>
-        {label}
-        <em>{hint}</em>
+        {f.label}
+        <em>{f.hint}</em>
       </span>
     </label>
   )
 
   return (
     <div className={`split-root${dragging ? ' is-dragging' : ''}`} ref={root} aria-label="Vue scindée">
-      <div className="split-bar">
+      <div className="split-bar" onMouseEnter={p.onLeave}>
         <div className="split-group" role="group" aria-label="Mode de la vue scindée">
-          {MODES.map((m) => (
+          {MODE_LABELS.map((m) => (
             <button
               key={m.id}
               className="split-chip"
@@ -280,7 +273,7 @@ export default function SplitView(p: Props) {
         <div className="split-group">
           <Pick
             value={p.prefs.follow}
-            options={FOLLOWS}
+            options={FOLLOW_OPTIONS}
             onChange={(v) => p.onPrefs({ follow: v as Follow })}
             title="Qui a le son"
           />
@@ -299,29 +292,25 @@ export default function SplitView(p: Props) {
         {p.prefs.keys ? (
           <span className="split-legend" title="Raccourcis du mode actuel">
             {p.prefs.mixer
-              ? p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')
+              ? `Mixage (remplace J K, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
               : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`}
           </span>
         ) : (
           <span className="split-legend" title="Raccourcis du mode actuel">Aucune touche interceptée : tu tapes dans les sites comme d'habitude.</span>
         )}
-        <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (Échap)">
+        <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
           Fermer
         </button>
         {menu
           ? createPortal(
           <div className="split-menu" role="dialog" aria-label="Options de la vue scindée" style={{ left: menu.left, top: menu.top }}>
             <div className="set-toggles">
-              {flag('keys', 'Raccourcis clavier', 'Alt + chiffre, J K, N P, Z, Échap')}
-              {flag('actions', 'Actions par site', "L j'aime, B enregistrer, T repartager, C commenter, F suivre")}
-              {flag('mixer', 'Table de mixage', 'une paire de touches par panneau pour défiler')}
-              {flag('sync', 'Scroll synchronisé', 'une molette pour tous les panneaux')}
-              {flag('keep', 'Garder le son à la sortie', 'le dernier panneau garde le son quand la souris sort')}
+              {FLAG_HELP.map(flag)}
             </div>
             <div className="split-menu-row">
               <Pick
                 value={p.prefs.keyboard}
-                options={KEYBOARDS}
+                options={KEYBOARD_OPTIONS}
                 onChange={(v) => p.onPrefs({ keyboard: v as KeyboardChoice })}
                 title="Préréglage clavier"
               />
@@ -343,7 +332,7 @@ export default function SplitView(p: Props) {
           renderNode(lay.tree, '')
         )}
       </div>
-      {dragging ? <div className="split-shield" /> : null}
+      {dragging ? createPortal(<div className="split-shield" />, document.body) : null}
     </div>
   )
 }

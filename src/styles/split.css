@@ -239,11 +239,8 @@
   font-size: 0.85rem;
 }
 .split-note {
-  position: absolute;
-  z-index: 6;
-  left: 10px;
-  right: 10px;
-  bottom: 10px;
+  position: fixed;
+  z-index: 60;
   padding: 6px 10px;
   border: 1px solid var(--sig-info);
   border-radius: 8px;
@@ -256,7 +253,7 @@
 .split-shield {
   position: fixed;
   inset: 0;
-  z-index: 7;
+  z-index: 70;
 }
 @media (prefers-reduced-motion: reduce) {
   .split-sep::after {

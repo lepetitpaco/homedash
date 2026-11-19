@@ -109,7 +109,7 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
   },
   /**
    * Vue scindée (#160) : la page dit si elle est ouverte et quelles touches les sites retiennent
-   * ({ open, table, sync, ids }) ; { open: false } la ferme.
+   * ({ open, table, field, sync, ids }) ; { open: false } la ferme.
    */
   splitConfig: (cfg) => ipcRenderer.send('homedash:split-config', cfg),
   /** Une action sur un panneau (id de sa webview) : scroll, touche ou clic du site. Résout true si faite. */
@@ -120,9 +120,9 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     ipcRenderer.on('homedash:split-key', handler)
     return () => ipcRenderer.removeListener('homedash:split-key', handler)
   },
-  /** La souris entre (ou clique : `pick`) dans un site de la vue scindée (id de sa webview). Renvoie de quoi se désabonner. */
+  /** La souris entre (`hover`), clique (`pick`) ou sort (`leave`) d'un site de la vue scindée (id de sa webview). Renvoie de quoi se désabonner. */
   onSplitHover: (cb) => {
-    const handler = (_e, id, pick) => cb(id, !!pick)
+    const handler = (_e, id, kind) => cb(id, kind)
     ipcRenderer.on('homedash:split-hover', handler)
     return () => ipcRenderer.removeListener('homedash:split-hover', handler)
   },

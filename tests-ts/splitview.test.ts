@@ -15,14 +15,17 @@ import {
   focusOnPick,
   interceptTable,
   layoutOf,
+  isEditing,
+  FLAG_HELP,
+  MODE_LABELS,
+  FIELD_SELECTOR,
   mixLabel,
   normalizeSplit,
-  paneCount,
   patchPrefs,
   presetOf,
   resolveKey,
-  stepPane,
   type KeyEvt,
+  type SplitNode,
   type SplitPrefs,
 } from '../src/lib/splitView'
 
@@ -83,7 +86,8 @@ describe('modes Classic / Scroll et cases à cocher', () => {
 
 describe('dispositions', () => {
   it('chaque disposition compte autant de panneaux que son n', () => {
-    for (const l of LAYOUTS) expect(paneCount(l.tree)).toBe(l.n)
+    const count = (n: SplitNode): number => (n === 'pane' ? 1 : n.children.reduce((t, c) => t + count(c), 0))
+    for (const l of LAYOUTS) expect(count(l.tree)).toBe(l.n)
     expect(layoutOf('nimporte').id).toBe(LAYOUTS[0].id)
   })
 
@@ -101,11 +105,6 @@ describe('dispositions', () => {
     expect(far[1]).toBeGreaterThanOrEqual(0.24 - 1e-9)
     expect(dragRatios([1, 1, 1], 1, -5)[1]).toBeGreaterThanOrEqual(0.36 - 1e-9)
     expect(dragRatios([1, 1], 4, 0.1)).toEqual([1, 1])
-  })
-
-  it('panneau suivant et précédent en boucle', () => {
-    expect(stepPane(2, 3, 1)).toBe(0)
-    expect(stepPane(0, 3, -1)).toBe(2)
   })
 })
 
@@ -146,6 +145,14 @@ describe('son', () => {
     expect(focusOnLeave({ active: 2, sound: 2 }, 'hover', true)).toEqual({ active: 2, sound: 2 })
     expect(focusOnLeave({ active: 2, sound: 2 }, 'hover', false)).toEqual({ active: 2, sound: null })
     expect(focusOnLeave({ active: 2, sound: 2 }, 'keyboard', false)).toEqual({ active: 2, sound: 2 })
+  })
+
+  it('« Garder le son » décoché : la sortie coupe, revenir sur le même panneau le rend', () => {
+    const out = focusOnLeave({ active: 1, sound: 1 }, 'hover', false)
+    expect(out).toEqual({ active: 1, sound: null })
+    expect(focusOnHover(out, 1, 'hover')).toEqual({ active: 1, sound: 1 })
+    // coché : le son reste au dernier panneau
+    expect(focusOnLeave({ active: 1, sound: 1 }, 'hover', true).sound).toBe(1)
   })
 
   it('un clic ou Alt+chiffre donne le son, sauf quand tous l’ont', () => {
@@ -203,12 +210,13 @@ describe('clavier : touche + préréglage → action', () => {
     expect(r(ev('Escape'))).toEqual({ type: 'leave' })
   })
 
-  it('actions par site : L B T C F, seulement si cochées', () => {
+  it('actions par site : L B T C, seulement si cochées', () => {
     expect(resolveKey(ev('l'), scroll, az, ctx)).toEqual({ type: 'site', id: 'like' })
     expect(resolveKey(ev('b'), scroll, az, ctx)).toEqual({ type: 'site', id: 'save' })
     expect(resolveKey(ev('t'), scroll, az, ctx)).toEqual({ type: 'site', id: 'share' })
     expect(resolveKey(ev('c'), scroll, az, ctx)).toEqual({ type: 'site', id: 'comment' })
-    expect(resolveKey(ev('f'), scroll, az, ctx)).toEqual({ type: 'site', id: 'follow' })
+    // « Suivre » (F) est retiré tant que les sélecteurs ne sont pas vérifiés (#166) : la touche reste au site
+    expect(resolveKey(ev('f'), scroll, az, ctx)).toBeNull()
     const noActions = patchPrefs(scroll, { actions: false })
     expect(resolveKey(ev('l'), noActions, az, ctx)).toBeNull()
     expect(resolveKey(ev('j'), noActions, az, ctx)).not.toBeNull()
@@ -243,8 +251,9 @@ describe('clavier : touche + préréglage → action', () => {
 
   it('la table du préload se tire de resolveKey', () => {
     const t = interceptTable(scroll, az, 3)
-    expect(t.keys).toEqual(expect.arrayContaining(['j', 'k', 'n', 'p', 'z', 'l', 'b', 't', 'c', 'f', 'arrowdown', 'arrowup', ' ']))
+    expect(t.keys).toEqual(expect.arrayContaining(['j', 'k', 'n', 'p', 'z', 'l', 'b', 't', 'c', 'arrowdown', 'arrowup', ' ']))
     expect(t.keys).not.toContain('a')
+    expect(t.keys).not.toContain('f')
     expect(t.alt).toEqual(['Digit1', 'Numpad1', 'Digit2', 'Numpad2', 'Digit3', 'Numpad3'])
     expect(t.relay).toEqual(['escape'])
     const m = interceptTable(patchPrefs(scroll, { mixer: true }), qw, 4)
@@ -267,5 +276,21 @@ describe('préréglage clavier', () => {
     expect(mixLabel(PRESETS.azerty, 0)).toBe('A / Q')
     expect(mixLabel(PRESETS.qwerty, 1)).toBe('W / S')
     expect(mixLabel(PRESETS.qwerty, 9)).toBe('')
+  })
+})
+
+describe('libellés partagés et champs de saisie', () => {
+  it('chaque case a son aide, et la table de mixage dit ce qu’elle remplace', () => {
+    expect(FLAG_HELP.map((f) => f.key)).toEqual(['keys', 'actions', 'mixer', 'sync', 'keep'])
+    expect(FLAG_HELP.find((f) => f.key === 'mixer')?.hint).toMatch(/remplace/)
+    expect(MODE_LABELS.map((m) => m.id)).toEqual(['classic', 'scroll', 'custom'])
+  })
+
+  it('un champ de saisie : sélecteur ou contenteditable', () => {
+    const el = (hit: boolean, ce = false) => ({ closest: (s: string) => (hit && s === FIELD_SELECTOR ? {} : null), isContentEditable: ce })
+    expect(isEditing(el(true))).toBe(true)
+    expect(isEditing(el(false, true))).toBe(true)
+    expect(isEditing(el(false))).toBe(false)
+    expect(isEditing(null)).toBe(false)
   })
 })

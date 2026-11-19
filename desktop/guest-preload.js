@@ -3,7 +3,9 @@
  * voit pas et ne peut rien lui demander. Deux tâches :
  *  - précédent / suivant (boutons de la souris, ⌘[ ⌘]), qu'Electron ne gère pas ;
  *  - signaler un clic ou Échap dans le site : la page homedash ne les voit pas,
- *    et ses menus ouverts (clic droit, cloche…) doivent se fermer.
+ *    et ses menus ouverts (clic droit, cloche…) doivent se fermer ;
+ *  - vue scindée (#160, en bas du fichier) : touches retenues et relayées, survol, molette (IPC
+ *    `homedash:split-config`, `-get`, `-key`, `-hover`, `-wheel`). Inactif tant que la vue n'est pas ouverte.
  */
 const { ipcRenderer } = require('electron')
 
@@ -57,15 +59,23 @@ window.addEventListener(
 // Rien ne se passe tant que la vue n'est pas ouverte, ni en mode Classic (table de touches vide) :
 // aucune touche retenue, rien relayé. Sinon : les touches de la table sont retenues (le site ne les voit pas,
 // pour ne pas doubler ses propres raccourcis) et relayées à la page, qui décide de l'action. Jamais dans un
-// champ de saisie. Échap est relayé sans être retenu.
-let split = { open: false, table: { keys: [], alt: [], relay: [] }, sync: false }
+// champ de saisie. Échap est relayé sans être retenu, et seulement si le site ne s'en est pas servi.
+let split = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', sync: false }
 ipcRenderer.on('homedash:split-config', (_e, cfg) => {
   if (cfg && typeof cfg === 'object') split = cfg
 })
 ipcRenderer.invoke('homedash:split-get').then((cfg) => cfg && (split = cfg)).catch(() => undefined)
 
-const EDITING = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
-const inField = (t) => !!t?.closest?.(EDITING)
+// Champ de saisie : la liste vient de la page (splitView.ts, une seule source).
+const inField = (el) => {
+  if (!el) return false
+  try {
+    return el.isContentEditable === true || (!!split.field && !!el.closest?.(split.field))
+  } catch {
+    return false
+  }
+}
+const DIALOG = '[aria-modal="true"], [role="dialog"], [role="alertdialog"], dialog[open]'
 
 window.addEventListener(
   'keydown',
@@ -74,7 +84,9 @@ window.addEventListener(
     const send = () => ipcRenderer.send('homedash:split-key', { key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey })
     if (e.ctrlKey || e.metaKey) return
     if (e.key === 'Escape') {
-      if (split.table.relay.includes('escape')) send()
+      // Le site ferme sa fenêtre avec Échap : la vue reste. On attend que ses propres écouteurs aient joué.
+      if (!split.table.relay.includes('escape') || document.querySelector(DIALOG)) return
+      setTimeout(() => !e.defaultPrevented && send(), 0)
       return
     }
     const hit = e.altKey
@@ -100,12 +112,9 @@ document.addEventListener(
   },
   true,
 )
-
-window.addEventListener(
-  'pointerdown',
-  () => split.open && ipcRenderer.send('homedash:split-hover', 'pick'),
-  true,
-)
+window.addEventListener('pointerdown', () => split.open && ipcRenderer.send('homedash:split-hover', 'pick'), true)
+// La souris quitte le site (vers la barre, une autre partie de homedash, hors de la fenêtre).
+document.addEventListener('mouseout', (e) => !e.relatedTarget && split.open && ipcRenderer.send('homedash:split-hover', 'leave'), true)
 
 // Molette d'un panneau, recopiée dans les autres quand « Scroll synchronisé » est coché.
 window.addEventListener(

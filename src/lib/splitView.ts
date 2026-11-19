@@ -19,7 +19,7 @@ export type SplitPrefs = {
   follow: Follow
   /** Raccourcis clavier (Alt+chiffre, J/K, N/P, Z, Échap). Décochés : aucune touche n'est interceptée. */
   keys: boolean
-  /** L, B, T, C, F : actions propres à chaque site (suppose `keys`). */
+  /** L, B, T, C : actions propres à chaque site (suppose `keys`). Pas de « Suivre » : voir #166. */
   actions: boolean
   /** Table de mixage : une paire de touches par panneau (suppose `keys`). */
   mixer: boolean
@@ -96,6 +96,41 @@ export function normalizeSplit(raw: unknown): SplitPrefs {
   })
 }
 
+// ── libellés partagés (barre de la vue et Réglages) ───────────────────────
+
+export const MODE_LABELS: { id: SplitMode; label: string; hint: string }[] = [
+  { id: 'classic', label: 'Classic', hint: 'Double écran : tous les sons, aucune touche interceptée' },
+  { id: 'scroll', label: 'Scroll', hint: 'Défiler des flux : le son suit la souris, raccourcis et actions par site' },
+  { id: 'custom', label: 'Personnalisé', hint: 'Tes cases à cocher ne correspondent à aucun mode' },
+]
+
+export const FOLLOW_OPTIONS: { value: Follow; label: string }[] = [
+  { value: 'all', label: 'Tous les sons' },
+  { value: 'hover', label: 'Le son suit la souris' },
+  { value: 'keyboard', label: 'Le son suit le clavier' },
+]
+
+export const KEYBOARD_OPTIONS: { value: KeyboardChoice; label: string }[] = [
+  { value: 'auto', label: 'Clavier : automatique' },
+  { value: 'azerty', label: 'Clavier : AZERTY' },
+  { value: 'qwerty', label: 'Clavier : QWERTY' },
+]
+
+/** Les cases à cocher, avec leur aide : la même dans la barre de la vue et dans Réglages. */
+export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'keep'; label: string; hint: string }[] = [
+  { key: 'keys', label: 'Raccourcis clavier', hint: 'Alt + chiffre, J K ou ↓ ↑, N P, Espace, Z, Échap' },
+  { key: 'actions', label: 'Actions par site', hint: "L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram) ; coche aussi les raccourcis" },
+  { key: 'mixer', label: 'Table de mixage', hint: 'une paire de touches par panneau pour le défiler d’une main ; remplace J K, N P, Z et les actions tant qu’elle est cochée ; coche aussi les raccourcis' },
+  { key: 'sync', label: 'Scroll synchronisé', hint: 'une molette pour tous les panneaux' },
+  { key: 'keep', label: 'Garder le son à la sortie', hint: 'le dernier panneau garde le son quand la souris sort de la grille' },
+]
+
+/** Un champ de saisie : les touches ne sont jamais prises dedans (page, sites et focus du survol). */
+export const FIELD_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
+export function isEditing(el: { closest?: (s: string) => unknown; isContentEditable?: boolean } | null | undefined): boolean {
+  return !!el && (!!el.closest?.(FIELD_SELECTOR) || el.isContentEditable === true)
+}
+
 // ── dispositions ───────────────────────────────────────────────────────────
 
 /** Une disposition est un arbre : une feuille = un panneau, un nœud = un découpage en lignes ou en colonnes. */
@@ -120,12 +155,12 @@ export const LAYOUTS: SplitLayout[] = [
   { id: 'c4', label: '4 colonnes', n: 4, tree: row('pane', 'pane', 'pane', 'pane') },
 ]
 
-export const DEFAULT_LAYOUT = 'c2'
+export const DEFAULT_SPLIT_LAYOUT = 'c2'
 
 export const layoutOf = (id: string): SplitLayout => LAYOUTS.find((l) => l.id === id) ?? LAYOUTS[0]
 
 /** Le plus de panneaux qu'une disposition en compte. */
-export const MAX_PANES = 4
+const MAX_PANES = 4
 
 /**
  * Chaque case reçoit un site : ceux déjà choisis restent, les cases vides prennent les candidats dans
@@ -137,11 +172,6 @@ export function assignSites(current: (string | null)[], n: number, candidates: s
   const free = candidates.filter((k) => !used.has(k))
   for (let i = 0; i < n; i++) if (!out[i]) out[i] = free.shift() ?? null
   return out
-}
-
-/** Nombre de feuilles d'un arbre. */
-export function paneCount(tree: SplitNode): number {
-  return tree === 'pane' ? 1 : tree.children.reduce((s, c) => s + paneCount(c), 0)
 }
 
 /**
@@ -161,11 +191,6 @@ export function dragRatios(ratios: number[], index: number, delta: number, min =
   out[index] = na
   out[index + 1] = pair - na
   return out
-}
-
-/** Panneau suivant ou précédent, en boucle. */
-export function stepPane(active: number, n: number, dir: 1 | -1): number {
-  return n < 1 ? 0 : (active + dir + n) % n
 }
 
 // ── son ────────────────────────────────────────────────────────────────────
@@ -236,7 +261,6 @@ export const SITE_ACTIONS = [
   { id: 'save', key: 'b', label: 'Enregistrer' },
   { id: 'share', key: 't', label: 'Repartager' },
   { id: 'comment', key: 'c', label: 'Commenter' },
-  { id: 'follow', key: 'f', label: 'Suivre' },
 ] as const
 export type SiteActionId = (typeof SITE_ACTIONS)[number]['id']
 

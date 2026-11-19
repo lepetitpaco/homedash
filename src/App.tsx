@@ -41,7 +41,9 @@ import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
-  DEFAULT_LAYOUT,
+  DEFAULT_SPLIT_LAYOUT,
+  FIELD_SELECTOR,
+  isEditing,
   applyProfile,
   assignSites,
   detectKeyboard,
@@ -1169,7 +1171,7 @@ export default function App() {
     } catch {
       /* préférence illisible : disposition par défaut */
     }
-    const layout = layoutOf(typeof last.layout === 'string' ? last.layout : DEFAULT_LAYOUT)
+    const layout = layoutOf(typeof last.layout === 'string' ? last.layout : DEFAULT_SPLIT_LAYOUT)
     const kept = Array.isArray(last.slots) ? last.slots.map((k) => (typeof k === 'string' && (embeds as string[]).includes(k) ? k : null)) : []
     // Les sites récents d'abord ; celui qu'on regarde en tête.
     const slots = assignSites(kept, layout.n, orderSites(recentSites.current, embeds))
@@ -1205,6 +1207,7 @@ export default function App() {
     desktop.splitConfig({
       open: true,
       table: interceptTable(split.prefs, splitPreset, splitN),
+      field: FIELD_SELECTOR,
       sync: split.prefs.sync,
       ids: splitIds,
     })
@@ -1225,14 +1228,20 @@ export default function App() {
   const doHover = useCallback(
     (pane: number) => {
       const s = splitRef.current
-      if (!s || s.prefs.follow !== 'hover' || s.focus.active === pane) return
+      if (!s || s.prefs.follow !== 'hover' || (s.focus.active === pane && s.focus.sound === pane)) return
       setSplit({ ...s, focus: focusOnHover(s.focus, pane, s.prefs.follow) })
       const k = s.slots[pane]
       const id = k ? guestIdOf(k) : null
-      if (id !== null) void desktop?.splitDo?.(id, 'focus')
+      // « soft » : le survol ne vole pas le focus d'un champ de saisie en cours dans l'autre panneau.
+      if (id !== null) void desktop?.splitDo?.(id, 'focusSoft')
     },
     [guestIdOf],
   )
+  // La souris sort de la grille (barre de la vue, hors d'un site) : le son reste ou se coupe (`keep`).
+  const doLeave = useCallback(() => {
+    const s = splitRef.current
+    if (s) setSplit({ ...s, focus: focusOnLeave(s.focus, s.prefs.follow, s.prefs.keep) })
+  }, [])
   const doAction = useCallback(
     (a: SplitAction) => {
       const s = splitRef.current
@@ -1264,24 +1273,26 @@ export default function App() {
       })
       if (a) doAction(a)
     })
-    const offHover = desktop?.onSplitHover?.((id, pick) => {
+    const offHover = desktop?.onSplitHover?.((id, kind) => {
       const pane = slotOfGuest(id)
       if (pane < 0) return
-      if (pick) doPick(pane, false)
+      if (kind === 'pick') doPick(pane, false)
+      else if (kind === 'leave') doLeave()
       else doHover(pane)
     })
     return () => {
       offKey?.()
       offHover?.()
     }
-  }, [doAction, doPick, doHover]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [doAction, doPick, doHover, doLeave]) // eslint-disable-line react-hooks/exhaustive-deps
   const detectedKbRef = useRef(detectedKb)
   detectedKbRef.current = detectedKb
   // Touches tapées dans la page homedash elle-même (pas dans un site).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const s = splitRef.current
-      if (!s) return
+      // Les Échap rejoués par la page pour fermer ses menus (`onGuestDown`) ne sont pas des touches : jamais pris.
+      if (!s || !e.isTrusted) return
       const t = e.target as HTMLElement | null
       if (e.key === ' ' && t?.closest?.('button, a')) return
       const a = resolveKey(
@@ -1289,7 +1300,7 @@ export default function App() {
         s.prefs,
         presetOf(s.prefs.keyboard, detectedKbRef.current),
         {
-          editing: !!t?.closest?.('input, textarea, select, [contenteditable=""], [contenteditable="true"]'),
+          editing: isEditing(t),
           panes: layoutOf(s.layout).n,
         },
       )
@@ -2751,7 +2762,7 @@ export default function App() {
           zoom={split.zoom}
           onZoom={(slot) => setSplit({ ...split, zoom: slot, focus: slot === null ? split.focus : focusOnPick(split.focus, slot, split.prefs.follow) })}
           onHover={doHover}
-          onLeave={() => setSplit({ ...split, focus: focusOnLeave(split.focus, split.prefs.follow, split.prefs.keep) })}
+          onLeave={doLeave}
           onPick={(slot) => doPick(slot, false)}
           onClose={closeSplit}
           onRects={setSplitRects}
