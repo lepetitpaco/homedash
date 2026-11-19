@@ -178,11 +178,25 @@ const lastNav = new WeakMap()
  * Résout true si c'est fait, false si l'action n'existe pas pour ce site ou que sa cible est introuvable
  * (la page affiche alors « action indisponible »).
  */
+/** Le focus du site est-il dans un champ de saisie ? (même requête que le focus donné par le survol) */
+async function inField(wc, field) {
+  if (!field) return false
+  try {
+    return !!(await wc.executeJavaScript(
+      `(() => { const a = document.activeElement; return !!a && (a.isContentEditable === true || !!a.closest(${JSON.stringify(field)})) })()`,
+    ))
+  } catch {
+    return false
+  }
+}
+
 async function run(wc, op, hooks = {}) {
   // Avec un geste de la personne (2e argument) : sans lui, `play()` peut être refusé par le site.
   if (op === 'pause') return !!(await wc.executeJavaScript(PAUSE_SCRIPT, true))
   if (op === 'resume') return !!(await wc.executeJavaScript(RESUME_SCRIPT, true))
   const plan = PLANS[siteOf(wc.getURL())]?.[op]
+  // Une touche native tomberait dans un brouillon en cours : rien n'est envoyé (« indisponible »).
+  if (plan?.key && (await inField(wc, hooks.field))) return false
   if (op in NAV) {
     const page = op.startsWith('page')
     // Un flux qui avance carte par carte : pas deux crans en moins d'un quart de seconde (touche maintenue).
@@ -199,4 +213,29 @@ async function run(wc, op, hooks = {}) {
   return false
 }
 
-module.exports = { PAUSE_SCRIPT, RESUME_SCRIPT, siteOf, run, PLANS, clickScript, scrollScript, keyName }
+/**
+ * Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »). La recopie est elle-même une molette :
+ * son écho est ignoré, et l'anti-écho est posé JUSTE avant l'envoi (après l'attente de la taille de la page, qui est
+ * bornée à 100 ms et gardée en cache) : une page lente ne peut pas laisser repartir l'écho.
+ */
+function createWheelSync(now = Date.now) {
+  const echo = new Map()
+  const sizes = new Map()
+  const sizeOf = async (wc) => {
+    const fresh = Promise.race([wc.executeJavaScript('[innerWidth, innerHeight]'), new Promise((r) => setTimeout(() => r(null), 100))])
+      .then((v) => (Array.isArray(v) ? (sizes.set(wc.id, v), v) : null))
+      .catch(() => null)
+    return sizes.get(wc.id) || (await fresh) || [400, 400]
+  }
+  return async (from, targets, dy) => {
+    if (!Number.isFinite(dy) || (echo.get(from) || 0) > now()) return
+    for (const wc of targets) {
+      if (!wc || wc.id === from || (wc.isDestroyed && wc.isDestroyed())) continue
+      const size = await sizeOf(wc)
+      echo.set(wc.id, now() + 150)
+      wc.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
+    }
+  }
+}
+
+module.exports = { createWheelSync, inField, PAUSE_SCRIPT, RESUME_SCRIPT, siteOf, run, PLANS, clickScript, scrollScript, keyName }

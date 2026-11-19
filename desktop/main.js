@@ -268,8 +268,6 @@ function watchFocusKey(wc) {
 // décochés (Classic) : table vide, les sites ne retiennent ni ne relaient rien.
 const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false, ids: [] }
 let splitConfig = NO_SPLIT
-// Molette recopiée dans un panneau : son écho (la recopie est aussi une molette) ne repart pas.
-const splitEcho = new Map()
 // Un site hors de la grille ne retient rien : il reçoit la config « fermée ».
 const splitFor = (id) => (splitConfig.open && splitConfig.ids.includes(id) ? splitConfig : NO_SPLIT)
 function sendSplitConfig(wc) {
@@ -288,6 +286,7 @@ function announcePass(wc, name) {
   })
 }
 ipcMain.on('homedash:split-pass-ok', (e) => {
+  if (splitFor(e.sender.id) === NO_SPLIT) return
   const done = splitPassWait.get(e.sender.id)
   if (done) {
     splitPassWait.delete(e.sender.id)
@@ -326,25 +325,12 @@ ipcMain.on('homedash:split-key', (e, k) => {
 ipcMain.on('homedash:split-hover', (e, kind) => {
   if (guests.has(e.sender.id) && splitFor(e.sender.id) !== NO_SPLIT) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover')
 })
-// Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »).
-ipcMain.on('homedash:split-wheel', async (e, dy) => {
+// Molette d'un panneau recopiée dans les autres (« Scroll synchronisé ») ; l'anti-écho est dans site-adapters.js.
+const wheelSync = adapters.createWheelSync()
+ipcMain.on('homedash:split-wheel', (e, dy) => {
   const from = e.sender.id
-  if (!splitConfig.open || !splitConfig.sync || !guests.has(from) || !Number.isFinite(dy)) return
-  if ((splitEcho.get(from) || 0) > Date.now()) return
-  for (const id of splitConfig.ids) {
-    if (id === from) continue
-    const g = webContents.fromId(id)
-    if (!g || g.isDestroyed()) continue
-    splitEcho.set(id, Date.now() + 150)
-    // Au centre du panneau visé.
-    let size = [400, 400]
-    try {
-      size = await g.executeJavaScript('[innerWidth, innerHeight]')
-    } catch {
-      /* page en cours de chargement */
-    }
-    g.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
-  }
+  if (splitFor(from) === NO_SPLIT || !splitConfig.sync) return
+  void wheelSync(from, splitConfig.ids.map((id) => webContents.fromId(id)), dy)
 })
 const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft', 'pause', 'resume'])
 // Une action de la vue scindée sur un panneau (scroll, touche native ou clic du site). Résout true si faite.
@@ -371,7 +357,7 @@ ipcMain.handle('homedash:split-do', async (e, msg) => {
     return g.focus(), true
   }
   try {
-    return await adapters.run(g, op, { before: (name) => announcePass(g, name) })
+    return await adapters.run(g, op, { before: (name) => announcePass(g, name), field: splitConfig.field })
   } catch {
     return false
   }

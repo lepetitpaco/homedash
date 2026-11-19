@@ -40,7 +40,7 @@ src/
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell, BcStats, WhatsNew…) ; IssueComposer :
                           la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
-                          splitView (vue scindée : modes, dispositions, son, clavier AZERTY / QWERTY), tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
+                          splitView (vue scindée : modes, dispositions, son, pause, clavier AZERTY / QWERTY), splitViews (vues scindées gardées : `config.splitViews`, sans migration), SplitView.tsx / SetSplit.tsx (la vue et ses Réglages), tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
                           dockerTabs (lignes Docker), settingsIndex (ce que la recherche trouve dans Réglages),
                           issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats),
                           bellPrefs (ce qui compte dans la cloche), unreadSites (non-lus près de la cloche),
@@ -54,7 +54,7 @@ desktop/                  l'appli (Electron)
                           (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions, ⚙ réglages dans
                           leur fenêtre : openExtSettings), relais de
                           ⌘⇧F depuis un site vers le mode focus (watchFocusKey)
-  site-adapters.js        vue scindée : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
+  site-adapters.js        vue scindée (annonce `split-pass` avant une touche, pause des vidéos, molette synchronisée) : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
                           reprendre quand un de ces sites change ses pages
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)

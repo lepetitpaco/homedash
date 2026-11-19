@@ -39,9 +39,10 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
-import { makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
+import { droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
+  CLOSE_KEEPS_PARKED_PAUSED,
   DEFAULT_SPLIT_LAYOUT,
   FIELD_SELECTOR,
   SPACE_KEEPS,
@@ -1127,7 +1128,7 @@ export default function App() {
   // ── vue scindée (issue #160) ──────────────────────────────────────────────
   // Plusieurs sites côte à côte : les sites déjà vivants sont posés en grille par CSS (`tile`), jamais
   // rechargés. Les réglages (`ui.split`) donnent le départ ; ceux de la barre de la vue ne durent que la vue.
-  type SplitState = { viewId?: string; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
+  type SplitState = { viewId?: string; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
   const [split, setSplit] = useState<SplitState | null>(null)
   const splitRef = useRef(split)
   splitRef.current = split
@@ -1179,30 +1180,50 @@ export default function App() {
     // Les sites récents d'abord ; celui qu'on regarde en tête.
     const slots = assignSites(kept, layout.n, orderSites(recentSites.current, embeds))
     setSplitNotes([null, null, null, null])
-    setSplit({ layout: layout.id, slots, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
+    setSplit({ gone: [false, false, false, false], layout: layout.id, slots, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
   }
   // Vues enregistrées (#169) : lues dans la config, jamais d'erreur si la clé manque.
   const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
   const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
   const openSavedView = (v: (typeof savedViews)[number]) => {
-    const { keys } = viewSlots(v, embedSites)
+    const { keys, gone } = viewSlots(v, embedSites)
     setSplitNotes([null, null, null, null])
-    setSplit({ viewId: v.id, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
+    setSplit({ viewId: v.id, gone, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
   }
   /** « Garder cette vue » : une nouvelle vue (nom demandé), ou la mise à jour de celle qui est ouverte. */
+  const rawRef = useRef(raw)
+  rawRef.current = raw
   const saveView = async () => {
     const s = splitRef.current
-    if (!s || !raw) return
-    const cur = s.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
+    if (!s || !rawRef.current) return
+    // Un onglet temporaire ou un container Docker n'est pas un site de Mes sites : il n'est jamais gardé, on le dit.
+    const dropped = droppedSlots(s.slots.slice(0, layoutOf(s.layout).n), embedSites)
+    if (dropped.length) {
+      const ok = await confirmDialog({
+        title: 'Garder cette vue ?',
+        body: [
+          `${dropped.length > 1 ? 'Les panneaux' : 'Le panneau'} ${dropped.map((i) => i + 1).join(', ')} ne ${dropped.length > 1 ? 'seront' : 'sera'} pas gardé${dropped.length > 1 ? 's' : ''} : un onglet temporaire ou un container Docker n'est jamais enregistré.`,
+          `${dropped.length > 1 ? 'Ils reviendront vides' : 'Il reviendra vide'} à l'ouverture de la vue.`,
+        ],
+        confirmLabel: 'Garder quand même',
+      })
+      if (!ok) return
+    }
+    const views0 = normalizeViews(rawRef.current?.splitViews)
+    const cur = s.viewId ? views0.find((v) => v.id === s.viewId) : undefined
     let name = cur?.name
     if (!name) {
-      const r = await askNameColor({ title: 'Garder cette vue', name: `Vue ${savedViews.length + 1}`, hint: 'Elle apparaît dans la barre de gauche, avec le compteur de ses sites.' })
+      const r = await askNameColor({ title: 'Garder cette vue', name: `Vue ${views0.length + 1}`, hint: 'Elle apparaît dans la barre de gauche, avec le compteur de ses sites.' })
       if (!r) return
       name = r.name
     }
-    const id = cur?.id ?? newViewId(savedViews.map((v) => v.id))
+    // La config a pu changer pendant qu'on attendait la réponse : on repart de la version d'aujourd'hui.
+    const now = rawRef.current
+    if (!now) return
+    const views = normalizeViews(now.splitViews)
+    const id = cur?.id ?? newViewId(views.map((v) => v.id))
     const view = makeView(id, name, s.layout, s.slots, embedSites)
-    persist({ ...raw, splitViews: cur ? savedViews.map((v) => (v.id === id ? view : v)) : [...savedViews, view] })
+    persist({ ...now, splitViews: views.some((v) => v.id === id) ? views.map((v) => (v.id === id ? view : v)) : [...views, view] })
     setSplit((x) => (x ? { ...x, viewId: id } : x))
   }
   const viewMenu = (e: React.MouseEvent, v: (typeof savedViews)[number]) => {
@@ -1217,7 +1238,8 @@ export default function App() {
           label: 'Renommer',
           onSelect: async () => {
             const r = await askNameColor({ title: 'Renommer la vue', name: v.name })
-            if (r && raw) persist({ ...raw, splitViews: renameView(savedViews, v.id, r.name) })
+            const now = rawRef.current
+            if (r && now) persist({ ...now, splitViews: renameView(normalizeViews(now.splitViews), v.id, r.name) })
           },
         },
         {
@@ -1230,8 +1252,9 @@ export default function App() {
               confirmLabel: 'Supprimer',
               danger: true,
             }).then((ok) => {
-              if (!ok || !raw) return
-              persist({ ...raw, splitViews: removeView(savedViews, v.id) })
+              const now = rawRef.current
+              if (!ok || !now) return
+              persist({ ...now, splitViews: removeView(normalizeViews(now.splitViews), v.id) })
               if (splitRef.current?.viewId === v.id) setSplit(null)
             }),
         },
@@ -1275,20 +1298,33 @@ export default function App() {
   }, [!!split, split?.prefs, splitPreset, splitN, splitIdsKey, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => desktop?.splitConfig?.({ open: false }), [])
 
-  // Pause des vidéos (#168) : suit le panneau qui a le son ; fermer la vue relance tout ce qui était en pause.
-  const pausedNow = useRef<Record<string, boolean>>({})
+  // Pause des vidéos (#168) : suit le panneau qui a le son. À chaque chargement de page (guestVer) la pause est
+  // renvoyée (un rechargement efface le script du site) ; un site dont la webview a changé ou disparu repart de zéro.
+  // Fermer la vue : voir CLOSE_KEEPS_PARKED_PAUSED (seul le site affiché reprend).
+  const pausedNow = useRef<Record<string, { id: number; paused: boolean }>>({})
+  const pauseVer = useRef(0)
   useEffect(() => {
     if (!desktop?.splitDo) return
+    const reload = pauseVer.current !== guestVer
+    pauseVer.current = guestVer
     const want: Record<string, boolean> = {}
     if (split) for (const k of splitShown) want[k] = effectivePaused(k, split.prefs, splitShown, splitSoundKey)
+    else for (const k of Object.keys(pausedNow.current)) want[k] = CLOSE_KEEPS_PARKED_PAUSED && k !== tab
     for (const k of new Set([...Object.keys(want), ...Object.keys(pausedNow.current)])) {
-      const w = !!want[k]
       const id = guestIdOf(k)
-      if (w === !!pausedNow.current[k] || id === null) continue
-      pausedNow.current[k] = w
+      const prev = pausedNow.current[k]
+      if (id === null) {
+        delete pausedNow.current[k]
+        continue
+      }
+      const w = !!want[k]
+      // webview changée : son état d'avant ne vaut plus ; page rechargée : une pause voulue est renvoyée
+      const same = prev && prev.id === id && prev.paused === w && !(reload && w)
+      if (same || (!prev && !w)) continue
+      pausedNow.current[k] = { id, paused: w }
       void desktop.splitDo(id, w ? 'pause' : 'resume')
     }
-  }, [split?.prefs.pause, split?.prefs.follow, splitShownKey, splitSoundKey, !!split, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [split?.prefs.pause, split?.prefs.follow, splitShownKey, splitSoundKey, !!split, guestVer, tab]) // eslint-disable-line react-hooks/exhaustive-deps
   const doPick = useCallback(
     (pane: number, focusSite = true) => {
       const s = splitRef.current
@@ -2436,7 +2472,7 @@ export default function App() {
     const i = split.slots.indexOf(key)
     return i >= 0 && i < splitN ? (splitRects[i] ?? null) : null
   }
-  const splitSites: PaneSite[] = allTabs.filter((t) => t.embed).map((t) => ({ key: tabKey(t), label: t.label, icon: iconOf[t.id] }))
+  const splitSites: PaneSite[] = allTabs.filter((t) => t.embed).map((t) => ({ key: tabKey(t), label: t.label, icon: iconOf[t.id], color: sessionOf(t, tabSessions)?.color }))
   const setupOn = view === 'links' && setupWanted
   const openSection = (id: string) => {
     search.setQuery('')
@@ -2829,14 +2865,15 @@ export default function App() {
           names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
           savedName={split.viewId ? savedViews.find((v) => v.id === split.viewId)?.name : undefined}
           onSave={() => void saveView()}
-          gone={split.viewId ? viewSlots(savedViews.find((v) => v.id === split.viewId) ?? { id: '', name: '', layout: 'c2', slots: [] }, embedSites).gone : [false, false, false, false]}
+          gone={split.gone}
           onSite={(slot, key) => {
             const slots = [...split.slots]
             const from = key ? slots.indexOf(key) : -1
             // Un site n'est que dans une case : celui qu'on prend à une autre case y laisse la place à l'ancien.
             if (from >= 0 && from !== slot) slots[from] = slots[slot]
             slots[slot] = key
-            setSplit({ ...split, slots })
+            // « Site retiré » ne s'affiche que tant qu'on n'a pas touché la case.
+            setSplit({ ...split, slots, gone: split.gone.map((g, i) => (i === slot ? false : g)) })
           }}
           prefs={split.prefs}
           preset={splitPreset}

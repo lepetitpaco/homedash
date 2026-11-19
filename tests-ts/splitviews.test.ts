@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
-import { makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
+import { droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
 const tab = (id: string, label: string, session?: string): CustomTab => ({ id, label, url: `https://${id}.example`, embed: true, session })
@@ -51,6 +51,17 @@ describe('vues scindées enregistrées (#169)', () => {
     expect(new Set(Object.values(twins)).size).toBe(2)
   })
 
+  it('« Garder cette vue » signale les cases qu’elle ne gardera pas (onglet temporaire, Docker)', () => {
+    expect(droppedSlots(['x:x-a', 'x:tmp-9', 'x:dk-abc', null], sites)).toEqual([1, 2])
+    expect(droppedSlots(['x:x-a', 'x:x-b', null, null], sites)).toEqual([])
+  })
+
+  it('compteur d’une vue : seulement les sites qui comptent comme le Dock', () => {
+    const quiet = [tab('x-a', 'X'), { ...tab('x-b', 'X'), notify: false }, { ...tab('x-c', 'Doc'), embed: false }]
+    const v = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'] }])[0]
+    expect(viewCounter(v, { 'x:x-a': 2, 'x:x-b': 5, 'x:x-c': 7 }, quiet)).toBe(2)
+  })
+
   it('compteur d’une vue : la somme de ses sites, chacun une fois', () => {
     const v = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-a'] }])[0]
     expect(viewCounter(v, { 'x:x-a': 3, 'x:x-b': 4, 'x:x-c': 9 }, sites)).toBe(7)
@@ -70,6 +81,10 @@ describe('vues scindées enregistrées (#169)', () => {
     const v = (splitViews: unknown) => validateConfig({ ...base, splitViews })
     const ok = { splitViews: [{ id: 'sv-1', name: 'V', layout: 'c2', slots: ['x-a', null] }] }
     expect(validateConfig({ ...base, ...ok })).toBeNull()
+    expect(v([{ id: 'a', name: 'n', ratios: { '': [2, 1] } }])).toBeNull()
+    expect(v([{ id: 'a', name: 'n', ratios: { '': [1] } }])).toMatch(/ratios/)
+    expect(v([{ id: 'a', name: 'n', ratios: { '': [1, 0] } }])).toMatch(/ratios/)
+    expect(v([{ id: 'a', name: 'n'.repeat(61) }])).toMatch(/trop long/)
     expect(validateConfig(base)).toBeNull()
     expect(v('x')).toMatch(/splitViews/)
     expect(v([{ id: 'a' }])).toMatch(/name/)

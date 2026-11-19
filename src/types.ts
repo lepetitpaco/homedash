@@ -225,21 +225,24 @@ export type TabFolder = {
   before?: string
 }
 
-/**
- * Compte de connexion, comme un conteneur Firefox : ses onglets partagent des
- * cookies à part. La session suit l'`id` : renommer ne déconnecte pas.
- */
 /** Vue scindée enregistrée (#169) : s'ouvre depuis la barre de gauche comme un site. */
 export type SavedSplitView = {
   id: string
   name: string
   layout: string
-  /** Proportions des séparateurs, par nœud de la disposition (`splitView.ts`). */
+  /**
+   * Proportions des séparateurs, par nœud de la disposition (`splitView.ts`) : la clé est le chemin du nœud
+   * (`''` = la racine, `'1'` = son 2e enfant, `'10'`…), la valeur la liste de ses parts (2 à 4 nombres > 0).
+   */
   ratios?: Record<string, number[]>
   /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
   slots: (string | null)[]
 }
 
+/**
+ * Compte de connexion, comme un conteneur Firefox : ses onglets partagent des
+ * cookies à part. La session suit l'`id` : renommer ne déconnecte pas.
+ */
 export type TabSession = {
   id: string
   name: string

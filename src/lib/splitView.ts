@@ -248,6 +248,13 @@ export function effectivePaused(
   return prefs.pause && prefs.follow !== 'all' && shown.includes(key) && sound !== key
 }
 
+/**
+ * À la fermeture de la vue, que deviennent les vidéos mises en pause ? `true` : seul le site qui reste affiché
+ * reprend ; les sites garés restent en pause (et sans son) jusqu'à ce qu'on les affiche. `false` : tout reprend,
+ * y compris hors écran. Décision provisoire en attendant Paco (#168) : une seule ligne à changer.
+ */
+export const CLOSE_KEEPS_PARKED_PAUSED = true
+
 // ── clavier ────────────────────────────────────────────────────────────────
 
 export type Preset = {

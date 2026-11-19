@@ -288,6 +288,14 @@ export function validateConfig(cfg: unknown): string | null {
       seen.add(f.id as string)
       // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
       if (key === 'splitViews') {
+        if (String(f.name).length > 60) return `splitViews[${i}].name trop long (60 caractères au plus)`
+        const ratios = f.ratios
+        if (ratios !== undefined && ratios !== null) {
+          const good =
+            isObj(ratios) &&
+            Object.values(ratios).every((l) => Array.isArray(l) && l.length >= 2 && l.length <= 4 && l.every((n) => typeof n === 'number' && Number.isFinite(n) && n > 0))
+          if (!good) return `splitViews[${i}].ratios doit être des listes de 2 à 4 nombres positifs`
+        }
         if (f.layout !== undefined && f.layout !== null && !isStr(f.layout)) return `splitViews[${i}].layout doit être un texte`
         const slots = f.slots
         if (slots !== undefined && slots !== null) {

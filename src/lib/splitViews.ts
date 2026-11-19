@@ -85,16 +85,28 @@ export function siteNames(sites: CustomTab[], sessions: TabSession[]): Record<st
   return out
 }
 
-/** Compteur d'une vue : la somme de ceux de ses sites, chacun une seule fois. */
-export function viewCounter(view: SavedSplitView, counts: Record<string, number>, sites: CustomTab[]): number {
+/**
+ * Cases que « Garder cette vue » ne garde pas : un onglet temporaire ou un container Docker (calculés, jamais dans
+ * la config) n'est pas un site de Mes sites. Renvoie leur numéro (0 = première case).
+ */
+export function droppedSlots(slotKeys: (string | null)[], sites: CustomTab[]): number[] {
   const ids = new Set(sites.map((t) => t.id))
+  return slotKeys.flatMap((k, i) => (k && !(k.startsWith('x:') && ids.has(k.slice(2))) ? [i] : []))
+}
+
+/**
+ * Compteur d'une vue : la somme de ceux de ses sites, chacun une seule fois, comptés comme le Dock
+ * (un site dont les notifications sont coupées ne compte pas).
+ */
+export function viewCounter(view: SavedSplitView, counts: Record<string, number>, sites: CustomTab[]): number {
+  const ids = new Set(sites.filter((t) => t.embed && t.notify !== false).map((t) => t.id))
   const once = new Set(view.slots.filter((id): id is string => !!id && ids.has(id)))
   let sum = 0
   for (const id of once) sum += counts[`x:${id}`] ?? 0
   return sum
 }
 
-/** Les vues d'après la suppression d'un site : rien à faire, ses cases restent (et affichent « Site retiré »). */
+/** Renommer une vue (un nom vide est refusé) ; la supprimer ; les sites supprimés de Mes sites laissent leurs cases (« Site retiré »). */
 export const renameView = (views: SavedSplitView[], id: string, name: string): SavedSplitView[] =>
   views.map((v) => (v.id === id && name.trim() ? { ...v, name: name.trim().slice(0, 60) } : v))
 

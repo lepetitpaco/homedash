@@ -4,6 +4,8 @@ import { createPortal } from 'react-dom'
 export type PickOption = {
   value: string
   label: string
+  /** Icône (site) devant le libellé. */
+  icon?: React.ReactNode
   /** Pastille de couleur devant le libellé (compte, dossier). */
   color?: string
   hint?: string
@@ -93,6 +95,7 @@ export default function Pick({
         title={title}
       >
         {cur?.color ? <span className="pick-dot" style={{ background: cur.color }} /> : null}
+        {cur?.icon ? <span className="pick-icon" aria-hidden="true">{cur.icon}</span> : null}
         <span className="pick-label">{cur?.label}</span>
         <span className="pick-caret" aria-hidden="true">
           ▾
@@ -121,6 +124,7 @@ export default function Pick({
               }}
             >
               {o.color ? <span className="pick-dot" style={{ background: o.color }} /> : <span className="pick-dot is-none" />}
+              {o.icon ? <span className="pick-icon" aria-hidden="true">{o.icon}</span> : null}
               <span>{o.label}</span>
               {o.hint ? <em>{o.hint}</em> : null}
             </button>

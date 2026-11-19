@@ -196,7 +196,7 @@ lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux)
 tes sites, avec son icône ◫ et un compteur (la somme de ceux de ses sites). Un clic l'ouvre (mêmes sites vivants, rien
 n'est rechargé), le clic droit propose *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Ouverte, le
 bouton devient *Mettre à jour « nom »*. Une vue garde ses sites et sa disposition ; si tu supprimes un site de *Mes
-sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire n'est jamais gardé. Quand un
+sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker n'est jamais gardé (homedash te le dit avant d'enregistrer ; son panneau revient vide). Quand un
 même site existe avec plusieurs comptes, le menu d'un panneau les distingue (« X · pro », « X · perso ») et grise celui
 qu'un autre panneau de la vue utilise déjà.
 

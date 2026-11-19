@@ -18,7 +18,8 @@ import {
 } from '../lib/splitView'
 
 export type Rect = { x: number; y: number; w: number; h: number }
-export type PaneSite = { key: string; label: string; icon: React.ReactNode }
+/** `color` : celle du compte du site (pastille dans le sélecteur). */
+export type PaneSite = { key: string; label: string; icon: React.ReactNode; color?: string }
 
 type Props = {
   layout: string
@@ -125,7 +126,7 @@ export default function SplitView(p: Props) {
     { value: '', label: '— aucun —' },
     ...p.sites.map((s) => {
       const used = p.slots.some((k, j) => k === s.key && j !== i && j < lay.n)
-      return { value: s.key, label: p.names[s.key] ?? s.label, disabled: used, hint: used ? 'déjà dans cette vue' : undefined }
+      return { value: s.key, label: p.names[s.key] ?? s.label, icon: s.icon, color: s.color, disabled: used, hint: used ? 'déjà dans cette vue' : undefined }
     }),
   ]
 

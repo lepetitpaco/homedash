@@ -5,8 +5,9 @@ import { DEFAULT_SPLIT, PRESETS, applyProfile, interceptTable } from '../src/lib
 // desktop/site-adapters.js est du CommonJS de l'appli : chargé tel quel, sans Electron.
 const adapters = createRequire(import.meta.url)('../desktop/site-adapters.js') as {
   siteOf: (url: string) => string | null
-  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void }) => Promise<boolean>
+  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void; field?: string }) => Promise<boolean>
   keyName: (k: string) => string
+  createWheelSync: (now?: () => number) => (from: number, targets: unknown[], dy: number) => Promise<void>
   PLANS: Record<string, Record<string, unknown>>
   clickScript: (a: { scope: string; selectors: string[] }) => string
 }
@@ -111,5 +112,63 @@ describe('adaptateurs de sites (vue scindée)', () => {
     const page = fakeWc('https://example.com/')
     await adapters.run(page, 'pagePrev')
     expect(page.sent[0]).toMatchObject({ type: 'mouseWheel', deltaY: 510 })
+  })
+})
+
+describe('molette synchronisée : pas d’écho, même avec une page lente', () => {
+  const wcOf = (id: number, slow = false) => {
+    const sent: { deltaY: number }[] = []
+    return {
+      id,
+      sent,
+      isDestroyed: () => false,
+      sendInputEvent: (e: { deltaY: number }) => void sent.push(e),
+      // une page qui ne répond jamais (ou trop tard) : la taille est bornée à 100 ms
+      executeJavaScript: () => (slow ? new Promise(() => undefined) : Promise.resolve([800, 600])),
+    }
+  }
+
+  it('l’écho d’une recopie est ignoré, même quand la page met plus de 150 ms à répondre', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = wcOf(2, true)
+    const start = Date.now()
+    await forward(1, [a, b], -120)
+    expect(Date.now() - start).toBeLessThan(400)
+    expect(b.sent).toHaveLength(1)
+    expect(b.sent[0].deltaY).toBe(-120)
+    expect(a.sent).toHaveLength(0)
+    // la recopie est une molette : B la renvoie tout de suite, et plus de 150 ms après l'attente lente
+    t += 120
+    await forward(2, [a, b], -120)
+    expect(a.sent).toHaveLength(0)
+    // plus tard (une vraie molette de B) : recopiée
+    t += 500
+    await forward(2, [a, b], -60)
+    expect(a.sent).toHaveLength(1)
+  })
+
+  it('l’anti-écho est posé après l’attente, pas avant', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const b = wcOf(2, true)
+    const pending = forward(1, [b], -50)
+    // pendant que la page de B hésite, B ne peut pas encore être pris pour un écho
+    t += 1000
+    await pending
+    t += 100
+    // l'écho est daté de l'envoi (t = 1000 + 150) : à t = 1100 il est encore actif
+    await forward(2, [wcOf(1)], -50)
+    expect(b.sent).toHaveLength(1)
+  })
+
+  it('une touche native n’est pas envoyée si le focus du site est dans un champ de saisie', async () => {
+    const wc = fakeWc('https://x.com/home', true)
+    expect(await adapters.run(wc, 'like', { field: 'input, textarea' })).toBe(false)
+    expect(wc.sent).toEqual([])
+    const free = fakeWc('https://x.com/home', false)
+    expect(await adapters.run(free, 'like', { field: 'input, textarea' })).toBe(true)
+    expect(free.sent).toHaveLength(3)
   })
 })
