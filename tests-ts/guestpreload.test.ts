@@ -62,3 +62,25 @@ describe('garde d’Échap des sites : seules les fenêtres visibles comptent', 
     expect(visibleDialog(none.doc, none.win)).toBe(false)
   })
 })
+
+// Molette et survol de la vue scindée (#177) : le vrai code du préload, extrait de la même façon.
+const wh = src.slice(src.indexOf('// <wheelHover>'), src.indexOf('// </wheelHover>'))
+const { sidewaysWheel, pointerMoved } = new Function(`${wh}\nreturn { sidewaysWheel, pointerMoved }`)() as {
+  sidewaysWheel: (e: { shiftKey: boolean; deltaX: number; deltaY: number }) => boolean
+  pointerMoved: (last: { x: number; y: number } | null, x: number, y: number) => boolean
+}
+
+describe('vue scindée : molette horizontale de Maj et survol sans mouvement (#177)', () => {
+  it('Maj + molette d’une souris (horizontale) est reconnue ; un trackpad horizontal sans Maj n’est jamais touché', () => {
+    expect(sidewaysWheel({ shiftKey: true, deltaX: 100, deltaY: 0 })).toBe(true)
+    expect(sidewaysWheel({ shiftKey: false, deltaX: 40, deltaY: 0 })).toBe(false)
+    // Maj sur un trackpad Mac : la molette reste verticale, rien à bloquer
+    expect(sidewaysWheel({ shiftKey: true, deltaX: 0, deltaY: 60 })).toBe(false)
+    expect(sidewaysWheel({ shiftKey: true, deltaX: 3, deltaY: 60 })).toBe(false)
+  })
+  it('un survol compte si la souris a bougé, pas si le contenu a défilé sous elle', () => {
+    expect(pointerMoved(null, 10, 10)).toBe(true)
+    expect(pointerMoved({ x: 10, y: 10 }, 10, 12)).toBe(true)
+    expect(pointerMoved({ x: 10, y: 10 }, 10, 10)).toBe(false)
+  })
+})

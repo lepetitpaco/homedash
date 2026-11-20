@@ -68,9 +68,9 @@ ipcRenderer.on('homedash:split-pass', (_e, name) => {
   ipcRenderer.send('homedash:split-pass-ok')
 })
 ipcRenderer.on('homedash:split-config', (_e, cfg) => {
-  if (cfg && typeof cfg === 'object') split = cfg
+  if (cfg && typeof cfg === 'object') setSplit(cfg)
 })
-ipcRenderer.invoke('homedash:split-get').then((cfg) => cfg && (split = cfg)).catch(() => undefined)
+ipcRenderer.invoke('homedash:split-get').then((cfg) => cfg && setSplit(cfg)).catch(() => undefined)
 
 // Champ de saisie : la liste vient de la page (splitView.ts, une seule source).
 const inField = (el) => {
@@ -127,20 +127,38 @@ window.addEventListener(
   true,
 )
 
+// <wheelHover> : décisions pures, testées (tests-ts/guestpreload.test.ts).
+// Maj + molette d'une souris arrive horizontale (Windows, et macOS pour une souris) : c'est une molette verticale voulue.
+function sidewaysWheel(e) {
+  return !!e.shiftKey && e.deltaY === 0 && e.deltaX !== 0
+}
+// Un survol n'est un geste que si la souris a vraiment bougé : un `mouseover` provoqué par le contenu qui défile sous
+// une souris immobile arrive à la même position d'écran que le dernier évènement de souris vu (#177).
+function pointerMoved(last, x, y) {
+  return !last || last.x !== x || last.y !== y
+}
+// </wheelHover>
+
 // Survol et clic : la page sait ainsi quel panneau est visé (en Flux, le son et les touches le suivent : dernier geste).
 let lastHover = 0
+let lastPointer = null // dernière position d'écran de la souris vue dans ce site
+document.addEventListener('mousemove', (e) => (lastPointer = { x: e.screenX, y: e.screenY }), { capture: true, passive: true })
 document.addEventListener(
   'mouseover',
   (e) => {
     if (!split.open) return
+    const moved = pointerMoved(lastPointer, e.screenX, e.screenY)
+    lastPointer = { x: e.screenX, y: e.screenY }
     // La souris arrive dans le site (de dehors) : `enter`, jamais retardé (main.js oublie alors les échos de molette).
     if (!e.relatedTarget) {
       lastHover = Date.now()
       ipcRenderer.send('homedash:split-hover', 'enter')
       return
     }
+    // Le contenu a défilé sous une souris immobile : pas un geste (sinon le son sautait de panneau après la molette).
+    if (!moved) return
     const now = Date.now()
-    if (!split.open || now - lastHover < 300) return
+    if (now - lastHover < 300) return
     lastHover = now
     ipcRenderer.send('homedash:split-hover')
   },
@@ -151,15 +169,31 @@ window.addEventListener('pointerdown', () => split.open && ipcRenderer.send('hom
 document.addEventListener('mouseout', (e) => !e.relatedTarget && split.open && ipcRenderer.send('homedash:split-hover', 'leave'), true)
 
 // Molette d'un panneau : toujours signalée vue ouverte (main.js décide : synchro, Maj qui l'inverse, écho, geste qui
-// donne le son). Maj + molette d'une souris devient une molette horizontale (Windows, et macOS pour une souris) :
-// `sideways`, la valeur horizontale sert alors de valeur verticale.
+// donne le son). Maj + molette d'une souris devient une molette horizontale : `sideways`, la valeur horizontale sert
+// alors de valeur verticale.
 window.addEventListener(
   'wheel',
   (e) => {
     if (!split.open || !e.isTrusted) return
-    const sideways = e.shiftKey && e.deltaY === 0 && e.deltaX !== 0
+    const sideways = sidewaysWheel(e)
     const dy = -(sideways ? e.deltaX : e.deltaY)
     if (dy) ipcRenderer.send('homedash:split-wheel', { dy, shift: e.shiftKey, sideways })
   },
   { capture: true, passive: true },
 )
+// En Flux, la molette horizontale native de Maj + molette est bloquée : le panneau reçoit la molette verticale relayée
+// (`self`), et le défilement horizontal natif la freinait (panneau d'origine en retard, panneaux désalignés, #177).
+// Écouteur non passif seulement vue Flux ouverte (il retarde un peu chaque molette) ; une molette horizontale sans Maj
+// (trackpad) n'est jamais touchée. Messagerie : rien de bloqué.
+const blockSideways = (e) => {
+  if (e.isTrusted && sidewaysWheel(e)) e.preventDefault()
+}
+let blocking = false
+function setSplit(cfg) {
+  split = cfg
+  const want = !!(split.open && split.table && (split.table.codes || []).length)
+  if (want === blocking) return
+  blocking = want
+  if (want) window.addEventListener('wheel', blockSideways, { capture: true, passive: false })
+  else window.removeEventListener('wheel', blockSideways, { capture: true })
+}
