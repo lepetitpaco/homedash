@@ -328,7 +328,9 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   homedash pour une touche (J, N, Espace… repli `wheel()`) est notée d'avance comme écho (`hooks.wheel` → `expect`),
   sinon la synchro la recopiait et Maj + touche défilait les autres plusieurs fois ; (3) Maj + molette d'une souris arrive
   **horizontale** (Windows, et macOS) : `sideways`, la valeur horizontale sert de verticale et le panneau d'origine reçoit
-  lui aussi la molette (`self`). Une vraie molette (pas un écho) est relayée à la page comme un survol : le son la suit.
+  lui aussi la molette (`self`). `forget` n'oublie rien moins de 150 ms après une vraie molette : l'élan d'un trackpad
+  qui traverse un panneau ne doit pas libérer ses échos. Une vraie molette (pas un écho) est relayée à la page comme un
+  survol, le son la suit ; seulement quand le panneau qui défile change (ou toutes les 500 ms), pas à chaque cran.
 - Vue scindée, pause des vidéos (#168) : les `<video>` en lecture d'un panneau sans le son reçoivent `data-hd-paused`
   puis `pause()` ; `window.__hdHold` fait remettre en pause une vidéo que le site relance seul (écouteur `play`) ;
   la reprise ne relance que les vidéos marquées (une pause à la main n'est jamais défaite). Renvoyée à chaque chargement
@@ -373,18 +375,20 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - **Le mode décide, deux cases restent** (#177, décision de Paco : trop d'options pour un comportement qui doit être
   évident). Flux = table de mixage et raccourcis toujours actifs, pause des panneaux sans le son toujours active, son au
   **dernier geste** (survol, molette, touche de mixage, Alt+chiffre, clic ; la souris qui sort ne coupe rien) ;
-  Messagerie = tous les sons, jamais de pause, aucune touche. Cases : *Défilement synchronisé* (cochée par défaut : c'est
-  l'usage du doomscroll à plusieurs) et *Actions par site* (un J'aime par erreur est le seul vrai risque, donc ça se
-  coupe), les mêmes dans les deux modes. Plus de « Le son suit », raccourcis, mixage, pause, garder le son, ni
+  Messagerie = tous les sons, jamais de pause, aucune touche. Cases : *Défilement synchronisé* (défaut **selon le mode**,
+  `syncDefault` : cochée en Flux, c'est l'usage du doomscroll à plusieurs ; décochée en Messagerie, comme avant ; changer
+  de mode, `withMode`, remet ce défaut) et *Actions par site* (un J'aime par erreur est le seul vrai risque, donc ça se
+  coupe ; grisée en Messagerie, où elle est sans effet), les mêmes dans les deux modes. Plus de « Le son suit », raccourcis, mixage, pause, garder le son, ni
   « Personnalisé » : ne pas les recréer. Le clavier AZERTY / QWERTY est détecté ; le choix manuel reste **seulement**
   dans Réglages (`ui.split.keyboard`, lu par `normalizeKeyboard`) et ne change que les étiquettes : les touches sont
-  physiques. **Vues d'avant** : seul leur mode compte, sans migration (`normalizeSplit` reconnaît l'ancien format à
-  `LEGACY_SPLIT_KEYS` et rend les défauts ; l'ancien « Personnalisé » redevient Messagerie si le son était à tous,
-  sinon Flux) ; `store.validateConfig` accepte toujours les anciennes clés, sinon une config ancienne serait refusée à
+  physiques. **Vues d'avant**, sans migration : `normalizeSplit` garde `mode`, `sync` et `actions` (même sens) et
+  ignore les clés disparues (`LEGACY_SPLIT_KEYS`, jamais renvoyées) ; l'ancien « Personnalisé » redevient Messagerie si
+  le son était à tous, sinon Flux ; `store.validateConfig` accepte toujours les anciennes clés, sinon une config ancienne serait refusée à
   l'écriture.
 - Modificateurs de la vue (#177, « layout à la gamer », identiques Mac et Windows) : **Maj = tous les panneaux**
   (touches de mixage dans leur sens, J K, flèches, N P ; Maj + molette inverse la synchro). J K et flèches visent le
-  panneau **sous la souris** (sinon l'actif), une touche de mixage toujours son panneau. Alt+chiffre choisit le panneau ;
+  panneau **sous la souris** (sinon l'actif) et lui donnent le son, une touche de mixage toujours son panneau (qui prend
+  le son). Alt+chiffre choisit le panneau ;
   Ctrl et ⌘ jamais pris ; Maj + Espace garde son sens (page précédente) ; agrandir et les actions par site ne prennent
   pas Maj (pas de « J'aime » à tous). Les clics avec Maj ne sont pas interceptés.
 - Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;

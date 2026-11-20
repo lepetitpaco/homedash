@@ -203,11 +203,12 @@ Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajout
 
 Le type décide de tout. Il ne reste que **deux cases**, les mêmes dans les deux types (menu *Options* de la barre,
 **valables le temps de la vue** : pour les garder, *Modifier la vue…*, clic droit sur la vue) : *Défilement
-synchronisé* (**coché par défaut** : faire défiler n'importe quel panneau à la molette ou au trackpad fait défiler
-tous les autres ; `Maj` + molette fait l'inverse : un seul panneau quand c'est coché, tous quand c'est décoché) et
-*Actions par site* (en Flux : `L` `B` `T` `C`). Une vidéo que tu as mise en pause toi-même n'est jamais relancée ; le
-son coupé à la main (clic droit sur un site) reste prioritaire. Une vue enregistrée avant cette version garde
-seulement son type (ses anciennes cases sont ignorées).
+synchronisé* (**coché par défaut en Flux, décoché en Messagerie** ; changer de type remet ce défaut : faire défiler
+n'importe quel panneau à la molette ou au trackpad fait défiler tous les autres ; `Maj` + molette fait l'inverse : un
+seul panneau quand c'est coché, tous quand c'est décoché) et *Actions par site* (en Flux : `L` `B` `T` `C` ; grisée
+en Messagerie, où elle est sans effet). Une vidéo que tu as mise en pause toi-même n'est jamais relancée ; le son
+coupé à la main (clic droit sur un site) reste prioritaire. Une vue enregistrée avant cette version garde son type et
+ces deux cases ; ses autres anciennes cases sont ignorées.
 
 **Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
 qui reste affiché reprend ses vidéos et son ; les sites garés restent en pause jusqu'à ce que tu les affiches. Le clic
@@ -220,12 +221,12 @@ touches sont lues **à leur place sur le clavier**, pas par la lettre qu'elles t
 Windows**, en AZERTY comme en QWERTY (le clavier est détecté tout seul ; s'il se trompe, *Réglages → Vue scindée*
 corrige les lettres affichées). **`Maj` (⇧) maintenu = tous les panneaux d'un coup.** `Ctrl` et `⌘` ne sont jamais
 pris (copier, coller, raccourcis du système), et un clic avec `Maj` dans un site reste au site. L'aide ⓘ de la barre
-le rappelle.
+et *Réglages → Vue scindée* le rappellent.
 
 | Touche | Effet |
 | --- | --- |
 | *Table de mixage* : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main : un seul panneau, qui prend le son. **`Maj` + touche** : tous les panneaux, dans le sens de la touche |
-| `J` `K` ou `↓` `↑` | Défiler d'un cran (une carte sur TikTok, Reels) **le panneau sous la souris** (sans souris sur la grille : le panneau actif). **`Maj`** : tous |
+| `J` `K` ou `↓` `↑` | Défiler d'un cran (une carte sur TikTok, Reels) **le panneau sous la souris** (sans souris sur la grille : le panneau actif), qui prend le son. **`Maj`** : tous |
 | `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente du panneau actif (`Maj` + `N` `P` : tous) |
 | `Alt` + `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY) | Panneau 1 à 4 : il devient actif et prend le son |
 | `X` | Agrandir / restaurer le panneau actif (`Z` est « panneau 2 haut » en AZERTY) |
