@@ -1163,11 +1163,22 @@ export default function App() {
     window.setTimeout(() => setSplitNotes((n) => n.map((x, i) => (i === pane && x === text ? null : x))), 2200)
   }, [])
   const closeSplit = useCallback(() => setSplit(null), [])
+  // Une couche (menu, fenêtre de confirmation ou de nom, liste de choix) est ouverte au-dessus de la vue : Échap est à elle.
+  const layerOpen = () => !!document.querySelector('.modal-backdrop, .split-menu, .pick-menu, .ctx')
+  // Ouvrir la vue depuis Réglages ou Activité : on quitte cette page (une seule chose active), sans que ce
+  // changement de page ne referme la vue qu'on ouvre.
+  const keepOnTab = useRef(false)
+  const leavePage = () => {
+    if (tab !== 'settings' && tab !== 'events') return
+    keepOnTab.current = true
+    selectTab(lastNative.current)
+  }
   // Fermée, la grille libère les sites : plus aucun emplacement.
   useEffect(() => {
     if (!split) setSplitRects([])
   }, [!!split]) // eslint-disable-line react-hooks/exhaustive-deps
   const openSplit = () => {
+    leavePage()
     const embeds = allTabs.filter((t) => t.embed).map(tabKey)
     let last: { layout?: string; slots?: unknown } = {}
     try {
@@ -1186,6 +1197,7 @@ export default function App() {
   const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
   const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
   const openSavedView = (v: (typeof savedViews)[number]) => {
+    leavePage()
     const { keys, gone } = viewSlots(v, embedSites)
     setSplitNotes([null, null, null, null])
     setSplit({ viewId: v.id, gone, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
@@ -1213,7 +1225,7 @@ export default function App() {
     const cur = s.viewId ? views0.find((v) => v.id === s.viewId) : undefined
     let name = cur?.name
     if (!name) {
-      const r = await askNameColor({ title: 'Garder cette vue', name: `Vue ${views0.length + 1}`, hint: 'Elle apparaît dans la barre de gauche, avec le compteur de ses sites.' })
+      const r = await askNameColor({ title: 'Garder cette vue', okLabel: 'Garder', noColor: true, name: `Vue ${views0.length + 1}`, hint: 'Elle apparaît dans la barre de gauche, avec le compteur de ses sites.' })
       if (!r) return
       name = r.name
     }
@@ -1237,7 +1249,7 @@ export default function App() {
           icon: '✎',
           label: 'Renommer',
           onSelect: async () => {
-            const r = await askNameColor({ title: 'Renommer la vue', name: v.name })
+            const r = await askNameColor({ title: 'Renommer la vue', name: v.name, okLabel: 'Renommer', noColor: true })
             const now = rawRef.current
             if (r && now) persist({ ...now, splitViews: renameView(normalizeViews(now.splitViews), v.id, r.name) })
           },
@@ -1277,7 +1289,13 @@ export default function App() {
     }
   }, [split?.layout, splitShownKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // Quitter vers une autre page ou lancer une recherche ferme la vue.
-  useEffect(() => closeSplit(), [tab, closeSplit])
+  useEffect(() => {
+    if (keepOnTab.current) {
+      keepOnTab.current = false
+      return
+    }
+    closeSplit()
+  }, [tab, closeSplit])
   useEffect(() => {
     if (search.query.trim()) closeSplit()
   }, [search.query, closeSplit])
@@ -1368,7 +1386,10 @@ export default function App() {
       if (!s) return
       const n = layoutOf(s.layout).n
       if (a.type === 'focus') return doPick(a.pane)
-      if (a.type === 'leave') return s.zoom !== null ? setSplit({ ...s, zoom: null }) : setSplit(null)
+      if (a.type === 'leave') {
+        if (layerOpen()) return
+        return s.zoom !== null ? setSplit({ ...s, zoom: null }) : setSplit(null)
+      }
       if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
       const pane = a.type === 'scroll' ? (a.pane ?? s.focus.active) : s.focus.active
       if (pane >= n) return
@@ -1413,6 +1434,8 @@ export default function App() {
       const s = splitRef.current
       // Les Échap rejoués par la page pour fermer ses menus (`onGuestDown`) ne sont pas des touches : jamais pris.
       if (!s || !e.isTrusted) return
+      // Échap ferme la couche du dessus, pas la vue : la capture passe avant elle, on voit donc encore la couche.
+      if (e.key === 'Escape' && layerOpen()) return
       const t = e.target as HTMLElement | null
       if (e.key === ' ' && t?.closest?.(SPACE_KEEPS)) return
       const a = resolveKey(
@@ -1428,8 +1451,8 @@ export default function App() {
       if (a.type !== 'leave') e.preventDefault()
       doAction(a)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [doAction])
 
   if (error && !cfg) return <LoadTrouble error={error} onRetry={retryLoad} />
@@ -2706,7 +2729,7 @@ export default function App() {
           onTempClose={closeTemp}
           folders={tabFolders}
           sessions={tabSessions}
-          active={railActive}
+          active={split ? null : railActive}
           size={railSize}
           labels={shownLabels}
           collapse={railLabels === 'none' ? undefined : { open: railOpen, onToggle: () => changeRailOpen(!railOpen) }}

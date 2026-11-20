@@ -82,6 +82,17 @@ const inField = (el) => {
   }
 }
 const DIALOG = '[aria-modal="true"], [role="dialog"], [role="alertdialog"], dialog[open]'
+// <visibleDialog> : seule une fenêtre VISIBLE retient Échap (un role="dialog" resté caché dans la page ne compte pas).
+function visibleDialog(doc, win) {
+  for (const el of doc.querySelectorAll(DIALOG)) {
+    if (el.getAttribute('aria-hidden') === 'true' || el.hidden) continue
+    const st = win.getComputedStyle(el)
+    if (st.display === 'none' || st.visibility === 'hidden') continue
+    if (el.getClientRects().length > 0) return true
+  }
+  return false
+}
+// </visibleDialog>
 
 window.addEventListener(
   'keydown',
@@ -95,7 +106,7 @@ window.addEventListener(
     }
     if (e.key === 'Escape') {
       // Le site ferme sa fenêtre avec Échap : la vue reste. On attend que ses propres écouteurs aient joué.
-      if (!split.table.relay.includes('escape') || document.querySelector(DIALOG)) return
+      if (!split.table.relay.includes('escape') || visibleDialog(document, window)) return
       setTimeout(() => !e.defaultPrevented && send(), 0)
       return
     }

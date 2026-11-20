@@ -117,8 +117,14 @@ export default function SplitView(p: Props) {
     const down = (e: MouseEvent) => {
       if (!(e.target as HTMLElement).closest?.('.split-menu, .split-menu-btn, .pick-menu')) setMenu(null)
     }
+    // Échap ferme ce menu, et lui seul : la vue reste ouverte (App ne prend pas l'Échap quand une couche est ouverte).
+    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(null)
     window.addEventListener('mousedown', down)
-    return () => window.removeEventListener('mousedown', down)
+    window.addEventListener('keydown', esc)
+    return () => {
+      window.removeEventListener('mousedown', down)
+      window.removeEventListener('keydown', esc)
+    }
   }, [menu])
 
   // Un site n'est que dans une case : celui d'une autre case est grisé (« déjà dans cette vue »).
@@ -188,9 +194,11 @@ export default function SplitView(p: Props) {
         <div className="split-body" ref={(el) => {
             bodies.current[i] = el
           }}>
-          {!key ? <p className="split-empty">Choisis un site pour ce panneau.</p> : null}
+          {/* une seule phrase : le site a disparu, ou la case est vide */}
           {key && !site ? <p className="split-empty">Site retiré de Mes sites.</p> : null}
-          {!key && p.gone[i] ? <p className="split-empty">Site retiré de Mes sites : choisis-en un autre.</p> : null}
+          {!key ? (
+            <p className="split-empty">{p.gone[i] ? 'Site retiré de Mes sites : choisis-en un autre.' : 'Choisis un site pour ce panneau.'}</p>
+          ) : null}
         </div>
         {p.notes[i] ? note(i) : null}
       </div>
@@ -254,6 +262,14 @@ export default function SplitView(p: Props) {
     </label>
   )
 
+  // Les raccourcis du mode : en toutes lettres quand il y a la place, sinon dans la bulle de ⓘ.
+  const legendText = p.prefs.keys
+    ? p.prefs.mixer
+      ? `Mixage (remplace J K, N P, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
+      : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`
+    : "Aucune touche interceptée : tu tapes dans les sites comme d'habitude."
+  const legendEl = <span className="split-legend">{legendText}</span>
+
   return (
     <div className={`split-root${dragging ? ' is-dragging' : ''}`} ref={root} aria-label="Vue scindée">
       <div className="split-bar" onMouseEnter={p.onLeave}>
@@ -304,24 +320,21 @@ export default function SplitView(p: Props) {
             Options ▾
           </button>
         </div>
-        {p.prefs.keys ? (
-          <span className="split-legend" title="Raccourcis du mode actuel">
-            {p.prefs.mixer
-              ? `Mixage (remplace J K, N P, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
-              : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`}
+        <div className="split-end">
+          {legendEl}
+          <span className="split-info" role="img" aria-label={legendText} title={legendText} tabIndex={0}>
+            ⓘ
           </span>
-        ) : (
-          <span className="split-legend" title="Raccourcis du mode actuel">Aucune touche interceptée : tu tapes dans les sites comme d'habitude.</span>
-        )}
-        <button className="split-chip" onClick={p.onSave} title="Garder cette vue dans la barre de gauche, avec son compteur">
-          {p.savedName ? `Mettre à jour « ${p.savedName} »` : 'Garder cette vue'}
-        </button>
-        <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
-          Fermer
-        </button>
+          <button className="split-chip" onClick={p.onSave} title={p.savedName ? `Mettre à jour la vue « ${p.savedName} »` : 'Garder cette vue dans la barre de gauche, avec son compteur'}>
+            {p.savedName ? 'Mettre à jour' : 'Garder cette vue'}
+          </button>
+          <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
+            Fermer
+          </button>
+        </div>
         {menu
           ? createPortal(
-          <div className="split-menu" role="dialog" aria-label="Options de la vue scindée" style={{ left: menu.left, top: menu.top }}>
+          <div className="split-menu" role="dialog" aria-label="Options de la vue scindée" style={{ left: menu.left, top: menu.top, maxHeight: Math.max(160, window.innerHeight - menu.top - 8), overflowY: 'auto' }}>
             <div className="set-toggles">
               {FLAG_HELP.map(flag)}
             </div>

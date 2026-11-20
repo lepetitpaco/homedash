@@ -18,6 +18,8 @@ export type NameColorOptions = {
   /** Une phrase sous le champ : ce que ça fait. */
   hint?: string
   okLabel?: string
+  /** Sans choix de couleur (renommer, nommer une vue) : la couleur ne sert à rien. */
+  noColor?: boolean
 }
 
 export type NameColor = { name: string; color: string }
@@ -105,7 +107,7 @@ export default function NameColorHost() {
             autoComplete="off"
             data-1p-ignore
           />
-          <ColorSwatches value={color} onChange={setColor} />
+          {pending.noColor ? null : <ColorSwatches value={color} onChange={setColor} />}
           {pending.hint ? <p className="set-hint">{pending.hint}</p> : null}
         </div>
         <div className="modal-foot">
