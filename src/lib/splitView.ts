@@ -124,7 +124,7 @@ export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'pause' |
   { key: 'keys', label: 'Raccourcis clavier', hint: 'Alt + chiffre, J K ou ↓ ↑, N P, Espace, Z (X avec la table de mixage), Échap' },
   { key: 'actions', label: 'Actions par site', hint: "L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram) ; coche aussi les raccourcis" },
   { key: 'mixer', label: 'Table de mixage', hint: 'une paire de touches par panneau pour le défiler d’une main (A Q, Z S, E D, R F en AZERTY) ; agrandir passe de Z à X ; coche aussi les raccourcis' },
-  { key: 'sync', label: 'Scroll synchronisé', hint: 'une molette pour tous les panneaux' },
+  { key: 'sync', label: 'Défilement synchronisé', hint: 'une molette pour tous les panneaux' },
   { key: 'pause', label: 'Pause : les panneaux inactifs', hint: 'les vidéos du panneau qui n\'a pas le son sont mises en pause, et reprennent quand il le retrouve' },
   { key: 'keep', label: 'Garder le son à la sortie', hint: 'le dernier panneau garde le son quand la souris sort de la grille' },
 ]

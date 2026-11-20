@@ -140,7 +140,7 @@ export function siteNames(sites: CustomTab[], sessions: TabSession[]): Record<st
 }
 
 /**
- * Cases que « Garder cette vue » ne garde pas : un onglet temporaire ou un container Docker (calculés, jamais dans
+ * Cases qu'« Enregistrer » (nouvelle vue ou Modifier la vue) ne garde pas : un onglet temporaire ou un container Docker (calculés, jamais dans
  * la config) n'est pas un site de Mes sites. Renvoie leur numéro (0 = première case).
  */
 export function droppedSlots(slotKeys: (string | null)[], sites: CustomTab[]): number[] {

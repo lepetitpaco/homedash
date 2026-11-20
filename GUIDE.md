@@ -188,8 +188,8 @@ enregistrée, et se supprime au clic droit.
 Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles démarrent sur la page d'accueil du site, ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (leur position est alors perdue ; chaque copie est une page de plus en mémoire). La composition d'une vue
 est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
 (sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
-les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `Z` en mode Flux) l'agrandit. En fermant la
-vue (*Fermer*, `Échap` en mode Scroll, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
+les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `X` en mode Flux, `Z` sans la table de mixage) l'agrandit. En fermant la
+vue (*Fermer*, `Échap` en mode Flux, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
 ne se met pas en veille.
 
 Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajouter → Ajouter une vue scindée) et changeable dans *Modifier la vue…* ; *Réglages → Vue scindée* ne sert qu'à pré-remplir une nouvelle vue :
@@ -204,7 +204,7 @@ Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajout
 Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : en changer une donne *Personnalisé*, et
 recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
 *Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
-raccourcis les décoche ; **la table de mixage est cochée en Flux** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
+raccourcis les décoche ; **la table de mixage est cochée en Flux** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Défilement synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
 *Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
 
 **Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
@@ -419,7 +419,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) ; dans ▾ de chaque site : pause quand je n'y suis pas (appli) |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
-| ◫ Vue scindée | Le mode de départ (Classic / Scroll), le son, les raccourcis, les actions par site, le clavier AZERTY / QWERTY |
+| ◫ Vue scindée | Les réglages qui pré-remplissent une nouvelle vue (Messagerie / Flux), le son, les raccourcis, les actions par site, le clavier AZERTY / QWERTY |
 | 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
 | 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |
