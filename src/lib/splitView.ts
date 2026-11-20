@@ -38,7 +38,7 @@ type ProfileBoxes = Pick<SplitPrefs, 'follow' | 'keys' | 'actions' | 'mixer' | '
 /** Les deux préréglages : Classic = double écran, rien d'intercepté ; Scroll = multi-scroll de flux. */
 export const PROFILES: Record<'classic' | 'scroll', ProfileBoxes> = {
   classic: { follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false },
-  scroll: { follow: 'hover', keys: true, actions: true, mixer: false, sync: false, pause: true },
+  scroll: { follow: 'hover', keys: true, actions: true, mixer: true, sync: false, pause: true },
 }
 
 export const DEFAULT_SPLIT: SplitPrefs = { mode: 'scroll', ...PROFILES.scroll, keep: true, keyboard: 'auto' }
@@ -102,8 +102,8 @@ export function normalizeSplit(raw: unknown): SplitPrefs {
 // ── libellés partagés (barre de la vue et Réglages) ───────────────────────
 
 export const MODE_LABELS: { id: SplitMode; label: string; hint: string }[] = [
-  { id: 'classic', label: 'Classic', hint: 'Double écran : tous les sons, aucune touche interceptée' },
-  { id: 'scroll', label: 'Scroll', hint: 'Défiler des flux : le son suit la souris, raccourcis et actions par site' },
+  { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
+  { id: 'scroll', label: 'Flux', hint: 'Défiler TikTok, X, Instagram : le son suit la souris, pause des vidéos, raccourcis et table de mixage' },
   { id: 'custom', label: 'Personnalisé', hint: 'Tes cases à cocher ne correspondent à aucun mode' },
 ]
 
@@ -121,10 +121,10 @@ export const KEYBOARD_OPTIONS: { value: KeyboardChoice; label: string }[] = [
 
 /** Les cases à cocher, avec leur aide : la même dans la barre de la vue et dans Réglages. */
 export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'pause' | 'keep'; label: string; hint: string }[] = [
-  { key: 'keys', label: 'Raccourcis clavier', hint: 'Alt + chiffre, J K ou ↓ ↑, N P, Espace, Z, Échap' },
+  { key: 'keys', label: 'Raccourcis clavier', hint: 'Alt + chiffre, J K ou ↓ ↑, N P, Espace, Z (X avec la table de mixage), Échap' },
   { key: 'actions', label: 'Actions par site', hint: "L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram) ; coche aussi les raccourcis" },
-  { key: 'mixer', label: 'Table de mixage', hint: 'une paire de touches par panneau pour le défiler d’une main ; remplace J K, N P, Z et les actions tant qu’elle est cochée ; coche aussi les raccourcis' },
-  { key: 'sync', label: 'Scroll synchronisé', hint: 'une molette pour tous les panneaux' },
+  { key: 'mixer', label: 'Table de mixage', hint: 'une paire de touches par panneau pour le défiler d’une main (A Q, Z S, E D, R F en AZERTY) ; agrandir passe de Z à X ; coche aussi les raccourcis' },
+  { key: 'sync', label: 'Défilement synchronisé', hint: 'une molette pour tous les panneaux' },
   { key: 'pause', label: 'Pause : les panneaux inactifs', hint: 'les vidéos du panneau qui n\'a pas le son sont mises en pause, et reprennent quand il le retrouve' },
   { key: 'keep', label: 'Garder le son à la sortie', hint: 'le dernier panneau garde le son quand la souris sort de la grille' },
 ]
@@ -276,6 +276,21 @@ export function pauseWanted(
   return CLOSE_KEEPS_PARKED_PAUSED && key !== c.tab
 }
 
+/**
+ * Pause quand je n'y suis pas (#175) : un site qui n'est pas affiché (garé, autre site, autre page, recherche, ou hors de
+ * la grille d'une vue ouverte) est en pause si son réglage le veut. Un seul mécanisme avec #168 (même script dans le
+ * site) : la pause finale est celle de la vue OU celle-ci. Une copie de vue n'est jamais « cachée » : elle suit sa case.
+ */
+export function hiddenPauseWanted(
+  key: string,
+  setting: boolean,
+  c: { open: boolean; shown: string[]; tab: string; searching: boolean },
+): boolean {
+  if (!setting || key.startsWith('copy:')) return false
+  const displayed = c.open ? c.shown.includes(key) : !c.searching && key === c.tab
+  return !displayed
+}
+
 // ── clavier ────────────────────────────────────────────────────────────────
 
 export type Preset = {
@@ -300,6 +315,9 @@ export function detectKeyboard(keyQ: string | undefined): 'azerty' | 'qwerty' {
 export function presetOf(choice: KeyboardChoice, detected: 'azerty' | 'qwerty'): Preset {
   return PRESETS[choice === 'auto' ? detected : choice]
 }
+
+/** La touche d'agrandir : Z, ou X quand la table de mixage prend Z. */
+export const zoomKey = (prefs: { mixer: boolean }) => (prefs.mixer ? 'x' : 'z')
 
 export type KeyEvt = { key: string; code: string; shift: boolean; alt: boolean; ctrl: boolean; meta: boolean }
 
@@ -342,19 +360,20 @@ export function resolveKey(
   if (e.ctrl || e.meta || e.alt) return null
   if (e.code === 'Escape' || e.key === 'Escape') return { type: 'leave' }
   const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
+  // Table de mixage : une paire de touches par panneau. Elle n'enlève rien aux autres touches, sauf Z (agrandir),
+  // qui est « panneau 2 haut » en AZERTY : avec le mixage, on agrandit avec X (dans les deux claviers).
   if (prefs.mixer) {
     for (let i = 0; i < Math.min(preset.mix.length, ctx.panes); i++) {
       if (k === preset.mix[i][0]) return { type: 'scroll', pane: i, dir: -1, page: false }
       if (k === preset.mix[i][1]) return { type: 'scroll', pane: i, dir: 1, page: false }
     }
-    return null
   }
   if (k === 'j' || k === 'ArrowDown') return { type: 'scroll', pane: null, dir: 1, page: false }
   if (k === 'k' || k === 'ArrowUp') return { type: 'scroll', pane: null, dir: -1, page: false }
   if (k === 'n') return { type: 'scroll', pane: null, dir: 1, page: true }
   if (k === 'p') return { type: 'scroll', pane: null, dir: -1, page: true }
   if (k === ' ') return { type: 'scroll', pane: null, dir: e.shift ? -1 : 1, page: true }
-  if (k === 'z') return { type: 'zoom' }
+  if (k === zoomKey(prefs)) return { type: 'zoom' }
   if (prefs.actions) {
     const a = SITE_ACTIONS.find((x) => x.key === k)
     if (a) return { type: 'site', id: a.id }

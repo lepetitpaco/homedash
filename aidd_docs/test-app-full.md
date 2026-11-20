@@ -88,3 +88,8 @@ Chaque écran aux tailles et thèmes de la commande. Un bug trouvé ajoute sa li
 - (2026-11-05) Réglages → Barres et onglets à 1024×700 : « Icônes + titres » passe sur 3 lignes dans sa miniature. Corrigé en 2.5.0 (2 lignes).
 - (2026-11-05) Onglet Local : « Dépôts locaux » en tête de carte (lexique : Local). Corrigé en 2.5.0.
 - (2026-11-05) Journal d'erreurs de la prod (2.4.1, le 01/11 et le 05/11) : « The WebView must be attached to the DOM… », en anglais dans Diagnostic. Un appel à la webview avant `dom-ready` sans garde (`CustomTabView.tsx` : `getURL`, `getTitle`, `canGoBack`…). Corrigé en 2.5.0 : la relecture des non-lus attend `dom-ready` ; à revérifier dans le journal après quelques jours.
+- (2026-11-20) Fenêtre « Ajouter un site » (＋) : 734 px de haut sans défilement, pied (dont « Ajouter une vue scindée… ») hors écran à 800×600 (-67 px en haut et en bas), -17 px à 1024×700, -7 px à 1280×720. `AddTabDialog.tsx`. Contourné par le clic droit.
+- (2026-11-20) Modifier la vue… : avec un seul site, le message « Une vue scindée a besoin de deux sites au moins » s'affiche en bas du panneau vide, cadré comme un champ.
+- (2026-11-20) Site du catalogue ajouté par pastille : pas de `pauseHidden: false` écrit, et « ✨ Réglage recommandé » propose ce qui est déjà effectif ; « Oui » écrit `pauseHidden: true` en dur.
+- (2026-11-20) Raccourcis reste marqué actif quand une vue est ouverte (onglets du haut, ou barre de gauche après création depuis ＋).
+- (2026-11-20) Options d'une vue enregistrée : les cases changées ne sont pas gardées à la réouverture (à trancher).

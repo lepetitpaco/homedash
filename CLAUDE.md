@@ -57,6 +57,11 @@ Toute page ou réglage nouveau entre dans `src/lib/settingsIndex.ts` (la recherc
 | Activité | la cloche et sa page | événements, journal |
 | Local | l'onglet et ses réglages (les dépôts de ton disque) | Dépôts locaux |
 | Raccourcis | la page d'accueil (⚡) | |
+| vue scindée | plusieurs sites côte à côte, rangée dans la barre de gauche comme un site | split, multi-fenêtre |
+| Flux, Messagerie | les deux types d'une vue scindée : Flux (doomscroll : copies, son à la souris, pause), Messagerie (vrais sites, tous les sons). Ne pas les confondre avec le groupe « Messageries » du catalogue ni avec « Messagerie LinkedIn » : ce sont des sites ; le type d'une vue ne s'écrit que dans sa fenêtre et ses réglages | Classic, Scroll (noms internes du code seulement) |
+| copie | un panneau de vue Flux : une page de plus sur la connexion du site, sans toucher au site de la barre | onglet temporaire |
+| Personnalisé | le type d'une vue dont une case a été changée | |
+| Défilement synchronisé | une molette pour tous les panneaux | Scroll synchronisé |
 
 Boutons : une majuscule au premier mot (« Déconnecter », « Restaurer »), le même verbe pour la même action d'un
 service à l'autre (Basecamp, Trello).
@@ -305,7 +310,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   coordonnées de la case), **jamais reparentés** (une webview déplacée se recharge) ; hors grille ils restent garés.
   Le muet automatique se calcule là où `muted` est passé (`effectiveMuted`) : le muet manuel prime. Les touches sont
   décidées dans `guest-preload.js` (seul à voir si le focus est dans un champ), d'après la table que la page tire de
-  `splitView.ts` (`interceptTable`) et envoie à `main.js` (`homedash:split-config`) ; table vide en Classic et vue
+  `splitView.ts` (`interceptTable`) et envoie à `main.js` (`homedash:split-config`) ; table vide en Messagerie et vue
   fermée : rien retenu, rien relayé. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
   `site-adapters.js`.
 - Vue scindée, touches envoyées par homedash à un site (`site-adapters.js`, `sendKey`) : le préload du site les
@@ -320,10 +325,24 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   la reprise ne relance que les vidéos marquées (une pause à la main n'est jamais défaite). Renvoyée à chaque chargement
   de page ; limite : une vidéo dans un shadow DOM fermé ou un iframe d'une autre origine n'est pas vue. À la fermeture,
   seul le site affiché reprend (`CLOSE_KEEPS_PARKED_PAUSED`, `splitView.ts`).
+- Pause quand je n'y suis pas (#175) : clé **additive** `CustomTab.pauseHidden` (absente = défaut du code, **aucune étape
+  `migrate()`**) : `pauseHiddenOf(t) = t.pauseHidden ?? !catalogBackground(t)` (`catalog.ts`), où le catalogue marque
+  `background: true` les sites reconnus **par leur adresse** (`siteOf`, raccourcis compris). Décision de Paco : les apps
+  de scroll (X, Instagram, TikTok…) ne doivent **pas** jouer en fond ; les lecteurs média (YouTube, Spotify, Twitch,
+  Netflix, Plex…) et les appels / messageries (Meet, Zoom, Discord, WhatsApp…) **ne sont jamais coupés** (couper un
+  appel est pire que le bruit). Comme `use` (veille, chargement), `catalogTab()` écrit le réglage sur un site créé et
+  `adviceFor()` le propose aux existants (jamais appliqué tout seul). **Un seul mécanisme avec #168** : l'effet de
+  `App.tsx` (« Pause des vidéos ») calcule `pauseWanted` (vue) OU `hiddenPauseWanted` (#175), mêmes `pause`/`resume` et
+  même script (`PAUSE_SCRIPT`, maintenant `video` et `audio`) ; `pausedNow[k].view` garde la raison « vue » à part, sinon
+  décocher la case ne relancerait pas un site que la vue a lâché. « Affiché » = la grille d'une vue ouverte, sinon l'onglet
+  courant hors recherche ; une copie de vue n'est pas un site : elle n'a pas le réglage du site d'origine ; elle ne se cache que si un panneau agrandi la gare, et suit alors la règle de la vue (#168 : en pause tant qu'elle n'a pas le son). Fermer
+  une vue ne relance pas un site garé dont #175 s'applique. Limites : média dans un shadow DOM fermé, iframe d'une autre
+  origine, `new Audio()` hors du DOM, WebAudio : non vus ; un son court (notification) en cours au masquage reprend à
+  l'affichage.
 - Vues scindées enregistrées (#169) : clé **additive** `config.splitViews` (absente = aucune vue, défaut dans le
   code), donc **aucune étape dans `accounts.migrate()`** ; `store.validateConfig` la contrôle avant toute écriture
   (sauvegardes, restauration et export complet reprennent `config.json` en entier : testé). Une vue garde des **id de
-  sites**, jamais un onglet temporaire ni un container Docker (« Garder cette vue » le dit). Fichiers :
+  sites**, jamais un onglet temporaire ni un container Docker (« Enregistrer » le dit). Fichiers :
   `src/lib/splitViews.ts` (pur), `src/lib/splitView.ts` (modes, clavier, son), `SplitView.tsx` (barre et grille),
   `SetSplit.tsx` (Réglages).
 - Vue scindée, Échap : il ferme la couche du dessus, jamais la vue en plus. Une couche flottante (menu, liste de choix,
@@ -331,6 +350,23 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   `splitView.ts`), il n'y a pas de liste de classes à tenir à jour. Un Échap tapé dans un site arrive deux fois (la page
   ferme sa couche, puis le relais du site) : le 2e est ignoré 300 ms quand une couche était ouverte. `keepOnTab` : ouvrir
   une vue depuis Réglages ou Activité change de page, et ce changement ne doit pas refermer la vue qu'on ouvre.
+- Principe de Paco : **homedash n'a pas vocation à devenir un navigateur web mais un dash avec les sites principaux.** La
+  vue scindée est pensée d'abord pour doomscroller (TikTok / X / Instagram) et suivre plusieurs messageries (Instagram +
+  Discord) ; elle peut servir ailleurs, mais ces deux usages priment. Ne pas diverger du but original : ni barre
+  d'adresse, ni historique, ni navigation libre dans les panneaux. Chaque ajout doit servir ces deux usages, sinon on le
+  signale dans l'issue au lieu de le faire.
+- Vues enregistrées dans la barre (#172) : une vue est une entrée de la barre comme un site (`before` : devant quel site,
+  `folder` : dans quel dossier, `ratios` : proportions ; clés additives, absentes = à la fin, hors dossier). Il n'y a **pas
+  de vue jetable** : toute vue est enregistrée. Composition **fixe** (pas de sélecteur de site dans les panneaux) sauf en
+  mode édition (« Modifier la vue… »). La table de mixage est le défilement par défaut : elle n'enlève rien, seule la
+  touche d'agrandir passe de Z à X (Z = « panneau 2 haut » en AZERTY).
+- Les cases du menu Options d'une vue enregistrée ne sont **pas** gardées à la réouverture : voulu (décision de Paco). Le
+  type et les cases d'une vue se changent par « Modifier la vue… », qui les enregistre dans `prefs`.
+- Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
+  Flux = copies (`copies[]`, une webview de plus sur la **même partition**, page à part, démarre sur `tab.url`, clé
+  `copy:<case>`, fermée avec la vue ; ni compteur ni Activité ni onglet temporaire), Messagerie = vrais sites. La copie est
+  posée en `position: fixed` sur l'emplacement de son panneau (comme un site réel), jamais recréée à l'agrandissement.
+  Pas d'onglet temporaire dans un panneau ni de vue temporaire (principe « pas un navigateur », décision de Paco).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

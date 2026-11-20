@@ -10,6 +10,7 @@ import {
   dragRatios,
   layoutOf,
   mixLabel,
+  zoomKey,
   type Follow,
   type KeyboardChoice,
   type Preset,
@@ -19,7 +20,7 @@ import {
 
 export type Rect = { x: number; y: number; w: number; h: number }
 /** `color` : celle du compte du site (pastille dans le sélecteur). */
-export type PaneSite = { key: string; label: string; icon: React.ReactNode; color?: string }
+export type PaneSite = { key: string; label: string; icon: React.ReactNode; color?: string; /** Adresse d'accueil et connexion du site : une copie s'ouvre dessus. */ url?: string; partition?: string }
 
 type Props = {
   layout: string
@@ -30,11 +31,24 @@ type Props = {
   onSite: (slot: number, key: string | null) => void
   /** Nom de chaque site dans le sélecteur : « X · pro » quand il a un compte. */
   names: Record<string, string>
-  /** Vue enregistrée ouverte (son nom) : « Garder cette vue » la met alors à jour. */
-  savedName?: string
-  onSave: () => void
+  /** Mode édition d'une vue enregistrée : sélecteurs de site et dispositions visibles ; sinon la composition est fixe. */
+  editing: boolean
+  onSaveEdit: () => void
+  onCancelEdit: () => void
+  /** Avertissement d'édition (« deux sites au moins »), dans la barre : pas un panneau, pas un champ. */
+  editWarning?: string
+  /** Proportions des séparateurs, par chemin de nœud (`''`, `'0'`, `'1'`…) ; `commit` : le séparateur est lâché. */
+  ratios: Record<string, number[]>
+  onRatios: (next: Record<string, number[]>, commit: boolean) => void
   /** Cases dont le site a été retiré de Mes sites. */
   gone: boolean[]
+  /** Par case : une COPIE du site (nouvelle page, même connexion) plutôt que le vrai site. */
+  copies: boolean[]
+  onCopy: (slot: number, copy: boolean) => void
+  /** La webview d'une copie est prête (id) ; `null` quand elle disparaît. */
+  onCopyGuest: (slot: number, id: number | null) => void
+  /** Son coupé d'office pour une copie (le panneau n'a pas le son). */
+  copyMuted: boolean[]
   prefs: SplitPrefs
   preset: Preset
   onProfile: (id: 'classic' | 'scroll') => void
@@ -56,7 +70,7 @@ type Props = {
 }
 
 /** Une disposition en miniature, dessinée avec le même arbre que la grille. */
-function Mini({ node }: { node: SplitNode }) {
+export function Mini({ node }: { node: SplitNode }) {
   if (node === 'pane') return <i />
   return (
     <span className={`split-mini is-${node.dir}`}>
@@ -69,12 +83,66 @@ function Mini({ node }: { node: SplitNode }) {
   )
 }
 
+/**
+ * Une copie : une webview de plus sur la MÊME connexion que le site (mêmes cookies, mêmes comptes) mais une page à part,
+ * son historique et sa position. Posée en position fixe sur l'emplacement de son panneau (comme les sites réels) pour
+ * ne pas être recréée quand on agrandit un panneau. Fermée avec la vue.
+ */
+function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect | null; muted: boolean; onGuest: (id: number | null) => void }) {
+  const el = useRef<(HTMLElement & { setAudioMuted: (m: boolean) => void; getWebContentsId: () => number }) | null>(null)
+  const mutedRef = useRef(muted)
+  mutedRef.current = muted
+  const guestRef = useRef(onGuest)
+  guestRef.current = onGuest
+  useEffect(() => {
+    const w = el.current
+    if (!w) return
+    const ready = () => {
+      try {
+        w.setAudioMuted(mutedRef.current)
+        guestRef.current(w.getWebContentsId())
+      } catch {
+        /* webview pas encore prête */
+      }
+    }
+    w.addEventListener('dom-ready', ready)
+    return () => {
+      w.removeEventListener('dom-ready', ready)
+      guestRef.current(null)
+    }
+  }, [])
+  useEffect(() => {
+    try {
+      el.current?.setAudioMuted(muted)
+    } catch {
+      /* pas encore prête : dom-ready s'en charge */
+    }
+  }, [muted])
+  return (
+    <div
+      className={`split-copy${rect ? '' : ' is-parked'}`}
+      style={rect ? { left: rect.x, top: rect.y, width: rect.w, height: rect.h } : undefined}
+      aria-hidden={!rect}
+    >
+      <webview
+        ref={(n) => {
+          el.current = n as typeof el.current
+        }}
+        src={site.url}
+        partition={site.partition}
+        {...{ allowpopups: 'true' as unknown as boolean }}
+      />
+    </div>
+  )
+}
+
 export default function SplitView(p: Props) {
   const root = useRef<HTMLDivElement>(null)
   const bodies = useRef<(HTMLDivElement | null)[]>([])
   const lastRects = useRef('')
   const rectsNow = useRef<(Rect | null)[]>([])
-  const [ratios, setRatios] = useState<Record<string, number[]>>({})
+  const [copyRects, setCopyRects] = useState<(Rect | null)[]>([])
+  const ratios = p.ratios
   const [dragging, setDragging] = useState(false)
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
   const lay = layoutOf(p.layout)
@@ -96,6 +164,7 @@ export default function SplitView(p: Props) {
     if (sig === lastRects.current) return
     lastRects.current = sig
     rectsNow.current = out
+    setCopyRects(out)
     p.onRects(out)
   }, [p.onRects, p.zoom, zoomed, lay.n]) // eslint-disable-line react-hooks/exhaustive-deps
   useLayoutEffect(measure)
@@ -154,7 +223,9 @@ export default function SplitView(p: Props) {
     const key = p.slots[i]
     const site = p.sites.find((s) => s.key === key)
     const isActive = p.active === i
-    const manual = key ? !!p.muted[key] : false
+    const isCopy = !!key && !!site && !!p.copies[i]
+    const audioKey = isCopy ? `copy:${i}` : key
+    const manual = key && !isCopy ? !!p.muted[key] : false
     const plays = !!key && !manual && (p.prefs.follow === 'all' || p.sound === i)
     return (
       <div
@@ -167,15 +238,33 @@ export default function SplitView(p: Props) {
           <span className="split-num" aria-hidden="true">
             {i + 1}
           </span>
-          <Pick
-            value={key ?? ''}
-            options={siteOptions(i)}
-            onChange={(v) => p.onSite(i, v || null)}
-            title="Site de ce panneau"
-          />
+          {p.editing ? (
+            <Pick value={key ?? ''} options={siteOptions(i)} onChange={(v) => p.onSite(i, v || null)} title="Site de ce panneau" />
+          ) : (
+            // Vue enregistrée : la composition est fixe, le site s'affiche sans pouvoir être changé d'ici.
+            <span className="split-site" title={key ? (p.names[key] ?? site?.label) : undefined}>
+              {site?.color ? <span className="pick-dot" style={{ background: site.color }} /> : null}
+              {site?.icon ? <span className="pick-icon" aria-hidden="true">{site.icon}</span> : null}
+              <span className="split-site-name">{key ? (p.names[key] ?? site?.label ?? '') : '—'}</span>
+            </span>
+          )}
+          {p.editing && key && site ? (
+            <button
+              className={`split-copy-toggle${isCopy ? ' is-on' : ''}`}
+              aria-pressed={isCopy}
+              title={isCopy ? 'Copie : une page à part, avec ta connexion (clic : revenir au vrai site)' : 'Vrai site : ses notifications et ses compteurs (clic : en faire une copie à part)'}
+              onClick={() => p.onCopy(i, !isCopy)}
+            >
+              {isCopy ? 'Copie' : 'Site réel'}
+            </button>
+          ) : isCopy ? (
+            <span className="split-copy-badge" title="Copie : une page à part, avec ta connexion">
+              copie
+            </span>
+          ) : null}
           {key ? (
             <span
-              className={`split-sound${plays && p.audible[key] ? ' is-on' : ''}`}
+              className={`split-sound${plays && audioKey && p.audible[audioKey] ? ' is-on' : ''}`}
               title={manual ? 'Son coupé à la main (clic droit sur le site)' : plays ? 'Ce panneau a le son' : 'Son coupé ici'}
             >
               {manual ? '🔇' : plays ? '🔊' : '🔈'}
@@ -185,7 +274,7 @@ export default function SplitView(p: Props) {
           <button
             className="split-btn"
             onClick={() => p.onZoom(zoomed ? null : i)}
-            title={zoomed ? 'Restaurer la grille (en mode Scroll : Z)' : 'Agrandir ce panneau (double-clic sur le titre ; en mode Scroll : Z)'}
+            title={zoomed ? `Restaurer la grille (en mode Flux : ${zoomKey(p.prefs).toUpperCase()})` : `Agrandir ce panneau (double-clic sur le titre ; en mode Flux : ${zoomKey(p.prefs).toUpperCase()})`}
             aria-label={zoomed ? 'Restaurer la grille' : 'Agrandir ce panneau'}
           >
             {zoomed ? '⤡' : '⤢'}
@@ -207,8 +296,8 @@ export default function SplitView(p: Props) {
 
   const renderNode = (node: SplitNode, path: string): React.ReactNode => {
     if (node === 'pane') return renderPane(slot++)
-    const id = `${lay.id}:${path}`
-    const r = ratios[id] ?? node.ratios
+    const id = path
+    const r = ratios[id] && ratios[id].length === node.children.length ? ratios[id] : node.ratios
     const parts: React.ReactNode[] = []
     node.children.forEach((c, i) => {
       parts.push(
@@ -231,12 +320,15 @@ export default function SplitView(p: Props) {
               const base = r
               el.setPointerCapture(e.pointerId)
               setDragging(true)
+              let latest = ratios
               const move = (ev: PointerEvent) => {
                 const d = ((node.dir === 'row' ? ev.clientX : ev.clientY) - start) / size
-                setRatios((all) => ({ ...all, [id]: dragRatios(base, i, d) }))
+                latest = { ...ratios, [id]: dragRatios(base, i, d) }
+                p.onRatios(latest, false)
               }
               const up = () => {
                 setDragging(false)
+                p.onRatios(latest, true)
                 el.removeEventListener('pointermove', move)
                 el.removeEventListener('pointerup', up)
                 el.removeEventListener('pointercancel', up)
@@ -265,7 +357,7 @@ export default function SplitView(p: Props) {
   // Les raccourcis du mode : en toutes lettres quand il y a la place, sinon dans la bulle de ⓘ.
   const legendText = p.prefs.keys
     ? p.prefs.mixer
-      ? `Mixage (remplace J K, N P, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
+      ? `Défiler : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}  ·  Alt + chiffre : panneau  ·  X : agrandir`
       : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`
     : "Aucune touche interceptée : tu tapes dans les sites comme d'habitude."
   const legendEl = <span className="split-legend">{legendText}</span>
@@ -287,6 +379,7 @@ export default function SplitView(p: Props) {
             </button>
           ))}
         </div>
+        {p.editing ? (
         <div className="split-group" role="group" aria-label="Disposition">
           {LAYOUTS.map((l) => (
             <button
@@ -301,6 +394,7 @@ export default function SplitView(p: Props) {
             </button>
           ))}
         </div>
+        ) : null}
         <div className="split-group">
           <Pick
             value={p.prefs.follow}
@@ -315,7 +409,7 @@ export default function SplitView(p: Props) {
               const r = e.currentTarget.getBoundingClientRect()
               setMenu((v) => (v ? null : { left: Math.max(8, Math.min(r.left, window.innerWidth - 436)), top: r.bottom + 4 }))
             }}
-            title="Raccourcis clavier, actions, mixage…"
+            title="Valable le temps de la vue ; pour garder, Modifier la vue (clic droit sur la vue)"
           >
             Options ▾
           </button>
@@ -325,12 +419,25 @@ export default function SplitView(p: Props) {
           <span className="split-info" role="img" aria-label={legendText} title={legendText}>
             ⓘ
           </span>
-          <button className="split-chip" onClick={p.onSave} title={p.savedName ? `Mettre à jour la vue « ${p.savedName} »` : 'Garder cette vue dans la barre de gauche, avec son compteur'}>
-            {p.savedName ? 'Mettre à jour' : 'Garder cette vue'}
-          </button>
-          <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
-            Fermer
-          </button>
+          {p.editing ? (
+            <>
+              {p.editWarning ? (
+                <span className="split-warn" role="alert">
+                  {p.editWarning}
+                </span>
+              ) : null}
+              <button className="split-chip" onClick={p.onSaveEdit} title="Enregistrer la composition de cette vue">
+                Enregistrer
+              </button>
+              <button className="split-chip" onClick={p.onCancelEdit} title="Annuler les changements de cette vue">
+                Annuler
+              </button>
+            </>
+          ) : (
+            <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Flux : Échap)">
+              Fermer
+            </button>
+          )}
         </div>
         {menu
           ? createPortal(
@@ -363,6 +470,11 @@ export default function SplitView(p: Props) {
           renderNode(lay.tree, '')
         )}
       </div>
+      {p.copies.map((c, i) => {
+        const k = p.slots[i]
+        const site = k ? p.sites.find((x) => x.key === k) : undefined
+        return c && site && i < lay.n ? <CopyPane key={`${i}:${k}`} site={site} rect={copyRects[i] ?? null} muted={p.copyMuted[i] ?? true} onGuest={(id) => p.onCopyGuest(i, id)} /> : null
+      })}
       {dragging ? createPortal(<div className="split-shield" />, document.body) : null}
     </div>
   )

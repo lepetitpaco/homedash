@@ -9,7 +9,7 @@ const adapters = createRequire(import.meta.url)('../desktop/site-adapters.js') a
   keyName: (k: string) => string
   createWheelSync: (now?: () => number) => (from: number, targets: unknown[], dy: number) => Promise<void>
   PLANS: Record<string, Record<string, unknown>>
-  clickScript: (a: { scope: string; selectors: string[] }) => string
+  clickScript: (a: { scope: string | string[]; selectors: string[]; skip?: string }) => string
 }
 
 /** Une webview factice : note ce qu'on lui envoie. */
@@ -43,13 +43,26 @@ describe('adaptateurs de sites (vue scindée)', () => {
     for (const plan of Object.values(adapters.PLANS)) expect(plan.follow).toBeUndefined()
   })
 
-  it('X : touche native complète (keyDown, char, keyUp)', async () => {
+  it('X : les actions cliquent dans le tweet centré (testid vérifiés sur le fil, #166), pas de touche', async () => {
     const wc = fakeWc('https://x.com/home')
     expect(await adapters.run(wc, 'like')).toBe(true)
+    expect(wc.sent).toEqual([])
+    expect(wc.scripts[0]).toContain('article[data-testid=\\"tweet\\"]')
+    expect(wc.scripts[0]).toContain('[data-testid=\\"like\\"]')
+    const sels = (op: string) => ((adapters.PLANS.x[op] as { dom: { selectors: string[] } }).dom.selectors)
+    expect(sels('like')).toContain('[data-testid="unlike"]')
+    expect(sels('save')).toContain('[data-testid="bookmark"]')
+    expect(sels('share')).toContain('[data-testid="retweet"]')
+    expect(sels('comment')).toEqual(['[data-testid="reply"]'])
+  })
+
+  it('X : « suivant » reste la touche native J (complète : keyDown, char, keyUp)', async () => {
+    const wc = fakeWc('https://x.com/home')
+    expect(await adapters.run(wc, 'next')).toBe(true)
     expect(wc.sent).toEqual([
-      { type: 'keyDown', keyCode: 'l' },
-      { type: 'char', keyCode: 'l' },
-      { type: 'keyUp', keyCode: 'l' },
+      { type: 'keyDown', keyCode: 'j' },
+      { type: 'char', keyCode: 'j' },
+      { type: 'keyUp', keyCode: 'j' },
     ])
     expect(wc.scripts).toEqual([])
   })
@@ -58,7 +71,7 @@ describe('adaptateurs de sites (vue scindée)', () => {
     const table = interceptTable(applyProfile(DEFAULT_SPLIT, 'scroll'), PRESETS.azerty, 3)
     const retained = new Set(table.keys)
     for (const [url, ops] of [
-      ['https://x.com/home', ['next', 'prev', 'like', 'save', 'share', 'comment']],
+      ['https://x.com/home', ['next', 'prev']],
       ['https://www.tiktok.com/foryou', ['next', 'prev', 'like']],
     ] as const) {
       for (const op of ops) {
@@ -90,6 +103,51 @@ describe('adaptateurs de sites (vue scindée)', () => {
     // le « J'aime » d'un commentaire (dans une liste) ne compte pas
     expect(wc.scripts[0]).toContain('"ul, li"')
     expect(await adapters.run(fakeWc('https://www.instagram.com/', false), 'save')).toBe(false)
+  })
+
+  it('TikTok : la colonne d’actions commune (hors des <article>) passe avant le repli, favorite-icon pour Enregistrer (#166)', async () => {
+    const wc = fakeWc('https://www.tiktok.com/foryou', true)
+    expect(await adapters.run(wc, 'share')).toBe(true)
+    expect(wc.scripts[0]).toContain('anchoring-engagement-vertical')
+    const save = adapters.PLANS.tiktok.save as { dom: { scope: string[]; selectors: string[] } }
+    expect(save.dom.scope[0]).toContain('anchoring-engagement-vertical')
+    expect(save.dom.selectors[0]).toBe('[data-e2e="favorite-icon"]')
+    expect(adapters.PLANS.tiktok.comment).toMatchObject({ dom: { selectors: ['[data-e2e="comment-icon"]'] } })
+  })
+
+  it('le script de clic : la première portée qui montre une publication gagne, jamais un élément ignoré', () => {
+    type El = { r: { top: number; bottom: number; width: number; height: number }; kids: Record<string, El[]>; skip?: boolean; clicked?: boolean }
+    const el = (top: number, bottom: number, kids: Record<string, El[]> = {}, skip = false): El => ({ r: { top, bottom, width: 20, height: bottom - top }, kids, skip })
+    const run = (scope: string | string[], doc: Record<string, El[]>, skip = '') => {
+      const wrap = (e: El) => ({
+        getBoundingClientRect: () => e.r,
+        querySelectorAll: (s: string) => (e.kids[s] || []).map(wrap),
+        closest: (s: string) => (s === skip && e.skip ? e : s.includes('button') ? { click: () => void (e.clicked = true) } : null),
+        click: () => void (e.clicked = true),
+      })
+      const g = globalThis as unknown as Record<string, unknown>
+      g.innerHeight = 600
+      g.document = { querySelectorAll: (s: string) => (doc[s] || []).map(wrap) }
+      try {
+        return eval(adapters.clickScript({ scope, selectors: ['.a'], skip })) as boolean
+      } finally {
+        delete g.document
+        delete g.innerHeight
+      }
+    }
+    const btn = el(290, 310)
+    // portée 1 absente (ancienne mise en page) : repli sur la 2e
+    expect(run(['.col', '.art'], { '.art': [el(0, 600, { '.a': [btn] })] })).toBe(true)
+    expect(btn.clicked).toBe(true)
+    // portée 1 présente mais hors écran : elle ne compte pas, le repli prend le relais
+    const b2 = el(290, 310)
+    expect(run(['.col', '.art'], { '.col': [el(900, 1200)], '.art': [el(0, 600, { '.a': [b2] })] })).toBe(true)
+    // seul un élément à ignorer (cœur d'un commentaire) : rien n'est cliqué
+    const b3 = el(290, 310, {}, true)
+    expect(run('.art', { '.art': [el(0, 600, { '.a': [b3] })] }, 'ul, li')).toBe(false)
+    expect(b3.clicked).toBeUndefined()
+    // aucune publication : false
+    expect(run('.art', {})).toBe(false)
   })
 
   it('le script de clic ne clique rien sans publication à l’écran', () => {
@@ -176,10 +234,10 @@ describe('molette synchronisée : pas d’écho, même avec une page lente ou un
   })
 
   it('une touche native n’est pas envoyée si le focus du site est dans un champ de saisie : « busy »', async () => {
-    const wc = fakeWc('https://x.com/home', true)
+    const wc = fakeWc('https://www.tiktok.com/foryou', true)
     expect(await adapters.run(wc, 'like', { field: 'input, textarea' })).toBe('busy')
     expect(wc.sent).toEqual([])
-    const free = fakeWc('https://x.com/home', false)
+    const free = fakeWc('https://www.tiktok.com/foryou', false)
     expect(await adapters.run(free, 'like', { field: 'input, textarea' })).toBe(true)
     expect(free.sent).toHaveLength(3)
   })

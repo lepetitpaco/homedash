@@ -264,7 +264,7 @@ export function validateConfig(cfg: unknown): string | null {
       for (const field of ['session', 'parent']) {
         if (tab[field] !== undefined && tab[field] !== null && !isStr(tab[field])) return `tabs[${i}].${field} doit être un texte`
       }
-      for (const flag of ['sleep', 'kept', 'embed', 'capture', 'preload', 'notify']) {
+      for (const flag of ['sleep', 'kept', 'embed', 'capture', 'preload', 'notify', 'pauseHidden']) {
         if (tab[flag] !== undefined && tab[flag] !== null && typeof tab[flag] !== 'boolean')
           return `tabs[${i}].${flag} doit être vrai ou faux`
       }
@@ -288,6 +288,17 @@ export function validateConfig(cfg: unknown): string | null {
       seen.add(f.id as string)
       // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
       if (key === 'splitViews') {
+        if (f.prefs !== undefined && f.prefs !== null) {
+          const known = ['mode', 'follow', 'keys', 'actions', 'mixer', 'sync', 'pause', 'keep', 'keyboard']
+          if (!isObj(f.prefs) || Object.keys(f.prefs).some((k) => !known.includes(k)) || JSON.stringify(f.prefs).length > 400)
+            return `splitViews[${i}].prefs doit être les réglages de la vue (champs connus, petite taille)`
+        }
+        const copies = f.copies
+        if (copies !== undefined && copies !== null && (!Array.isArray(copies) || copies.length > 4 || copies.some((c) => typeof c !== 'boolean')))
+          return `splitViews[${i}].copies doit être une liste de 4 vrai / faux au plus`
+        for (const field of ['before', 'folder']) {
+          if (f[field] !== undefined && f[field] !== null && !isStr(f[field])) return `splitViews[${i}].${field} doit être un texte`
+        }
         if (String(f.name).length > 60) return `splitViews[${i}].name trop long (60 caractères au plus)`
         const ratios = f.ratios
         if (ratios !== undefined && ratios !== null) {

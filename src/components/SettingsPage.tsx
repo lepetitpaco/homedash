@@ -1118,7 +1118,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           <Block
             icon="◫"
             title="Plusieurs sites côte à côte"
-            hint="Le mode de départ de la vue scindée (bouton ◫ de la barre du haut, appli de bureau). Appliqué à « Enregistrer » ; dans la vue, la barre change ces cases pour la durée de la vue."
+            hint="Pré-remplit les réglages d'une NOUVELLE vue scindée (Ajouter → Ajouter une vue scindée, appli de bureau). Chaque vue enregistrée garde son type, Flux ou Messagerie, et se règle dans « Modifier la vue… ». Appliqué à « Enregistrer »."
           >
             <SetSplit
               value={draft.ui?.split}

@@ -14,7 +14,8 @@
  * Garde-fous : une touche = une action de l'utilisateur, jamais de boucle ni d'action automatique ;
  * « Commenter » ouvre le champ sans rien envoyer ; aucune lecture ni collecte du contenu des pages.
  *
- * ⚠ Sélecteurs écrits d'après les attributs connus, pas encore vérifiés sur de vraies pages connectées.
+ * Sélecteurs relus sur de vraies pages connectées (#166, comptes d'éléments, aucun clic) : X (fil), TikTok (Pour toi),
+ * Instagram (fil). Ce qui n'est pas vérifié : l'effet réel d'un clic, les pages hors fil (profil, publication seule, Reels).
  */
 
 const HOSTS = [
@@ -40,7 +41,10 @@ const key = (k) => ({ key: k })
 const dom = (scope, selectors, skip = '') => ({ dom: { scope, selectors, skip } })
 
 // Publication visée = celle qui contient le centre de l'écran (ou la plus proche).
-const TT = '[data-e2e="recommend-list-item-container"], article'
+// TikTok (vérifié #166) : la colonne d'actions (j'aime, enregistrer…) est UNE colonne commune posée hors des <article>,
+// celle de la vidéo en cours. Elle passe en premier ; les <article> restent le repli d'une ancienne mise en page.
+const TT = ['[data-e2e="anchoring-engagement-vertical"]', '[data-e2e="recommend-list-item-container"], article']
+const X = 'article[data-testid="tweet"]'
 const IG = 'article'
 const IGSKIP = 'ul, li'
 
@@ -48,24 +52,26 @@ const PLANS = {
   x: {
     next: key('j'),
     prev: key('k'),
-    like: key('l'),
-    save: key('b'),
-    share: key('t'),
-    comment: key('r'),
+    // Clics dans le tweet centré (et non les touches de X, qui agissent sur SON tweet « focus », pas forcément celui du centre).
+    // « Repartager » ouvre le menu Republier / Citer, rien n'est publié ; les formes « déjà fait » défont l'action (comme la touche).
+    like: dom(X, ['[data-testid="like"]', '[data-testid="unlike"]']),
+    save: dom(X, ['[data-testid="bookmark"]', '[data-testid="removeBookmark"]']),
+    share: dom(X, ['[data-testid="retweet"]', '[data-testid="unretweet"]']),
+    comment: dom(X, ['[data-testid="reply"]']),
   },
   tiktok: {
     next: key('Down'),
     prev: key('Up'),
     like: key('l'),
-    save: dom(TT, ['[data-e2e="bookmark-icon"]', '[data-e2e="undefined-icon"]', '[data-e2e="collect-icon"]']),
+    save: dom(TT, ['[data-e2e="favorite-icon"]', '[data-e2e="bookmark-icon"]', '[data-e2e="undefined-icon"]', '[data-e2e="collect-icon"]']),
     share: dom(TT, ['[data-e2e="share-icon"]']),
     comment: dom(TT, ['[data-e2e="comment-icon"]']),
   },
   instagram: {
     next: { scroll: 1 },
     prev: { scroll: -1 },
-    like: dom(IG, ['svg[aria-label="J’aime"]', "svg[aria-label=\"J'aime\"]", 'svg[aria-label="Like"]'], IGSKIP),
-    save: dom(IG, ['svg[aria-label="Enregistrer"]', 'svg[aria-label="Save"]'], IGSKIP),
+    like: dom(IG, ['svg[aria-label="J’aime"]', "svg[aria-label=\"J'aime\"]", 'svg[aria-label="Like"]', 'svg[aria-label="Je n’aime plus"]', 'svg[aria-label="Unlike"]'], IGSKIP),
+    save: dom(IG, ['svg[aria-label="Enregistrer"]', 'svg[aria-label="Save"]', 'svg[aria-label="Retirer"]', 'svg[aria-label="Remove"]'], IGSKIP),
     share: dom(IG, ['svg[aria-label="Partager"]', 'svg[aria-label="Share"]', 'svg[aria-label="Partager la publication"]'], IGSKIP),
     comment: dom(IG, ['svg[aria-label="Commenter"]', 'svg[aria-label="Comment"]'], IGSKIP),
   },
@@ -78,11 +84,15 @@ const PLANS = {
 function clickScript({ scope, selectors, skip = '' }) {
   return `(function (scope, sel, skip) {
     var cy = innerHeight / 2, post = null, pd = 1e9;
-    document.querySelectorAll(scope).forEach(function (p) {
-      var r = p.getBoundingClientRect();
-      if (r.height < 2 || r.bottom < 0 || r.top > innerHeight) return;
-      var d = r.top <= cy && r.bottom >= cy ? 0 : Math.min(Math.abs(r.top - cy), Math.abs(r.bottom - cy));
-      if (d < pd) { pd = d; post = p }
+    // scope : un sélecteur, ou une liste essayée dans l'ordre (la première qui montre une publication à l'écran gagne).
+    [].concat(scope).some(function (sc) {
+      document.querySelectorAll(sc).forEach(function (p) {
+        var r = p.getBoundingClientRect();
+        if (r.height < 2 || r.bottom < 0 || r.top > innerHeight) return;
+        var d = r.top <= cy && r.bottom >= cy ? 0 : Math.min(Math.abs(r.top - cy), Math.abs(r.bottom - cy));
+        if (d < pd) { pd = d; post = p }
+      });
+      return !!post;
     });
     if (!post) return false;
     var best = null, bd = 1e9;
@@ -114,27 +124,34 @@ function scrollScript(dir) {
 }
 
 /**
- * Pause des vidéos d'un panneau inactif (#168). Chaque <video> en lecture est marquée puis mise en pause ; tant que
- * le panneau reste inactif, une vidéo que le site relance seul est remise en pause (écouteur `play`). La reprise
- * ne relance que les vidéos marquées : une vidéo mise en pause à la main n'est jamais relancée par homedash.
+ * Pause des vidéos et des sons d'un panneau inactif (#168) ou d'un site qu'on ne regarde pas (#175, même mécanisme).
+ * Chaque <video> / <audio> en lecture est marqué puis mis en pause ; tant que le site reste caché, un média que le site
+ * relance seul est remis en pause (écouteur `play`). La reprise ne relance que les médias marqués : une pause à la main
+ * n'est jamais relancée par homedash.
  */
 const PAUSE_SCRIPT = `(function () {
+  // Jamais un appel : un média à srcObject (flux WebRTC : appel Instagram, Messenger, Meet, Zoom, Teams, Jitsi…) n'est
+  // ni coupé ni suivi. Un <audio> (notification) relancé par la page est seulement remis en pause, sans être marqué :
+  // sinon un vieux « ding » repartirait au retour sur le site.
+  var skip = function (m) { return !!m.srcObject };
   window.__hdHold = true;
   if (!window.__hdHoldOn) {
     window.__hdHoldOn = true;
     document.addEventListener('play', function (e) {
       var v = e.target;
-      if (window.__hdHold && v && v.tagName === 'VIDEO') { v.setAttribute('data-hd-paused', '1'); v.pause() }
+      if (!window.__hdHold || !v || skip(v)) return;
+      if (v.tagName === 'VIDEO') { v.setAttribute('data-hd-paused', '1'); v.pause() }
+      else if (v.tagName === 'AUDIO') v.pause();
     }, true);
   }
-  document.querySelectorAll('video').forEach(function (v) {
-    if (!v.paused && !v.ended) { v.setAttribute('data-hd-paused', '1'); v.pause() }
+  document.querySelectorAll('video, audio').forEach(function (v) {
+    if (!skip(v) && !v.paused && !v.ended) { v.setAttribute('data-hd-paused', '1'); v.pause() }
   });
   return true;
 })()`
 const RESUME_SCRIPT = `(function () {
   window.__hdHold = false;
-  document.querySelectorAll('video[data-hd-paused]').forEach(function (v) {
+  document.querySelectorAll('video[data-hd-paused], audio[data-hd-paused]').forEach(function (v) {
     v.removeAttribute('data-hd-paused');
     try { var p = v.play(); if (p && p.catch) p.catch(function () {}) } catch (e) {}
   });

@@ -42,6 +42,7 @@ const ev = (key: string, over: Partial<KeyEvt> = {}): KeyEvt => ({
   ...over,
 })
 const scroll: SplitPrefs = applyProfile(DEFAULT_SPLIT, 'scroll')
+const plain: SplitPrefs = patchPrefs(applyProfile(DEFAULT_SPLIT, 'scroll'), { mixer: false })
 const classic: SplitPrefs = applyProfile(DEFAULT_SPLIT, 'classic')
 const ctx = { editing: false, panes: 3 }
 
@@ -232,8 +233,11 @@ describe('clavier : touche + préréglage → action', () => {
     expect(r(ev('p'))).toEqual({ type: 'scroll', pane: null, dir: -1, page: true })
     expect(r(ev(' '))).toEqual({ type: 'scroll', pane: null, dir: 1, page: true })
     expect(r(ev(' ', { shift: true }))).toEqual({ type: 'scroll', pane: null, dir: -1, page: true })
-    expect(r(ev('z'))).toEqual({ type: 'zoom' })
+    expect(r(ev('x'))).toEqual({ type: 'zoom' })
     expect(r(ev('Escape'))).toEqual({ type: 'leave' })
+    // sans la table de mixage, agrandir reste Z
+    expect(resolveKey(ev('z'), plain, az, ctx)).toEqual({ type: 'zoom' })
+    expect(resolveKey(ev('x'), plain, az, ctx)).toBeNull()
   })
 
   it('actions par site : L B T C, seulement si cochées', () => {
@@ -266,8 +270,12 @@ describe('clavier : touche + préréglage → action', () => {
     expect(r('q', qw)).toEqual({ type: 'scroll', pane: 0, dir: -1, page: false })
     expect(r('a', qw)).toEqual({ type: 'scroll', pane: 0, dir: 1, page: false })
     expect(r('w', qw)).toEqual({ type: 'scroll', pane: 1, dir: -1, page: false })
-    // en mixage, J/K et Z ne servent plus ; Échap et Alt+chiffre restent
-    expect(r('j')).toBeNull()
+    // le mixage n'enlève rien : J K, N P, flèches, actions restent ; seul Z devient X (Z = panneau 2 haut en AZERTY)
+    expect(r('j')).toEqual({ type: 'scroll', pane: null, dir: 1, page: false })
+    expect(r('n')).toEqual({ type: 'scroll', pane: null, dir: 1, page: true })
+    expect(r('l')).toEqual({ type: 'site', id: 'like' })
+    expect(r('x')).toEqual({ type: 'zoom' })
+    expect(r('x', qw)).toEqual({ type: 'zoom' })
     expect(r('z', qw)).toBeNull()
     expect(r('Escape')).toEqual({ type: 'leave' })
     expect(resolveKey(ev('1', { alt: true, code: 'Digit1' }), mix, az, ctx)).toEqual({ type: 'focus', pane: 0 })
@@ -275,16 +283,32 @@ describe('clavier : touche + préréglage → action', () => {
     expect(resolveKey(ev('e'), mix, az, { editing: false, panes: 2 })).toBeNull()
   })
 
+  it('aucune collision entre la table de mixage et le reste, dans les deux claviers', () => {
+    for (const p of [az, qw]) {
+      const mixKeys = p.mix.flat()
+      const others = ['j', 'k', 'n', 'p', 'l', 'b', 't', 'c', ' ', 'ArrowDown', 'ArrowUp', 'x']
+      for (const k of mixKeys) expect(others, `${p.name} ${k}`).not.toContain(k)
+      // chaque touche du mixage défile le panneau prévu, chaque autre touche garde son rôle
+      for (const k of others) {
+        const mixed = resolveKey(ev(k), scroll, p, { editing: false, panes: 4 })
+        const alone = resolveKey(ev(k), plain, p, { editing: false, panes: 4 })
+        expect(mixed, `${p.name} ${k}`).toEqual(alone ?? (k === 'x' ? { type: 'zoom' } : null))
+      }
+    }
+  })
+
   it('la table du préload se tire de resolveKey', () => {
-    const t = interceptTable(scroll, az, 3)
+    const t = interceptTable(plain, az, 3)
     expect(t.keys).toEqual(expect.arrayContaining(['j', 'k', 'n', 'p', 'z', 'l', 'b', 't', 'c', 'arrowdown', 'arrowup', ' ']))
     expect(t.keys).not.toContain('a')
     expect(t.keys).not.toContain('f')
     expect(t.alt).toEqual(['Digit1', 'Numpad1', 'Digit2', 'Numpad2', 'Digit3', 'Numpad3'])
     expect(t.relay).toEqual(['escape'])
-    const m = interceptTable(patchPrefs(scroll, { mixer: true }), qw, 4)
-    expect(m.keys).toEqual(expect.arrayContaining(['q', 'a', 'w', 's', 'e', 'd', 'r', 'f']))
-    expect(m.keys).not.toContain('j')
+    const m = interceptTable(scroll, qw, 4)
+    expect(m.keys).toEqual(expect.arrayContaining(['q', 'a', 'w', 's', 'e', 'd', 'r', 'f', 'j', 'x']))
+    expect(m.keys).not.toContain('z')
+    // Classic : rien
+    expect(interceptTable(classic, qw, 4).keys).toEqual([])
   })
 })
 
@@ -308,7 +332,7 @@ describe('préréglage clavier', () => {
 describe('libellés partagés et champs de saisie', () => {
   it('chaque case a son aide, et la table de mixage dit ce qu’elle remplace', () => {
     expect(FLAG_HELP.map((f) => f.key)).toEqual(['keys', 'actions', 'mixer', 'sync', 'pause', 'keep'])
-    expect(FLAG_HELP.find((f) => f.key === 'mixer')?.hint).toMatch(/remplace/)
+    expect(FLAG_HELP.find((f) => f.key === 'mixer')?.hint).toMatch(/X/)
     expect(MODE_LABELS.map((m) => m.id)).toEqual(['classic', 'scroll', 'custom'])
   })
 
