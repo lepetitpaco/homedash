@@ -11,3 +11,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - **Vues scindées enregistrées** (#169, touche Mes sites) : *Garder cette vue* (nom, disposition, sites) la range dans la barre de gauche avec son compteur ; clic = ouvre, clic droit = renommer / supprimer ; sélecteur de panneau avec le nom du compte (« X · pro »), compte déjà pris grisé ; site retiré = panneau vide. Clé `splitViews` de `config.json` (absente = aucune vue, validée avant écriture, reprise par sauvegardes et export). Pas encore : dossiers et ordre, onglet temporaire dans un panneau, proportions rejouées (#172).
 - Pas encore : copie dans un onglet temporaire, mesures de performance (Mac, Windows), « Quoi de neuf » (à la version).
 
+
+## paco/fix/build-dev-vite
+
+- `build-local.sh` relance `homedash-dev` après le build (page noire, 504 Vite) — #159
