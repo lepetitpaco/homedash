@@ -38,6 +38,7 @@ branchée sur le Docker de dev, avec son propre profil. Elle cohabite avec l'app
 
 ```bash
 sh desktop/build-local.sh --dev --install             # Mac : « homedash dev » dans Applications
+# Le script relance le container de dev (sinon Vite sert un cache périmé : page noire, 504).
 # Dans cette appli, le menu « Branche » change la branche du dépôt : le container suit à chaud
 # (npm ci et redémarrage si package-lock.json change). Modifications non commitées : refusé.
 ```
