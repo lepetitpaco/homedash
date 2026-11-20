@@ -34,6 +34,7 @@ export const SETTINGS_INDEX: SettingsEntry[] = [
   { id: 'links', icon: '🔗', label: 'Mes sites › Liens qui ouvrent un nouvel onglet', section: 'set-tabs:more', keywords: 'liens lien ouvrir navigateur appli onglet clic externe' },
   { id: 'kept', icon: '📌', label: 'Mes sites › Onglets temporaires gardés', section: 'set-tabs:more', keywords: 'onglets temporaires gardés garder redémarrage' },
   { id: 'sleep', icon: '💤', label: 'Mes sites › Veille', section: 'set-tabs:more', keywords: 'veille mémoire endormir décharger' },
+  { id: 'pause-hidden', icon: '⏸', label: "Mes sites › Pause quand je n'y suis pas", section: 'set-tabs', keywords: 'pause vidéo musique son fond arrière-plan tiktok instagram youtube spotify lecture jouer' },
   { id: 'accounts', icon: '👤', label: 'Mes sites › Comptes', section: 'set-tabs', keywords: 'comptes plusieurs connexion session profil' },
   { id: 'folders', icon: '📁', label: 'Mes sites › Dossiers', section: 'set-tabs', keywords: 'dossiers ranger grouper' },
   { id: 'docker', icon: '🐳', label: 'Mes sites › Docker', section: 'set-tabs:docker', keywords: 'docker containers compose ports' },

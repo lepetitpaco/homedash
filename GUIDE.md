@@ -100,6 +100,12 @@ même sans aucun site : son **＋** ajoute le premier.
   (messageries chargées au démarrage, réseaux sociaux en veille, musique sans veille), et des raccourcis directs
   comme Instagram Direct. Tout se change ensuite dans la fiche du site. Pour les sites déjà là : ✨ *Configuration
   recommandée*, qui montre ce qui change avant d'appliquer.
+- **Pause quand je n'y suis pas** (appli de bureau) : quand un site n'est plus affiché (tu es sur un autre site ou une
+  autre page), ses vidéos et ses sons en lecture sont mis en pause, puis reprennent à ton retour (TikTok, Instagram et
+  les autres sites de scroll ne jouent donc plus dans ton dos). Les lecteurs (YouTube, Spotify, Twitch…), les appels et
+  les messageries du catalogue ne sont jamais coupés. Une pause faite à la main n'est jamais relancée. Réglable site par
+  site : *Réglages → Mes sites → ▾ → Plus d'options → Pause quand je n'y suis pas* (« Non, joue en fond » pour une radio
+  ou une web app perso).
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -410,7 +416,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 💻 Local | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion, les repos où créer les issues, les stats en arrière-plan |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
-| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) |
+| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) ; dans ▾ de chaque site : pause quand je n'y suis pas (appli) |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
 | ◫ Vue scindée | Le mode de départ (Classic / Scroll), le son, les raccourcis, les actions par site, le clavier AZERTY / QWERTY |

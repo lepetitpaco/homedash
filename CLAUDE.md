@@ -320,6 +320,20 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   la reprise ne relance que les vidéos marquées (une pause à la main n'est jamais défaite). Renvoyée à chaque chargement
   de page ; limite : une vidéo dans un shadow DOM fermé ou un iframe d'une autre origine n'est pas vue. À la fermeture,
   seul le site affiché reprend (`CLOSE_KEEPS_PARKED_PAUSED`, `splitView.ts`).
+- Pause quand je n'y suis pas (#175) : clé **additive** `CustomTab.pauseHidden` (absente = défaut du code, **aucune étape
+  `migrate()`**) : `pauseHiddenOf(t) = t.pauseHidden ?? !catalogBackground(t)` (`catalog.ts`), où le catalogue marque
+  `background: true` les sites reconnus **par leur adresse** (`siteOf`, raccourcis compris). Décision de Paco : les apps
+  de scroll (X, Instagram, TikTok…) ne doivent **pas** jouer en fond ; les lecteurs média (YouTube, Spotify, Twitch,
+  Netflix, Plex…) et les appels / messageries (Meet, Zoom, Discord, WhatsApp…) **ne sont jamais coupés** (couper un
+  appel est pire que le bruit). Comme `use` (veille, chargement), `catalogTab()` écrit le réglage sur un site créé et
+  `adviceFor()` le propose aux existants (jamais appliqué tout seul). **Un seul mécanisme avec #168** : l'effet de
+  `App.tsx` (« Pause des vidéos ») calcule `pauseWanted` (vue) OU `hiddenPauseWanted` (#175), mêmes `pause`/`resume` et
+  même script (`PAUSE_SCRIPT`, maintenant `video` et `audio`) ; `pausedNow[k].view` garde la raison « vue » à part, sinon
+  décocher la case ne relancerait pas un site que la vue a lâché. « Affiché » = la grille d'une vue ouverte, sinon l'onglet
+  courant hors recherche ; une copie de vue n'est jamais cachée et suit le réglage du site d'origine pour le reste. Fermer
+  une vue ne relance pas un site garé dont #175 s'applique. Limites : média dans un shadow DOM fermé, iframe d'une autre
+  origine, `new Audio()` hors du DOM, WebAudio : non vus ; un son court (notification) en cours au masquage reprend à
+  l'affichage.
 - Vues scindées enregistrées (#169) : clé **additive** `config.splitViews` (absente = aucune vue, défaut dans le
   code), donc **aucune étape dans `accounts.migrate()`** ; `store.validateConfig` la contrôle avant toute écriture
   (sauvegardes, restauration et export complet reprennent `config.json` en entier : testé). Une vue garde des **id de

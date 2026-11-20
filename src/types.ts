@@ -194,6 +194,12 @@ export type CustomTab = {
    */
   sleep?: boolean
   /**
+   * Pause quand je n'y suis pas (#175) : tant que le site n'est pas affiché, ses vidéos et sons en lecture sont
+   * mis en pause, puis repris à son retour. Absent = pause, sauf si le catalogue dit que le site joue en fond
+   * (YouTube, Spotify, appels, messageries) ; `catalog.ts` → `pauseHiddenOf`.
+   */
+  pauseHidden?: boolean
+  /**
    * Appli de bureau : chargé dès le démarrage (ses non-lus sont suivis sans
    * l'ouvrir) plutôt qu'au premier clic. Absent = selon le site (mails,
    * messageries et réseaux sociaux oui, le reste non), pour ménager la mémoire.

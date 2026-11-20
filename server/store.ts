@@ -264,7 +264,7 @@ export function validateConfig(cfg: unknown): string | null {
       for (const field of ['session', 'parent']) {
         if (tab[field] !== undefined && tab[field] !== null && !isStr(tab[field])) return `tabs[${i}].${field} doit être un texte`
       }
-      for (const flag of ['sleep', 'kept', 'embed', 'capture', 'preload', 'notify']) {
+      for (const flag of ['sleep', 'kept', 'embed', 'capture', 'preload', 'notify', 'pauseHidden']) {
         if (tab[flag] !== undefined && tab[flag] !== null && typeof tab[flag] !== 'boolean')
           return `tabs[${i}].${flag} doit être vrai ou faux`
       }

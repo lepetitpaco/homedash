@@ -114,9 +114,10 @@ function scrollScript(dir) {
 }
 
 /**
- * Pause des vidéos d'un panneau inactif (#168). Chaque <video> en lecture est marquée puis mise en pause ; tant que
- * le panneau reste inactif, une vidéo que le site relance seul est remise en pause (écouteur `play`). La reprise
- * ne relance que les vidéos marquées : une vidéo mise en pause à la main n'est jamais relancée par homedash.
+ * Pause des vidéos et des sons d'un panneau inactif (#168) ou d'un site qu'on ne regarde pas (#175, même mécanisme).
+ * Chaque <video> / <audio> en lecture est marqué puis mis en pause ; tant que le site reste caché, un média que le site
+ * relance seul est remis en pause (écouteur `play`). La reprise ne relance que les médias marqués : une pause à la main
+ * n'est jamais relancée par homedash.
  */
 const PAUSE_SCRIPT = `(function () {
   window.__hdHold = true;
@@ -124,17 +125,17 @@ const PAUSE_SCRIPT = `(function () {
     window.__hdHoldOn = true;
     document.addEventListener('play', function (e) {
       var v = e.target;
-      if (window.__hdHold && v && v.tagName === 'VIDEO') { v.setAttribute('data-hd-paused', '1'); v.pause() }
+      if (window.__hdHold && v && (v.tagName === 'VIDEO' || v.tagName === 'AUDIO')) { v.setAttribute('data-hd-paused', '1'); v.pause() }
     }, true);
   }
-  document.querySelectorAll('video').forEach(function (v) {
+  document.querySelectorAll('video, audio').forEach(function (v) {
     if (!v.paused && !v.ended) { v.setAttribute('data-hd-paused', '1'); v.pause() }
   });
   return true;
 })()`
 const RESUME_SCRIPT = `(function () {
   window.__hdHold = false;
-  document.querySelectorAll('video[data-hd-paused]').forEach(function (v) {
+  document.querySelectorAll('video[data-hd-paused], audio[data-hd-paused]').forEach(function (v) {
     v.removeAttribute('data-hd-paused');
     try { var p = v.play(); if (p && p.catch) p.catch(function () {}) } catch (e) {}
   });

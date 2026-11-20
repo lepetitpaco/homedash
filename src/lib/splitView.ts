@@ -276,6 +276,21 @@ export function pauseWanted(
   return CLOSE_KEEPS_PARKED_PAUSED && key !== c.tab
 }
 
+/**
+ * Pause quand je n'y suis pas (#175) : un site qui n'est pas affiché (garé, autre site, autre page, recherche, ou hors de
+ * la grille d'une vue ouverte) est en pause si son réglage le veut. Un seul mécanisme avec #168 (même script dans le
+ * site) : la pause finale est celle de la vue OU celle-ci. Une copie de vue n'est jamais « cachée » : elle suit sa case.
+ */
+export function hiddenPauseWanted(
+  key: string,
+  setting: boolean,
+  c: { open: boolean; shown: string[]; tab: string; searching: boolean },
+): boolean {
+  if (!setting || key.startsWith('copy:')) return false
+  const displayed = c.open ? c.shown.includes(key) : !c.searching && key === c.tab
+  return !displayed
+}
+
 // ── clavier ────────────────────────────────────────────────────────────────
 
 export type Preset = {

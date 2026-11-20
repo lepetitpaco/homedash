@@ -44,6 +44,7 @@ import SplitViewComposer from './components/SplitViewComposer'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
   LAYER_SELECTOR,
+  hiddenPauseWanted,
   pauseWanted,
   FIELD_SELECTOR,
   SPACE_KEEPS,
@@ -90,6 +91,7 @@ import {
   srcOf,
   tabKey,
 } from './lib/customTabs'
+import { pauseHiddenOf } from './lib/catalog'
 import { perfEvent, setPerfLog } from './lib/perf'
 import { desktop, hasSessions, hasSplitView, navKey, OPEN_IN_TAB, partitionOf, REFRESH_DATA, RELOAD_TAB, reloadSwap, SLEEP_TAB, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
@@ -1331,28 +1333,39 @@ export default function App() {
   // Pause des vidéos (#168) : suit le panneau qui a le son. À chaque chargement de page (guestVer) la pause est
   // renvoyée (un rechargement efface le script du site) ; un site dont la webview a changé ou disparu repart de zéro.
   // Fermer la vue : voir CLOSE_KEEPS_PARKED_PAUSED (seul le site affiché reprend).
-  const pausedNow = useRef<Record<string, { id: number; paused: boolean }>>({})
+  // `view` : pause voulue par la vue (#168) ; `paused` : pause totale (vue ou #175 « Pause quand je n'y suis pas »).
+  const pausedNow = useRef<Record<string, { id: number; paused: boolean; view: boolean }>>({})
   const pauseVer = useRef(0)
   // Les sites de la vue qui vient de se fermer, si la pause était active : ce sont eux qu'on garde en pause.
   const leftOpen = useRef<string[]>([])
+  const searchingNow = search.query.trim().length > 0
+  // Le réglage de chaque site (défaut du code compris) : relance l'effet quand l'un change.
+  const pauseSig = allTabs.filter((t) => t.embed).map((t) => `${t.id}:${pauseHiddenOf(t) ? 1 : 0}`).join('|')
   useEffect(() => {
     if (!desktop?.splitDo) return
     const reload = pauseVer.current !== guestVer
     pauseVer.current = guestVer
     // Ce qui était dans la vue (si la pause y était active) et ce qu'on a déjà mis en pause : choix dans `pauseWanted`.
     if (split) leftOpen.current = split.prefs.pause && split.prefs.follow !== 'all' ? splitShown : leftOpen.current.filter((k) => !splitShown.includes(k))
-    const keys = new Set([...splitShown, ...Object.keys(pausedNow.current), ...(split ? [] : leftOpen.current)])
+    // Tous les sites chargés : un site garé est en pause d'après son réglage, vue ouverte ou non.
+    const loaded = [...new Set(guestTab.current.values())].map((tid) => `x:${tid}`)
+    const keys = new Set([...splitShown, ...Object.keys(pausedNow.current), ...(split ? [] : leftOpen.current), ...loaded])
+    const byView: Record<string, boolean> = {}
     const want: Record<string, boolean> = {}
-    for (const k of keys)
-      want[k] = pauseWanted(k, {
+    for (const k of keys) {
+      byView[k] = pauseWanted(k, {
         open: !!split,
         prefs: split?.prefs ?? splitDefaults,
         shown: splitShown,
         sound: splitSoundKey,
         tab,
-        prev: pausedNow.current[k]?.paused,
+        prev: pausedNow.current[k]?.view,
         parked: leftOpen.current.includes(k),
       })
+      // #175 : une copie suit le site d'origine, mais n'est jamais cachée (voir hiddenPauseWanted)
+      const site = allTabsRef.current.find((t) => tabKey(t) === k)
+      want[k] = byView[k] || (!!site && hiddenPauseWanted(k, pauseHiddenOf(site), { open: !!split, shown: splitShown, tab, searching: searchingNow }))
+    }
     // un site affiché reprend et n'est plus suivi : une fois quitté, il vit sa vie comme avant
     if (!split) leftOpen.current = leftOpen.current.filter((k) => k !== tab)
     for (const k of keys) {
@@ -1365,11 +1378,14 @@ export default function App() {
       const w = !!want[k]
       // webview changée : son état d'avant ne vaut plus ; page rechargée : une pause voulue est renvoyée
       const same = prev && prev.id === id && prev.paused === w && !(reload && w)
-      if (same || (!prev && !w)) continue
-      pausedNow.current[k] = { id, paused: w }
+      if (same || (!prev && !w)) {
+        if (prev) prev.view = byView[k]
+        continue
+      }
+      pausedNow.current[k] = { id, paused: w, view: byView[k] }
       void desktop.splitDo(id, w ? 'pause' : 'resume')
     }
-  }, [split?.prefs.pause, split?.prefs.follow, splitShownKey, splitSoundKey, !!split, guestVer, tab]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [split?.prefs.pause, split?.prefs.follow, splitShownKey, splitSoundKey, !!split, guestVer, tab, searchingNow, pauseSig]) // eslint-disable-line react-hooks/exhaustive-deps
   const doPick = useCallback(
     (pane: number, focusSite = true) => {
       const s = splitRef.current

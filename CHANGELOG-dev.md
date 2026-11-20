@@ -24,3 +24,8 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Table de mixage (A/Q, Z/S, E/D, R/F) cochée par défaut en Scroll, sans rien retirer aux autres touches ; agrandir passe de Z à X quand elle est cochée.
 
 - **Flux et Messagerie** : chaque vue a son type (Flux : copies des sites sur la même connexion, son à la souris, pause, mixage ; Messagerie : vrais sites, tous les sons, rien d'intercepté). Les copies ne comptent ni dans le compteur ni dans l'Activité. Les vues d'avant gardent leur comportement (vrais sites).
+
+## paco/feature/pause-hors-focus
+
+- **Pause quand je n'y suis pas** (#175, touche Mes sites) : par site (*Réglages → Mes sites → ▾ → Plus d'options*, clé `pauseHidden`), les vidéos et sons d'un site qui n'est plus affiché (garé, autre site, autre page) sont mis en pause et reprennent à son retour. Actif par défaut, sauf pour les lecteurs (YouTube, YouTube Music, Spotify, Deezer, Apple Music, SoundCloud, Twitch, Netflix, Plex) et les appels, réunions et messageries du catalogue (`background: true`). Défaut dans le code (`pauseHiddenOf`), aucune migration ; le catalogue écrit le réglage sur un site qu'il crée, et ✨ *Configuration recommandée* le propose aux sites existants. Même mécanisme que la pause des vues (#168), maintenant aussi pour `<audio>`.
+
