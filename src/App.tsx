@@ -275,9 +275,17 @@ export default function App() {
   // Onglets qui émettent du son (main.js le signale), et ceux qu'on a coupés.
   const [audible, setAudible] = useState<Record<string, boolean>>({})
   const [muted, setMuted] = useState<Record<string, boolean>>({})
+  // Vue scindée : webview des COPIES (case → id). Une copie n'est pas un site : elle a sa propre clé `copy:<case>`.
+  const copyGuests = useRef(new Map<number, number>())
   useEffect(
     () =>
       desktop?.onAudio?.(({ id, audible: on }) => {
+        const copy = [...copyGuests.current].find(([, gid]) => gid === id)
+        if (copy) {
+          const k = `copy:${copy[0]}`
+          setAudible((a) => (!!a[k] === on ? a : { ...a, [k]: on }))
+          return
+        }
         const tid = guestTab.current.get(id)
         if (!tid) return
         const key = `x:${tid}`
@@ -1126,7 +1134,7 @@ export default function App() {
   // ── vue scindée (issue #160) ──────────────────────────────────────────────
   // Plusieurs sites côte à côte : les sites déjà vivants sont posés en grille par CSS (`tile`), jamais
   // rechargés. Les réglages (`ui.split`) donnent le départ ; ceux de la barre de la vue ne durent que la vue.
-  type SplitState = { viewId?: string; editing?: boolean; ratios: Record<string, number[]>; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
+  type SplitState = { viewId?: string; editing?: boolean; copies: boolean[]; ratios: Record<string, number[]>; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
   const [split, setSplit] = useState<SplitState | null>(null)
   const splitRef = useRef(split)
   splitRef.current = split
@@ -1142,19 +1150,26 @@ export default function App() {
   const splitDefaults = useMemo(() => normalizeSplit(cfg?.ui.split), [cfg?.ui.split])
   const splitPreset = presetOf(split?.prefs.keyboard ?? 'auto', detectedKb)
   const splitN = split ? layoutOf(split.layout).n : 0
-  const splitShown = split ? split.slots.slice(0, splitN).filter((k): k is string => !!k) : []
+  // Clé de chaque case : `copy:<case>` pour une copie, la clé du site pour le vrai site (son, pause, touches, survol).
+  const paneKeyOf = (st: { slots: (string | null)[]; copies: boolean[] }, i: number) => (st.slots[i] ? (st.copies[i] ? `copy:${i}` : st.slots[i]) : null)
+  const splitShown = split ? Array.from({ length: splitN }, (_, i) => paneKeyOf(split, i)).filter((k): k is string => !!k) : []
+  const realShown = splitShown.filter((k) => !k.startsWith('copy:'))
   const splitShownRef = useRef<string[]>([])
   splitShownRef.current = splitShown
-  const splitSoundKey = split && split.focus.sound !== null ? (split.slots[split.focus.sound] ?? null) : null
+  const splitSoundKey = split && split.focus.sound !== null ? paneKeyOf(split, split.focus.sound) : null
   // Webview (id) d'un site : la plus récente (un rechargement en change).
   const guestIdOf = useCallback((key: string) => {
+    if (key.startsWith('copy:')) return copyGuests.current.get(Number(key.slice(5))) ?? null
     let found: number | null = null
     for (const [id, tid] of guestTab.current) if (`x:${tid}` === key && (found === null || id > found)) found = id
     return found
   }, [])
   const slotOfGuest = (id: number) => {
+    for (const [slot, gid] of copyGuests.current) if (gid === id) return slot
     const tid = guestTab.current.get(id)
-    return tid && splitRef.current ? splitRef.current.slots.indexOf(`x:${tid}`) : -1
+    const st = splitRef.current
+    const i = tid && st ? st.slots.findIndex((k, j) => k === `x:${tid}` && !st.copies[j]) : -1
+    return i
   }
   const noteSplit = useCallback((pane: number, text: string) => {
     setSplitNotes((n) => n.map((x, i) => (i === pane ? text : x)))
@@ -1190,9 +1205,10 @@ export default function App() {
   const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
   const openSavedView = (v: (typeof savedViews)[number]) => {
     leavePage()
-    const { keys, gone } = viewSlots(v, embedSites)
+    const { keys, gone, copies } = viewSlots(v, embedSites)
     setSplitNotes([null, null, null, null])
-    setSplit({ viewId: v.id, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
+    copyGuests.current.clear()
+    setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs: v.prefs ?? splitDefaults, focus: { active: 0, sound: (v.prefs ?? splitDefaults).follow === 'all' ? null : 0 } })
   }
   const rawRef = useRef(raw)
   rawRef.current = raw
@@ -1216,9 +1232,9 @@ export default function App() {
     })
   }
   /** « Ajouter une vue scindée » : crée la vue enregistrée, à la fin de la barre, et l'ouvre. */
-  const createView = (v: { name: string; layout: string; slots: (string | null)[] }) => {
+  const createView = (v: { name: string; layout: string; slots: (string | null)[]; copies: boolean[]; kind: 'flux' | 'messagerie' }) => {
     const id = newViewId(savedViews.map((x) => x.id))
-    const view = makeView(id, v.name, v.layout, v.slots, embedSites)
+    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, v.copies, applyProfile(splitDefaults, v.kind === 'flux' ? 'scroll' : 'classic'))
     writeViews((views) => [...views, view])
     setComposing(false)
     openSavedView(view)
@@ -1229,7 +1245,7 @@ export default function App() {
     const cur = s?.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
     if (!s || !cur) return
     if (!(await confirmDropped(s.slots, s.layout))) return
-    const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder })
+    const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, s.copies, s.prefs)
     writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
     setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites).gone } : x))
   }
@@ -1280,9 +1296,9 @@ export default function App() {
   // Un site de la grille est monté et réveillé ; jamais mis en veille tant qu'il est affiché.
   const splitShownKey = splitShown.join('|')
   useEffect(() => {
-    if (!splitShown.length) return
-    setVisited((v) => (splitShown.every((k) => v.includes(k)) ? v : [...v, ...splitShown.filter((k) => !v.includes(k))]))
-    setAsleep((a) => (a.some((k) => splitShown.includes(k)) ? a.filter((k) => !splitShown.includes(k)) : a))
+    if (!realShown.length) return
+    setVisited((v) => (realShown.every((k) => v.includes(k)) ? v : [...v, ...realShown.filter((k) => !v.includes(k))]))
+    setAsleep((a) => (a.some((k) => realShown.includes(k)) ? a.filter((k) => !realShown.includes(k)) : a))
   }, [splitShownKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // Quitter vers une autre page ou lancer une recherche ferme la vue.
   useEffect(() => {
@@ -1359,7 +1375,7 @@ export default function App() {
       const s = splitRef.current
       if (!s) return
       setSplit({ ...s, focus: focusOnPick(s.focus, pane, s.prefs.follow) })
-      const k = s.slots[pane]
+      const k = paneKeyOf(s, pane)
       const id = k ? guestIdOf(k) : null
       if (focusSite && id !== null) void desktop?.splitDo?.(id, 'focus')
     },
@@ -1370,7 +1386,7 @@ export default function App() {
       const s = splitRef.current
       if (!s || s.prefs.follow !== 'hover' || (s.focus.active === pane && s.focus.sound === pane)) return
       setSplit({ ...s, focus: focusOnHover(s.focus, pane, s.prefs.follow) })
-      const k = s.slots[pane]
+      const k = paneKeyOf(s, pane)
       const id = k ? guestIdOf(k) : null
       // « soft » : le survol ne vole pas le focus d'un champ de saisie en cours dans l'autre panneau.
       if (id !== null && !layerOpen()) void desktop?.splitDo?.(id, 'focusSoft')
@@ -1395,7 +1411,7 @@ export default function App() {
       if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
       const pane = a.type === 'scroll' ? (a.pane ?? s.focus.active) : s.focus.active
       if (pane >= n) return
-      const k = s.slots[pane]
+      const k = paneKeyOf(s, pane)
       const id = k ? guestIdOf(k) : null
       if (id === null) return
       const op = a.type === 'scroll' ? (a.page ? (a.dir > 0 ? 'pageNext' : 'pagePrev') : a.dir > 0 ? 'next' : 'prev') : a.id
@@ -2505,10 +2521,10 @@ export default function App() {
   // Vue scindée : l'emplacement de la case de ce site (`null` = pas dans la grille, ou grille agrandie sur un autre).
   const tileOf = (key: string): Rect | null => {
     if (!split) return null
-    const i = split.slots.indexOf(key)
+    const i = split.slots.findIndex((k, j) => k === key && !split.copies[j])
     return i >= 0 && i < splitN ? (splitRects[i] ?? null) : null
   }
-  const splitSites: PaneSite[] = allTabs.filter((t) => t.embed).map((t) => ({ key: tabKey(t), label: t.label, icon: iconOf[t.id], color: sessionOf(t, tabSessions)?.color }))
+  const splitSites: PaneSite[] = allTabs.filter((t) => t.embed).map((t) => ({ key: tabKey(t), label: t.label, icon: iconOf[t.id], color: sessionOf(t, tabSessions)?.color, url: new URL(srcOf(t.url), window.location.href).href, partition: partitionOf(sessionOf(t, tabSessions)?.id) }))
   const setupOn = view === 'links' && setupWanted
   const openSection = (id: string) => {
     search.setQuery('')
@@ -2913,6 +2929,14 @@ export default function App() {
             if (commit && cur && !split.editing) writeViews((vs) => vs.map((v) => (v.id === cur.id ? { ...v, ratios: next } : v)))
           }}
           gone={split.gone}
+          copies={split.copies}
+          onCopy={(slot, copy) => setSplit((x) => (x ? { ...x, copies: x.copies.map((c, i) => (i === slot ? copy : c)) } : x))}
+          onCopyGuest={(slot, id) => {
+            if (id === null) copyGuests.current.delete(slot)
+            else copyGuests.current.set(slot, id)
+            setGuestVer((v) => v + 1)
+          }}
+          copyMuted={Array.from({ length: 4 }, (_, i) => effectiveMuted(`copy:${i}`, false, { open: true, follow: split.prefs.follow, shown: splitShown, sound: splitSoundKey }))}
           onSite={(slot, key) => {
             const slots = [...split.slots]
             const from = key ? slots.indexOf(key) : -1

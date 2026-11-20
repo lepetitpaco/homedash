@@ -341,6 +341,11 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   de vue jetable** : toute vue est enregistrée. Composition **fixe** (pas de sélecteur de site dans les panneaux) sauf en
   mode édition (« Modifier la vue… »). La table de mixage est le défilement par défaut : elle n'enlève rien, seule la
   touche d'agrandir passe de Z à X (Z = « panneau 2 haut » en AZERTY).
+- Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
+  Flux = copies (`copies[]`, une webview de plus sur la **même partition**, page à part, démarre sur `tab.url`, clé
+  `copy:<case>`, fermée avec la vue ; ni compteur ni Activité ni onglet temporaire), Messagerie = vrais sites. La copie est
+  posée en `position: fixed` sur l'emplacement de son panneau (comme un site réel), jamais recréée à l'agrandissement.
+  Pas d'onglet temporaire dans un panneau ni de vue temporaire (principe « pas un navigateur », décision de Paco).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

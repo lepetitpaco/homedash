@@ -288,6 +288,10 @@ export function validateConfig(cfg: unknown): string | null {
       seen.add(f.id as string)
       // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
       if (key === 'splitViews') {
+        if (f.prefs !== undefined && f.prefs !== null && !isObj(f.prefs)) return `splitViews[${i}].prefs doit être un objet`
+        const copies = f.copies
+        if (copies !== undefined && copies !== null && (!Array.isArray(copies) || copies.length > 4 || copies.some((c) => typeof c !== 'boolean')))
+          return `splitViews[${i}].copies doit être une liste de 4 vrai / faux au plus`
         for (const field of ['before', 'folder']) {
           if (f[field] !== undefined && f[field] !== null && !isStr(f[field])) return `splitViews[${i}].${field} doit être un texte`
         }

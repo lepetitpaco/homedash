@@ -347,3 +347,45 @@
   align-items: center;
   gap: 8px;
 }
+.split-copy {
+  position: fixed;
+  z-index: 5;
+  display: flex;
+  background: #fff;
+}
+.split-copy.is-parked {
+  left: -200vw;
+  top: 0;
+  width: 1200px;
+  height: 800px;
+  visibility: hidden;
+  pointer-events: none;
+}
+.split-copy webview {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+}
+.split-copy-badge,
+.split-copy-toggle {
+  flex: none;
+  padding: 0 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: 0.72rem;
+}
+.split-copy-toggle {
+  min-height: 30px;
+  cursor: pointer;
+}
+.split-copy-toggle.is-on {
+  color: var(--sig-info);
+  border-color: var(--sig-info);
+}
+@container (max-width: 300px) {
+  .split-copy-badge {
+    display: none;
+  }
+}

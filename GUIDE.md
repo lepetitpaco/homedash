@@ -179,25 +179,26 @@ un autre panneau est grisé). La vue apparaît **dans la barre de gauche comme u
 entre tes sites, dans ou hors d'un dossier. Un clic l'ouvre. Il n'y a pas de vue « jetable » : toute vue est
 enregistrée, et se supprime au clic droit.
 
-Les sites sont ceux déjà ouverts dans homedash, avec leur connexion : **rien n'est rechargé**. La composition d'une vue
+Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles démarrent sur la page d'accueil du site, ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (leur position est alors perdue ; chaque copie est une page de plus en mémoire). La composition d'une vue
 est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
 (sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
-les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `Z` en mode Scroll) l'agrandit. En fermant la
+les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `Z` en mode Flux) l'agrandit. En fermant la
 vue (*Fermer*, `Échap` en mode Scroll, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
 ne se met pas en veille.
 
-Deux **modes**, un clic dans la barre (*Classic*, *Scroll*), et au départ dans *Réglages → Vue scindée* :
+Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajouter → Ajouter une vue scindée) et changeable dans *Modifier la vue…* ; *Réglages → Vue scindée* ne sert qu'à pré-remplir une nouvelle vue :
 
-| | Classic | Scroll |
+| | Messagerie | Flux |
 | --- | --- | --- |
-| Pour | Un double écran : messages Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
+| Pour | Suivre plusieurs messageries : Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
+| Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre (réglable par panneau dans *Modifier la vue…*) |
 | Son | **Tous les sons** : un appel Discord reste audible | **Un seul panneau** : celui sous la souris (ou choisi au clavier) |
 | Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Raccourcis et actions par site |
 
 Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : en changer une donne *Personnalisé*, et
 recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
 *Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
-raccourcis les décoche ; **la table de mixage est cochée en Scroll** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
+raccourcis les décoche ; **la table de mixage est cochée en Flux** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
 *Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
 
 **Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
@@ -206,7 +207,7 @@ droit propose *Modifier la vue…*, *Renommer* et *Supprimer* (seule la vue disp
 site de *Mes sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker
 n'entre pas dans une vue (homedash te le dit avant d'enregistrer ; son panneau revient vide).
 
-**Clavier** (mode Scroll, ou raccourcis cochés ; **en Classic, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
+**Clavier** (mode Flux, ou raccourcis cochés ; **en Messagerie, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
 chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
 
 | Touche | Effet |
@@ -217,7 +218,7 @@ chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
 | `Z` (`X` avec la table de mixage) | Agrandir / restaurer le panneau actif |
 | `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
 | `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant |
-| *Table de mixage* (défaut en Scroll) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main ; les autres touches restent actives sur le panneau actif |
+| *Table de mixage* (défaut en Flux) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main ; les autres touches restent actives sur le panneau actif |
 
 Chaque touche = une action de ta part : homedash ne boucle jamais, ne lit ni ne collecte rien des pages.
 

@@ -13,7 +13,7 @@ import {
 } from '../lib/splitView'
 
 /**
- * Réglages → Vue scindée (issue #160) : le mode de départ (Classic / Scroll) et les cases à cocher qui le
+ * Réglages → Vue scindée (issue #160) : le mode de départ (Messagerie / Flux) et les cases à cocher qui le
  * définissent. Dans la vue elle-même, la barre change ces cases pour la durée de la vue seulement.
  */
 export default function SetSplit({ value, onChange }: { value: unknown; onChange: (next: SplitPrefs) => void }) {
@@ -46,10 +46,10 @@ export default function SetSplit({ value, onChange }: { value: unknown; onChange
       </div>
       <p className="set-hint">
         {p.mode === 'classic'
-          ? 'Double écran (Instagram et Discord, par exemple) : tous les panneaux gardent leur son, aucune touche n’est interceptée.'
+          ? 'Messagerie (Instagram et Discord, par exemple) : tous les panneaux gardent leur son, jamais de pause, aucune touche n’est interceptée.'
           : p.mode === 'scroll'
-            ? 'Multi-scroll de flux (TikTok, X, Instagram…) : un seul panneau a le son, et le clavier pilote le panneau actif.'
-            : 'Tes cases à cocher ne correspondent ni à Classic ni à Scroll : recliquer un mode les remet à son préréglage.'}
+            ? 'Flux (TikTok, X, Instagram…) : un seul panneau a le son, les vidéos des autres sont en pause, et le clavier pilote le panneau actif.'
+            : 'Tes cases à cocher ne correspondent ni à Messagerie ni à Flux : recliquer un mode les remet à son préréglage.'}
       </p>
       <div className="set-toggles">
         <div className="split-menu-row">

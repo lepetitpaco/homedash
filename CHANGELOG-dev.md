@@ -23,3 +23,4 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - Composition fixe d'une vue enregistrée (plus de sélecteur de site dans les panneaux) ; clic droit → *Modifier la vue…* (sélecteurs, puis Enregistrer / Annuler). Proportions des séparateurs gardées.
 - Table de mixage (A/Q, Z/S, E/D, R/F) cochée par défaut en Scroll, sans rien retirer aux autres touches ; agrandir passe de Z à X quand elle est cochée.
 
+- **Flux et Messagerie** : chaque vue a son type (Flux : copies des sites sur la même connexion, son à la souris, pause, mixage ; Messagerie : vrais sites, tous les sons, rien d'intercepté). Les copies ne comptent ni dans le compteur ni dans l'Activité. Les vues d'avant gardent leur comportement (vrais sites).

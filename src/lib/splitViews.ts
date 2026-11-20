@@ -3,7 +3,7 @@
  * Sans React, pour être testé. Une vue garde l'id des *sites* ; un onglet temporaire n'y entre jamais
  * (il est fermé au redémarrage, comme ailleurs).
  */
-import { DEFAULT_SPLIT_LAYOUT, layoutOf } from './splitView'
+import { DEFAULT_SPLIT_LAYOUT, layoutOf, normalizeSplit } from './splitView'
 import type { CustomTab, SavedSplitView, TabSession } from '../types'
 
 const SLOTS = 4
@@ -29,12 +29,15 @@ export function normalizeViews(raw: unknown): SavedSplitView[] {
         if (Array.isArray(list) && list.length >= 2 && list.length <= SLOTS && list.every((n) => typeof n === 'number' && n > 0 && Number.isFinite(n))) ratios[path] = list as number[]
       }
     }
+    const copies = Array.from({ length: SLOTS }, (_, i) => i < layout.n && Array.isArray(r.copies) && r.copies[i] === true)
     const text = (k: string) => (typeof r[k] === 'string' && r[k] ? (r[k] as string) : undefined)
     out.push({
       id: r.id,
       name: r.name.trim().slice(0, 60),
       layout: layout.id,
       slots,
+      ...(copies.some(Boolean) ? { copies } : {}),
+      ...(r.prefs && typeof r.prefs === 'object' ? { prefs: normalizeSplit(r.prefs) } : {}),
       ...(text('before') ? { before: text('before') } : {}),
       ...(text('folder') ? { folder: text('folder') } : {}),
       ...(Object.keys(ratios).length ? { ratios } : {}),
@@ -98,23 +101,25 @@ export function makeView(
   sites: CustomTab[],
   ratios?: Record<string, number[]>,
   place?: Pick<SavedSplitView, 'before' | 'folder'>,
+  copies?: boolean[],
+  prefs?: SavedSplitView['prefs'],
 ): SavedSplitView {
   const ids = new Set(sites.map((t) => t.id))
   const slots = slotKeys.map((k) => {
     const sid = k?.startsWith('x:') ? k.slice(2) : null
     return sid && ids.has(sid) ? sid : null
   })
-  return normalizeViews([{ id, name, layout, slots, ratios, ...(place ?? {}) }])[0]
+  return normalizeViews([{ id, name, layout, slots, ratios, copies, prefs, ...(place ?? {}) }])[0]
 }
 
 /**
  * Les cases d'une vue, prêtes à ouvrir : la clé d'onglet du site, ou `null`. `gone` = ids dont le site a été
  * supprimé de Mes sites (le panneau affiche « Site retiré », la vue ne casse pas).
  */
-export function viewSlots(view: SavedSplitView, sites: CustomTab[]): { keys: (string | null)[]; gone: boolean[] } {
+export function viewSlots(view: SavedSplitView, sites: CustomTab[]): { keys: (string | null)[]; gone: boolean[]; copies: boolean[] } {
   const ids = new Set(sites.map((t) => t.id))
   const gone = view.slots.map((id) => !!id && !ids.has(id))
-  return { keys: view.slots.map((id, i) => (id && !gone[i] ? `x:${id}` : null)), gone }
+  return { keys: view.slots.map((id, i) => (id && !gone[i] ? `x:${id}` : null)), gone, copies: view.slots.map((_, i) => view.copies?.[i] === true) }
 }
 
 /**
@@ -149,7 +154,8 @@ export function droppedSlots(slotKeys: (string | null)[], sites: CustomTab[]): n
  */
 export function viewCounter(view: SavedSplitView, counts: Record<string, number>, sites: CustomTab[]): number {
   const ids = new Set(sites.filter((t) => t.embed && t.notify !== false).map((t) => t.id))
-  const once = new Set(view.slots.filter((id): id is string => !!id && ids.has(id)))
+  // une copie n'a ni compteur ni notification : seuls les panneaux « site réel » comptent (pas de doublon)
+  const once = new Set(view.slots.filter((id, i): id is string => !!id && ids.has(id) && view.copies?.[i] !== true))
   let sum = 0
   for (const id of once) sum += counts[`x:${id}`] ?? 0
   return sum

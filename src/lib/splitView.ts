@@ -102,8 +102,8 @@ export function normalizeSplit(raw: unknown): SplitPrefs {
 // ── libellés partagés (barre de la vue et Réglages) ───────────────────────
 
 export const MODE_LABELS: { id: SplitMode; label: string; hint: string }[] = [
-  { id: 'classic', label: 'Classic', hint: 'Double écran : tous les sons, aucune touche interceptée' },
-  { id: 'scroll', label: 'Scroll', hint: 'Défiler des flux : le son suit la souris, raccourcis et actions par site' },
+  { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
+  { id: 'scroll', label: 'Flux', hint: 'Défiler TikTok, X, Instagram : le son suit la souris, pause des vidéos, raccourcis et table de mixage' },
   { id: 'custom', label: 'Personnalisé', hint: 'Tes cases à cocher ne correspondent à aucun mode' },
 ]
 

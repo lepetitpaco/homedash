@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
+import { DEFAULT_SPLIT, applyProfile, patchPrefs } from '../src/lib/splitView'
 import { moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
@@ -122,5 +123,31 @@ describe('vues scindées enregistrées (#169)', () => {
     // la place passe par la sauvegarde / restauration comme le reste (validée par le serveur)
     expect(validateConfig({ groups: [], splitViews: m2 })).toBeNull()
     expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', before: 4 }] })).toMatch(/before/)
+  })
+
+  it('copies (#172) : absentes = tous les sites réels ; seuls les sites réels comptent dans le compteur', () => {
+    const old = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'] }])[0]
+    expect(old.copies).toBeUndefined()
+    expect(viewSlots(old, sites).copies).toEqual([false, false, false, false])
+    const v = normalizeViews([{ id: 'sv-2', name: 'Flux', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'], copies: [true, false, true, true] }])[0]
+    expect(v.copies).toEqual([true, false, true, false])
+    expect(normalizeViews([v])).toEqual([v])
+    expect(viewCounter(v, { 'x:x-a': 5, 'x:x-b': 2, 'x:x-c': 9 }, sites)).toBe(2)
+    expect(validateConfig({ groups: [], splitViews: [v] })).toBeNull()
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', copies: [1] }] })).toMatch(/copies/)
+  })
+
+  it('le type d’une vue (Flux / Messagerie) est gardé dans la vue ; absent = réglages du moment (vues d’avant)', () => {
+    const old = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c2', slots: [] }])[0]
+    expect(old.prefs).toBeUndefined()
+    const flux = makeView('sv-2', 'F', 'c2', [], sites, undefined, undefined, [true, true], applyProfile(DEFAULT_SPLIT, 'scroll'))
+    const msg = makeView('sv-3', 'M', 'c2', [], sites, undefined, undefined, undefined, applyProfile(DEFAULT_SPLIT, 'classic'))
+    expect(flux.prefs).toMatchObject({ mode: 'scroll', mixer: true, pause: true, follow: 'hover' })
+    expect(msg.prefs).toMatchObject({ mode: 'classic', keys: false, pause: false, follow: 'all' })
+    expect(normalizeViews([flux, msg])).toEqual([flux, msg])
+    expect(validateConfig({ groups: [], splitViews: [flux, msg] })).toBeNull()
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', prefs: 3 }] })).toMatch(/prefs/)
+    // une case changée : Personnalisé
+    expect(patchPrefs(flux.prefs!, { pause: false }).mode).toBe('custom')
   })
 })

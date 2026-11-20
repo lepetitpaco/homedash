@@ -237,6 +237,16 @@ export type SavedSplitView = {
   ratios?: Record<string, number[]>
   /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
   slots: (string | null)[]
+  /**
+   * Par case : `true` = une COPIE du site (nouvelle page sur la même connexion, son propre historique), `false` ou absent
+   * = le vrai site. Absent = tous réels (le comportement des vues d'avant).
+   */
+  copies?: boolean[]
+  /**
+   * Le type de la vue : « Flux » (doomscroll) ou « Messagerie », sous forme de ses cases à cocher (`SplitPrefs`, `splitView.ts`).
+   * Absent = les réglages de Réglages → Vue scindée au moment de l'ouverture (le comportement des vues d'avant).
+   */
+  prefs?: import('./lib/splitView').SplitPrefs
   /** Place dans la barre : juste devant ce site (`CustomTab.id`). Absent, ou site disparu = à la fin, comme avant. */
   before?: string
   /** Dossier de la barre (`tabFolders[].id`) ; absent, ou dossier disparu = hors dossier. */

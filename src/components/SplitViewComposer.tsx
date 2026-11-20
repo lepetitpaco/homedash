@@ -20,12 +20,14 @@ export default function SplitViewComposer({
   names: Record<string, string>
   /** Clés des sites les plus récents : ils remplissent les panneaux au départ. */
   recent: string[]
-  onCreate: (v: { name: string; layout: string; slots: (string | null)[] }) => void
+  onCreate: (v: { name: string; layout: string; slots: (string | null)[]; copies: boolean[]; kind: 'flux' | 'messagerie' }) => void
   onClose: () => void
 }) {
   const [name, setName] = useState('')
   const [layout, setLayout] = useState(DEFAULT_SPLIT_LAYOUT)
   const [slots, setSlots] = useState<(string | null)[]>(() => assignSites([], layoutOf(DEFAULT_SPLIT_LAYOUT).n, recent.filter((k) => sites.some((s) => s.key === k))))
+  // Flux (doomscroll) : des copies des sites, une page à part. Messagerie : les vrais sites (notifications, appels).
+  const [kind, setKind] = useState<'flux' | 'messagerie'>('flux')
   const input = useRef<HTMLInputElement>(null)
   const n = layoutOf(layout).n
   useEffect(() => input.current?.focus(), [])
@@ -41,7 +43,7 @@ export default function SplitViewComposer({
   }, [onClose])
   const filled = slots.slice(0, n).filter(Boolean).length
   const ok = name.trim().length > 0 && filled >= 2
-  const submit = () => ok && onCreate({ name: name.trim(), layout, slots })
+  const submit = () => ok && onCreate({ name: name.trim(), layout, slots, copies: Array.from({ length: 4 }, () => kind === 'flux'), kind })
 
   return createPortal(
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>
@@ -61,6 +63,16 @@ export default function SplitViewComposer({
             autoComplete="off"
             data-1p-ignore
           />
+          <div className="split-group" role="group" aria-label="Type de vue">
+            {([
+              ['flux', 'Flux', 'Pour défiler TikTok, X, Instagram : chaque panneau est une copie du site (ta connexion, mais une page à part : son propre historique, sans toucher au site de la barre)'],
+              ['messagerie', 'Messagerie', 'Pour suivre Instagram, Discord… : chaque panneau est le vrai site, avec ses notifications et ses compteurs'],
+            ] as const).map(([id, label, hint]) => (
+              <button key={id} type="button" className="split-chip" aria-pressed={kind === id} title={hint} onClick={() => setKind(id)}>
+                {label}
+              </button>
+            ))}
+          </div>
           <div className="split-group" role="group" aria-label="Disposition">
             {LAYOUTS.map((l) => (
               <button
@@ -100,7 +112,7 @@ export default function SplitViewComposer({
               </div>
             ))}
           </div>
-          <p className="set-hint">Elle apparaît dans la barre de gauche, comme un site ; un clic l'ouvre, le clic droit la modifie ou la supprime. Deux sites au moins.</p>
+          <p className="set-hint">Flux : des copies, une page à part. Messagerie : les vrais sites. Elle apparaît dans la barre de gauche, comme un site ; un clic l'ouvre, le clic droit la modifie ou la supprime. Deux sites au moins.</p>
         </div>
         <div className="modal-foot">
           <span className="modal-hint">↵ ajouter · Échap annuler</span>
