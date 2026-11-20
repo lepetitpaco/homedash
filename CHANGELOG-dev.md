@@ -16,6 +16,10 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 
 - `build-local.sh` relance `homedash-dev` après le build (page noire, 504 Vite) — #159
 
+## paco/fix/selecteurs-actions
+
+- **Actions par site relues sur de vraies pages connectées** (#166, comptes d'éléments, aucun clic) : X passe de touches (qui visaient SON tweet « focus ») à des clics dans le tweet centré (`data-testid` like / bookmark / retweet / reply, et leurs formes « déjà fait ») ; TikTok : la colonne d'actions est devenue commune, hors des articles (`anchoring-engagement-vertical`), et Enregistrer est `favorite-icon` ; Instagram : sélecteurs confirmés, formes « déjà fait » ajoutées (« Je n’aime plus », « Retirer »). Non vérifié : l'effet réel d'un clic, les pages hors fil.
+
 ## paco/feature/vues-scindees-ajouter
 
 - **Ajouter une vue scindée** (menu Ajouter) crée une vue enregistrée dans la barre de gauche, comme un site ; le bouton ◫ de la barre du haut disparaît ; plus de vue « jetable ». Touche : Mes sites.
