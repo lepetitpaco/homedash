@@ -49,19 +49,17 @@ import {
   FIELD_SELECTOR,
   SPACE_KEEPS,
   isEditing,
-  applyProfile,
   assignSites,
   detectKeyboard,
   effectiveMuted,
-  focusOnHover,
-  focusOnLeave,
-  focusOnPick,
+  focusOnGesture,
   interceptTable,
   layoutOf,
+  normalizeKeyboard,
   normalizeSplit,
-  patchPrefs,
   presetOf,
   resolveKey,
+  withMode,
   type Focus,
   type SplitAction,
   type SplitPrefs,
@@ -1150,7 +1148,8 @@ export default function App() {
     kb?.getLayoutMap?.().then((m) => setDetectedKb(detectKeyboard(m.get('KeyQ')))).catch(() => undefined)
   }, [])
   const splitDefaults = useMemo(() => normalizeSplit(cfg?.ui.split), [cfg?.ui.split])
-  const splitPreset = presetOf(split?.prefs.keyboard ?? 'auto', detectedKb)
+  // Le clavier (Réglages seulement) ne change que les étiquettes : les touches sont physiques.
+  const splitPreset = presetOf(normalizeKeyboard(cfg?.ui.split), detectedKb)
   const splitN = split ? layoutOf(split.layout).n : 0
   // Clé de chaque case : `copy:<case>` pour une copie, la clé du site pour le vrai site (son, pause, touches, survol).
   const paneKeyOf = (st: { slots: (string | null)[]; copies: boolean[] }, i: number) => (st.slots[i] ? (st.copies[i] ? `copy:${i}` : st.slots[i]) : null)
@@ -1198,9 +1197,10 @@ export default function App() {
     keepOnTab.current = true
     selectTab(lastNative.current)
   }
-  // Fermée, la grille libère les sites : plus aucun emplacement.
+  // Fermée, la grille libère les sites : plus aucun emplacement, plus de panneau sous la souris.
   useEffect(() => {
     if (!split) setSplitRects([])
+    hoverPane.current = null
   }, [!!split]) // eslint-disable-line react-hooks/exhaustive-deps
   // Vues enregistrées (#169) : lues dans la config, jamais d'erreur si la clé manque.
   const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
@@ -1209,7 +1209,8 @@ export default function App() {
     leavePage()
     const { keys, gone, copies } = viewSlots(v, embedSites)
     setSplitNotes([null, null, null, null])
-    setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs: v.prefs ?? splitDefaults, focus: { active: 0, sound: (v.prefs ?? splitDefaults).follow === 'all' ? null : 0 } })
+    const prefs = v.prefs ?? splitDefaults
+    setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs, focus: { active: 0, sound: prefs.mode === 'scroll' ? 0 : null } })
   }
   const rawRef = useRef(raw)
   rawRef.current = raw
@@ -1236,7 +1237,7 @@ export default function App() {
   /** « Ajouter une vue scindée » : crée la vue enregistrée, à la fin de la barre, et l'ouvre. */
   const createView = (v: { name: string; layout: string; slots: (string | null)[]; copies: boolean[]; kind: 'flux' | 'messagerie' }) => {
     const id = newViewId(savedViews.map((x) => x.id))
-    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, v.copies, applyProfile(splitDefaults, v.kind === 'flux' ? 'scroll' : 'classic'))
+    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, v.copies, withMode(splitDefaults, v.kind === 'flux' ? 'scroll' : 'classic'))
     writeViews((views) => [...views, view])
     setComposing(false)
     openSavedView(view)
@@ -1320,7 +1321,7 @@ export default function App() {
   useEffect(() => {
     if (search.query.trim()) closeSplit()
   }, [search.query, closeSplit])
-  // Ce que l'appli retient dans les sites : table de touches tirée des cases cochées (vide en Classic).
+  // Ce que l'appli retient dans les sites : table de touches tirée du mode (vide en Messagerie).
   const splitIds = splitShown.map(guestIdOf).filter((n): n is number => n !== null)
   const splitIdsKey = splitIds.join(',')
   useEffect(() => {
@@ -1328,13 +1329,13 @@ export default function App() {
     if (!split) return desktop.splitConfig({ open: false })
     desktop.splitConfig({
       open: true,
-      table: interceptTable(split.prefs, splitPreset, splitN),
+      table: interceptTable(split.prefs, splitN),
       field: FIELD_SELECTOR,
       spaceKeep: SPACE_KEEPS,
       sync: split.prefs.sync,
       ids: splitIds,
     })
-  }, [!!split, split?.prefs, splitPreset, splitN, splitIdsKey, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [!!split, split?.prefs, splitN, splitIdsKey, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => () => desktop?.splitConfig?.({ open: false }), [])
 
   // Pause des vidéos (#168) : suit le panneau qui a le son. À chaque chargement de page (guestVer) la pause est
@@ -1353,7 +1354,7 @@ export default function App() {
     const reload = pauseVer.current !== guestVer
     pauseVer.current = guestVer
     // Ce qui était dans la vue (si la pause y était active) et ce qu'on a déjà mis en pause : choix dans `pauseWanted`.
-    if (split) leftOpen.current = split.prefs.pause && split.prefs.follow !== 'all' ? splitShown : leftOpen.current.filter((k) => !splitShown.includes(k))
+    if (split) leftOpen.current = split.prefs.mode === 'scroll' ? splitShown : leftOpen.current.filter((k) => !splitShown.includes(k))
     // Tous les sites chargés : un site garé est en pause d'après son réglage, vue ouverte ou non.
     const loaded = [...new Set(guestTab.current.values())].map((tid) => `x:${tid}`)
     const keys = new Set([...splitShown, ...Object.keys(pausedNow.current), ...(split ? [] : leftOpen.current), ...loaded])
@@ -1362,7 +1363,7 @@ export default function App() {
     for (const k of keys) {
       byView[k] = pauseWanted(k, {
         open: !!split,
-        prefs: split?.prefs ?? splitDefaults,
+        mode: (split?.prefs ?? splitDefaults).mode,
         shown: splitShown,
         sound: splitSoundKey,
         tab,
@@ -1392,23 +1393,28 @@ export default function App() {
       pausedNow.current[k] = { id, paused: w, view: byView[k] }
       void desktop.splitDo(id, w ? 'pause' : 'resume')
     }
-  }, [split?.prefs.pause, split?.prefs.follow, splitShownKey, splitSoundKey, !!split, guestVer, tab, searchingNow, pauseSig]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [split?.prefs.mode, splitShownKey, splitSoundKey, !!split, guestVer, tab, searchingNow, pauseSig]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Le panneau sous la souris (`null` : la souris est hors de la grille) : J K et les flèches le visent (#177).
+  const hoverPane = useRef<number | null>(null)
+  // Clic ou Alt+chiffre : le panneau devient actif ; en Flux il prend le son (dernier geste, #177).
   const doPick = useCallback(
     (pane: number, focusSite = true) => {
       const s = splitRef.current
       if (!s) return
-      setSplit({ ...s, focus: focusOnPick(s.focus, pane, s.prefs.follow) })
+      setSplit({ ...s, focus: focusOnGesture(s.focus, pane, s.prefs.mode) })
       const k = paneKeyOf(s, pane)
       const id = k ? guestIdOf(k) : null
       if (focusSite && id !== null) void desktop?.splitDo?.(id, 'focus')
     },
     [guestIdOf],
   )
+  // Survol, ou vraie molette (relayée par l'appli comme un survol) : en Flux, ce panneau prend le son et le focus.
   const doHover = useCallback(
     (pane: number) => {
+      hoverPane.current = pane
       const s = splitRef.current
-      if (!s || s.prefs.follow !== 'hover' || (s.focus.active === pane && s.focus.sound === pane)) return
-      setSplit({ ...s, focus: focusOnHover(s.focus, pane, s.prefs.follow) })
+      if (!s || s.prefs.mode !== 'scroll' || (s.focus.active === pane && s.focus.sound === pane)) return
+      setSplit({ ...s, focus: focusOnGesture(s.focus, pane, s.prefs.mode) })
       const k = paneKeyOf(s, pane)
       const id = k ? guestIdOf(k) : null
       // « soft » : le survol ne vole pas le focus d'un champ de saisie en cours dans l'autre panneau.
@@ -1416,10 +1422,9 @@ export default function App() {
     },
     [guestIdOf],
   )
-  // La souris sort de la grille (barre de la vue, hors d'un site) : le son reste ou se coupe (`keep`).
+  // La souris sort de la grille (barre de la vue, hors d'un site) : le son reste au dernier geste.
   const doLeave = useCallback(() => {
-    const s = splitRef.current
-    if (s) setSplit({ ...s, focus: focusOnLeave(s.focus, s.prefs.follow, s.prefs.keep) })
+    hoverPane.current = null
   }, [])
   const doAction = useCallback(
     (a: SplitAction) => {
@@ -1434,16 +1439,28 @@ export default function App() {
         return s.zoom !== null ? setSplit({ ...s, zoom: null }) : setSplit(null)
       }
       if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
-      const pane = a.type === 'scroll' ? (a.pane ?? s.focus.active) : s.focus.active
-      if (pane >= n) return
-      const k = paneKeyOf(s, pane)
-      const id = k ? guestIdOf(k) : null
-      if (id === null) return
+      const target = a.type === 'scroll' ? a.pane : 'active'
+      // Maj : tous les panneaux affichés (seul l'agrandi quand il y en a un) ; J K, flèches : celui sous la souris.
+      const panes =
+        target === 'all'
+          ? s.zoom !== null
+            ? [s.zoom]
+            : Array.from({ length: n }, (_, i) => i)
+          : [typeof target === 'number' ? target : target === 'hover' ? (hoverPane.current ?? s.focus.active) : s.focus.active]
+      // Une touche de mixage est un geste sur son panneau : il prend le son (dernier geste, #177).
+      if (typeof target === 'number' && target < n && (s.focus.active !== target || s.focus.sound !== target))
+        setSplit({ ...s, focus: focusOnGesture(s.focus, target, s.prefs.mode) })
       const op = a.type === 'scroll' ? (a.page ? (a.dir > 0 ? 'pageNext' : 'pagePrev') : a.dir > 0 ? 'next' : 'prev') : a.id
-      void desktop?.splitDo?.(id, op).then((ok) => {
-        if (ok === 'busy') noteSplit(pane, 'Brouillon en cours dans ce panneau')
-        else if (!ok) noteSplit(pane, 'Action indisponible sur ce site')
-      })
+      for (const pane of panes) {
+        if (pane >= n) continue
+        const k = paneKeyOf(s, pane)
+        const id = k ? guestIdOf(k) : null
+        if (id === null) continue
+        void desktop?.splitDo?.(id, op).then((ok) => {
+          if (ok === 'busy') noteSplit(pane, 'Brouillon en cours dans ce panneau')
+          else if (!ok) noteSplit(pane, 'Action indisponible sur ce site')
+        })
+      }
     },
     [doPick, guestIdOf, noteSplit],
   )
@@ -1452,10 +1469,7 @@ export default function App() {
     const offKey = desktop?.onSplitKey?.((k) => {
       const s = splitRef.current
       if (!s) return
-      const a = resolveKey({ ...k, ctrl: false, meta: false }, s.prefs, presetOf(s.prefs.keyboard, detectedKbRef.current), {
-        editing: false,
-        panes: layoutOf(s.layout).n,
-      })
+      const a = resolveKey({ ...k, ctrl: false, meta: false }, s.prefs, { editing: false, panes: layoutOf(s.layout).n })
       if (a) doAction(a)
     })
     const offHover = desktop?.onSplitHover?.((id, kind) => {
@@ -1470,8 +1484,6 @@ export default function App() {
       offHover?.()
     }
   }, [doAction, doPick, doHover, doLeave]) // eslint-disable-line react-hooks/exhaustive-deps
-  const detectedKbRef = useRef(detectedKb)
-  detectedKbRef.current = detectedKb
   // Touches tapées dans la page homedash elle-même (pas dans un site).
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -1481,16 +1493,11 @@ export default function App() {
       // Échap ferme la couche du dessus, pas la vue : la capture passe avant elle, on voit donc encore la couche.
       if (e.key === 'Escape' && layerOpen()) return
       const t = e.target as HTMLElement | null
-      if (e.key === ' ' && t?.closest?.(SPACE_KEEPS)) return
-      const a = resolveKey(
-        { key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey, meta: e.metaKey },
-        s.prefs,
-        presetOf(s.prefs.keyboard, detectedKbRef.current),
-        {
-          editing: isEditing(t),
-          panes: layoutOf(s.layout).n,
-        },
-      )
+      if (e.code === 'Space' && t?.closest?.(SPACE_KEEPS)) return
+      const a = resolveKey({ key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey, meta: e.metaKey }, s.prefs, {
+        editing: isEditing(t),
+        panes: layoutOf(s.layout).n,
+      })
       if (!a) return
       if (a.type !== 'leave') e.preventDefault()
       doAction(a)
@@ -2928,7 +2935,7 @@ export default function App() {
             }}
             muted={effectiveMuted(tabKey(t), !!muted[tabKey(t)], {
               open: !!split,
-              follow: split?.prefs.follow ?? 'all',
+              mode: split?.prefs.mode ?? 'classic',
               shown: splitShown,
               sound: splitSoundKey,
             })}
@@ -2975,7 +2982,7 @@ export default function App() {
             } else copyGuests.current.set(slot, id)
             setGuestVer((v) => v + 1)
           }}
-          copyMuted={Array.from({ length: 4 }, (_, i) => effectiveMuted(`copy:${i}`, false, { open: true, follow: split.prefs.follow, shown: splitShown, sound: splitSoundKey }))}
+          copyMuted={Array.from({ length: 4 }, (_, i) => effectiveMuted(`copy:${i}`, false, { open: true, mode: split.prefs.mode, shown: splitShown, sound: splitSoundKey }))}
           onSite={(slot, key) => {
             const slots = [...split.slots]
             const from = key ? slots.indexOf(key) : -1
@@ -2987,14 +2994,16 @@ export default function App() {
           }}
           prefs={split.prefs}
           preset={splitPreset}
-          onProfile={(id) => setSplit({ ...split, prefs: applyProfile(split.prefs, id) })}
-          onPrefs={(patch) => setSplit({ ...split, prefs: patchPrefs(split.prefs, patch) })}
+          onProfile={(id) =>
+            setSplit({ ...split, prefs: withMode(split.prefs, id), focus: id === 'scroll' ? { active: split.focus.active, sound: split.focus.active } : { ...split.focus, sound: null } })
+          }
+          onPrefs={(patch) => setSplit({ ...split, prefs: { ...split.prefs, ...patch } })}
           active={split.focus.active}
           sound={split.focus.sound}
           muted={muted}
           audible={audible}
           zoom={split.zoom}
-          onZoom={(slot) => setSplit({ ...split, zoom: slot, focus: slot === null ? split.focus : focusOnPick(split.focus, slot, split.prefs.follow) })}
+          onZoom={(slot) => setSplit({ ...split, zoom: slot, focus: slot === null ? split.focus : focusOnGesture(split.focus, slot, split.prefs.mode) })}
           onHover={doHover}
           onLeave={doLeave}
           onPick={(slot) => doPick(slot, false)}

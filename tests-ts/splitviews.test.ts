@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
-import { DEFAULT_SPLIT, applyProfile, patchPrefs } from '../src/lib/splitView'
+import { DEFAULT_SPLIT, withMode } from '../src/lib/splitView'
 import { moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
@@ -140,14 +140,29 @@ describe('vues scindées enregistrées (#169)', () => {
   it('le type d’une vue (Flux / Messagerie) est gardé dans la vue ; absent = réglages du moment (vues d’avant)', () => {
     const old = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c2', slots: [] }])[0]
     expect(old.prefs).toBeUndefined()
-    const flux = makeView('sv-2', 'F', 'c2', [], sites, undefined, undefined, [true, true], applyProfile(DEFAULT_SPLIT, 'scroll'))
-    const msg = makeView('sv-3', 'M', 'c2', [], sites, undefined, undefined, undefined, applyProfile(DEFAULT_SPLIT, 'classic'))
-    expect(flux.prefs).toMatchObject({ mode: 'scroll', mixer: true, pause: true, follow: 'hover' })
-    expect(msg.prefs).toMatchObject({ mode: 'classic', keys: false, pause: false, follow: 'all' })
+    const flux = makeView('sv-2', 'F', 'c2', [], sites, undefined, undefined, [true, true], withMode(DEFAULT_SPLIT, 'scroll'))
+    const msg = makeView('sv-3', 'M', 'c2', [], sites, undefined, undefined, undefined, withMode({ ...DEFAULT_SPLIT, sync: false }, 'classic'))
+    expect(flux.prefs).toEqual({ mode: 'scroll', sync: true, actions: true })
+    expect(msg.prefs).toEqual({ mode: 'classic', sync: false, actions: true })
     expect(normalizeViews([flux, msg])).toEqual([flux, msg])
     expect(validateConfig({ groups: [], splitViews: [flux, msg] })).toBeNull()
     expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', prefs: 3 }] })).toMatch(/prefs/)
-    // une case changée : Personnalisé
-    expect(patchPrefs(flux.prefs!, { pause: false }).mode).toBe('custom')
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', prefs: { inconnu: 1 } }] })).toMatch(/prefs/)
+  })
+
+  it('vue enregistrée avant #177 : acceptée telle quelle à l’écriture, seul son mode compte à la lecture, sans migration', () => {
+    const legacy = {
+      id: 'sv-9',
+      name: 'Ancienne',
+      layout: 'c2',
+      slots: ['x-a', 'x-b'],
+      prefs: { mode: 'classic', follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false, keep: true, keyboard: 'auto' },
+    }
+    // une config qui la contient s'enregistre toujours (sauvegarde, autre réglage) : jamais refusée
+    expect(validateConfig({ groups: [], splitViews: [legacy] })).toBeNull()
+    const v = normalizeViews([legacy])[0]
+    expect(v.prefs).toEqual({ mode: 'classic', sync: true, actions: true })
+    const custom = normalizeViews([{ ...legacy, prefs: { ...legacy.prefs, mode: 'custom', follow: 'hover' } }])[0]
+    expect(custom.prefs?.mode).toBe('scroll')
   })
 })

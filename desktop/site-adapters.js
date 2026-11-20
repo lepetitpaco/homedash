@@ -173,8 +173,11 @@ async function sendKey(wc, k, before) {
   wc.sendInputEvent({ type: 'keyUp', keyCode: k })
 }
 
-/** Molette au centre de la page : repli de « suivant / précédent » et des pages entières. */
-async function wheel(wc, dir, page) {
+/**
+ * Molette au centre de la page : repli de « suivant / précédent » et des pages entières. `onWheel` prévient juste avant
+ * (main.js la note comme un écho attendu : une touche n'est ni recopiée par la synchro ni prise pour un geste de molette).
+ */
+async function wheel(wc, dir, page, onWheel) {
   let size = [800, 600]
   try {
     size = await wc.executeJavaScript('[innerWidth, innerHeight]')
@@ -183,6 +186,7 @@ async function wheel(wc, dir, page) {
   }
   // Chromium : un deltaY négatif fait descendre la page.
   const dy = -dir * (page ? Math.round(size[1] * 0.85) : 160)
+  if (onWheel) onWheel(wc)
   wc.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: dy, canScroll: true })
   return true
 }
@@ -223,7 +227,7 @@ async function run(wc, op, hooks = {}) {
     if (!page) lastNav.set(wc, now)
     if (!page && plan?.key) return await sendKey(wc, plan.key, hooks.before), true
     if (!page && plan?.scroll) return !!(await wc.executeJavaScript(scrollScript(plan.scroll)))
-    return wheel(wc, NAV[op], page)
+    return wheel(wc, NAV[op], page, hooks.wheel)
   }
   if (!plan) return false
   if (plan.key) return await sendKey(wc, plan.key, hooks.before), true
@@ -232,7 +236,10 @@ async function run(wc, op, hooks = {}) {
 }
 
 /**
- * Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »). La recopie est elle-même une molette :
+ * Molette d'un panneau recopiée dans les autres (« Défilement synchronisé »), depuis n'importe quel panneau (#177).
+ * Renvoie `true` pour une vraie molette, `false` pour un écho absorbé. `self` : le panneau d'origine reçoit aussi la
+ * molette (Maj l'a rendue horizontale chez lui). `forget(id)` : la souris entre dans ce panneau, ses échos en attente
+ * sont oubliés (sinon sa vraie molette était prise pour un écho). La recopie est elle-même une molette :
  * chaque envoi attend UN écho, décompté à sa réception (un écho en retard est donc reconnu, quel que soit son retard,
  * jusqu'à 1,5 s ; passé ce délai on cesse de l'attendre). La taille de la page est gardée en cache (rafraîchie 1 fois
  * par seconde au plus, attente bornée à 100 ms) et oubliée quand le site disparaît.
@@ -255,24 +262,52 @@ function createWheelSync(now = Date.now) {
     }
     return (await refresh(wc)) || [400, 400]
   }
-  return async (from, targets, dy) => {
-    if (!Number.isFinite(dy)) return
+  // `targets` : tous les panneaux de la vue (ce qui n'y est plus est oublié) ; `only` : ceux qui reçoivent (null = tous).
+  const forward = async (from, targets, dy, self = false, only = null) => {
+    if (!Number.isFinite(dy)) return false
     const mine = echoes.get(from)
     if (mine && mine.until > now() && mine.n > 0) {
       mine.n--
-      return
+      return false
     }
     const live = new Set(targets.filter((t) => t && !(t.isDestroyed && t.isDestroyed())).map((t) => t.id))
     for (const id of [...sizes.keys()]) if (!live.has(id)) sizes.delete(id)
     for (const id of [...echoes.keys()]) if (!live.has(id)) echoes.delete(id)
     for (const wc of targets) {
-      if (!wc || wc.id === from || !live.has(wc.id)) continue
+      if (!wc || (wc.id === from && !self) || !live.has(wc.id) || (only && !only.includes(wc.id))) continue
       const size = await sizeOf(wc)
       const e = echoes.get(wc.id)
       echoes.set(wc.id, { n: (e && e.until > now() ? e.n : 0) + 1, until: now() + 1500 })
       wc.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
     }
+    return true
   }
+  // La souris entre dans un panneau : ce qu'on attendait de lui comme écho est oublié (sa molette est alors la vraie).
+  forward.forget = (id) => echoes.delete(id)
+  // homedash envoie lui-même une molette à ce panneau (touche J, N, Espace…) : elle revient comme un écho, absorbé.
+  forward.expect = (id) => {
+    const e = echoes.get(id)
+    echoes.set(id, { n: (e && e.until > now() ? e.n : 0) + 1, until: now() + 1500 })
+  }
+  return forward
 }
 
-module.exports = { createWheelSync, inField, PAUSE_SCRIPT, RESUME_SCRIPT, siteOf, run, PLANS, clickScript, scrollScript, keyName }
+/**
+ * Quels panneaux reçoivent la molette venue de `from` (#177) : avec le défilement synchronisé, tous ; Maj inverse le
+ * réglage. `msg` : ce que le préload envoie (`{ dy, shift, sideways }`, ou un nombre pour un préload d'avant #177).
+ * `sideways` : Maj a rendu la molette horizontale dans le panneau d'origine, il la reçoit donc aussi (`self`).
+ * `only` : les panneaux qui la reçoivent (`null` = tous). `null` : message illisible ou molette nulle.
+ */
+function wheelTargets(sync, msg, from) {
+  const m =
+    typeof msg === 'number'
+      ? { dy: msg, shift: false, sideways: false }
+      : msg && typeof msg === 'object'
+        ? { dy: Number(msg.dy), shift: !!msg.shift, sideways: !!msg.sideways }
+        : null
+  if (!m || !Number.isFinite(m.dy) || !m.dy) return null
+  const all = !!sync !== m.shift
+  return { dy: m.dy, self: m.sideways, only: all ? null : m.sideways ? [from] : [] }
+}
+
+module.exports = { wheelTargets, createWheelSync, inField, PAUSE_SCRIPT, RESUME_SCRIPT, siteOf, run, PLANS, clickScript, scrollScript, keyName }

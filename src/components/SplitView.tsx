@@ -3,16 +3,12 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 import Pick from './Pick'
 import {
   FLAG_HELP,
-  FOLLOW_OPTIONS,
-  KEYBOARD_OPTIONS,
   LAYOUTS,
   MODE_LABELS,
+  ZOOM_LABEL,
   dragRatios,
   layoutOf,
-  mixLabel,
-  zoomKey,
-  type Follow,
-  type KeyboardChoice,
+  splitLegend,
   type Preset,
   type SplitNode,
   type SplitPrefs,
@@ -226,7 +222,7 @@ export default function SplitView(p: Props) {
     const isCopy = !!key && !!site && !!p.copies[i]
     const audioKey = isCopy ? `copy:${i}` : key
     const manual = key && !isCopy ? !!p.muted[key] : false
-    const plays = !!key && !manual && (p.prefs.follow === 'all' || p.sound === i)
+    const plays = !!key && !manual && (p.prefs.mode !== 'scroll' || p.sound === i)
     return (
       <div
         key={i}
@@ -274,7 +270,7 @@ export default function SplitView(p: Props) {
           <button
             className="split-btn"
             onClick={() => p.onZoom(zoomed ? null : i)}
-            title={zoomed ? `Restaurer la grille (en mode Flux : ${zoomKey(p.prefs).toUpperCase()})` : `Agrandir ce panneau (double-clic sur le titre ; en mode Flux : ${zoomKey(p.prefs).toUpperCase()})`}
+            title={zoomed ? `Restaurer la grille (en mode Flux : ${ZOOM_LABEL})` : `Agrandir ce panneau (double-clic sur le titre ; en mode Flux : ${ZOOM_LABEL})`}
             aria-label={zoomed ? 'Restaurer la grille' : 'Agrandir ce panneau'}
           >
             {zoomed ? '⤡' : '⤢'}
@@ -354,13 +350,9 @@ export default function SplitView(p: Props) {
     </label>
   )
 
-  // Les raccourcis du mode : en toutes lettres quand il y a la place, sinon dans la bulle de ⓘ.
-  const legendText = p.prefs.keys
-    ? p.prefs.mixer
-      ? `Défiler : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}  ·  Alt + chiffre : panneau  ·  X : agrandir`
-      : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`
-    : "Aucune touche interceptée : tu tapes dans les sites comme d'habitude."
-  const legendEl = <span className="split-legend">{legendText}</span>
+  // Les raccourcis du mode : en toutes lettres quand il y a la place ; l'aide complète dans la bulle de ⓘ.
+  const legend = splitLegend(p.prefs.mode, p.preset, lay.n)
+  const legendEl = <span className="split-legend">{legend.short}</span>
 
   return (
     <div className={`split-root${dragging ? ' is-dragging' : ''}`} ref={root} aria-label="Vue scindée">
@@ -371,9 +363,8 @@ export default function SplitView(p: Props) {
               key={m.id}
               className="split-chip"
               aria-pressed={p.prefs.mode === m.id}
-              disabled={m.id === 'custom'}
               title={m.hint}
-              onClick={() => m.id !== 'custom' && p.onProfile(m.id)}
+              onClick={() => p.onProfile(m.id)}
             >
               {m.label}
             </button>
@@ -396,12 +387,6 @@ export default function SplitView(p: Props) {
         </div>
         ) : null}
         <div className="split-group">
-          <Pick
-            value={p.prefs.follow}
-            options={FOLLOW_OPTIONS}
-            onChange={(v) => p.onPrefs({ follow: v as Follow })}
-            title="Qui a le son"
-          />
           <button
             className="split-chip split-menu-btn"
             aria-expanded={!!menu}
@@ -416,7 +401,7 @@ export default function SplitView(p: Props) {
         </div>
         <div className="split-end">
           {legendEl}
-          <span className="split-info" role="img" aria-label={legendText} title={legendText}>
+          <span className="split-info" role="img" aria-label={legend.long} title={legend.long}>
             ⓘ
           </span>
           {p.editing ? (
@@ -444,15 +429,6 @@ export default function SplitView(p: Props) {
           <div className="split-menu" role="dialog" aria-label="Options de la vue scindée" style={{ left: menu.left, top: menu.top, maxHeight: Math.max(160, window.innerHeight - menu.top - 8), overflowY: 'auto' }}>
             <div className="set-toggles">
               {FLAG_HELP.map(flag)}
-            </div>
-            <div className="split-menu-row">
-              <Pick
-                value={p.prefs.keyboard}
-                options={KEYBOARD_OPTIONS}
-                onChange={(v) => p.onPrefs({ keyboard: v as KeyboardChoice })}
-                title="Préréglage clavier"
-              />
-              <span className="split-menu-note">Préréglage utilisé : {p.preset.name}</span>
             </div>
           </div>,
           document.body,

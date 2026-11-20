@@ -1,7 +1,7 @@
 /**
  * Vue scindée (issue #160) : plusieurs sites côte à côte dans un seul onglet. Toute la logique sans
- * React ni Electron, pour être testée : dispositions, modes Classic / Scroll et leurs cases à cocher,
- * clavier AZERTY / QWERTY, son (qui est muet), traduction touche → action.
+ * React ni Electron, pour être testée : dispositions, modes Messagerie / Flux et leurs deux cases, étiquettes
+ * AZERTY / QWERTY, son (qui est muet), traduction touche → action.
  *
  * Les touches sont résolues ici (`resolveKey`) ; `interceptTable` en tire la liste que `guest-preload.js`
  * applique dans les sites, pour ne jamais décider à deux endroits.
@@ -9,124 +9,84 @@
 
 // ── modes et cases à cocher ────────────────────────────────────────────────
 
-export type SplitMode = 'classic' | 'scroll' | 'custom'
-/** Qui a le son : tous les panneaux, celui sous la souris, ou celui qu'on a choisi au clavier / au clic. */
-export type Follow = 'all' | 'hover' | 'keyboard'
+/** `classic` = Messagerie, `scroll` = Flux (noms internes du code seulement). */
+export type SplitMode = 'classic' | 'scroll'
 export type KeyboardChoice = 'auto' | 'azerty' | 'qwerty'
 
+/**
+ * Le mode décide de tout (#177, décision de Paco : trop d'options pour un comportement qui doit être évident) :
+ * Flux = table de mixage et raccourcis toujours actifs, le son au panneau du dernier geste, pause des autres ;
+ * Messagerie = tous les sons, jamais de pause, aucune touche prise. Il ne reste que deux cases, dans les deux modes.
+ */
 export type SplitPrefs = {
   mode: SplitMode
-  follow: Follow
-  /** Raccourcis clavier (Alt+chiffre, J/K, N/P, Z, Échap). Décochés : aucune touche n'est interceptée. */
-  keys: boolean
-  /** L, B, T, C : actions propres à chaque site (suppose `keys`). Pas de « Suivre » : voir #166. */
-  actions: boolean
-  /** Table de mixage : une paire de touches par panneau (suppose `keys`). */
-  mixer: boolean
-  /** Une molette pour tous les panneaux. */
+  /** Une molette pour tous les panneaux (Maj + molette fait l'inverse). */
   sync: boolean
-  /** Pause : les vidéos des panneaux qui n'ont pas le son (#168). */
-  pause: boolean
-  /** Garder le son du dernier panneau à la sortie de la souris. */
-  keep: boolean
-  keyboard: KeyboardChoice
+  /** L, B, T, C : actions propres à chaque site, en Flux. Pas de « Suivre » : voir #166. */
+  actions: boolean
 }
 
-/** Les cases qui définissent un mode ; `keep` et `keyboard` n'en font pas partie. */
-type ProfileBoxes = Pick<SplitPrefs, 'follow' | 'keys' | 'actions' | 'mixer' | 'sync' | 'pause'>
+/** Synchro cochée par défaut (#177) : c'est l'usage du doomscroll à plusieurs ; elle se décoche. */
+export const DEFAULT_SPLIT: SplitPrefs = { mode: 'scroll', sync: true, actions: true }
 
-/** Les deux préréglages : Classic = double écran, rien d'intercepté ; Scroll = multi-scroll de flux. */
-export const PROFILES: Record<'classic' | 'scroll', ProfileBoxes> = {
-  classic: { follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false },
-  scroll: { follow: 'hover', keys: true, actions: true, mixer: true, sync: false, pause: true },
+/**
+ * Les clés du modèle d'avant #177 (« Le son suit », raccourcis, mixage, pause, garder le son, mode Personnalisé).
+ * Une vue enregistrée qui en porte une est de l'ancien format : **seul son mode compte** (décision de Paco, sans
+ * migration) ; ses autres cases, `sync` comprise, reprennent les défauts. `keyboard` n'en fait pas partie : il
+ * reste dans `ui.split` (Réglages), lu à part par `normalizeKeyboard`.
+ */
+export const LEGACY_SPLIT_KEYS = ['follow', 'keys', 'mixer', 'pause', 'keep'] as const
+
+/** Changer de mode garde les deux cases. */
+export function withMode(p: SplitPrefs, mode: SplitMode): SplitPrefs {
+  return { ...p, mode }
 }
 
-export const DEFAULT_SPLIT: SplitPrefs = { mode: 'scroll', ...PROFILES.scroll, keep: true, keyboard: 'auto' }
-
-/** Le mode que disent les cases : un des préréglages à l'identique, sinon « Personnalisé ». */
-export function detectProfile(p: ProfileBoxes): SplitMode {
-  for (const id of ['classic', 'scroll'] as const) {
-    const want = PROFILES[id]
-    if ((Object.keys(want) as (keyof ProfileBoxes)[]).every((k) => p[k] === want[k])) return id
-  }
-  return 'custom'
-}
-
-/** Dépendances entre cases : actions et mixage supposent les raccourcis ; sans eux, ni l'un ni l'autre. */
-function settle(p: SplitPrefs, touched?: Partial<SplitPrefs>): SplitPrefs {
-  const next = { ...p }
-  if (touched && (touched.actions === true || touched.mixer === true)) next.keys = true
-  if (!next.keys) {
-    next.actions = false
-    next.mixer = false
-  }
-  next.mode = detectProfile(next)
-  return next
-}
-
-/** Modifier des cases à la main : les dépendances jouent, et le mode se déduit (Personnalisé si ça ne colle plus). */
-export function patchPrefs(p: SplitPrefs, patch: Partial<Omit<SplitPrefs, 'mode'>>): SplitPrefs {
-  return settle({ ...p, ...patch }, patch)
-}
-
-/** Recliquer un mode restaure son préréglage (les cases `keep` et `keyboard` restent). */
-export function applyProfile(p: SplitPrefs, id: 'classic' | 'scroll'): SplitPrefs {
-  return settle({ ...p, ...PROFILES[id] })
-}
-
-/** Réglages lus dans `ui.split` : une clé absente ou absurde prend son défaut (config ancienne ou abîmée). */
+/**
+ * Réglages lus dans `ui.split` ou dans une vue enregistrée : une clé absente ou absurde prend son défaut, les clés
+ * d'avant #177 sont ignorées et jamais renvoyées. L'ancien « Personnalisé » n'est plus un mode : il redevient
+ * Messagerie si le son était à tous (`follow: 'all'`, ce qui définissait Messagerie), sinon Flux.
+ */
 export function normalizeSplit(raw: unknown): SplitPrefs {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  const bool = (k: string, d: boolean) => (typeof r[k] === 'boolean' ? (r[k] as boolean) : d)
-  const follow: Follow = r.follow === 'all' || r.follow === 'hover' || r.follow === 'keyboard' ? r.follow : DEFAULT_SPLIT.follow
-  const keyboard: KeyboardChoice =
-    r.keyboard === 'azerty' || r.keyboard === 'qwerty' || r.keyboard === 'auto' ? r.keyboard : DEFAULT_SPLIT.keyboard
-  // Sans aucune case enregistrée, le mode seul peut avoir été noté : il donne les cases de départ.
-  const base =
+  const legacy = LEGACY_SPLIT_KEYS.some((k) => Object.prototype.hasOwnProperty.call(r, k))
+  const mode: SplitMode =
     r.mode === 'classic' || r.mode === 'scroll'
-      ? { ...DEFAULT_SPLIT, ...PROFILES[r.mode] }
-      : DEFAULT_SPLIT
-  return settle({
-    mode: base.mode,
-    follow: 'follow' in r ? follow : base.follow,
-    keys: bool('keys', base.keys),
-    actions: bool('actions', base.actions),
-    mixer: bool('mixer', base.mixer),
-    sync: bool('sync', base.sync),
-    pause: bool('pause', base.pause),
-    keep: bool('keep', base.keep),
-    keyboard,
-  })
+      ? r.mode
+      : r.mode === 'custom'
+        ? r.follow === 'all'
+          ? 'classic'
+          : 'scroll'
+        : DEFAULT_SPLIT.mode
+  if (legacy) return { ...DEFAULT_SPLIT, mode }
+  const bool = (k: 'sync' | 'actions') => (typeof r[k] === 'boolean' ? (r[k] as boolean) : DEFAULT_SPLIT[k])
+  return { mode, sync: bool('sync'), actions: bool('actions') }
+}
+
+/** Le clavier choisi dans Réglages (`ui.split.keyboard`) : seulement les étiquettes affichées, les touches sont physiques. */
+export function normalizeKeyboard(raw: unknown): KeyboardChoice {
+  const k = raw && typeof raw === 'object' ? (raw as Record<string, unknown>).keyboard : undefined
+  return k === 'azerty' || k === 'qwerty' ? k : 'auto'
 }
 
 // ── libellés partagés (barre de la vue et Réglages) ───────────────────────
 
 export const MODE_LABELS: { id: SplitMode; label: string; hint: string }[] = [
   { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
-  { id: 'scroll', label: 'Flux', hint: 'Défiler TikTok, X, Instagram : le son suit la souris, pause des vidéos, raccourcis et table de mixage' },
-  { id: 'custom', label: 'Personnalisé', hint: 'Tes cases à cocher ne correspondent à aucun mode' },
+  { id: 'scroll', label: 'Flux', hint: 'Défiler TikTok, X, Instagram : le panneau où tu agis a le son, les autres sont en pause ; table de mixage et raccourcis' },
 ]
 
-export const FOLLOW_OPTIONS: { value: Follow; label: string }[] = [
-  { value: 'all', label: 'Tous les sons' },
-  { value: 'hover', label: 'Le son suit la souris' },
-  { value: 'keyboard', label: 'Le son suit le clavier' },
-]
-
+/** Seulement dans Réglages : la détection automatique se trompe rarement, et le choix ne change que les étiquettes. */
 export const KEYBOARD_OPTIONS: { value: KeyboardChoice; label: string }[] = [
   { value: 'auto', label: 'Clavier : automatique' },
   { value: 'azerty', label: 'Clavier : AZERTY' },
   { value: 'qwerty', label: 'Clavier : QWERTY' },
 ]
 
-/** Les cases à cocher, avec leur aide : la même dans la barre de la vue et dans Réglages. */
-export const FLAG_HELP: { key: 'keys' | 'actions' | 'mixer' | 'sync' | 'pause' | 'keep'; label: string; hint: string }[] = [
-  { key: 'keys', label: 'Raccourcis clavier', hint: 'Alt + chiffre, J K ou ↓ ↑, N P, Espace, Z (X avec la table de mixage), Échap' },
-  { key: 'actions', label: 'Actions par site', hint: "L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram) ; coche aussi les raccourcis" },
-  { key: 'mixer', label: 'Table de mixage', hint: 'une paire de touches par panneau pour le défiler d’une main (A Q, Z S, E D, R F en AZERTY) ; agrandir passe de Z à X ; coche aussi les raccourcis' },
-  { key: 'sync', label: 'Défilement synchronisé', hint: 'une molette pour tous les panneaux' },
-  { key: 'pause', label: 'Pause : les panneaux inactifs', hint: 'les vidéos du panneau qui n\'a pas le son sont mises en pause, et reprennent quand il le retrouve' },
-  { key: 'keep', label: 'Garder le son à la sortie', hint: 'le dernier panneau garde le son quand la souris sort de la grille' },
+/** Les deux cases, avec leur aide : la même dans la barre de la vue et dans Réglages. */
+export const FLAG_HELP: { key: 'sync' | 'actions'; label: string; hint: string }[] = [
+  { key: 'sync', label: 'Défilement synchronisé', hint: 'défiler un panneau à la molette fait défiler tous les autres ; Maj + molette fait l’inverse' },
+  { key: 'actions', label: 'Actions par site', hint: "en Flux : L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram)" },
 ]
 
 /** Un champ de saisie : les touches ne sont jamais prises dedans (page, sites et focus du survol). */
@@ -205,47 +165,35 @@ export function dragRatios(ratios: number[], index: number, delta: number, min =
 /** Qui a le son et les touches : le panneau actif, et celui qui joue (`null` = aucun). */
 export type Focus = { active: number; sound: number | null }
 
-/** La souris entre dans un panneau : il devient actif et a le son, si le son suit la souris. */
-export function focusOnHover(f: Focus, pane: number, follow: Follow): Focus {
-  return follow === 'hover' ? { active: pane, sound: pane } : f
-}
-
-/** Clic ou touche (Alt+chiffre) : le panneau devient actif ; il a le son sauf si tous l'ont déjà. */
-export function focusOnPick(f: Focus, pane: number, follow: Follow): Focus {
-  return { active: pane, sound: follow === 'all' ? f.sound : pane }
-}
-
-/** La souris quitte la grille : le son reste au dernier panneau (`keep`) ou se coupe. */
-export function focusOnLeave(f: Focus, follow: Follow, keep: boolean): Focus {
-  return follow === 'hover' && !keep ? { ...f, sound: null } : f
+/**
+ * Un geste sur un panneau : survol, molette, touche de mixage, Alt+chiffre, clic. En Flux il devient actif et prend
+ * le son, **le dernier geste gagne** (#177) ; la souris qui sort de la grille ne coupe rien. En Messagerie tous ont
+ * le son : seul le panneau actif change.
+ */
+export function focusOnGesture(f: Focus, pane: number, mode: SplitMode): Focus {
+  return mode === 'scroll' ? { active: pane, sound: pane } : { active: pane, sound: f.sound }
 }
 
 /**
- * Le son d'un site : coupé s'il l'a été à la main (clic droit, toujours prioritaire) ; sinon, dans la vue
- * scindée et hors « tous les sons », coupé tant qu'il n'a pas le son. `sound` = clé du site qui joue.
- * Un site qui n'est pas dans la grille n'est pas touché.
+ * Le son d'un site : coupé s'il l'a été à la main (clic droit, toujours prioritaire) ; sinon, dans une vue Flux,
+ * coupé tant qu'il n'a pas le son. `sound` = clé du site qui joue. Un site qui n'est pas dans la grille n'est pas touché.
  */
 export function effectiveMuted(
   key: string,
   manual: boolean,
-  split: { open: boolean; follow: Follow; shown: string[]; sound: string | null },
+  split: { open: boolean; mode: SplitMode; shown: string[]; sound: string | null },
 ): boolean {
   if (manual) return true
-  if (!split.open || split.follow === 'all' || !split.shown.includes(key)) return false
+  if (!split.open || split.mode !== 'scroll' || !split.shown.includes(key)) return false
   return split.sound !== key
 }
 
 /**
- * Pause des vidéos (#168) : un site de la grille est en pause tant qu'il n'a pas le son (même panneau que
- * le son, donc « garder » vaut aussi pour l'image). Jamais en « tous les sons » (Classic), ni hors de la grille.
+ * Pause des vidéos (#168) : en Flux, un site de la grille est en pause tant qu'il n'a pas le son (toujours, #177).
+ * Jamais en Messagerie, ni hors de la grille.
  */
-export function effectivePaused(
-  key: string,
-  prefs: Pick<SplitPrefs, 'pause' | 'follow'>,
-  shown: string[],
-  sound: string | null,
-): boolean {
-  return prefs.pause && prefs.follow !== 'all' && shown.includes(key) && sound !== key
+export function effectivePaused(key: string, mode: SplitMode, shown: string[], sound: string | null): boolean {
+  return mode === 'scroll' && shown.includes(key) && sound !== key
 }
 
 /**
@@ -269,9 +217,9 @@ export const LAYER_SELECTOR = '[role="dialog"]:not(.dock-hint), [role="menu"], [
  */
 export function pauseWanted(
   key: string,
-  c: { open: boolean; prefs: Pick<SplitPrefs, 'pause' | 'follow'>; shown: string[]; sound: string | null; tab: string; prev?: boolean; parked?: boolean },
+  c: { open: boolean; mode: SplitMode; shown: string[]; sound: string | null; tab: string; prev?: boolean; parked?: boolean },
 ): boolean {
-  if (c.open) return c.shown.includes(key) ? effectivePaused(key, c.prefs, c.shown, c.sound) : !!c.prev
+  if (c.open) return c.shown.includes(key) ? effectivePaused(key, c.mode, c.shown, c.sound) : !!c.prev
   if (!(c.prev || c.parked)) return false
   return CLOSE_KEEPS_PARKED_PAUSED && key !== c.tab
 }
@@ -295,7 +243,7 @@ export function hiddenPauseWanted(
 
 export type Preset = {
   name: string
-  /** [haut, bas] pour chaque panneau, en lettres telles qu'étiquetées sur la touche (`event.key`). */
+  /** [haut, bas] pour chaque panneau, en lettres telles qu'étiquetées sur la touche : pour l'affichage seulement. */
   mix: [string, string][]
   /** Étiquettes de la rangée du haut pour Alt+chiffre (la touche se lit par `event.code`). */
   digits: string[]
@@ -307,6 +255,19 @@ export const PRESETS: Record<'azerty' | 'qwerty', Preset> = {
   qwerty: { name: 'QWERTY', mix: [['q', 'a'], ['w', 's'], ['e', 'd'], ['r', 'f']], digits: ['1', '2', '3', '4'] },
 }
 
+/**
+ * Table de mixage : [haut, bas] de chaque panneau en touches **physiques** (`event.code`). Les mêmes positions en
+ * AZERTY et en QWERTY (A/Q = Q/A), seules les étiquettes changent (`PRESETS`). Toutes les touches de la vue se lisent
+ * par `event.code`, jamais par le caractère : Alt donne des symboles sur Mac, Maj des majuscules, et ce qui compte est
+ * la place de la touche (#177 : identique sur Mac et Windows).
+ */
+export const MIX_CODES: [string, string][] = [
+  ['KeyQ', 'KeyA'],
+  ['KeyW', 'KeyS'],
+  ['KeyE', 'KeyD'],
+  ['KeyR', 'KeyF'],
+]
+
 /** « Automatique » : la touche `KeyQ` porte-t-elle un q ? QWERTY ; sinon (ou sans réponse) AZERTY. */
 export function detectKeyboard(keyQ: string | undefined): 'azerty' | 'qwerty' {
   return keyQ === 'q' ? 'qwerty' : 'azerty'
@@ -316,24 +277,31 @@ export function presetOf(choice: KeyboardChoice, detected: 'azerty' | 'qwerty'):
   return PRESETS[choice === 'auto' ? detected : choice]
 }
 
-/** La touche d'agrandir : Z, ou X quand la table de mixage prend Z. */
-export const zoomKey = (prefs: { mixer: boolean }) => (prefs.mixer ? 'x' : 'z')
+/** Agrandir : X, car Z est « panneau 2 haut » en AZERTY (table de mixage). */
+export const ZOOM_CODE = 'KeyX'
+export const ZOOM_LABEL = 'X'
 
 export type KeyEvt = { key: string; code: string; shift: boolean; alt: boolean; ctrl: boolean; meta: boolean }
 
-/** Actions propres à chaque site, avec la touche homedash qui les déclenche. */
+/** Actions propres à chaque site, avec la touche homedash qui les déclenche (`code` : la touche physique). */
 export const SITE_ACTIONS = [
-  { id: 'like', key: 'l', label: "J'aime" },
-  { id: 'save', key: 'b', label: 'Enregistrer' },
-  { id: 'share', key: 't', label: 'Repartager' },
-  { id: 'comment', key: 'c', label: 'Commenter' },
+  { id: 'like', key: 'l', code: 'KeyL', label: "J'aime" },
+  { id: 'save', key: 'b', code: 'KeyB', label: 'Enregistrer' },
+  { id: 'share', key: 't', code: 'KeyT', label: 'Repartager' },
+  { id: 'comment', key: 'c', code: 'KeyC', label: 'Commenter' },
 ] as const
 export type SiteActionId = (typeof SITE_ACTIONS)[number]['id']
 
+/**
+ * Quel panneau défiler : un numéro, `active` (le panneau actif), `hover` (celui sous la souris, sinon l'actif) ou
+ * `all` (tous les panneaux affichés : Maj).
+ */
+export type PaneTarget = number | 'active' | 'hover' | 'all'
+
 export type SplitAction =
   | { type: 'focus'; pane: number }
-  /** `pane` : le panneau visé ; `null` = le panneau actif. `page` : une page entière plutôt qu'un cran. */
-  | { type: 'scroll'; pane: number | null; dir: 1 | -1; page: boolean }
+  /** `page` : une page entière plutôt qu'un cran. */
+  | { type: 'scroll'; pane: PaneTarget; dir: 1 | -1; page: boolean }
   | { type: 'zoom' }
   /** Échap : quitter l'agrandissement, puis la vue. */
   | { type: 'leave' }
@@ -341,72 +309,69 @@ export type SplitAction =
 
 /**
  * Ce que fait une touche dans la vue scindée, ou `null` : alors elle passe au site, intacte.
- * Jamais d'action dans un champ de saisie (`editing`) ni quand les raccourcis sont décochés
- * (Classic : aucune touche interceptée). Les lettres suivent l'étiquette (`key`), Alt+chiffre la
- * touche physique (`code`).
+ * Jamais en Messagerie (aucune touche prise) ni dans un champ de saisie (`editing`). Touches physiques (`code`).
+ * Modificateurs (#177, mêmes sur Mac et Windows) : **Maj = tous les panneaux** (touches de mixage, J K, flèches, N P) ;
+ * Alt + chiffre choisit le panneau ; Ctrl et ⌘ ne sont jamais pris (copier, coller, raccourcis du système).
+ * J K et les flèches visent le panneau sous la souris ; une touche de mixage, toujours son panneau.
  */
-export function resolveKey(
-  e: KeyEvt,
-  prefs: Pick<SplitPrefs, 'keys' | 'actions' | 'mixer'>,
-  preset: Preset,
-  ctx: { editing: boolean; panes: number },
-): SplitAction | null {
-  if (!prefs.keys || ctx.editing) return null
-  if (e.alt && !e.ctrl && !e.meta && !e.shift) {
+export function resolveKey(e: KeyEvt, prefs: Pick<SplitPrefs, 'mode' | 'actions'>, ctx: { editing: boolean; panes: number }): SplitAction | null {
+  if (prefs.mode !== 'scroll' || ctx.editing) return null
+  if (e.ctrl || e.meta) return null
+  if (e.alt) {
     const m = /^(?:Digit|Numpad)([1-4])$/.exec(e.code)
-    if (m && Number(m[1]) <= ctx.panes) return { type: 'focus', pane: Number(m[1]) - 1 }
+    if (!e.shift && m && Number(m[1]) <= ctx.panes) return { type: 'focus', pane: Number(m[1]) - 1 }
     return null
   }
-  if (e.ctrl || e.meta || e.alt) return null
-  if (e.code === 'Escape' || e.key === 'Escape') return { type: 'leave' }
-  const k = e.key.length === 1 ? e.key.toLowerCase() : e.key
-  // Table de mixage : une paire de touches par panneau. Elle n'enlève rien aux autres touches, sauf Z (agrandir),
-  // qui est « panneau 2 haut » en AZERTY : avec le mixage, on agrandit avec X (dans les deux claviers).
-  if (prefs.mixer) {
-    for (let i = 0; i < Math.min(preset.mix.length, ctx.panes); i++) {
-      if (k === preset.mix[i][0]) return { type: 'scroll', pane: i, dir: -1, page: false }
-      if (k === preset.mix[i][1]) return { type: 'scroll', pane: i, dir: 1, page: false }
-    }
+  const c = e.code
+  if (c === 'Escape' || e.key === 'Escape') return { type: 'leave' }
+  const all = e.shift
+  for (let i = 0; i < Math.min(MIX_CODES.length, ctx.panes); i++) {
+    const [up, down] = MIX_CODES[i]
+    if (c === up || c === down) return { type: 'scroll', pane: all ? 'all' : i, dir: c === up ? -1 : 1, page: false }
   }
-  if (k === 'j' || k === 'ArrowDown') return { type: 'scroll', pane: null, dir: 1, page: false }
-  if (k === 'k' || k === 'ArrowUp') return { type: 'scroll', pane: null, dir: -1, page: false }
-  if (k === 'n') return { type: 'scroll', pane: null, dir: 1, page: true }
-  if (k === 'p') return { type: 'scroll', pane: null, dir: -1, page: true }
-  if (k === ' ') return { type: 'scroll', pane: null, dir: e.shift ? -1 : 1, page: true }
-  if (k === zoomKey(prefs)) return { type: 'zoom' }
+  if (c === 'KeyJ' || c === 'ArrowDown') return { type: 'scroll', pane: all ? 'all' : 'hover', dir: 1, page: false }
+  if (c === 'KeyK' || c === 'ArrowUp') return { type: 'scroll', pane: all ? 'all' : 'hover', dir: -1, page: false }
+  if (c === 'KeyN') return { type: 'scroll', pane: all ? 'all' : 'active', dir: 1, page: true }
+  if (c === 'KeyP') return { type: 'scroll', pane: all ? 'all' : 'active', dir: -1, page: true }
+  // Maj + Espace garde son sens de toujours : une page plus haut.
+  if (c === 'Space') return { type: 'scroll', pane: 'active', dir: e.shift ? -1 : 1, page: true }
+  // Agrandir et les actions n'ont pas de sens « pour tous » : avec Maj, la touche reste au site.
+  if (all) return null
+  if (c === ZOOM_CODE) return { type: 'zoom' }
   if (prefs.actions) {
-    const a = SITE_ACTIONS.find((x) => x.key === k)
+    const a = SITE_ACTIONS.find((x) => x.code === c)
     if (a) return { type: 'site', id: a.id }
   }
   return null
 }
 
-/** Ce que `guest-preload.js` doit intercepter dans un site (puis relayer à la page). */
+/** Ce que `guest-preload.js` doit intercepter dans un site (puis relayer à la page). Touches physiques (`event.code`). */
 export type InterceptTable = {
-  /** Touches sans modificateur, en minuscules (`j`, `arrowdown`, ` `). */
-  keys: string[]
+  /** Touches sans modificateur (`KeyJ`, `ArrowDown`, `Space`). */
+  codes: string[]
+  /** Touches avec Maj seule. */
+  shift: string[]
   /** Touches physiques d'Alt+chiffre. */
   alt: string[]
   /** Échap : relayé à la page, jamais retenu (le site doit pouvoir fermer sa fenêtre). */
   relay: string[]
 }
 
-/** La table, tirée de `resolveKey` lui-même : aucune liste à tenir à jour à côté. */
-export function interceptTable(
-  prefs: Pick<SplitPrefs, 'keys' | 'actions' | 'mixer'>,
-  preset: Preset,
-  panes: number,
-): InterceptTable {
-  const out: InterceptTable = { keys: [], alt: [], relay: [] }
-  if (!prefs.keys) return out
-  const base = { code: '', shift: false, alt: false, ctrl: false, meta: false }
+const ALL_CODES = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((l) => `Key${l}`).concat(['ArrowDown', 'ArrowUp', 'Space'])
+
+/** La table, tirée de `resolveKey` lui-même : aucune liste à tenir à jour à côté. Vide en Messagerie. */
+export function interceptTable(prefs: Pick<SplitPrefs, 'mode' | 'actions'>, panes: number): InterceptTable {
+  const out: InterceptTable = { codes: [], shift: [], alt: [], relay: [] }
+  if (prefs.mode !== 'scroll') return out
+  const base = { key: '', shift: false, alt: false, ctrl: false, meta: false }
   const ctx = { editing: false, panes }
-  for (const key of [...'abcdefghijklmnopqrstuvwxyz', 'ArrowDown', 'ArrowUp', ' ']) {
-    if (resolveKey({ ...base, key }, prefs, preset, ctx)) out.keys.push(key.toLowerCase())
+  for (const code of ALL_CODES) {
+    if (resolveKey({ ...base, code }, prefs, ctx)) out.codes.push(code)
+    if (resolveKey({ ...base, code, shift: true }, prefs, ctx)) out.shift.push(code)
   }
   for (let d = 1; d <= 4; d++) {
     const code = `Digit${d}`
-    if (resolveKey({ ...base, key: String(d), code, alt: true }, prefs, preset, ctx)) out.alt.push(code, `Numpad${d}`)
+    if (resolveKey({ ...base, code, alt: true }, prefs, ctx)) out.alt.push(code, `Numpad${d}`)
   }
   out.relay.push('escape')
   return out
@@ -416,4 +381,27 @@ export function interceptTable(
 export function mixLabel(preset: Preset, pane: number): string {
   const m = preset.mix[pane]
   return m ? `${m[0].toUpperCase()} / ${m[1].toUpperCase()}` : ''
+}
+
+/**
+ * La légende de la barre (`short`, en toutes lettres quand il y a la place) et son aide complète (`long`, bulle de ⓘ).
+ * Une seule source pour l'écran et les tests.
+ */
+export function splitLegend(mode: SplitMode, preset: Preset, panes: number): { short: string; long: string } {
+  if (mode !== 'scroll') {
+    const text = "Aucune touche interceptée : tu tapes dans les sites comme d'habitude."
+    return { short: text, long: `${text} Défilement synchronisé : Maj + molette fait l'inverse.` }
+  }
+  const mix = preset.mix.slice(0, panes).map((_, i) => `${i + 1} : ${mixLabel(preset, i)}`).join('  ·  ')
+  return {
+    short: `Défiler : ${mix}  ·  Maj : tous  ·  Alt + chiffre : panneau  ·  ${ZOOM_LABEL} : agrandir`,
+    long: [
+      `Table de mixage : ${mix} (un panneau ; Maj + touche : tous).`,
+      'J K ou ↓ ↑ : le panneau sous la souris (Maj : tous). N P, Espace : page suivante / précédente.',
+      `Alt + ${preset.digits.slice(0, panes).join(' ')} : choisir le panneau. ${ZOOM_LABEL} : agrandir. Échap : quitter.`,
+      "Molette : avec le défilement synchronisé, tous les panneaux suivent ; Maj + molette fait l'inverse.",
+      'Le panneau où tu agis (survol, molette, touche, clic) a le son ; les autres sont coupés et en pause.',
+      'Mêmes touches sur Mac et Windows (Maj = ⇧) ; jamais dans un champ de saisie.',
+    ].join(' '),
+  }
 }

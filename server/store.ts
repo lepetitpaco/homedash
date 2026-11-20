@@ -289,7 +289,9 @@ export function validateConfig(cfg: unknown): string | null {
       // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
       if (key === 'splitViews') {
         if (f.prefs !== undefined && f.prefs !== null) {
-          const known = ['mode', 'follow', 'keys', 'actions', 'mixer', 'sync', 'pause', 'keep', 'keyboard']
+          // `mode`, `sync`, `actions` ; les autres sont les cases d'avant #177 : toujours acceptées (une config ancienne ne doit
+          // jamais être refusée à l'écriture), ignorées à la lecture (`normalizeSplit`), sans migration.
+          const known = ['mode', 'sync', 'actions', 'follow', 'keys', 'mixer', 'pause', 'keep', 'keyboard']
           if (!isObj(f.prefs) || Object.keys(f.prefs).some((k) => !known.includes(k)) || JSON.stringify(f.prefs).length > 400)
             return `splitViews[${i}].prefs doit être les réglages de la vue (champs connus, petite taille)`
         }
