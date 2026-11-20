@@ -8,7 +8,7 @@ const adapters = createRequire(import.meta.url)('../desktop/site-adapters.js') a
   run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void; field?: string; wheel?: (wc: { id: number }) => void }) => Promise<boolean | 'busy'>
   keyName: (k: string) => string
   createWheelSync: (now?: () => number) => ((from: number, targets: unknown[], dy: number, self?: boolean, only?: number[] | null) => Promise<boolean>) & {
-    forget: (id: number) => void
+    forget: (id: number) => boolean
     expect: (id: number) => void
   }
   wheelTargets: (sync: boolean, msg: unknown, from: number) => { dy: number; self: boolean; only: number[] | null } | null
@@ -234,14 +234,33 @@ describe('molette synchronisée : pas d’écho, même avec une page lente ou un
     await forward(1, [a, b, c], -50)
     expect(b.sent).toHaveLength(3)
     // la souris entre dans B, qui défile pour de vrai : recopié tout de suite dans A et C
-    t += 100
-    forward.forget(2)
+    t += 200
+    expect(forward.forget(2)).toBe(true)
     expect(await forward(2, [a, b, c], -40)).toBe(true)
     expect(a.sent).toHaveLength(1)
     expect(c.sent).toHaveLength(4)
     // et l'écho de A qui revient est absorbé : pas de boucle
     expect(await forward(1, [a, b, c], -40)).toBe(false)
     expect(b.sent).toHaveLength(3)
+  })
+
+  it('l’élan d’un trackpad qui traverse un panneau (moins de 150 ms après une vraie molette) n’oublie pas ses échos', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = wcOf(2)
+    const c = wcOf(3)
+    await forward(1, [a, b, c], -50)
+    t += 40
+    // la souris passe sur B pendant l'élan : rien n'est oublié, l'écho de B est encore absorbé (pas de rebond vers A et C)
+    expect(forward.forget(2)).toBe(false)
+    expect(await forward(2, [a, b, c], -50)).toBe(false)
+    expect(a.sent).toHaveLength(0)
+    // plus tard (au-delà de 150 ms), entrer dans B oublie bien ses échos
+    await forward(1, [a, b, c], -50)
+    t += 200
+    expect(forward.forget(2)).toBe(true)
+    expect(await forward(2, [a, b, c], -50)).toBe(true)
   })
 
   it('`only` choisit qui reçoit, `self` inclut le panneau d’origine ; les échos des autres sont gardés', async () => {

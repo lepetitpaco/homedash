@@ -1,8 +1,10 @@
 import Pick from './Pick'
 import {
+  ACTIONS_OFF_HINT,
   FLAG_HELP,
   KEYBOARD_OPTIONS,
   MODE_LABELS,
+  MODIFIERS_HELP,
   normalizeKeyboard,
   normalizeSplit,
   withMode,
@@ -20,15 +22,18 @@ export default function SetSplit({ value, onChange }: { value: unknown; onChange
   const p = normalizeSplit(value)
   const keyboard = normalizeKeyboard(value)
   const write = (next: SplitPrefs, kb: KeyboardChoice = keyboard) => onChange({ ...next, keyboard: kb })
-  const flag = (f: (typeof FLAG_HELP)[number]) => (
-    <label className="set-toggle" key={f.key}>
-      <input type="checkbox" checked={p[f.key]} onChange={(e) => write({ ...p, [f.key]: e.target.checked })} />
-      <span>
-        {f.label}
-        <em>{f.hint}</em>
-      </span>
-    </label>
-  )
+  const flag = (f: (typeof FLAG_HELP)[number]) => {
+    const off = f.key === 'actions' && p.mode !== 'scroll'
+    return (
+      <label className="set-toggle" key={f.key} aria-disabled={off || undefined}>
+        <input type="checkbox" checked={p[f.key]} disabled={off} onChange={(e) => write({ ...p, [f.key]: e.target.checked })} />
+        <span>
+          {f.label}
+          <em>{off ? ACTIONS_OFF_HINT : f.hint}</em>
+        </span>
+      </label>
+    )
+  }
   return (
     <>
       <div className="split-group" role="group" aria-label="Mode de départ">
@@ -41,8 +46,9 @@ export default function SetSplit({ value, onChange }: { value: unknown; onChange
       <p className="set-hint">
         {p.mode === 'classic'
           ? 'Messagerie (Instagram et Discord, par exemple) : tous les panneaux gardent leur son, jamais de pause, aucune touche n’est interceptée.'
-          : 'Flux (TikTok, X, Instagram…) : le panneau où tu agis (survol, molette, touche, clic) a le son, les vidéos des autres sont en pause ; table de mixage et raccourcis clavier, Maj pour tous les panneaux.'}
+          : 'Flux (TikTok, X, Instagram…) : le panneau où tu agis (survol, molette, touche, clic) a le son, les vidéos des autres sont en pause ; table de mixage et raccourcis clavier.'}
       </p>
+      <p className="set-hint">{MODIFIERS_HELP}</p>
       <div className="set-toggles">
         {FLAG_HELP.map(flag)}
         <div className="split-menu-row">

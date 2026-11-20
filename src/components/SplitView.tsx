@@ -2,6 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Pick from './Pick'
 import {
+  ACTIONS_OFF_HINT,
   FLAG_HELP,
   LAYOUTS,
   MODE_LABELS,
@@ -340,15 +341,19 @@ export default function SplitView(p: Props) {
     return <div className={`split-node is-${node.dir}`}>{parts}</div>
   }
 
-  const flag = (f: (typeof FLAG_HELP)[number]) => (
-    <label className="set-toggle" key={f.key}>
-      <input type="checkbox" checked={p.prefs[f.key]} onChange={(e) => p.onPrefs({ [f.key]: e.target.checked })} />
-      <span>
-        {f.label}
-        <em>{f.hint}</em>
-      </span>
-    </label>
-  )
+  // « Actions par site » est sans effet en Messagerie : grisée, avec la raison.
+  const flag = (f: (typeof FLAG_HELP)[number]) => {
+    const off = f.key === 'actions' && p.prefs.mode !== 'scroll'
+    return (
+      <label className="set-toggle" key={f.key} aria-disabled={off || undefined}>
+        <input type="checkbox" checked={p.prefs[f.key]} disabled={off} onChange={(e) => p.onPrefs({ [f.key]: e.target.checked })} />
+        <span>
+          {f.label}
+          <em>{off ? ACTIONS_OFF_HINT : f.hint}</em>
+        </span>
+      </label>
+    )
+  }
 
   // Les raccourcis du mode : en toutes lettres quand il y a la place ; l'aide complète dans la bulle de ⓘ.
   const legend = splitLegend(p.prefs.mode, p.preset, lay.n)

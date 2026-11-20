@@ -141,7 +141,7 @@ describe('vues scindées enregistrées (#169)', () => {
     const old = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c2', slots: [] }])[0]
     expect(old.prefs).toBeUndefined()
     const flux = makeView('sv-2', 'F', 'c2', [], sites, undefined, undefined, [true, true], withMode(DEFAULT_SPLIT, 'scroll'))
-    const msg = makeView('sv-3', 'M', 'c2', [], sites, undefined, undefined, undefined, withMode({ ...DEFAULT_SPLIT, sync: false }, 'classic'))
+    const msg = makeView('sv-3', 'M', 'c2', [], sites, undefined, undefined, undefined, withMode(DEFAULT_SPLIT, 'classic'))
     expect(flux.prefs).toEqual({ mode: 'scroll', sync: true, actions: true })
     expect(msg.prefs).toEqual({ mode: 'classic', sync: false, actions: true })
     expect(normalizeViews([flux, msg])).toEqual([flux, msg])
@@ -150,18 +150,18 @@ describe('vues scindées enregistrées (#169)', () => {
     expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', prefs: { inconnu: 1 } }] })).toMatch(/prefs/)
   })
 
-  it('vue enregistrée avant #177 : acceptée telle quelle à l’écriture, seul son mode compte à la lecture, sans migration', () => {
+  it('vue enregistrée avant #177 : acceptée telle quelle à l’écriture, anciennes cases ignorées à la lecture, sans migration', () => {
     const legacy = {
       id: 'sv-9',
       name: 'Ancienne',
       layout: 'c2',
       slots: ['x-a', 'x-b'],
-      prefs: { mode: 'classic', follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false, keep: true, keyboard: 'auto' },
+      prefs: { mode: 'classic', follow: 'all', keys: false, actions: false, mixer: false, sync: true, pause: false, keep: true, keyboard: 'auto' },
     }
     // une config qui la contient s'enregistre toujours (sauvegarde, autre réglage) : jamais refusée
     expect(validateConfig({ groups: [], splitViews: [legacy] })).toBeNull()
     const v = normalizeViews([legacy])[0]
-    expect(v.prefs).toEqual({ mode: 'classic', sync: true, actions: true })
+    expect(v.prefs).toEqual({ mode: 'classic', sync: true, actions: false })
     const custom = normalizeViews([{ ...legacy, prefs: { ...legacy.prefs, mode: 'custom', follow: 'hover' } }])[0]
     expect(custom.prefs?.mode).toBe('scroll')
   })

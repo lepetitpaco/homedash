@@ -254,7 +254,7 @@ export type SavedSplitView = {
   /**
    * Le type de la vue : « Flux » (doomscroll) ou « Messagerie », et ses deux cases (`SplitPrefs`, `splitView.ts`).
    * Absent = les réglages de Réglages → Vue scindée au moment de l'ouverture (le comportement des vues d'avant).
-   * Une vue enregistrée avant #177 (anciennes cases) : seul son mode compte (`normalizeSplit`), sans migration.
+   * Une vue enregistrée avant #177 : mode, `sync` et `actions` gardés, anciennes cases ignorées (`normalizeSplit`), sans migration.
    */
   prefs?: import('./lib/splitView').SplitPrefs
   /** Place dans la barre : juste devant ce site (`CustomTab.id`). Absent, ou site disparu = à la fin, comme avant. */

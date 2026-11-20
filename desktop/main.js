@@ -324,6 +324,7 @@ ipcMain.on('homedash:split-key', (e, k) => {
 })
 // Molette d'un panneau recopiée dans les autres (« Défilement synchronisé ») ; l'anti-écho est dans site-adapters.js.
 const wheelSync = adapters.createWheelSync()
+let wheelLead = { id: -1, at: 0 } // dernier panneau dont la molette a été relayée comme geste
 ipcMain.on('homedash:split-hover', (e, kind) => {
   if (!guests.has(e.sender.id) || splitFor(e.sender.id) === NO_SPLIT) return
   const k = kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover'
@@ -342,7 +343,11 @@ ipcMain.on('homedash:split-wheel', (e, w) => {
   if (!t) return
   // Toujours passer par wheelSync, même sans cible : c'est lui qui reconnaît (et absorbe) les échos.
   void wheelSync(from, splitConfig.ids.map((id) => webContents.fromId(id)), t.dy, t.self, t.only).then((real) => {
-    if (real) win?.webContents.send('homedash:split-hover', from, 'hover')
+    // Relayé seulement quand le panneau qui défile change (pas à chaque cran), ou au plus deux fois par seconde : une
+    // touche ou un clic a pu donner le son ailleurs entre-temps, la molette le reprend.
+    if (!real || (wheelLead.id === from && Date.now() - wheelLead.at < 500)) return
+    wheelLead = { id: from, at: Date.now() }
+    win?.webContents.send('homedash:split-hover', from, 'hover')
   })
 })
 const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft', 'pause', 'resume'])

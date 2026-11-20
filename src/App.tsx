@@ -1237,7 +1237,9 @@ export default function App() {
   /** « Ajouter une vue scindée » : crée la vue enregistrée, à la fin de la barre, et l'ouvre. */
   const createView = (v: { name: string; layout: string; slots: (string | null)[]; copies: boolean[]; kind: 'flux' | 'messagerie' }) => {
     const id = newViewId(savedViews.map((x) => x.id))
-    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, v.copies, withMode(splitDefaults, v.kind === 'flux' ? 'scroll' : 'classic'))
+    // Le mode choisi garde les cases de Réglages s'il est celui de Réglages ; sinon il prend la synchro par défaut du mode.
+    const mode = v.kind === 'flux' ? 'scroll' : 'classic'
+    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, v.copies, splitDefaults.mode === mode ? splitDefaults : withMode(splitDefaults, mode))
     writeViews((views) => [...views, view])
     setComposing(false)
     openSavedView(view)
@@ -1441,15 +1443,11 @@ export default function App() {
       if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
       const target = a.type === 'scroll' ? a.pane : 'active'
       // Maj : tous les panneaux affichés (seul l'agrandi quand il y en a un) ; J K, flèches : celui sous la souris.
-      const panes =
-        target === 'all'
-          ? s.zoom !== null
-            ? [s.zoom]
-            : Array.from({ length: n }, (_, i) => i)
-          : [typeof target === 'number' ? target : target === 'hover' ? (hoverPane.current ?? s.focus.active) : s.focus.active]
-      // Une touche de mixage est un geste sur son panneau : il prend le son (dernier geste, #177).
-      if (typeof target === 'number' && target < n && (s.focus.active !== target || s.focus.sound !== target))
-        setSplit({ ...s, focus: focusOnGesture(s.focus, target, s.prefs.mode) })
+      const one = typeof target === 'number' ? target : target === 'hover' ? (hoverPane.current ?? s.focus.active) : s.focus.active
+      const panes = target === 'all' ? (s.zoom !== null ? [s.zoom] : Array.from({ length: n }, (_, i) => i)) : [one]
+      // Une touche de mixage, J K ou une flèche est un geste sur son panneau : il prend le son (dernier geste, #177).
+      if ((typeof target === 'number' || target === 'hover') && one < n && (s.focus.active !== one || s.focus.sound !== one))
+        setSplit({ ...s, focus: focusOnGesture(s.focus, one, s.prefs.mode) })
       const op = a.type === 'scroll' ? (a.page ? (a.dir > 0 ? 'pageNext' : 'pagePrev') : a.dir > 0 ? 'next' : 'prev') : a.id
       for (const pane of panes) {
         if (pane >= n) continue

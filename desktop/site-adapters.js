@@ -263,6 +263,7 @@ function createWheelSync(now = Date.now) {
     return (await refresh(wc)) || [400, 400]
   }
   // `targets` : tous les panneaux de la vue (ce qui n'y est plus est oublié) ; `only` : ceux qui reçoivent (null = tous).
+  let lastReal = -Infinity // dernière vraie molette, tous panneaux confondus
   const forward = async (from, targets, dy, self = false, only = null) => {
     if (!Number.isFinite(dy)) return false
     const mine = echoes.get(from)
@@ -270,6 +271,7 @@ function createWheelSync(now = Date.now) {
       mine.n--
       return false
     }
+    lastReal = now()
     const live = new Set(targets.filter((t) => t && !(t.isDestroyed && t.isDestroyed())).map((t) => t.id))
     for (const id of [...sizes.keys()]) if (!live.has(id)) sizes.delete(id)
     for (const id of [...echoes.keys()]) if (!live.has(id)) echoes.delete(id)
@@ -283,7 +285,13 @@ function createWheelSync(now = Date.now) {
     return true
   }
   // La souris entre dans un panneau : ce qu'on attendait de lui comme écho est oublié (sa molette est alors la vraie).
-  forward.forget = (id) => echoes.delete(id)
+  // Sauf juste après une vraie molette (moins de 150 ms) : c'est l'élan d'un trackpad qui traverse ce panneau en
+  // passant, ses échos arrivent encore et ne doivent pas repartir. Renvoie true si oublié.
+  forward.forget = (id) => {
+    if (now() - lastReal < 150) return false
+    echoes.delete(id)
+    return true
+  }
   // homedash envoie lui-même une molette à ce panneau (touche J, N, Espace…) : elle revient comme un écho, absorbé.
   forward.expect = (id) => {
     const e = echoes.get(id)

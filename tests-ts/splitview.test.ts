@@ -18,6 +18,8 @@ import {
   FLAG_HELP,
   MODE_LABELS,
   FIELD_SELECTOR,
+  LEGACY_SPLIT_KEYS,
+  MODIFIERS_HELP,
   mixLabel,
   normalizeKeyboard,
   normalizeSplit,
@@ -46,26 +48,32 @@ const classic: SplitPrefs = withMode(DEFAULT_SPLIT, 'classic')
 const ctx = { editing: false, panes: 3 }
 
 describe('modes Messagerie / Flux et leurs deux cases (#177)', () => {
-  it('défaut : Flux, synchro et actions cochées ; changer de mode garde les cases', () => {
+  it('défaut : Flux, synchro et actions cochées ; la synchro par défaut dépend du mode', () => {
     expect(DEFAULT_SPLIT).toEqual({ mode: 'scroll', sync: true, actions: true })
-    expect(withMode({ mode: 'scroll', sync: false, actions: false }, 'classic')).toEqual({ mode: 'classic', sync: false, actions: false })
+    // changer de mode garde les actions et applique la synchro par défaut du mode
+    expect(withMode({ mode: 'scroll', sync: true, actions: false }, 'classic')).toEqual({ mode: 'classic', sync: false, actions: false })
+    expect(withMode({ mode: 'classic', sync: false, actions: true }, 'scroll')).toEqual({ mode: 'scroll', sync: true, actions: true })
   })
 
-  it('une config absente ou abîmée prend les défauts', () => {
+  it('une config absente ou abîmée prend les défauts (la synchro, celle du mode)', () => {
     expect(normalizeSplit(undefined)).toEqual(DEFAULT_SPLIT)
     expect(normalizeSplit('x')).toEqual(DEFAULT_SPLIT)
     expect(normalizeSplit({ mode: 'zzz', sync: 'oui', actions: 3 })).toEqual(DEFAULT_SPLIT)
-    expect(normalizeSplit({ mode: 'classic', sync: false })).toEqual({ mode: 'classic', sync: false, actions: true })
+    expect(normalizeSplit({ mode: 'classic' })).toEqual({ mode: 'classic', sync: false, actions: true })
+    expect(normalizeSplit({ mode: 'classic', sync: true })).toEqual({ mode: 'classic', sync: true, actions: true })
+    expect(normalizeSplit({ mode: 'scroll', sync: false })).toEqual({ mode: 'scroll', sync: false, actions: true })
   })
 
-  it('ancien format (avant #177) : seul le mode compte, les anciennes clés ne sont jamais renvoyées', () => {
+  it('ancien format (avant #177) : mode, sync et actions gardés, les clés disparues ignorées et jamais renvoyées', () => {
     const oldFlux = { mode: 'scroll', follow: 'hover', keys: true, actions: false, mixer: true, sync: false, pause: true, keep: true, keyboard: 'qwerty' }
     const oldMsg = { mode: 'classic', follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false, keep: true, keyboard: 'auto' }
-    expect(normalizeSplit(oldFlux)).toEqual({ mode: 'scroll', sync: true, actions: true })
-    expect(normalizeSplit(oldMsg)).toEqual({ mode: 'classic', sync: true, actions: true })
-    // une seule ancienne clé suffit à reconnaître l'ancien format
-    expect(normalizeSplit({ mode: 'classic', sync: false, keep: false })).toEqual({ mode: 'classic', sync: true, actions: true })
-    for (const old of [oldFlux, oldMsg]) expect(Object.keys(normalizeSplit(old)).sort()).toEqual(['actions', 'mode', 'sync'])
+    expect(normalizeSplit(oldFlux)).toEqual({ mode: 'scroll', sync: false, actions: false })
+    expect(normalizeSplit(oldMsg)).toEqual({ mode: 'classic', sync: false, actions: false })
+    for (const old of [oldFlux, oldMsg]) {
+      const keys = Object.keys(normalizeSplit(old))
+      expect(keys.sort()).toEqual(['actions', 'mode', 'sync'])
+      for (const k of LEGACY_SPLIT_KEYS) expect(keys).not.toContain(k)
+    }
     // valeurs absurdes dans les anciennes clés : rien ne casse
     expect(normalizeSplit({ follow: 12, keys: 'x', pause: null })).toEqual(DEFAULT_SPLIT)
   })
@@ -321,6 +329,10 @@ describe('étiquettes du clavier', () => {
     expect(l.long).toMatch(/sous la souris/)
     expect(splitLegend('scroll', PRESETS.qwerty, 4).short).toContain('Q / A')
     expect(splitLegend('classic', PRESETS.azerty, 2).short).toMatch(/Aucune touche/)
+    // la même phrase dans la bulle ⓘ et dans Réglages → Vue scindée
+    expect(l.long).toContain(MODIFIERS_HELP)
+    expect(MODIFIERS_HELP).toMatch(/Mac et Windows/)
+    expect(MODIFIERS_HELP).toMatch(/Maj/)
   })
 })
 

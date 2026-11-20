@@ -26,30 +26,33 @@ export type SplitPrefs = {
   actions: boolean
 }
 
-/** Synchro cochée par défaut (#177) : c'est l'usage du doomscroll à plusieurs ; elle se décoche. */
-export const DEFAULT_SPLIT: SplitPrefs = { mode: 'scroll', sync: true, actions: true }
+/**
+ * Synchro cochée par défaut en Flux (#177 : c'est l'usage du doomscroll à plusieurs), décochée en Messagerie (deux
+ * conversations n'ont pas à défiler ensemble) ; elle se change dans les deux.
+ */
+export const syncDefault = (mode: SplitMode): boolean => mode === 'scroll'
+
+export const DEFAULT_SPLIT: SplitPrefs = { mode: 'scroll', sync: syncDefault('scroll'), actions: true }
 
 /**
- * Les clés du modèle d'avant #177 (« Le son suit », raccourcis, mixage, pause, garder le son, mode Personnalisé).
- * Une vue enregistrée qui en porte une est de l'ancien format : **seul son mode compte** (décision de Paco, sans
- * migration) ; ses autres cases, `sync` comprise, reprennent les défauts. `keyboard` n'en fait pas partie : il
- * reste dans `ui.split` (Réglages), lu à part par `normalizeKeyboard`.
+ * Les clés du modèle d'avant #177 (« Le son suit », raccourcis, mixage, pause, garder le son) : ignorées à la lecture,
+ * jamais renvoyées, sans migration (décision de Paco). `sync` et `actions` gardent le même sens et sont repris tels
+ * quels. `keyboard` reste dans `ui.split` (Réglages), lu à part par `normalizeKeyboard`.
  */
-export const LEGACY_SPLIT_KEYS = ['follow', 'keys', 'mixer', 'pause', 'keep'] as const
+export const LEGACY_SPLIT_KEYS = ['follow', 'keys', 'mixer', 'pause', 'keep', 'keyboard'] as const
 
-/** Changer de mode garde les deux cases. */
+/** Changer de mode garde « Actions par site » et applique la synchro par défaut du mode. */
 export function withMode(p: SplitPrefs, mode: SplitMode): SplitPrefs {
-  return { ...p, mode }
+  return { ...p, mode, sync: syncDefault(mode) }
 }
 
 /**
- * Réglages lus dans `ui.split` ou dans une vue enregistrée : une clé absente ou absurde prend son défaut, les clés
- * d'avant #177 sont ignorées et jamais renvoyées. L'ancien « Personnalisé » n'est plus un mode : il redevient
- * Messagerie si le son était à tous (`follow: 'all'`, ce qui définissait Messagerie), sinon Flux.
+ * Réglages lus dans `ui.split` ou dans une vue enregistrée : une clé absente ou absurde prend son défaut (la synchro,
+ * celui du mode), les clés d'avant #177 sont ignorées et jamais renvoyées. L'ancien « Personnalisé » n'est plus un
+ * mode : il redevient Messagerie si le son était à tous (`follow: 'all'`, ce qui définissait Messagerie), sinon Flux.
  */
 export function normalizeSplit(raw: unknown): SplitPrefs {
   const r = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>
-  const legacy = LEGACY_SPLIT_KEYS.some((k) => Object.prototype.hasOwnProperty.call(r, k))
   const mode: SplitMode =
     r.mode === 'classic' || r.mode === 'scroll'
       ? r.mode
@@ -58,9 +61,8 @@ export function normalizeSplit(raw: unknown): SplitPrefs {
           ? 'classic'
           : 'scroll'
         : DEFAULT_SPLIT.mode
-  if (legacy) return { ...DEFAULT_SPLIT, mode }
-  const bool = (k: 'sync' | 'actions') => (typeof r[k] === 'boolean' ? (r[k] as boolean) : DEFAULT_SPLIT[k])
-  return { mode, sync: bool('sync'), actions: bool('actions') }
+  const bool = (k: string, d: boolean) => (typeof r[k] === 'boolean' ? (r[k] as boolean) : d)
+  return { mode, sync: bool('sync', syncDefault(mode)), actions: bool('actions', DEFAULT_SPLIT.actions) }
 }
 
 /** Le clavier choisi dans Réglages (`ui.split.keyboard`) : seulement les étiquettes affichées, les touches sont physiques. */
@@ -88,6 +90,13 @@ export const FLAG_HELP: { key: 'sync' | 'actions'; label: string; hint: string }
   { key: 'sync', label: 'Défilement synchronisé', hint: 'défiler un panneau à la molette fait défiler tous les autres ; Maj + molette fait l’inverse' },
   { key: 'actions', label: 'Actions par site', hint: "en Flux : L j'aime, B enregistrer, T repartager, C commenter (X, TikTok, Instagram)" },
 ]
+
+/** Sans effet en Messagerie (aucune touche n'y est prise) : la case y est grisée, avec cette aide. */
+export const ACTIONS_OFF_HINT = 'sans effet en Messagerie : aucune touche n’y est prise'
+
+/** Les modificateurs, dits pareil dans la bulle ⓘ de la vue et dans Réglages (#177). */
+export const MODIFIERS_HELP =
+  'Mêmes touches sur Mac et Windows (lues à leur place sur le clavier) : Maj (⇧) maintenu = tous les panneaux ; J K et ↓ ↑ visent le panneau sous la souris ; Maj + molette inverse le défilement synchronisé.'
 
 /** Un champ de saisie : les touches ne sont jamais prises dedans (page, sites et focus du survol). */
 export const FIELD_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
@@ -401,7 +410,8 @@ export function splitLegend(mode: SplitMode, preset: Preset, panes: number): { s
       `Alt + ${preset.digits.slice(0, panes).join(' ')} : choisir le panneau. ${ZOOM_LABEL} : agrandir. Échap : quitter.`,
       "Molette : avec le défilement synchronisé, tous les panneaux suivent ; Maj + molette fait l'inverse.",
       'Le panneau où tu agis (survol, molette, touche, clic) a le son ; les autres sont coupés et en pause.',
-      'Mêmes touches sur Mac et Windows (Maj = ⇧) ; jamais dans un champ de saisie.',
+      MODIFIERS_HELP,
+      'Jamais dans un champ de saisie.',
     ].join(' '),
   }
 }
