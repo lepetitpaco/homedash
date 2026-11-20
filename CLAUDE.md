@@ -331,6 +331,16 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   `splitView.ts`), il n'y a pas de liste de classes à tenir à jour. Un Échap tapé dans un site arrive deux fois (la page
   ferme sa couche, puis le relais du site) : le 2e est ignoré 300 ms quand une couche était ouverte. `keepOnTab` : ouvrir
   une vue depuis Réglages ou Activité change de page, et ce changement ne doit pas refermer la vue qu'on ouvre.
+- Principe de Paco : **homedash n'a pas vocation à devenir un navigateur web mais un dash avec les sites principaux.** La
+  vue scindée est pensée d'abord pour doomscroller (TikTok / X / Instagram) et suivre plusieurs messageries (Instagram +
+  Discord) ; elle peut servir ailleurs, mais ces deux usages priment. Ne pas diverger du but original : ni barre
+  d'adresse, ni historique, ni navigation libre dans les panneaux. Chaque ajout doit servir ces deux usages, sinon on le
+  signale dans l'issue au lieu de le faire (ex. un onglet temporaire dans un panneau : en attente de la réponse de Paco).
+- Vues enregistrées dans la barre (#172) : une vue est une entrée de la barre comme un site (`before` : devant quel site,
+  `folder` : dans quel dossier, `ratios` : proportions ; clés additives, absentes = à la fin, hors dossier). Il n'y a **pas
+  de vue jetable** : toute vue est enregistrée. Composition **fixe** (pas de sélecteur de site dans les panneaux) sauf en
+  mode édition (« Modifier la vue… »). La table de mixage est le défilement par défaut : elle n'enlève rien, seule la
+  touche d'agrandir passe de Z à X (Z = « panneau 2 haut » en AZERTY).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

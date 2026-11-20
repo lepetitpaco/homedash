@@ -40,7 +40,7 @@ export const SETTINGS_INDEX: SettingsEntry[] = [
   { id: 'extensions', icon: '🧩', label: 'Mes sites › Extensions', section: 'set-tabs:extensions', keywords: 'extensions navigateur chrome content script bc layout anilist manifest' },
   { id: 'bars', icon: '🧭', label: 'Barres et onglets', section: 'set-bars', keywords: 'disposition barre gauche onglets en haut pastilles soulignés masquer cacher taille icônes' },
   { id: 'display', icon: '🎛', label: 'Affichage', section: 'set-display', keywords: 'largeur page centrée colonnes densité tuiles horloge voyants écran icônes des sites favicons pour commencer' },
-  { id: 'split', icon: '◫', label: 'Vue scindée', section: 'set-split', keywords: 'scindée côte à côte plusieurs sites double écran multi-fenêtre classic scroll son souris clavier azerty qwerty mixage pause vidéos garder vue enregistrée' },
+  { id: 'split', icon: '◫', label: 'Vue scindée', section: 'set-split', keywords: 'scindée côte à côte plusieurs sites double écran multi-fenêtre classic scroll son souris clavier azerty qwerty mixage pause vidéos garder vue enregistrée ajouter une vue scindée modifier la vue mixage' },
   { id: 'notifs', icon: '🔔', label: 'Notifications', section: 'set-notifs', keywords: 'notifications bureau alertes compteur icône dock sourdine' },
   { id: 'bell-kinds', icon: '🔕', label: 'Notifications › Ce qui compte dans la cloche', section: 'set-notifs', keywords: 'cloche trop de notifications types renovate ci discret masquer compteur bruit' },
   { id: 'backups', icon: '💾', label: 'Sauvegardes', section: 'set-backups', keywords: 'sauvegarde restaurer backup export importer autre machine' },

@@ -29,7 +29,16 @@ export function normalizeViews(raw: unknown): SavedSplitView[] {
         if (Array.isArray(list) && list.length >= 2 && list.length <= SLOTS && list.every((n) => typeof n === 'number' && n > 0 && Number.isFinite(n))) ratios[path] = list as number[]
       }
     }
-    out.push({ id: r.id, name: r.name.trim().slice(0, 60), layout: layout.id, slots, ...(Object.keys(ratios).length ? { ratios } : {}) })
+    const text = (k: string) => (typeof r[k] === 'string' && r[k] ? (r[k] as string) : undefined)
+    out.push({
+      id: r.id,
+      name: r.name.trim().slice(0, 60),
+      layout: layout.id,
+      slots,
+      ...(text('before') ? { before: text('before') } : {}),
+      ...(text('folder') ? { folder: text('folder') } : {}),
+      ...(Object.keys(ratios).length ? { ratios } : {}),
+    })
   }
   return out
 }
@@ -42,6 +51,45 @@ export function newViewId(taken: string[]): string {
 }
 
 /** Une vue qu'on garde : seuls les sites (hors onglets temporaires) entrent dans ses cases. */
+/**
+ * Les vues d'un endroit de la barre : dans ce dossier (`folder`, absent = hors dossier), devant ce site (`before`,
+ * `null` = à la fin). Un dossier ou un site disparu ne perd pas la vue : elle retombe hors dossier, à la fin.
+ */
+export function viewsAt<T extends { folder?: string; before?: string }>(
+  views: T[],
+  where: { folder?: string; before: string | null },
+  known: { folders: string[]; sites: string[] },
+): T[] {
+  return views.filter((v) => {
+    const folder = v.folder && known.folders.includes(v.folder) ? v.folder : undefined
+    if (folder !== where.folder) return false
+    const before = v.before && known.sites.includes(v.before) ? v.before : null
+    return before === where.before
+  })
+}
+
+/**
+ * Place une vue : devant un site (`before`), dans un dossier (`folder`), ou à la fin hors dossier (`{}`). `beforeView` :
+ * devant une autre vue (même place, juste avant elle dans l'ordre).
+ */
+export function moveView(
+  views: SavedSplitView[],
+  id: string,
+  to: { before?: string; folder?: string; beforeView?: string },
+): SavedSplitView[] {
+  const moved = views.find((v) => v.id === id)
+  if (!moved || to.beforeView === id) return views
+  const { before: _b, folder: _f, ...rest } = moved
+  let place: Pick<SavedSplitView, 'before' | 'folder'> = { ...(to.before ? { before: to.before } : {}), ...(to.folder ? { folder: to.folder } : {}) }
+  const others = views.filter((v) => v.id !== id)
+  const anchor = to.beforeView ? others.findIndex((v) => v.id === to.beforeView) : -1
+  if (anchor >= 0) place = { ...(others[anchor].before ? { before: others[anchor].before } : {}), ...(others[anchor].folder ? { folder: others[anchor].folder } : {}) }
+  const next = { ...rest, ...place }
+  if (anchor >= 0) others.splice(anchor, 0, next)
+  else others.push(next)
+  return others
+}
+
 export function makeView(
   id: string,
   name: string,
@@ -49,13 +97,14 @@ export function makeView(
   slotKeys: (string | null)[],
   sites: CustomTab[],
   ratios?: Record<string, number[]>,
+  place?: Pick<SavedSplitView, 'before' | 'folder'>,
 ): SavedSplitView {
   const ids = new Set(sites.map((t) => t.id))
   const slots = slotKeys.map((k) => {
     const sid = k?.startsWith('x:') ? k.slice(2) : null
     return sid && ids.has(sid) ? sid : null
   })
-  return normalizeViews([{ id, name, layout, slots, ratios }])[0]
+  return normalizeViews([{ id, name, layout, slots, ratios, ...(place ?? {}) }])[0]
 }
 
 /**

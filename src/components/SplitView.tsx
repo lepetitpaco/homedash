@@ -30,9 +30,13 @@ type Props = {
   onSite: (slot: number, key: string | null) => void
   /** Nom de chaque site dans le sélecteur : « X · pro » quand il a un compte. */
   names: Record<string, string>
-  /** Vue enregistrée ouverte (son nom) : « Garder cette vue » la met alors à jour. */
-  savedName?: string
-  onSave: () => void
+  /** Mode édition d'une vue enregistrée : sélecteurs de site et dispositions visibles ; sinon la composition est fixe. */
+  editing: boolean
+  onSaveEdit: () => void
+  onCancelEdit: () => void
+  /** Proportions des séparateurs, par chemin de nœud (`''`, `'0'`, `'1'`…) ; `commit` : le séparateur est lâché. */
+  ratios: Record<string, number[]>
+  onRatios: (next: Record<string, number[]>, commit: boolean) => void
   /** Cases dont le site a été retiré de Mes sites. */
   gone: boolean[]
   prefs: SplitPrefs
@@ -56,7 +60,7 @@ type Props = {
 }
 
 /** Une disposition en miniature, dessinée avec le même arbre que la grille. */
-function Mini({ node }: { node: SplitNode }) {
+export function Mini({ node }: { node: SplitNode }) {
   if (node === 'pane') return <i />
   return (
     <span className={`split-mini is-${node.dir}`}>
@@ -74,7 +78,7 @@ export default function SplitView(p: Props) {
   const bodies = useRef<(HTMLDivElement | null)[]>([])
   const lastRects = useRef('')
   const rectsNow = useRef<(Rect | null)[]>([])
-  const [ratios, setRatios] = useState<Record<string, number[]>>({})
+  const ratios = p.ratios
   const [dragging, setDragging] = useState(false)
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
   const lay = layoutOf(p.layout)
@@ -167,12 +171,16 @@ export default function SplitView(p: Props) {
           <span className="split-num" aria-hidden="true">
             {i + 1}
           </span>
-          <Pick
-            value={key ?? ''}
-            options={siteOptions(i)}
-            onChange={(v) => p.onSite(i, v || null)}
-            title="Site de ce panneau"
-          />
+          {p.editing ? (
+            <Pick value={key ?? ''} options={siteOptions(i)} onChange={(v) => p.onSite(i, v || null)} title="Site de ce panneau" />
+          ) : (
+            // Vue enregistrée : la composition est fixe, le site s'affiche sans pouvoir être changé d'ici.
+            <span className="split-site" title={key ? (p.names[key] ?? site?.label) : undefined}>
+              {site?.color ? <span className="pick-dot" style={{ background: site.color }} /> : null}
+              {site?.icon ? <span className="pick-icon" aria-hidden="true">{site.icon}</span> : null}
+              <span className="split-site-name">{key ? (p.names[key] ?? site?.label ?? '') : '—'}</span>
+            </span>
+          )}
           {key ? (
             <span
               className={`split-sound${plays && p.audible[key] ? ' is-on' : ''}`}
@@ -207,8 +215,8 @@ export default function SplitView(p: Props) {
 
   const renderNode = (node: SplitNode, path: string): React.ReactNode => {
     if (node === 'pane') return renderPane(slot++)
-    const id = `${lay.id}:${path}`
-    const r = ratios[id] ?? node.ratios
+    const id = path
+    const r = ratios[id] && ratios[id].length === node.children.length ? ratios[id] : node.ratios
     const parts: React.ReactNode[] = []
     node.children.forEach((c, i) => {
       parts.push(
@@ -231,12 +239,15 @@ export default function SplitView(p: Props) {
               const base = r
               el.setPointerCapture(e.pointerId)
               setDragging(true)
+              let latest = ratios
               const move = (ev: PointerEvent) => {
                 const d = ((node.dir === 'row' ? ev.clientX : ev.clientY) - start) / size
-                setRatios((all) => ({ ...all, [id]: dragRatios(base, i, d) }))
+                latest = { ...ratios, [id]: dragRatios(base, i, d) }
+                p.onRatios(latest, false)
               }
               const up = () => {
                 setDragging(false)
+                p.onRatios(latest, true)
                 el.removeEventListener('pointermove', move)
                 el.removeEventListener('pointerup', up)
                 el.removeEventListener('pointercancel', up)
@@ -265,7 +276,7 @@ export default function SplitView(p: Props) {
   // Les raccourcis du mode : en toutes lettres quand il y a la place, sinon dans la bulle de ⓘ.
   const legendText = p.prefs.keys
     ? p.prefs.mixer
-      ? `Mixage (remplace J K, N P, Z et les actions) : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}`
+      ? `Défiler : ${p.preset.mix.slice(0, lay.n).map((_, i) => `${i + 1} : ${mixLabel(p.preset, i)}`).join('  ·  ')}  ·  Alt + chiffre : panneau  ·  X : agrandir`
       : `Alt + ${p.preset.digits.slice(0, lay.n).join(' ')} : changer de panneau  ·  J K : défiler  ·  Z : agrandir`
     : "Aucune touche interceptée : tu tapes dans les sites comme d'habitude."
   const legendEl = <span className="split-legend">{legendText}</span>
@@ -287,6 +298,7 @@ export default function SplitView(p: Props) {
             </button>
           ))}
         </div>
+        {p.editing ? (
         <div className="split-group" role="group" aria-label="Disposition">
           {LAYOUTS.map((l) => (
             <button
@@ -301,6 +313,7 @@ export default function SplitView(p: Props) {
             </button>
           ))}
         </div>
+        ) : null}
         <div className="split-group">
           <Pick
             value={p.prefs.follow}
@@ -325,12 +338,20 @@ export default function SplitView(p: Props) {
           <span className="split-info" role="img" aria-label={legendText} title={legendText}>
             ⓘ
           </span>
-          <button className="split-chip" onClick={p.onSave} title={p.savedName ? `Mettre à jour la vue « ${p.savedName} »` : 'Garder cette vue dans la barre de gauche, avec son compteur'}>
-            {p.savedName ? 'Mettre à jour' : 'Garder cette vue'}
-          </button>
-          <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
-            Fermer
-          </button>
+          {p.editing ? (
+            <>
+              <button className="split-chip" onClick={p.onSaveEdit} title="Enregistrer la composition de cette vue">
+                Enregistrer
+              </button>
+              <button className="split-chip" onClick={p.onCancelEdit} title="Annuler les changements de cette vue">
+                Annuler
+              </button>
+            </>
+          ) : (
+            <button className="split-chip" onClick={p.onClose} title="Fermer la vue scindée (en mode Scroll : Échap)">
+              Fermer
+            </button>
+          )}
         </div>
         {menu
           ? createPortal(

@@ -324,3 +324,26 @@
   min-width: 0;
   max-width: 100%;
 }
+.split-site {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+.split-site-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 600;
+}
+.svc-slots {
+  display: grid;
+  gap: 8px;
+  margin: 10px 0;
+}
+.svc-slot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}

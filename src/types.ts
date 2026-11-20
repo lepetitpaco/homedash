@@ -237,6 +237,10 @@ export type SavedSplitView = {
   ratios?: Record<string, number[]>
   /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
   slots: (string | null)[]
+  /** Place dans la barre : juste devant ce site (`CustomTab.id`). Absent, ou site disparu = à la fin, comme avant. */
+  before?: string
+  /** Dossier de la barre (`tabFolders[].id`) ; absent, ou dossier disparu = hors dossier. */
+  folder?: string
 }
 
 /**

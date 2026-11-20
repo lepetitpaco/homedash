@@ -288,6 +288,9 @@ export function validateConfig(cfg: unknown): string | null {
       seen.add(f.id as string)
       // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
       if (key === 'splitViews') {
+        for (const field of ['before', 'folder']) {
+          if (f[field] !== undefined && f[field] !== null && !isStr(f[field])) return `splitViews[${i}].${field} doit être un texte`
+        }
         if (String(f.name).length > 60) return `splitViews[${i}].name trop long (60 caractères au plus)`
         const ratios = f.ratios
         if (ratios !== undefined && ratios !== null) {

@@ -15,3 +15,11 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 ## paco/fix/build-dev-vite
 
 - `build-local.sh` relance `homedash-dev` après le build (page noire, 504 Vite) — #159
+
+## paco/feature/vues-scindees-ajouter
+
+- **Ajouter une vue scindée** (menu Ajouter) crée une vue enregistrée dans la barre de gauche, comme un site ; le bouton ◫ de la barre du haut disparaît ; plus de vue « jetable ». Touche : Mes sites.
+- Les vues se placent où on veut dans la barre (glisser entre les sites, dans ou hors d'un dossier) : clés `before` et `folder` de `splitViews` (additives, une vue sans position reste à la fin).
+- Composition fixe d'une vue enregistrée (plus de sélecteur de site dans les panneaux) ; clic droit → *Modifier la vue…* (sélecteurs, puis Enregistrer / Annuler). Proportions des séparateurs gardées.
+- Table de mixage (A/Q, Z/S, E/D, R/F) cochée par défaut en Scroll, sans rien retirer aux autres touches ; agrandir passe de Z à X quand elle est cochée.
+

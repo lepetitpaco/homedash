@@ -28,8 +28,6 @@ type Props = {
   unread?: React.ReactNode
   /** Site affiché : le bouton du mode focus (issue #144). */
   focus?: { on: boolean; toggle: () => void }
-  /** Appli de bureau, deux sites ou plus : la vue scindée (issue #160). */
-  split?: { on: boolean; toggle: () => void }
 }
 
 /** Où CustomTabView place l'en-tête du site affiché (une rangée de moins). */
@@ -63,7 +61,6 @@ export default function TopBar({
   site = false,
   unread,
   focus,
-  split,
 }: Props) {
   const now = useClock(showClock)
   const barRef = useRef<HTMLElement>(null)
@@ -130,17 +127,6 @@ export default function TopBar({
             <strong>{time}</strong>
             <em>{date}</em>
           </div>
-        ) : null}
-        {split ? (
-          <button
-            className={`icon-btn focus-btn${split.on ? ' is-on' : ''}`}
-            onClick={split.toggle}
-            title={split.on ? 'Fermer la vue scindée' : 'Vue scindée : plusieurs sites côte à côte dans un seul onglet'}
-            aria-label={split.on ? 'Fermer la vue scindée' : 'Vue scindée'}
-            aria-pressed={split.on}
-          >
-            ◫
-          </button>
         ) : null}
         {focus ? (
           <button

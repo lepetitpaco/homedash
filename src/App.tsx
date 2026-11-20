@@ -39,12 +39,12 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
-import { droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
+import { moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
+import SplitViewComposer from './components/SplitViewComposer'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
   LAYER_SELECTOR,
   pauseWanted,
-  DEFAULT_SPLIT_LAYOUT,
   FIELD_SELECTOR,
   SPACE_KEEPS,
   isEditing,
@@ -139,8 +139,6 @@ const readPref = (key: string) => {
     return null
   }
 }
-/** Dernière disposition de la vue scindée (propre à cet écran) : rouverte telle quelle. */
-const SPLIT_LAST_KEY = 'homedash:split-last'
 const writePref = (key: string, value: string) => {
   try {
     localStorage.setItem(key, value)
@@ -1128,7 +1126,7 @@ export default function App() {
   // ── vue scindée (issue #160) ──────────────────────────────────────────────
   // Plusieurs sites côte à côte : les sites déjà vivants sont posés en grille par CSS (`tile`), jamais
   // rechargés. Les réglages (`ui.split`) donnent le départ ; ceux de la barre de la vue ne durent que la vue.
-  type SplitState = { viewId?: string; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
+  type SplitState = { viewId?: string; editing?: boolean; ratios: Record<string, number[]>; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
   const [split, setSplit] = useState<SplitState | null>(null)
   const splitRef = useRef(split)
   splitRef.current = split
@@ -1187,22 +1185,6 @@ export default function App() {
   useEffect(() => {
     if (!split) setSplitRects([])
   }, [!!split]) // eslint-disable-line react-hooks/exhaustive-deps
-  const openSplit = () => {
-    leavePage()
-    const embeds = allTabs.filter((t) => t.embed).map(tabKey)
-    let last: { layout?: string; slots?: unknown } = {}
-    try {
-      last = JSON.parse(readPref(SPLIT_LAST_KEY) ?? '{}')
-    } catch {
-      /* préférence illisible : disposition par défaut */
-    }
-    const layout = layoutOf(typeof last.layout === 'string' ? last.layout : DEFAULT_SPLIT_LAYOUT)
-    const kept = Array.isArray(last.slots) ? last.slots.map((k) => (typeof k === 'string' && (embeds as string[]).includes(k) ? k : null)) : []
-    // Les sites récents d'abord ; celui qu'on regarde en tête.
-    const slots = assignSites(kept, layout.n, orderSites(recentSites.current, embeds))
-    setSplitNotes([null, null, null, null])
-    setSplit({ gone: [false, false, false, false], layout: layout.id, slots, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
-  }
   // Vues enregistrées (#169) : lues dans la config, jamais d'erreur si la clé manque.
   const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
   const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
@@ -1210,43 +1192,54 @@ export default function App() {
     leavePage()
     const { keys, gone } = viewSlots(v, embedSites)
     setSplitNotes([null, null, null, null])
-    setSplit({ viewId: v.id, gone, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
+    setSplit({ viewId: v.id, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs: splitDefaults, focus: { active: 0, sound: splitDefaults.follow === 'all' ? null : 0 } })
   }
-  /** « Garder cette vue » : une nouvelle vue (nom demandé), ou la mise à jour de celle qui est ouverte. */
   const rawRef = useRef(raw)
   rawRef.current = raw
-  const saveView = async () => {
-    const s = splitRef.current
-    if (!s || !rawRef.current) return
-    // Un onglet temporaire ou un container Docker n'est pas un site de Mes sites : il n'est jamais gardé, on le dit.
-    const dropped = droppedSlots(s.slots.slice(0, layoutOf(s.layout).n), embedSites)
-    if (dropped.length) {
-      const ok = await confirmDialog({
-        title: 'Garder cette vue ?',
-        body: [
-          `${dropped.length > 1 ? 'Les panneaux' : 'Le panneau'} ${dropped.map((i) => i + 1).join(', ')} ne ${dropped.length > 1 ? 'seront' : 'sera'} pas gardé${dropped.length > 1 ? 's' : ''} : un onglet temporaire ou un container Docker n'est jamais enregistré.`,
-          `${dropped.length > 1 ? 'Ils reviendront vides' : 'Il reviendra vide'} à l'ouverture de la vue.`,
-        ],
-        confirmLabel: 'Garder quand même',
-      })
-      if (!ok) return
-    }
-    const views0 = normalizeViews(rawRef.current?.splitViews)
-    const cur = s.viewId ? views0.find((v) => v.id === s.viewId) : undefined
-    let name = cur?.name
-    if (!name) {
-      const r = await askNameColor({ title: 'Garder cette vue', okLabel: 'Garder', noColor: true, name: `Vue ${views0.length + 1}`, hint: 'Elle apparaît dans la barre de gauche, avec le compteur de ses sites.' })
-      if (!r) return
-      name = r.name
-    }
-    // La config a pu changer pendant qu'on attendait la réponse : on repart de la version d'aujourd'hui.
+  const [composing, setComposing] = useState(false)
+  /** Écrit la liste des vues dans la config d'aujourd'hui (relue : elle a pu changer pendant une attente). */
+  const writeViews = (f: (views: typeof savedViews) => typeof savedViews) => {
     const now = rawRef.current
-    if (!now) return
-    const views = normalizeViews(now.splitViews)
-    const id = cur?.id ?? newViewId(views.map((v) => v.id))
-    const view = makeView(id, name, s.layout, s.slots, embedSites)
-    persist({ ...now, splitViews: views.some((v) => v.id === id) ? views.map((v) => (v.id === id ? view : v)) : [...views, view] })
-    setSplit((x) => (x ? { ...x, viewId: id } : x))
+    if (now) persist({ ...now, splitViews: f(normalizeViews(now.splitViews)) })
+  }
+  /** Les cases qu'une vue ne gardera pas (onglet temporaire, container Docker) : on le dit avant d'enregistrer. */
+  const confirmDropped = async (slots: (string | null)[], layout: string) => {
+    const dropped = droppedSlots(slots.slice(0, layoutOf(layout).n), embedSites)
+    if (!dropped.length) return true
+    return confirmDialog({
+      title: 'Enregistrer la vue ?',
+      body: [
+        `${dropped.length > 1 ? 'Les panneaux' : 'Le panneau'} ${dropped.map((i) => i + 1).join(', ')} ne ${dropped.length > 1 ? 'seront' : 'sera'} pas gardé${dropped.length > 1 ? 's' : ''} : un onglet temporaire ou un container Docker n'est jamais enregistré.`,
+        `${dropped.length > 1 ? 'Ils reviendront vides' : 'Il reviendra vide'} à l'ouverture de la vue.`,
+      ],
+      confirmLabel: 'Enregistrer quand même',
+    })
+  }
+  /** « Ajouter une vue scindée » : crée la vue enregistrée, à la fin de la barre, et l'ouvre. */
+  const createView = (v: { name: string; layout: string; slots: (string | null)[] }) => {
+    const id = newViewId(savedViews.map((x) => x.id))
+    const view = makeView(id, v.name, v.layout, v.slots, embedSites)
+    writeViews((views) => [...views, view])
+    setComposing(false)
+    openSavedView(view)
+  }
+  /** Mode édition : Enregistrer garde la disposition, les sites et les proportions de la vue ouverte. */
+  const saveEdit = async () => {
+    const s = splitRef.current
+    const cur = s?.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
+    if (!s || !cur) return
+    if (!(await confirmDropped(s.slots, s.layout))) return
+    const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder })
+    writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
+    setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites).gone } : x))
+  }
+  const cancelEdit = () => {
+    const cur = splitRef.current?.viewId ? savedViews.find((v) => v.id === splitRef.current?.viewId) : undefined
+    if (cur) openSavedView(cur)
+  }
+  const editView = (v: (typeof savedViews)[number]) => {
+    openSavedView(v)
+    setSplit((x) => (x ? { ...x, editing: true } : x))
   }
   const viewMenu = (e: React.MouseEvent, v: (typeof savedViews)[number]) => {
     e.preventDefault()
@@ -1255,6 +1248,7 @@ export default function App() {
       y: e.clientY,
       title: v.name,
       items: [
+        { icon: '⚙', label: 'Modifier la vue…', onSelect: () => editView(v) },
         {
           icon: '✎',
           label: 'Renommer',
@@ -1290,14 +1284,6 @@ export default function App() {
     setVisited((v) => (splitShown.every((k) => v.includes(k)) ? v : [...v, ...splitShown.filter((k) => !v.includes(k))]))
     setAsleep((a) => (a.some((k) => splitShown.includes(k)) ? a.filter((k) => !splitShown.includes(k)) : a))
   }, [splitShownKey]) // eslint-disable-line react-hooks/exhaustive-deps
-  useEffect(() => {
-    if (!split) return
-    try {
-      writePref(SPLIT_LAST_KEY, JSON.stringify({ layout: split.layout, slots: split.slots }))
-    } catch {
-      /* stockage indisponible */
-    }
-  }, [split?.layout, splitShownKey]) // eslint-disable-line react-hooks/exhaustive-deps
   // Quitter vers une autre page ou lancer une recherche ferme la vue.
   useEffect(() => {
     if (keepOnTab.current) {
@@ -1931,6 +1917,7 @@ export default function App() {
       title: 'Barre de gauche',
       items: [
         { icon: '＋', label: 'Ajouter un site', onSelect: addTab },
+        ...(hasSplitView && embedSites.length > 1 ? [{ icon: '◫', label: 'Ajouter une vue scindée', onSelect: () => setComposing(true) }] : []),
         { icon: '⧉', label: 'Nouvel onglet temporaire', onSelect: () => newTemp(at) },
         ...(temps.length
           ? [{ icon: '✕', label: 'Fermer tous les onglets temporaires', hint: `${temps.length}`, onSelect: closeAllTemps }]
@@ -2617,7 +2604,6 @@ export default function App() {
       <TopBar
         site={view.startsWith('x:')}
         focus={view.startsWith('x:') && !split ? { on: focus, toggle: toggleFocus } : undefined}
-        split={hasSplitView && splitSites.length > 1 ? { on: !!split, toggle: () => (split ? closeSplit() : openSplit()) } : undefined}
         unread={(() => {
           // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
           // Rien à lire = rien d'affiché ; pas de réglage.
@@ -2765,9 +2751,12 @@ export default function App() {
             selectTab(key)
           }}
           onAdd={addTab}
+          onViewMove={(id, to) => writeViews((vs) => moveView(vs, id, to))}
           views={savedViews.map((v) => ({
             id: v.id,
             name: v.name,
+            folder: v.folder,
+            before: v.before,
             counter: viewCounter(v, tabCounts, embedSites),
             open: split?.viewId === v.id,
             onOpen: () => openSavedView(v),
@@ -2904,6 +2893,7 @@ export default function App() {
             setSplit({
               ...split,
               layout: id,
+              ratios: {},
               zoom: null,
               slots: assignSites(split.slots, n, orderSites(recentSites.current, embeds)),
               focus: { ...split.focus, active: Math.min(split.focus.active, n - 1), sound: split.focus.sound !== null && split.focus.sound >= n ? 0 : split.focus.sound },
@@ -2912,8 +2902,16 @@ export default function App() {
           slots={split.slots}
           sites={splitSites}
           names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
-          savedName={split.viewId ? savedViews.find((v) => v.id === split.viewId)?.name : undefined}
-          onSave={() => void saveView()}
+          editing={!!split.editing}
+          onSaveEdit={() => void saveEdit()}
+          onCancelEdit={cancelEdit}
+          ratios={split.ratios}
+          onRatios={(next, commit) => {
+            setSplit((x) => (x ? { ...x, ratios: next } : x))
+            // Les proportions d'une vue enregistrée se gardent au lâcher du séparateur (en édition : à Enregistrer).
+            const cur = split.viewId ? savedViews.find((v) => v.id === split.viewId) : undefined
+            if (commit && cur && !split.editing) writeViews((vs) => vs.map((v) => (v.id === cur.id ? { ...v, ratios: next } : v)))
+          }}
           gone={split.gone}
           onSite={(slot, key) => {
             const slots = [...split.slots]
@@ -3229,11 +3227,24 @@ export default function App() {
       <NameColorHost />
       <IssueHost />
       <TrIssueHost />
+      {composing ? (
+        <SplitViewComposer
+          sites={splitSites.filter((x) => embedSites.some((t) => tabKey(t) === x.key))}
+          names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
+          recent={recentSites.current}
+          onCreate={createView}
+          onClose={() => setComposing(false)}
+        />
+      ) : null}
       {adding ? (
         <AddTabDialog
           folders={tabFolders}
           sessions={desktop && hasSessions ? tabSessions : []}
           onClose={() => setAdding(false)}
+          onSplit={hasSplitView && embedSites.length > 1 ? () => {
+            setAdding(false)
+            setComposing(true)
+          } : undefined}
           onMore={(t) => {
             if (!t) return addTabInSettings()
             const id = newTabId(allTabs.map((x) => x.id))

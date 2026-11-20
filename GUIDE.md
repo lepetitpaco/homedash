@@ -168,14 +168,23 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 
 ## ◫ Vue scindée
 
-*Appli de bureau.* Le bouton **◫** de la barre du haut (visible dès que tu as deux sites) affiche **2 à 4 sites côte à
-côte dans un seul onglet** : une grille de panneaux, chacun avec le site que tu choisis (le titre du panneau est un
-menu). Les sites sont ceux déjà ouverts dans homedash, avec leur connexion : **rien n'est rechargé**, et en fermant
-la vue (*Fermer*, `Échap` en mode Scroll, ou en ouvrant une autre page) chaque site retrouve sa place. Un site affiché ne se met
-pas en veille. La barre de la vue propose 6 dispositions (2 colonnes, 2 lignes, 3 colonnes, 1 grand et 2 petits,
-2 par 2, 4 colonnes) ; **glisse un séparateur** pour redimensionner ; **double-clic sur le titre** (ou `Z` en mode Scroll)
-agrandit un panneau. La dernière disposition et ses sites sont mémorisés automatiquement (dans ce navigateur) et
-rouverts à la prochaine ouverture ; la position des séparateurs n'est pas gardée.
+*Appli de bureau.* Pour **doomscroller plusieurs flux en parallèle** (TikTok, X, Instagram) ou **suivre plusieurs
+messageries** (Instagram et Discord) : **2 à 4 sites côte à côte dans un seul onglet**. homedash reste un dash avec
+tes sites principaux, pas un navigateur : pas de barre d'adresse, pas de navigation libre dans les panneaux.
+
+**Créer une vue** : *Ajouter* (＋ de la barre de gauche, ou clic droit sur la barre) → **Ajouter une vue scindée** : un
+nom, une disposition (2 colonnes, 2 lignes, 3 colonnes, 1 grand et 2 petits, 2 par 2, 4 colonnes) et le site de chaque
+panneau (avec le nom du compte quand un même site en a plusieurs : « X · pro », « X · perso » ; un compte déjà pris par
+un autre panneau est grisé). La vue apparaît **dans la barre de gauche comme un site** : **glisse-la** où tu veux,
+entre tes sites, dans ou hors d'un dossier. Un clic l'ouvre. Il n'y a pas de vue « jetable » : toute vue est
+enregistrée, et se supprime au clic droit.
+
+Les sites sont ceux déjà ouverts dans homedash, avec leur connexion : **rien n'est rechargé**. La composition d'une vue
+est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
+(sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
+les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `Z` en mode Scroll) l'agrandit. En fermant la
+vue (*Fermer*, `Échap` en mode Scroll, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
+ne se met pas en veille.
 
 Deux **modes**, un clic dans la barre (*Classic*, *Scroll*), et au départ dans *Réglages → Vue scindée* :
 
@@ -188,17 +197,14 @@ Deux **modes**, un clic dans la barre (*Classic*, *Scroll*), et au départ dans 
 Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : en changer une donne *Personnalisé*, et
 recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
 *Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
-raccourcis les décoche ; **la table de mixage remplace J K, N P, Z et les actions** tant qu'elle est cochée, car leurs
-lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
+raccourcis les décoche ; **la table de mixage est cochée en Scroll** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
 *Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
 
-**Garder une vue** : *Garder cette vue* (barre de la vue) demande un nom et range la vue dans la barre de gauche, sous
-tes sites, avec son icône ◫ et un compteur (la somme de ceux de ses sites). Un clic l'ouvre (mêmes sites vivants, rien
-n'est rechargé ; quand tu la fermes, seul le site qui reste affiché reprend ses vidéos et son, les sites garés restent en pause jusqu'à ce que tu les affiches), le clic droit propose *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Ouverte, le
-bouton devient *Mettre à jour* (le nom de la vue est dans sa bulle). Une vue garde ses sites et sa disposition ; si tu supprimes un site de *Mes
-sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker n'est jamais gardé (homedash te le dit avant d'enregistrer ; son panneau revient vide). Quand un
-même site existe avec plusieurs comptes, le menu d'un panneau les distingue (« X · pro », « X · perso ») et grise celui
-qu'un autre panneau de la vue utilise déjà.
+**Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
+qui reste affiché reprend ses vidéos et son ; les sites garés restent en pause jusqu'à ce que tu les affiches. Le clic
+droit propose *Modifier la vue…*, *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Si tu supprimes un
+site de *Mes sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker
+n'entre pas dans une vue (homedash te le dit avant d'enregistrer ; son panneau revient vide).
 
 **Clavier** (mode Scroll, ou raccourcis cochés ; **en Classic, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
 chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
@@ -208,10 +214,10 @@ chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
 | `Alt` + `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY) | Panneau 1 à 4 : il prend les touches (et le son si celui-ci suit le clavier) |
 | `J` `K` ou `↓` `↑` | Défiler le panneau actif d'un cran (une carte sur TikTok, Reels) |
 | `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente |
-| `Z` | Agrandir / restaurer le panneau actif |
+| `Z` (`X` avec la table de mixage) | Agrandir / restaurer le panneau actif |
 | `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
 | `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant |
-| *Table de mixage* (remplace J K, N P, Z et les actions) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main |
+| *Table de mixage* (défaut en Scroll) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main ; les autres touches restent actives sur le panneau actif |
 
 Chaque touche = une action de ta part : homedash ne boucle jamais, ne lit ni ne collecte rien des pages.
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
-import { droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
+import { moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
 const tab = (id: string, label: string, session?: string): CustomTab => ({ id, label, url: `https://${id}.example`, embed: true, session })
@@ -91,5 +91,36 @@ describe('vues scindées enregistrées (#169)', () => {
     expect(v([{ id: 'a', name: 'n' }, { id: 'a', name: 'm' }])).toMatch(/double/)
     expect(v([{ id: 'a', name: 'n', slots: [1] }])).toMatch(/slots/)
     expect(v([{ id: 'a', name: 'n', slots: ['a', 'b', 'c', 'd', 'e'] }])).toMatch(/slots/)
+  })
+
+  it('une ancienne config (vues sans position) se charge telle quelle : à la fin, hors dossier', () => {
+    const old = [{ id: 'sv-1', name: 'Flux', layout: 'c2', slots: ['x-a', 'x-b'] }]
+    const views = normalizeViews(old)
+    expect(views[0].before).toBeUndefined()
+    expect(views[0].folder).toBeUndefined()
+    expect(viewsAt(views, { before: null }, { folders: [], sites: ['x-a'] })).toHaveLength(1)
+    expect(normalizeViews(views)).toEqual(views)
+  })
+
+  it('placer une vue : devant un site, dans un dossier, à la fin ; un site ou dossier disparu la remet à la fin', () => {
+    const v = normalizeViews([
+      { id: 'a', name: 'A', layout: 'c2', slots: [] },
+      { id: 'b', name: 'B', layout: 'c2', slots: [] },
+    ])
+    const known = { folders: ['f1'], sites: ['x-a', 'x-b'] }
+    const m1 = moveView(v, 'b', { before: 'x-a' })
+    expect(viewsAt(m1, { before: 'x-a' }, known).map((x) => x.id)).toEqual(['b'])
+    const m2 = moveView(m1, 'b', { folder: 'f1' })
+    expect(viewsAt(m2, { folder: 'f1', before: null }, known).map((x) => x.id)).toEqual(['b'])
+    expect(viewsAt(m2, { before: null }, known).map((x) => x.id)).toEqual(['a'])
+    // devant une autre vue : même place, juste avant elle
+    const m3 = moveView(moveView(v, 'a', { before: 'x-b' }), 'b', { beforeView: 'a' })
+    expect(viewsAt(m3, { before: 'x-b' }, known).map((x) => x.id)).toEqual(['b', 'a'])
+    // dossier supprimé / site supprimé : la vue n'est pas perdue
+    expect(viewsAt(m2, { before: null }, { folders: [], sites: [] }).map((x) => x.id).sort()).toEqual(['a', 'b'])
+    expect(viewsAt(m1, { before: null }, { folders: [], sites: [] }).map((x) => x.id).sort()).toEqual(['a', 'b'])
+    // la place passe par la sauvegarde / restauration comme le reste (validée par le serveur)
+    expect(validateConfig({ groups: [], splitViews: m2 })).toBeNull()
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', before: 4 }] })).toMatch(/before/)
   })
 })
