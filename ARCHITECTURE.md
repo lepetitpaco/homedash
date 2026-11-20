@@ -40,7 +40,7 @@ src/
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell, BcStats, WhatsNew…) ; IssueComposer :
                           la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
-                          splitView (vue scindée : modes, dispositions, son, pause, clavier AZERTY / QWERTY), splitViews (vues scindées gardées : `config.splitViews`, sans migration), SplitView.tsx / SetSplit.tsx (la vue et ses Réglages), tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
+                          splitView (vue scindée : modes, dispositions, son, pause, clavier AZERTY / QWERTY), splitViews (vues scindées gardées : `config.splitViews`, sans migration), SplitView.tsx / SplitViewComposer.tsx / SetSplit.tsx (la vue, sa fenêtre « Ajouter une vue scindée » et ses Réglages ; les copies du type Flux sont des webviews de plus sur la même partition, posées sur l'emplacement de leur panneau), tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
                           dockerTabs (lignes Docker), settingsIndex (ce que la recherche trouve dans Réglages),
                           issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats),
                           bellPrefs (ce qui compte dans la cloche), unreadSites (non-lus près de la cloche),
