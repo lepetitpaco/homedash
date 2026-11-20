@@ -264,9 +264,9 @@ function watchFocusKey(wc) {
 
 // ── Vue scindée (issue #160) ────────────────────────────────────────────────
 // La page dit ce qui est ouvert et quelles touches intercepter (table tirée de src/lib/splitView.ts) ; les sites
-// (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou raccourcis
-// décochés (Classic) : table vide, les sites ne retiennent ni ne relaient rien.
-const NO_SPLIT = { open: false, table: { keys: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false, ids: [] }
+// (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou Messagerie :
+// table vide, les sites ne retiennent ni ne relaient rien.
+const NO_SPLIT = { open: false, table: { codes: [], shift: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false, ids: [] }
 let splitConfig = NO_SPLIT
 // Un site hors de la grille ne retient rien : il reçoit la config « fermée ».
 const splitFor = (id) => (splitConfig.open && splitConfig.ids.includes(id) ? splitConfig : NO_SPLIT)
@@ -300,7 +300,7 @@ ipcMain.on('homedash:split-config', (e, cfg) => {
   splitConfig = cfg && cfg.open
     ? {
         open: true,
-        table: { keys: list(t.keys), alt: list(t.alt), relay: list(t.relay) },
+        table: { codes: list(t.codes), shift: list(t.shift), alt: list(t.alt), relay: list(t.relay) },
         // Champ de saisie : la même liste que la page (splitView.ts), pour les sites et pour le focus du survol.
         field: typeof cfg.field === 'string' ? cfg.field.slice(0, 300) : '',
         spaceKeep: typeof cfg.spaceKeep === 'string' ? cfg.spaceKeep.slice(0, 200) : '',
@@ -322,15 +322,33 @@ ipcMain.on('homedash:split-key', (e, k) => {
     alt: !!k.alt,
   })
 })
-ipcMain.on('homedash:split-hover', (e, kind) => {
-  if (guests.has(e.sender.id) && splitFor(e.sender.id) !== NO_SPLIT) win?.webContents.send('homedash:split-hover', e.sender.id, kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover')
-})
-// Molette d'un panneau recopiée dans les autres (« Scroll synchronisé ») ; l'anti-écho est dans site-adapters.js.
+// Molette d'un panneau recopiée dans les autres (« Défilement synchronisé ») ; l'anti-écho est dans site-adapters.js.
 const wheelSync = adapters.createWheelSync()
-ipcMain.on('homedash:split-wheel', (e, dy) => {
+let wheelLead = { id: -1, at: 0 } // dernier panneau dont la molette a été relayée comme geste
+ipcMain.on('homedash:split-hover', (e, kind) => {
+  if (!guests.has(e.sender.id) || splitFor(e.sender.id) === NO_SPLIT) return
+  const k = kind === 'pick' ? 'pick' : kind === 'leave' ? 'leave' : 'hover'
+  // La souris entre dans ce panneau (`enter`) : ses échos en attente sont oubliés, sa vraie molette ne doit pas être
+  // prise pour un écho (sinon, juste après avoir défilé un autre panneau, celui-ci ne pilotait plus rien : #177).
+  if (kind === 'enter') wheelSync.forget(e.sender.id)
+  win?.webContents.send('homedash:split-hover', e.sender.id, k)
+})
+// Synchro cochée : tous les panneaux suivent ; Maj inverse (#177). Une vraie molette (pas un écho) est un geste : en
+// Flux, ce panneau prend le son (relayé comme un survol). `sideways` : Maj a rendu la molette horizontale dans ce
+// panneau, il reçoit donc lui aussi la molette verticale.
+ipcMain.on('homedash:split-wheel', (e, w) => {
   const from = e.sender.id
-  if (splitFor(from) === NO_SPLIT || !splitConfig.sync) return
-  void wheelSync(from, splitConfig.ids.map((id) => webContents.fromId(id)), dy)
+  if (splitFor(from) === NO_SPLIT) return
+  const t = adapters.wheelTargets(splitConfig.sync, w, from)
+  if (!t) return
+  // Toujours passer par wheelSync, même sans cible : c'est lui qui reconnaît (et absorbe) les échos.
+  void wheelSync(from, splitConfig.ids.map((id) => webContents.fromId(id)), t.dy, t.self, t.only).then((real) => {
+    // Relayé seulement quand le panneau qui défile change (pas à chaque cran), ou au plus deux fois par seconde : une
+    // touche ou un clic a pu donner le son ailleurs entre-temps, la molette le reprend.
+    if (!real || (wheelLead.id === from && Date.now() - wheelLead.at < 500)) return
+    wheelLead = { id: from, at: Date.now() }
+    win?.webContents.send('homedash:split-hover', from, 'hover')
+  })
 })
 const SPLIT_OPS = new Set(['next', 'prev', 'pageNext', 'pagePrev', 'like', 'save', 'share', 'comment', 'focus', 'focusSoft', 'pause', 'resume'])
 // Une action de la vue scindée sur un panneau (scroll, touche native ou clic du site). Résout true si faite.
@@ -357,7 +375,7 @@ ipcMain.handle('homedash:split-do', async (e, msg) => {
     return g.focus(), true
   }
   try {
-    return await adapters.run(g, op, { before: (name) => announcePass(g, name), field: splitConfig.field })
+    return await adapters.run(g, op, { before: (name) => announcePass(g, name), field: splitConfig.field, wheel: (w) => wheelSync.expect(w.id) })
   } catch {
     return false
   }

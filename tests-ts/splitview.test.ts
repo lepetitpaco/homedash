@@ -2,89 +2,95 @@ import { describe, expect, it } from 'vitest'
 import {
   DEFAULT_SPLIT,
   LAYOUTS,
+  MIX_CODES,
   PRESETS,
-  PROFILES,
-  applyProfile,
   assignSites,
   detectKeyboard,
-  detectProfile,
   dragRatios,
   effectiveMuted,
   effectivePaused,
   pauseWanted,
   LAYER_SELECTOR,
-  focusOnHover,
-  focusOnLeave,
-  focusOnPick,
+  focusOnGesture,
   interceptTable,
   layoutOf,
   isEditing,
   FLAG_HELP,
   MODE_LABELS,
   FIELD_SELECTOR,
+  LEGACY_SPLIT_KEYS,
+  MODIFIERS_HELP,
   mixLabel,
+  normalizeKeyboard,
   normalizeSplit,
-  patchPrefs,
   presetOf,
   resolveKey,
+  splitLegend,
+  withMode,
+  type Focus,
   type KeyEvt,
   type SplitNode,
   type SplitPrefs,
 } from '../src/lib/splitView'
 
-const ev = (key: string, over: Partial<KeyEvt> = {}): KeyEvt => ({
-  key,
-  code: '',
+/** Une touche par sa place (`code`) ; `key` n'est qu'une étiquette, que la vue ne lit pas (sauf Échap). */
+const ev = (code: string, over: Partial<KeyEvt> = {}): KeyEvt => ({
+  key: '',
+  code,
   shift: false,
   alt: false,
   ctrl: false,
   meta: false,
   ...over,
 })
-const scroll: SplitPrefs = applyProfile(DEFAULT_SPLIT, 'scroll')
-const plain: SplitPrefs = patchPrefs(applyProfile(DEFAULT_SPLIT, 'scroll'), { mixer: false })
-const classic: SplitPrefs = applyProfile(DEFAULT_SPLIT, 'classic')
+const flux: SplitPrefs = withMode(DEFAULT_SPLIT, 'scroll')
+const classic: SplitPrefs = withMode(DEFAULT_SPLIT, 'classic')
 const ctx = { editing: false, panes: 3 }
 
-describe('modes Classic / Scroll et cases à cocher', () => {
-  it('les cases d’un préréglage donnent son mode', () => {
-    expect(detectProfile(PROFILES.classic)).toBe('classic')
-    expect(detectProfile(PROFILES.scroll)).toBe('scroll')
-    expect(classic.mode).toBe('classic')
-    expect(scroll.mode).toBe('scroll')
+describe('modes Messagerie / Flux et leurs deux cases (#177)', () => {
+  it('défaut : Flux, synchro et actions cochées ; la synchro par défaut dépend du mode', () => {
+    expect(DEFAULT_SPLIT).toEqual({ mode: 'scroll', sync: true, actions: true })
+    // changer de mode garde les actions et applique la synchro par défaut du mode
+    expect(withMode({ mode: 'scroll', sync: true, actions: false }, 'classic')).toEqual({ mode: 'classic', sync: false, actions: false })
+    expect(withMode({ mode: 'classic', sync: false, actions: true }, 'scroll')).toEqual({ mode: 'scroll', sync: true, actions: true })
   })
 
-  it('Classic : tous les sons, aucun raccourci', () => {
-    expect(classic).toMatchObject({ follow: 'all', keys: false, actions: false, mixer: false, sync: false })
-  })
-
-  it('modifier une case donne « Personnalisé », recliquer le mode restaure le préréglage', () => {
-    const custom = patchPrefs(scroll, { sync: true })
-    expect(custom.mode).toBe('custom')
-    expect(applyProfile(custom, 'scroll')).toMatchObject({ mode: 'scroll', sync: false })
-    expect(applyProfile(custom, 'classic').mode).toBe('classic')
-    expect(patchPrefs(custom, { sync: false }).mode).toBe('scroll')
-  })
-
-  it('actions et mixage activent les raccourcis ; les décocher décoche les deux', () => {
-    expect(patchPrefs(classic, { actions: true }).keys).toBe(true)
-    expect(patchPrefs(classic, { mixer: true }).keys).toBe(true)
-    const all = patchPrefs(scroll, { mixer: true })
-    expect(all).toMatchObject({ keys: true, actions: true, mixer: true })
-    expect(patchPrefs(all, { keys: false })).toMatchObject({ keys: false, actions: false, mixer: false })
-  })
-
-  it('changer le clavier ou « garder le son » ne change pas le mode', () => {
-    expect(patchPrefs(scroll, { keyboard: 'qwerty', keep: false }).mode).toBe('scroll')
-  })
-
-  it('une config ancienne ou abîmée prend les défauts', () => {
+  it('une config absente ou abîmée prend les défauts (la synchro, celle du mode)', () => {
     expect(normalizeSplit(undefined)).toEqual(DEFAULT_SPLIT)
     expect(normalizeSplit('x')).toEqual(DEFAULT_SPLIT)
-    expect(normalizeSplit({ follow: 'zzz', keys: 'oui', keyboard: 12 })).toEqual(DEFAULT_SPLIT)
-    expect(normalizeSplit({ mode: 'classic' })).toMatchObject({ mode: 'classic', follow: 'all', keys: false })
-    expect(normalizeSplit({ keys: false, actions: true, mixer: true })).toMatchObject({ keys: false, actions: false, mixer: false })
-    expect(normalizeSplit({ ...scroll, sync: true }).mode).toBe('custom')
+    expect(normalizeSplit({ mode: 'zzz', sync: 'oui', actions: 3 })).toEqual(DEFAULT_SPLIT)
+    expect(normalizeSplit({ mode: 'classic' })).toEqual({ mode: 'classic', sync: false, actions: true })
+    expect(normalizeSplit({ mode: 'classic', sync: true })).toEqual({ mode: 'classic', sync: true, actions: true })
+    expect(normalizeSplit({ mode: 'scroll', sync: false })).toEqual({ mode: 'scroll', sync: false, actions: true })
+  })
+
+  it('ancien format (avant #177) : mode, sync et actions gardés, les clés disparues ignorées et jamais renvoyées', () => {
+    const oldFlux = { mode: 'scroll', follow: 'hover', keys: true, actions: false, mixer: true, sync: false, pause: true, keep: true, keyboard: 'qwerty' }
+    const oldMsg = { mode: 'classic', follow: 'all', keys: false, actions: false, mixer: false, sync: false, pause: false, keep: true, keyboard: 'auto' }
+    expect(normalizeSplit(oldFlux)).toEqual({ mode: 'scroll', sync: false, actions: false })
+    expect(normalizeSplit(oldMsg)).toEqual({ mode: 'classic', sync: false, actions: false })
+    for (const old of [oldFlux, oldMsg]) {
+      const keys = Object.keys(normalizeSplit(old))
+      expect(keys.sort()).toEqual(['actions', 'mode', 'sync'])
+      for (const k of LEGACY_SPLIT_KEYS) expect(keys).not.toContain(k)
+    }
+    // valeurs absurdes dans les anciennes clés : rien ne casse
+    expect(normalizeSplit({ follow: 12, keys: 'x', pause: null })).toEqual(DEFAULT_SPLIT)
+  })
+
+  it('l’ancien « Personnalisé » redevient Messagerie si le son était à tous, sinon Flux', () => {
+    expect(normalizeSplit({ mode: 'custom', follow: 'all', keys: false }).mode).toBe('classic')
+    expect(normalizeSplit({ mode: 'custom', follow: 'hover', keys: true }).mode).toBe('scroll')
+    expect(normalizeSplit({ mode: 'custom', follow: 'keyboard' }).mode).toBe('scroll')
+    expect(normalizeSplit({ mode: 'custom' }).mode).toBe('scroll')
+  })
+
+  it('le clavier (Réglages seulement) se lit à part, ancien format compris', () => {
+    expect(normalizeKeyboard({ keyboard: 'qwerty', follow: 'hover' })).toBe('qwerty')
+    expect(normalizeKeyboard({ keyboard: 'azerty' })).toBe('azerty')
+    expect(normalizeKeyboard({ keyboard: 12 })).toBe('auto')
+    expect(normalizeKeyboard(undefined)).toBe('auto')
+    expect(normalizeSplit({ keyboard: 'qwerty' })).toEqual(DEFAULT_SPLIT)
   })
 })
 
@@ -112,23 +118,23 @@ describe('dispositions', () => {
   })
 })
 
-describe('son', () => {
+describe('son : le dernier geste gagne (#177)', () => {
   const shown = ['x:a', 'x:b', 'x:c']
-  const split = (over = {}) => ({ open: true, follow: 'hover' as const, shown, sound: 'x:b', ...over })
+  const split = (over = {}) => ({ open: true, mode: 'scroll' as const, shown, sound: 'x:b', ...over })
 
-  it('Scroll : un seul panneau a le son', () => {
+  it('Flux : un seul panneau a le son', () => {
     expect(effectiveMuted('x:a', false, split())).toBe(true)
     expect(effectiveMuted('x:b', false, split())).toBe(false)
     expect(effectiveMuted('x:c', false, split())).toBe(true)
   })
 
-  it('Classic (tous les sons) : aucun muet automatique', () => {
-    for (const k of shown) expect(effectiveMuted(k, false, split({ follow: 'all' }))).toBe(false)
+  it('Messagerie (tous les sons) : aucun muet automatique', () => {
+    for (const k of shown) expect(effectiveMuted(k, false, split({ mode: 'classic' }))).toBe(false)
   })
 
   it('le muet manuel prime toujours', () => {
     expect(effectiveMuted('x:b', true, split())).toBe(true)
-    expect(effectiveMuted('x:a', true, split({ follow: 'all' }))).toBe(true)
+    expect(effectiveMuted('x:a', true, split({ mode: 'classic' }))).toBe(true)
     expect(effectiveMuted('x:a', true, split({ open: false }))).toBe(true)
   })
 
@@ -137,182 +143,167 @@ describe('son', () => {
     expect(effectiveMuted('x:z', false, split())).toBe(false)
   })
 
-  it('personne n’a le son : tout est coupé', () => {
-    expect(effectiveMuted('x:a', false, split({ sound: null }))).toBe(true)
+  it('Flux : chaque geste (survol, molette, touche, clic) donne le son et le panneau actif, le dernier gagne', () => {
+    let f: Focus = { active: 0, sound: 0 }
+    f = focusOnGesture(f, 2, 'scroll') // survol du panneau 3
+    expect(f).toEqual({ active: 2, sound: 2 })
+    f = focusOnGesture(f, 1, 'scroll') // touche de mixage du panneau 2
+    expect(f).toEqual({ active: 1, sound: 1 })
+    f = focusOnGesture(f, 0, 'scroll') // molette ou clic sur le panneau 1
+    expect(f).toEqual({ active: 0, sound: 0 })
   })
 
-  it('le survol donne le son ; à la sortie il reste ou se coupe', () => {
-    const f = { active: 0, sound: 0 }
-    expect(focusOnHover(f, 2, 'hover')).toEqual({ active: 2, sound: 2 })
-    expect(focusOnHover(f, 2, 'keyboard')).toEqual(f)
-    expect(focusOnHover(f, 2, 'all')).toEqual(f)
-    expect(focusOnLeave({ active: 2, sound: 2 }, 'hover', true)).toEqual({ active: 2, sound: 2 })
-    expect(focusOnLeave({ active: 2, sound: 2 }, 'hover', false)).toEqual({ active: 2, sound: null })
-    expect(focusOnLeave({ active: 2, sound: 2 }, 'keyboard', false)).toEqual({ active: 2, sound: 2 })
-  })
-
-  it('« Garder le son » décoché : la sortie coupe, revenir sur le même panneau le rend', () => {
-    const out = focusOnLeave({ active: 1, sound: 1 }, 'hover', false)
-    expect(out).toEqual({ active: 1, sound: null })
-    expect(focusOnHover(out, 1, 'hover')).toEqual({ active: 1, sound: 1 })
-    // coché : le son reste au dernier panneau
-    expect(focusOnLeave({ active: 1, sound: 1 }, 'hover', true).sound).toBe(1)
-  })
-
-  it('un clic ou Alt+chiffre donne le son, sauf quand tous l’ont', () => {
-    expect(focusOnPick({ active: 0, sound: 0 }, 1, 'keyboard')).toEqual({ active: 1, sound: 1 })
-    expect(focusOnPick({ active: 0, sound: 0 }, 1, 'hover')).toEqual({ active: 1, sound: 1 })
-    expect(focusOnPick({ active: 0, sound: null }, 1, 'all')).toEqual({ active: 1, sound: null })
+  it('Messagerie : le geste change le panneau actif, jamais le son (tous l’ont)', () => {
+    expect(focusOnGesture({ active: 0, sound: null }, 1, 'classic')).toEqual({ active: 1, sound: null })
   })
 })
 
 describe('pause des vidéos (#168)', () => {
   const shown = ['x:a', 'x:b']
-  it('Scroll : seul le panneau qui a le son lit ; il suit le son, « garder » compris', () => {
-    expect(effectivePaused('x:a', scroll, shown, 'x:a')).toBe(false)
-    expect(effectivePaused('x:b', scroll, shown, 'x:a')).toBe(true)
-    // la souris sort et le son se coupe (garder décoché) : tout est en pause, comme le son
-    expect(effectivePaused('x:a', scroll, shown, null)).toBe(true)
+  it('Flux : toujours, seul le panneau qui a le son lit', () => {
+    expect(effectivePaused('x:a', 'scroll', shown, 'x:a')).toBe(false)
+    expect(effectivePaused('x:b', 'scroll', shown, 'x:a')).toBe(true)
+    expect(effectivePaused('x:a', 'scroll', shown, null)).toBe(true)
   })
-  it('Classic et « tous les sons » : rien n’est touché ; hors de la grille non plus', () => {
-    expect(classic.pause).toBe(false)
-    expect(effectivePaused('x:b', classic, shown, 'x:a')).toBe(false)
-    expect(effectivePaused('x:b', patchPrefs(scroll, { follow: 'all' }), shown, 'x:a')).toBe(false)
-    expect(effectivePaused('x:z', scroll, shown, 'x:a')).toBe(false)
-  })
-  it('c’est une case du mode : la décocher donne Personnalisé', () => {
-    expect(scroll.pause).toBe(true)
-    expect(patchPrefs(scroll, { pause: false }).mode).toBe('custom')
-    expect(normalizeSplit({ mode: 'scroll' }).pause).toBe(true)
-    expect(normalizeSplit({ mode: 'classic' }).pause).toBe(false)
-    expect(normalizeSplit({ pause: 'oui' }).pause).toBe(DEFAULT_SPLIT.pause)
+  it('Messagerie : jamais ; hors de la grille non plus', () => {
+    expect(effectivePaused('x:b', 'classic', shown, 'x:a')).toBe(false)
+    expect(effectivePaused('x:z', 'scroll', shown, 'x:a')).toBe(false)
   })
 })
 
-describe('clavier : touche + préréglage → action', () => {
-  const az = PRESETS.azerty
-  const qw = PRESETS.qwerty
+describe('clavier : touche physique → action', () => {
+  const r = (e: KeyEvt, p: SplitPrefs = flux, panes = 3) => resolveKey(e, p, { editing: false, panes })
 
-  it('Classic : aucune touche n’est interceptée', () => {
-    for (const key of ['j', 'k', 'l', 'z', 'n', ' ', 'ArrowDown', 'Escape']) {
-      expect(resolveKey(ev(key), classic, az, ctx)).toBeNull()
+  it('Messagerie : aucune touche n’est interceptée', () => {
+    for (const code of ['KeyJ', 'KeyK', 'KeyL', 'KeyX', 'KeyN', 'Space', 'ArrowDown', 'Escape', 'KeyQ']) {
+      expect(r(ev(code), classic)).toBeNull()
+      expect(r(ev(code, { shift: true }), classic)).toBeNull()
     }
-    expect(resolveKey(ev('&', { alt: true, code: 'Digit1' }), classic, az, ctx)).toBeNull()
-    expect(interceptTable(classic, az, 3)).toEqual({ keys: [], alt: [], relay: [] })
+    expect(r(ev('Digit1', { alt: true }), classic)).toBeNull()
+    expect(interceptTable(classic, 4)).toEqual({ codes: [], shift: [], alt: [], relay: [] })
   })
 
   it('jamais dans un champ de saisie', () => {
-    expect(resolveKey(ev('j'), scroll, az, { editing: true, panes: 3 })).toBeNull()
-    expect(resolveKey(ev('&', { alt: true, code: 'Digit1' }), scroll, az, { editing: true, panes: 3 })).toBeNull()
-    expect(resolveKey(ev('Escape'), scroll, az, { editing: true, panes: 3 })).toBeNull()
+    expect(resolveKey(ev('KeyJ'), flux, { editing: true, panes: 3 })).toBeNull()
+    expect(resolveKey(ev('KeyQ', { shift: true }), flux, { editing: true, panes: 3 })).toBeNull()
+    expect(resolveKey(ev('Digit1', { alt: true }), flux, { editing: true, panes: 3 })).toBeNull()
+    expect(resolveKey(ev('Escape'), flux, { editing: true, panes: 3 })).toBeNull()
   })
 
-  it('Alt + rangée du haut suit la touche physique, en AZERTY comme en QWERTY', () => {
-    // AZERTY : la touche Digit1 porte « & » (ou « ¡ » avec Alt sur Mac) ; c'est le code qui compte
-    for (const p of [az, qw]) {
-      expect(resolveKey(ev('&', { alt: true, code: 'Digit1' }), scroll, p, ctx)).toEqual({ type: 'focus', pane: 0 })
-      expect(resolveKey(ev('¡', { alt: true, code: 'Digit2' }), scroll, p, ctx)).toEqual({ type: 'focus', pane: 1 })
-      expect(resolveKey(ev("'", { alt: true, code: 'Digit4' }), scroll, p, { editing: false, panes: 4 })).toEqual({ type: 'focus', pane: 3 })
-    }
-    expect(resolveKey(ev('1', { alt: true, code: 'Digit1' }), scroll, qw, ctx)).toEqual({ type: 'focus', pane: 0 })
+  it('Alt + rangée du haut suit la touche physique (le caractère varie : « & », « ¡ » sur Mac)', () => {
+    expect(r(ev('Digit1', { alt: true, key: '&' }))).toEqual({ type: 'focus', pane: 0 })
+    expect(r(ev('Digit2', { alt: true, key: '¡' }))).toEqual({ type: 'focus', pane: 1 })
+    expect(r(ev('Numpad3', { alt: true }))).toEqual({ type: 'focus', pane: 2 })
+    expect(r(ev('Digit4', { alt: true }), flux, 4)).toEqual({ type: 'focus', pane: 3 })
   })
 
   it('Alt + chiffre au-delà des panneaux, avec Maj ou Ctrl : rien', () => {
-    expect(resolveKey(ev('4', { alt: true, code: 'Digit4' }), scroll, qw, ctx)).toBeNull()
-    expect(resolveKey(ev('1', { alt: true, shift: true, code: 'Digit1' }), scroll, qw, ctx)).toBeNull()
-    expect(resolveKey(ev('1', { alt: true, ctrl: true, code: 'Digit1' }), scroll, qw, ctx)).toBeNull()
+    expect(r(ev('Digit4', { alt: true }))).toBeNull()
+    expect(r(ev('Digit1', { alt: true, shift: true }))).toBeNull()
+    expect(r(ev('Digit1', { alt: true, ctrl: true }))).toBeNull()
   })
 
-  it('J/K, flèches, N/P, Espace, Z, Échap', () => {
-    const r = (e: KeyEvt) => resolveKey(e, scroll, az, ctx)
-    expect(r(ev('j'))).toEqual({ type: 'scroll', pane: null, dir: 1, page: false })
-    expect(r(ev('K'))).toEqual({ type: 'scroll', pane: null, dir: -1, page: false })
-    expect(r(ev('ArrowDown'))).toEqual({ type: 'scroll', pane: null, dir: 1, page: false })
-    expect(r(ev('ArrowUp'))).toEqual({ type: 'scroll', pane: null, dir: -1, page: false })
-    expect(r(ev('n'))).toEqual({ type: 'scroll', pane: null, dir: 1, page: true })
-    expect(r(ev('p'))).toEqual({ type: 'scroll', pane: null, dir: -1, page: true })
-    expect(r(ev(' '))).toEqual({ type: 'scroll', pane: null, dir: 1, page: true })
-    expect(r(ev(' ', { shift: true }))).toEqual({ type: 'scroll', pane: null, dir: -1, page: true })
-    expect(r(ev('x'))).toEqual({ type: 'zoom' })
-    expect(r(ev('Escape'))).toEqual({ type: 'leave' })
-    // sans la table de mixage, agrandir reste Z
-    expect(resolveKey(ev('z'), plain, az, ctx)).toEqual({ type: 'zoom' })
-    expect(resolveKey(ev('x'), plain, az, ctx)).toBeNull()
-  })
-
-  it('actions par site : L B T C, seulement si cochées', () => {
-    expect(resolveKey(ev('l'), scroll, az, ctx)).toEqual({ type: 'site', id: 'like' })
-    expect(resolveKey(ev('b'), scroll, az, ctx)).toEqual({ type: 'site', id: 'save' })
-    expect(resolveKey(ev('t'), scroll, az, ctx)).toEqual({ type: 'site', id: 'share' })
-    expect(resolveKey(ev('c'), scroll, az, ctx)).toEqual({ type: 'site', id: 'comment' })
-    // « Suivre » (F) est retiré tant que les sélecteurs ne sont pas vérifiés (#166) : la touche reste au site
-    expect(resolveKey(ev('f'), scroll, az, ctx)).toBeNull()
-    const noActions = patchPrefs(scroll, { actions: false })
-    expect(resolveKey(ev('l'), noActions, az, ctx)).toBeNull()
-    expect(resolveKey(ev('j'), noActions, az, ctx)).not.toBeNull()
-  })
-
-  it('une touche avec Ctrl ou ⌘ n’est jamais prise (copier, coller…)', () => {
-    expect(resolveKey(ev('c', { ctrl: true }), scroll, az, ctx)).toBeNull()
-    expect(resolveKey(ev('l', { meta: true }), scroll, az, ctx)).toBeNull()
-  })
-
-  it('table de mixage : A/Q Z/S E/D R/F en AZERTY, Q/A W/S E/D R/F en QWERTY', () => {
-    const mix = patchPrefs(scroll, { mixer: true })
-    const r = (key: string, p = az) => resolveKey(ev(key), mix, p, { editing: false, panes: 4 })
-    expect(r('a')).toEqual({ type: 'scroll', pane: 0, dir: -1, page: false })
-    expect(r('q')).toEqual({ type: 'scroll', pane: 0, dir: 1, page: false })
-    expect(r('z')).toEqual({ type: 'scroll', pane: 1, dir: -1, page: false })
-    expect(r('s')).toEqual({ type: 'scroll', pane: 1, dir: 1, page: false })
-    expect(r('r')).toEqual({ type: 'scroll', pane: 3, dir: -1, page: false })
-    expect(r('f')).toEqual({ type: 'scroll', pane: 3, dir: 1, page: false })
-    // QWERTY : les mêmes positions physiques, d'où des lettres différentes
-    expect(r('q', qw)).toEqual({ type: 'scroll', pane: 0, dir: -1, page: false })
-    expect(r('a', qw)).toEqual({ type: 'scroll', pane: 0, dir: 1, page: false })
-    expect(r('w', qw)).toEqual({ type: 'scroll', pane: 1, dir: -1, page: false })
-    // le mixage n'enlève rien : J K, N P, flèches, actions restent ; seul Z devient X (Z = panneau 2 haut en AZERTY)
-    expect(r('j')).toEqual({ type: 'scroll', pane: null, dir: 1, page: false })
-    expect(r('n')).toEqual({ type: 'scroll', pane: null, dir: 1, page: true })
-    expect(r('l')).toEqual({ type: 'site', id: 'like' })
-    expect(r('x')).toEqual({ type: 'zoom' })
-    expect(r('x', qw)).toEqual({ type: 'zoom' })
-    expect(r('z', qw)).toBeNull()
-    expect(r('Escape')).toEqual({ type: 'leave' })
-    expect(resolveKey(ev('1', { alt: true, code: 'Digit1' }), mix, az, ctx)).toEqual({ type: 'focus', pane: 0 })
-    // un panneau absent n'a pas ses touches
-    expect(resolveKey(ev('e'), mix, az, { editing: false, panes: 2 })).toBeNull()
-  })
-
-  it('aucune collision entre la table de mixage et le reste, dans les deux claviers', () => {
-    for (const p of [az, qw]) {
-      const mixKeys = p.mix.flat()
-      const others = ['j', 'k', 'n', 'p', 'l', 'b', 't', 'c', ' ', 'ArrowDown', 'ArrowUp', 'x']
-      for (const k of mixKeys) expect(others, `${p.name} ${k}`).not.toContain(k)
-      // chaque touche du mixage défile le panneau prévu, chaque autre touche garde son rôle
-      for (const k of others) {
-        const mixed = resolveKey(ev(k), scroll, p, { editing: false, panes: 4 })
-        const alone = resolveKey(ev(k), plain, p, { editing: false, panes: 4 })
-        expect(mixed, `${p.name} ${k}`).toEqual(alone ?? (k === 'x' ? { type: 'zoom' } : null))
-      }
+  it('Ctrl et ⌘ ne sont jamais pris (copier, coller…), avec ou sans Maj', () => {
+    for (const code of ['KeyC', 'KeyL', 'KeyQ', 'KeyJ', 'ArrowDown']) {
+      expect(r(ev(code, { ctrl: true }))).toBeNull()
+      expect(r(ev(code, { meta: true }))).toBeNull()
+      expect(r(ev(code, { meta: true, shift: true }))).toBeNull()
     }
   })
 
-  it('la table du préload se tire de resolveKey', () => {
-    const t = interceptTable(plain, az, 3)
-    expect(t.keys).toEqual(expect.arrayContaining(['j', 'k', 'n', 'p', 'z', 'l', 'b', 't', 'c', 'arrowdown', 'arrowup', ' ']))
-    expect(t.keys).not.toContain('a')
-    expect(t.keys).not.toContain('f')
+  it('table de mixage, toujours en Flux : un seul panneau, dans le sens de la touche', () => {
+    const r4 = (code: string) => r(ev(code), flux, 4)
+    expect(r4('KeyQ')).toEqual({ type: 'scroll', pane: 0, dir: -1, page: false })
+    expect(r4('KeyA')).toEqual({ type: 'scroll', pane: 0, dir: 1, page: false })
+    expect(r4('KeyW')).toEqual({ type: 'scroll', pane: 1, dir: -1, page: false })
+    expect(r4('KeyS')).toEqual({ type: 'scroll', pane: 1, dir: 1, page: false })
+    expect(r4('KeyE')).toEqual({ type: 'scroll', pane: 2, dir: -1, page: false })
+    expect(r4('KeyD')).toEqual({ type: 'scroll', pane: 2, dir: 1, page: false })
+    expect(r4('KeyR')).toEqual({ type: 'scroll', pane: 3, dir: -1, page: false })
+    expect(r4('KeyF')).toEqual({ type: 'scroll', pane: 3, dir: 1, page: false })
+    // un panneau absent n'a pas ses touches
+    expect(r(ev('KeyR'), flux, 3)).toBeNull()
+  })
+
+  it('Maj + touche de mixage : tous les panneaux, dans le sens de la touche', () => {
+    expect(r(ev('KeyQ', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: -1, page: false })
+    expect(r(ev('KeyS', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: 1, page: false })
+  })
+
+  it('les étiquettes AZERTY / QWERTY tombent sur les mêmes touches physiques', () => {
+    // place → lettre de chaque clavier, pour les touches du mixage
+    const layout = {
+      azerty: { KeyQ: 'a', KeyA: 'q', KeyW: 'z', KeyS: 's', KeyE: 'e', KeyD: 'd', KeyR: 'r', KeyF: 'f' },
+      qwerty: { KeyQ: 'q', KeyA: 'a', KeyW: 'w', KeyS: 's', KeyE: 'e', KeyD: 'd', KeyR: 'r', KeyF: 'f' },
+    } as const
+    for (const kb of ['azerty', 'qwerty'] as const) {
+      MIX_CODES.forEach(([up, down], i) => {
+        expect(PRESETS[kb].mix[i], `${kb} ${i}`).toEqual([layout[kb][up as keyof (typeof layout)[typeof kb]], layout[kb][down as keyof (typeof layout)[typeof kb]]])
+      })
+    }
+  })
+
+  it('J K et flèches : le panneau sous la souris ; Maj : tous', () => {
+    expect(r(ev('KeyJ'))).toEqual({ type: 'scroll', pane: 'hover', dir: 1, page: false })
+    expect(r(ev('KeyK'))).toEqual({ type: 'scroll', pane: 'hover', dir: -1, page: false })
+    expect(r(ev('ArrowDown'))).toEqual({ type: 'scroll', pane: 'hover', dir: 1, page: false })
+    expect(r(ev('ArrowUp'))).toEqual({ type: 'scroll', pane: 'hover', dir: -1, page: false })
+    expect(r(ev('ArrowDown', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: 1, page: false })
+    expect(r(ev('KeyK', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: -1, page: false })
+  })
+
+  it('N P, Espace (Maj + Espace = page précédente), X, Échap', () => {
+    expect(r(ev('KeyN'))).toEqual({ type: 'scroll', pane: 'active', dir: 1, page: true })
+    expect(r(ev('KeyP'))).toEqual({ type: 'scroll', pane: 'active', dir: -1, page: true })
+    expect(r(ev('KeyN', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: 1, page: true })
+    expect(r(ev('Space'))).toEqual({ type: 'scroll', pane: 'active', dir: 1, page: true })
+    expect(r(ev('Space', { shift: true }))).toEqual({ type: 'scroll', pane: 'active', dir: -1, page: true })
+    expect(r(ev('KeyX'))).toEqual({ type: 'zoom' })
+    expect(r(ev('KeyZ'))).toBeNull()
+    expect(r(ev('Escape'))).toEqual({ type: 'leave' })
+    expect(r(ev('', { key: 'Escape' }))).toEqual({ type: 'leave' })
+  })
+
+  it('actions par site : L B T C seulement si cochées, jamais avec Maj (pas de « J\'aime » à tous)', () => {
+    expect(r(ev('KeyL'))).toEqual({ type: 'site', id: 'like' })
+    expect(r(ev('KeyB'))).toEqual({ type: 'site', id: 'save' })
+    expect(r(ev('KeyT'))).toEqual({ type: 'site', id: 'share' })
+    expect(r(ev('KeyC'))).toEqual({ type: 'site', id: 'comment' })
+    expect(r(ev('KeyL', { shift: true }))).toBeNull()
+    expect(r(ev('KeyX', { shift: true }))).toBeNull()
+    const noActions = { ...flux, actions: false }
+    expect(r(ev('KeyL'), noActions)).toBeNull()
+    expect(r(ev('KeyJ'), noActions)).not.toBeNull()
+  })
+
+  it('les lettres se lisent par la place, jamais par le caractère (Maj, Alt sur Mac)', () => {
+    expect(r(ev('KeyJ', { key: 'J' }))).toEqual(r(ev('KeyJ', { key: 'j' })))
+    // la touche qui porte « j » ailleurs ne compte pas : seule la place compte
+    expect(r(ev('KeyY', { key: 'j' }))).toBeNull()
+  })
+
+  it('aucune collision entre la table de mixage et le reste', () => {
+    const others = ['KeyJ', 'KeyK', 'KeyN', 'KeyP', 'KeyL', 'KeyB', 'KeyT', 'KeyC', 'Space', 'ArrowDown', 'ArrowUp', 'KeyX', 'Escape']
+    for (const code of MIX_CODES.flat()) expect(others).not.toContain(code)
+  })
+
+  it('la table du préload se tire de resolveKey, Maj comprise', () => {
+    const t = interceptTable(flux, 3)
+    expect(t.codes).toEqual(
+      expect.arrayContaining(['KeyQ', 'KeyA', 'KeyW', 'KeyS', 'KeyE', 'KeyD', 'KeyJ', 'KeyK', 'KeyN', 'KeyP', 'KeyX', 'KeyL', 'KeyB', 'KeyT', 'KeyC', 'ArrowDown', 'ArrowUp', 'Space']),
+    )
+    expect(t.codes).not.toContain('KeyR') // 3 panneaux
+    expect(t.codes).not.toContain('KeyZ')
+    expect(t.shift).toEqual(expect.arrayContaining(['KeyQ', 'KeyA', 'KeyJ', 'KeyK', 'ArrowDown', 'ArrowUp', 'KeyN', 'KeyP', 'Space']))
+    expect(t.shift).not.toContain('KeyL')
+    expect(t.shift).not.toContain('KeyX')
     expect(t.alt).toEqual(['Digit1', 'Numpad1', 'Digit2', 'Numpad2', 'Digit3', 'Numpad3'])
     expect(t.relay).toEqual(['escape'])
-    const m = interceptTable(scroll, qw, 4)
-    expect(m.keys).toEqual(expect.arrayContaining(['q', 'a', 'w', 's', 'e', 'd', 'r', 'f', 'j', 'x']))
-    expect(m.keys).not.toContain('z')
-    // Classic : rien
-    expect(interceptTable(classic, qw, 4).keys).toEqual([])
+    expect(interceptTable({ ...flux, actions: false }, 3).codes).not.toContain('KeyL')
   })
 })
 
-describe('préréglage clavier', () => {
+describe('étiquettes du clavier', () => {
   it('Automatique : KeyQ qui vaut q = QWERTY, sinon AZERTY (repli compris)', () => {
     expect(detectKeyboard('q')).toBe('qwerty')
     expect(detectKeyboard('a')).toBe('azerty')
@@ -327,13 +318,29 @@ describe('préréglage clavier', () => {
     expect(mixLabel(PRESETS.qwerty, 1)).toBe('W / S')
     expect(mixLabel(PRESETS.qwerty, 9)).toBe('')
   })
+
+  it('la légende dit les touches, Maj, la molette et « pareil sur Mac et Windows »', () => {
+    const l = splitLegend('scroll', PRESETS.azerty, 2)
+    expect(l.short).toContain('A / Q')
+    expect(l.short).toContain('Maj')
+    expect(l.short).not.toContain('E / D')
+    expect(l.long).toMatch(/Mac et Windows/)
+    expect(l.long).toMatch(/Maj \+ molette/)
+    expect(l.long).toMatch(/sous la souris/)
+    expect(splitLegend('scroll', PRESETS.qwerty, 4).short).toContain('Q / A')
+    expect(splitLegend('classic', PRESETS.azerty, 2).short).toMatch(/Aucune touche/)
+    // la même phrase dans la bulle ⓘ et dans Réglages → Vue scindée
+    expect(l.long).toContain(MODIFIERS_HELP)
+    expect(MODIFIERS_HELP).toMatch(/Mac et Windows/)
+    expect(MODIFIERS_HELP).toMatch(/Maj/)
+  })
 })
 
 describe('libellés partagés et champs de saisie', () => {
-  it('chaque case a son aide, et la table de mixage dit ce qu’elle remplace', () => {
-    expect(FLAG_HELP.map((f) => f.key)).toEqual(['keys', 'actions', 'mixer', 'sync', 'pause', 'keep'])
-    expect(FLAG_HELP.find((f) => f.key === 'mixer')?.hint).toMatch(/X/)
-    expect(MODE_LABELS.map((m) => m.id)).toEqual(['classic', 'scroll', 'custom'])
+  it('deux modes, deux cases, chacune avec son aide', () => {
+    expect(MODE_LABELS.map((m) => m.id)).toEqual(['classic', 'scroll'])
+    expect(FLAG_HELP.map((f) => f.key)).toEqual(['sync', 'actions'])
+    expect(FLAG_HELP.find((f) => f.key === 'sync')?.hint).toMatch(/Maj/)
   })
 
   it('un champ de saisie : sélecteur ou contenteditable', () => {
@@ -346,7 +353,7 @@ describe('libellés partagés et champs de saisie', () => {
 })
 
 describe('pause et fermeture de la vue (#168)', () => {
-  const base = { prefs: { pause: true, follow: 'hover' as const }, sound: 'x:1', tab: 'links' }
+  const base = { mode: 'scroll' as const, sound: 'x:1', tab: 'links' }
   it('vue A [1,2] fermée sans site affiché : tous les sites garés restent en pause', () => {
     expect(pauseWanted('x:1', { ...base, open: false, shown: [], parked: true })).toBe(true)
     expect(pauseWanted('x:2', { ...base, open: false, shown: [], prev: true })).toBe(true)

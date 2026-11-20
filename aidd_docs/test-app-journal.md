@@ -127,3 +127,65 @@ Vrais sites X / TikTok / Instagram et leurs actions (L, B, T, C), vrai clavier A
 
 Fenêtre « Ajouter un site » bornée à la fenêtre (corps qui défile, pied visible, une ligne) ; avertissement « deux sites au moins » dans la barre d'édition ; `adviceFor` ne propose plus un réglage déjà effectif et le choix « Pause quand je n'y suis pas » retire la clé quand il égale le défaut du catalogue ; « Raccourcis » et les sites ne restent plus actifs avec une vue ouverte ; cases du menu Options d'une vue = le temps de la vue (décision, GUIDE et CLAUDE.md).
 
+
+## 2026-11-20 — Flux simplifié (#177), `trempe` de la branche
+
+Commit testé : `c6e5d93` (branche paco/feature/flux-simplifie). Typecheck + tests : 458 ✓, 9 ignorés. Appli « homedash dev » construite depuis une copie du HEAD (`desktop/*.js` identiques au dépôt, vérifiés octet par octet), lancée à part (`HOMEDASH_PROFILE` jetable, `HOMEDASH_URL` vers un container de dev jetable sur une copie du HEAD, ses propres données) : ni la config de Paco (`data-dev/`, empreinte identique avant / après) ni son profil touchés. Pilotée par CDP : molette (`Input.dispatchMouseEvent` mouseWheel) et souris (déplacements par petits pas) envoyées à la fenêtre, touches (`Input.dispatchKeyEvent`) envoyées à la fenêtre, qui les route au panneau qui a le focus comme un vrai clavier ; AZERTY / QWERTY simulés par le même `code` physique avec le `key` de chaque disposition (ex. `KeyQ` = « a » ou « q »), Alt+chiffre avec le symbole Mac. Sites factices locaux (4 ports, 3 partitions : flux de 400 cartes, vidéo en fichier webm, vidéo `srcObject`, `<audio>` en boucle, champ, zone de texte). Config jetable avec les anciennes clés.
+
+| Cas | Tailles / thèmes | Résultat | Commit | Dépend de |
+|---|---|---|---|---|
+| Réglages → Vue scindée : Messagerie / Flux + 2 cases + clavier ; plus de « Le son suit », Personnalisé, Raccourcis, mixage, pause, garder le son ; « Actions par site » grisée en Messagerie ; phrase Maj / Mac-Windows lisible ; passer en Messagerie décoche la synchro, revenir en Flux la coche | 1024×700, 1920×1080, 900×600 (largeur mini de la fenêtre) × clair, sombre | ✅ | c6e5d93 | `SetSplit.tsx`, `splitView.ts`, `settings-page.css` |
+| Ancien `ui.split` (Personnalisé + follow souris + keys/mixer/pause/keep, `sync: false`, `keyboard: azerty`) | 1280 sombre | ✅ Flux, synchro décochée gardée, AZERTY ; à l'enregistrement, `ui.split` = `{mode, sync, actions, keyboard}` (anciennes clés retirées) | c6e5d93 | `splitView.ts` (`normalizeSplit`), `SetSplit.tsx` |
+| Fenêtre Ajouter une vue scindée : nom, Flux / Messagerie, dispositions, sites ; aucune ancienne liste ni case ; Échap, clic hors fenêtre | 1024, 1920, 900 × clair, sombre | ✅ (pas de cases dans cette fenêtre : elles viennent de Réglages, puis Options / Modifier la vue) | c6e5d93 | `SplitViewComposer.tsx` |
+| Menu Options d'une vue = 2 cases ; Actions grisée en Messagerie ; Échap et clic hors du menu ne ferment que le menu | 1024, 1920 × clair, sombre ; 1280 sombre | ✅ | c6e5d93 | `SplitView.tsx`, `split.css` |
+| Défauts des nouvelles vues : Flux = synchro de Réglages (cochée par défaut), Messagerie = décochée (`withMode`) ; changer de mode dans une vue remet le défaut ; Modifier la vue → Messagerie → Enregistrer écrit `{mode: classic, sync: false, actions}` sans anciennes clés | 1280 sombre | ✅ | c6e5d93 | `App.tsx`, `splitView.ts` |
+| Vues d'avant : Personnalisé + follow all → Messagerie (sync / actions gardés) ; Personnalisé + follow souris → Flux (défauts) ; Flux avec `sync: false, actions: false` + anciennes clés → gardés ; vue sans `prefs` → Réglages ; aucune erreur dans la page | 1280 sombre | ✅ | c6e5d93 | `splitView.ts`, `server/store.ts` |
+| Molette synchronisée depuis chaque panneau (2, 3, 4 panneaux, 10 crans) : tous suivent, valeurs stables de 0,3 s à 4 s, aucune boucle (10 molettes reçues par panneau) | 1280 sombre | ✅ | c6e5d93 | `guest-preload.js`, `main.js`, `site-adapters.js` |
+| Rafale type trackpad (70 crans décroissants) en traversant les panneaux 1 → 3 ; molette continue rapide (60 crans à 8 ms) | 1280 sombre | ✅ tous les panneaux à la même valeur, stables | c6e5d93 | idem |
+| Maj + molette verticale : synchro cochée → un seul panneau ; décochée → tous | 1280 sombre | ✅ | c6e5d93 | idem |
+| Maj + molette horizontale (ce qu'envoie une souris sur Mac / Windows) | 1280 sombre | ❌ le panneau d'origine défile moins que les autres (bug 1) | c6e5d93 | `main.js`, `site-adapters.js` (`self`), `guest-preload.js` |
+| Touches de mixage A/Q Z/S E/D R/F en AZERTY et QWERTY : un seul panneau ; Maj + touche : tous | 1280 sombre | ✅ (160 px par touche) | c6e5d93 | `splitView.ts`, `guest-preload.js`, `App.tsx` |
+| ↑ ↓ J K : le panneau sous la souris (prend le son) ; Maj : tous ; souris hors grille : le panneau actif (Alt+1..4) | 1280 sombre | ✅ avec une souris qui se déplace par petits pas (un saut de souris simulé d'un panneau à l'autre trompe la détection : harnais, voir note) | c6e5d93 | idem |
+| Ctrl / ⌘ + S, J : jamais pris (la page les reçoit, rien ne défile) ; Maj+Espace : page précédente du seul panneau ; dans un champ du site : aucune touche prise (le texte arrive dans le champ) | 1280 sombre | ✅ | c6e5d93 | `guest-preload.js`, `splitView.ts` |
+| Échap : agrandi (X) → restauré → menu Options fermé seul → Échap dans un champ ne ferme rien → la vue | 1280 sombre | ✅ | c6e5d93 | `App.tsx`, `splitView.ts` |
+| Son et pause au dernier geste (survol, Alt+chiffre, touche de mixage, J, clic, molette) : un seul panneau a le son, les autres muets, vidéo (fichier) et audio en pause avec `data-hd-paused`, reprise au retour ; sortie de la grille : le dernier garde le son (3 s) ; Maj+touche ne change pas le son | 1280 sombre | ✅ ; une vidéo `srcObject` n'est jamais mise en pause (voulu, #175 : appel) | c6e5d93 | `App.tsx`, `splitView.ts`, `site-adapters.js` |
+| Molette synchronisée : le son reste au panneau qu'on fait défiler (2, 3, 4 panneaux, 5 et 30 crans) | 1280 sombre | ✅ en séquence propre ; ❌ vu passer à un panneau suiveur après un saut de souris simulé (bug 2, à confirmer à la vraie souris) | c6e5d93 | `guest-preload.js`, `main.js` |
+| Messagerie : tous les sons, aucune pause, lettres / Maj / Alt / flèches jamais prises (la page les reçoit, seul le défilement natif de ↓), Échap ne ferme pas la vue, synchro décochée : un seul panneau | 1280 sombre | ✅ ; Maj + molette y synchronise tous les panneaux (cohérent avec la bulle ⓘ, voir note) | c6e5d93 | `splitView.ts`, `guest-preload.js` |
+| Régressions : #175 pause d'un site caché et reprise, copie indépendante du site (copie à 4000, site à 1234), fermeture de la vue (copies fermées, site affiché repris, l'autre reste en pause), onglets normaux | 1280 sombre | ✅ | c6e5d93 | `App.tsx`, `main.js`, `SplitView.tsx` |
+| Perf : molette continue 5 s sur 4 panneaux (102 crans) | 1280 sombre | ✅ 23 messages vers la page en 5 s (≈ 4,6/s, pas un par cran) ; 408 messages des sites vers l'appli (1 vrai + 3 échos par cran, voulu) | c6e5d93 | `main.js`, `guest-preload.js` |
+
+**Repris de `f3acc6c`** (fichiers non touchés depuis) : glisser une vue dans la barre (`Rail.tsx`), fenêtre Ajouter un site (`AddTabDialog.tsx`), sauvegarde / restauration.
+
+Note harnais : un déplacement de souris simulé qui saute d'un panneau à l'autre sans passer par la gouttière ne prévient pas le panneau quitté (pas de `mouseout`) ; avec des déplacements par petits pas, comme une vraie souris, le survol est juste.
+
+### Bugs trouvés
+
+1. **moyenne** : Maj + molette **horizontale** (ce que macOS et Windows envoient pour Maj + molette d'une souris) : le panneau d'origine défile bien moins que les autres. Vue Flux 3, 1280×720 sombre, 6 crans de 100 : synchro décochée (tous doivent suivre) → panneaux 1 et 3 à 600, panneau d'origine (2) à **199** (crans espacés de 50 ms), 527 (150 ms), 600 (400 ms) ; synchro cochée (un seul doit défiler) : 5 crans → origine à 145 au lieu de 500. L'origine reçoit bien les 12 molettes (6 horizontales + 6 renvoyées par l'appli, `self`), mais chaque molette horizontale semble couper l'animation de la verticale renvoyée. Synchro décochée, les panneaux se désalignent. Mesuré avec des molettes CDP (non « précises », comme une molette de souris) : à confirmer à la vraie souris. Fichiers : `site-adapters.js` (`createWheelSync`, `self`), `guest-preload.js` (`sideways`).
+2. **à confirmer à la vraie souris** : molette synchronisée, le son passe ~450 ms après à un panneau **suiveur** (son vidéo se met en lecture, celle du panneau qu'on fait défiler en pause). Vu 3 fois (Flux 4, 1280×720) après des sauts de souris simulés d'un panneau à un autre ; jamais en séquence propre (18 essais). Cause probable : un panneau qui croit encore avoir la souris (pas de `mouseout`) envoie un survol quand son contenu défile sous ce curseur fantôme (`guest-preload.js`, `mouseover` avec `relatedTarget`, relayé toutes les 300 ms), et la page le prend pour un geste. Si une vraie souris rapide peut sauter la gouttière, le bug existe en vrai. Fichiers : `guest-preload.js`, `App.tsx` (`doHover`).
+
+### Non testé
+
+Vraie souris, vrai trackpad avec élan (phases), vrai clavier AZERTY / QWERTY (simulés par `code`), Windows, vrai son (vu par l'état muet des webviews), bulle ⓘ affichée (c'est une bulle du système, `title` : texte vérifié, pas son rendu), vrais sites (X, TikTok, Instagram, actions L B T C), 800×600 (la fenêtre ne descend pas sous 900 de large), 1280 / 2560 en clair, onglets du haut.
+
+## 2026-11-20 — Flux simplifié (#177), trempe courte après les correctifs `02492a5` et `a880667`
+
+Commit testé : `a880667`. Typecheck + tests : 460 ✓, 9 ignorés. Même méthode que la trempe précédente (instance à part, profil et données jetables, sites factices, `desktop/*.js` identiques au dépôt).
+
+| Cas | Tailles / thèmes | Résultat | Commit | Dépend de |
+|---|---|---|---|---|
+| Bug 1 : Maj + molette horizontale, Flux 3, 6 crans de 100 sur le panneau 2, crans à 50 / 150 / 400 ms | 1280 sombre | ✅ synchro cochée : 0 / 600 / 0 aux trois rythmes ; décochée : 600 / 600 / 600 aux trois rythmes ; `scrollX` reste à 0 (avant : 199, 527, 600 pour l'origine) | a880667 | `guest-preload.js` |
+| Molette horizontale sans Maj et deltaX de trackpad (page plus large que le panneau) : non bloqués en Flux ; Maj + molette horizontale sur une page large : bloquée, défilement vertical seulement | 1280 sombre | ✅ scrollX 300 et 252, aucun défilement vertical ; Maj : scrollX 0, 600 partout | a880667 | `guest-preload.js` |
+| Messagerie : Maj + molette horizontale non bloquée (le défilement horizontal natif marche) | 1280 sombre | ✅ natif non bloqué ; ❌ le panneau d'origine traîne encore en hauteur (bug 3) | a880667 | `guest-preload.js`, `site-adapters.js` |
+| Bug 2 : son qui saute après la molette, rejoué avec les sauts de souris simulés (3 essais du cas d'avant, molette continue 4 s, 3 sauts directs d'un panneau à l'autre) | 1280 sombre | ✅ le son ne bouge plus (8 relevés sur 2 s après chaque molette) | a880667 | `guest-preload.js` |
+| Un vrai déplacement de souris donne toujours le son : petits pas vers 2, 4, 1, 3 ; Alt+1 puis petits mouvements dans le panneau 3 → le son revient au 3 | 1280 sombre | ✅ | a880667 | `guest-preload.js`, `App.tsx` |
+| Régression molette synchronisée (2, 3, 4 panneaux depuis chaque panneau, trackpad qui traverse, molette continue, Maj dans les deux sens) | 1280 sombre | ✅ mêmes valeurs qu'avant | a880667 | `guest-preload.js`, `main.js` |
+| Régression touches (mixage AZERTY / QWERTY, Maj, ↑ ↓ J K sous la souris, Alt+chiffre, Ctrl / ⌘, Maj+Espace, champ) | 1280 sombre | ✅ | a880667 | `guest-preload.js`, `splitView.ts` |
+| Régression son et pause au dernier geste | 1280 sombre | ✅ mêmes résultats qu'avant | a880667 | `App.tsx`, `guest-preload.js` |
+
+### Bug restant
+
+3. **basse** : en **Messagerie**, Maj + molette horizontale (souris sur Mac / Windows) : le correctif ne bloque la molette horizontale qu'en Flux. En Messagerie, synchro décochée, Maj inverse et tous les panneaux suivent, mais le panneau d'origine reste en retard comme avant : 6 crans de 100, l'autre panneau à 600, l'origine à **210** (crans à 50 ms), 537 (150 ms), 600 (400 ms). Sur une page plus large que le panneau, l'origine défile aussi en travers (scrollX 400, hauteur 235 au lieu de 400). 1280×720 sombre, vue Messagerie à 2 panneaux. Fichiers : `guest-preload.js` (`setSplit`, `blockSideways`), `site-adapters.js` (`self`).
+
+### Non testé
+
+Vraie souris, vrai trackpad avec élan, vrai clavier, Windows, vrais sites, autres tailles et thème clair (rien d'affiché n'a changé).

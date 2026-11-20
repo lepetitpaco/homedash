@@ -1,13 +1,17 @@
 import { createRequire } from 'node:module'
 import { describe, expect, it } from 'vitest'
-import { DEFAULT_SPLIT, PRESETS, applyProfile, interceptTable } from '../src/lib/splitView'
+import { DEFAULT_SPLIT, interceptTable } from '../src/lib/splitView'
 
 // desktop/site-adapters.js est du CommonJS de l'appli : chargé tel quel, sans Electron.
 const adapters = createRequire(import.meta.url)('../desktop/site-adapters.js') as {
   siteOf: (url: string) => string | null
-  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void; field?: string }) => Promise<boolean | 'busy'>
+  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void; field?: string; wheel?: (wc: { id: number }) => void }) => Promise<boolean | 'busy'>
   keyName: (k: string) => string
-  createWheelSync: (now?: () => number) => (from: number, targets: unknown[], dy: number) => Promise<void>
+  createWheelSync: (now?: () => number) => ((from: number, targets: unknown[], dy: number, self?: boolean, only?: number[] | null) => Promise<boolean>) & {
+    forget: (id: number) => boolean
+    expect: (id: number) => void
+  }
+  wheelTargets: (sync: boolean, msg: unknown, from: number) => { dy: number; self: boolean; only: number[] | null } | null
   PLANS: Record<string, Record<string, unknown>>
   clickScript: (a: { scope: string | string[]; selectors: string[]; skip?: string }) => string
 }
@@ -68,8 +72,11 @@ describe('adaptateurs de sites (vue scindée)', () => {
   })
 
   it('une touche envoyée à un site que sa table retiendrait est annoncée avant (sinon : boucle site → page → site)', async () => {
-    const table = interceptTable(applyProfile(DEFAULT_SPLIT, 'scroll'), PRESETS.azerty, 3)
-    const retained = new Set(table.keys)
+    const table = interceptTable(DEFAULT_SPLIT, 3)
+    // la table est en touches physiques ; `keyName` donne le nom de la touche envoyée (j, arrowdown…)
+    const nameOf = (code: string) => (code.startsWith('Key') ? code.slice(3).toLowerCase() : code === 'Space' ? ' ' : code.toLowerCase())
+    const retained = new Set([...table.codes, ...table.shift].map(nameOf))
+    expect(retained).toContain('j')
     for (const [url, ops] of [
       ['https://x.com/home', ['next', 'prev']],
       ['https://www.tiktok.com/foryou', ['next', 'prev', 'like']],
@@ -206,6 +213,73 @@ describe('molette synchronisée : pas d’écho, même avec une page lente ou un
     expect(a.sent).toHaveLength(1)
   })
 
+  it('une vraie molette renvoie true, un écho false', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = wcOf(2)
+    expect(await forward(1, [a, b], -120)).toBe(true)
+    expect(await forward(2, [a, b], -120)).toBe(false)
+  })
+
+  it('n’importe quel panneau pilote, même juste après un autre : la souris qui entre oublie ses échos (#177)', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = wcOf(2)
+    const c = wcOf(3)
+    // A défile vite : des échos de B restent en attente (la page lente en a fusionné)
+    await forward(1, [a, b, c], -50)
+    await forward(1, [a, b, c], -50)
+    await forward(1, [a, b, c], -50)
+    expect(b.sent).toHaveLength(3)
+    // la souris entre dans B, qui défile pour de vrai : recopié tout de suite dans A et C
+    t += 200
+    expect(forward.forget(2)).toBe(true)
+    expect(await forward(2, [a, b, c], -40)).toBe(true)
+    expect(a.sent).toHaveLength(1)
+    expect(c.sent).toHaveLength(4)
+    // et l'écho de A qui revient est absorbé : pas de boucle
+    expect(await forward(1, [a, b, c], -40)).toBe(false)
+    expect(b.sent).toHaveLength(3)
+  })
+
+  it('l’élan d’un trackpad qui traverse un panneau (moins de 150 ms après une vraie molette) n’oublie pas ses échos', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = wcOf(2)
+    const c = wcOf(3)
+    await forward(1, [a, b, c], -50)
+    t += 40
+    // la souris passe sur B pendant l'élan : rien n'est oublié, l'écho de B est encore absorbé (pas de rebond vers A et C)
+    expect(forward.forget(2)).toBe(false)
+    expect(await forward(2, [a, b, c], -50)).toBe(false)
+    expect(a.sent).toHaveLength(0)
+    // plus tard (au-delà de 150 ms), entrer dans B oublie bien ses échos
+    await forward(1, [a, b, c], -50)
+    t += 200
+    expect(forward.forget(2)).toBe(true)
+    expect(await forward(2, [a, b, c], -50)).toBe(true)
+  })
+
+  it('`only` choisit qui reçoit, `self` inclut le panneau d’origine ; les échos des autres sont gardés', async () => {
+    let t = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = wcOf(2)
+    await forward(1, [a, b], -30, true, [1])
+    expect(a.sent).toHaveLength(1)
+    expect(b.sent).toHaveLength(0)
+    // l'écho de A (sa molette verticale recopiée chez lui) est absorbé
+    expect(await forward(1, [a, b], -30)).toBe(false)
+    // sans destinataire, l'écho attendu de B n'est pas perdu
+    await forward(1, [a, b], -30, false, null)
+    expect(b.sent).toHaveLength(1)
+    await forward(1, [a, b], -30, false, [])
+    expect(await forward(2, [a, b], -30)).toBe(false)
+  })
+
   it('un écho qui ne vient jamais n’empêche pas la molette suivante (au-delà de 1,5 s)', async () => {
     let t = 0
     const forward = adapters.createWheelSync(() => t)
@@ -240,5 +314,37 @@ describe('molette synchronisée : pas d’écho, même avec une page lente ou un
     const free = fakeWc('https://www.tiktok.com/foryou', false)
     expect(await adapters.run(free, 'like', { field: 'input, textarea' })).toBe(true)
     expect(free.sent).toHaveLength(3)
+  })
+})
+
+describe('molette : qui suit (#177)', () => {
+  it('synchro cochée : tous ; Maj : seulement le panneau d’origine (qui défile tout seul)', () => {
+    expect(adapters.wheelTargets(true, { dy: -100, shift: false }, 1)).toEqual({ dy: -100, self: false, only: null })
+    expect(adapters.wheelTargets(true, { dy: -100, shift: true }, 1)).toEqual({ dy: -100, self: false, only: [] })
+  })
+  it('synchro décochée : personne ; Maj : tous', () => {
+    expect(adapters.wheelTargets(false, { dy: 80, shift: false }, 1)).toEqual({ dy: 80, self: false, only: [] })
+    expect(adapters.wheelTargets(false, { dy: 80, shift: true }, 1)).toEqual({ dy: 80, self: false, only: null })
+  })
+  it('Maj a rendu la molette horizontale (souris, Windows ou Mac) : le panneau d’origine la reçoit aussi', () => {
+    expect(adapters.wheelTargets(false, { dy: 80, shift: true, sideways: true }, 1)).toEqual({ dy: 80, self: true, only: null })
+    expect(adapters.wheelTargets(true, { dy: 80, shift: true, sideways: true }, 1)).toEqual({ dy: 80, self: true, only: [1] })
+  })
+  it('préload d’avant #177 (un nombre) ; message illisible ou nul : rien', () => {
+    expect(adapters.wheelTargets(true, -40, 1)).toEqual({ dy: -40, self: false, only: null })
+    for (const bad of [null, 'x', { dy: 'x' }, { dy: 0 }, NaN]) expect(adapters.wheelTargets(true, bad, 1)).toBeNull()
+  })
+  it('une molette envoyée par homedash (touche N, Espace…) est annoncée, puis absorbée comme un écho : ni synchro ni geste', async () => {
+    const forward = adapters.createWheelSync()
+    const order: string[] = []
+    const wc = { ...fakeWc('https://example.com/'), id: 7 }
+    const orig = wc.sendInputEvent
+    wc.sendInputEvent = (e: unknown) => {
+      order.push('wheel')
+      orig(e)
+    }
+    await adapters.run(wc, 'pageNext', { wheel: (w) => (order.push('expect'), forward.expect(w.id)) })
+    expect(order).toEqual(['expect', 'wheel'])
+    expect(await forward(7, [wc], -500)).toBe(false)
   })
 })

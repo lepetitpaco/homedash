@@ -136,8 +136,11 @@ export type UiConfig = {
    * perso) est gardé à la relance (`true`) ou éphémère (défaut).
    */
   linkTabsKept: boolean
-  /** Vue scindée (Réglages → Vue scindée) : mode, son, clavier. Absent = les défauts du code (`normalizeSplit`). */
-  split?: Partial<import('./lib/splitView').SplitPrefs>
+  /**
+   * Vue scindée (Réglages → Vue scindée) : mode et cases d'une nouvelle vue, et le clavier (étiquettes seulement).
+   * Absent = les défauts du code (`normalizeSplit`, `normalizeKeyboard`) ; les clés d'avant #177 sont ignorées.
+   */
+  split?: Partial<import('./lib/splitView').SplitPrefs> & { keyboard?: import('./lib/splitView').KeyboardChoice }
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
   /**
@@ -249,8 +252,9 @@ export type SavedSplitView = {
    */
   copies?: boolean[]
   /**
-   * Le type de la vue : « Flux » (doomscroll) ou « Messagerie », sous forme de ses cases à cocher (`SplitPrefs`, `splitView.ts`).
+   * Le type de la vue : « Flux » (doomscroll) ou « Messagerie », et ses deux cases (`SplitPrefs`, `splitView.ts`).
    * Absent = les réglages de Réglages → Vue scindée au moment de l'ouverture (le comportement des vues d'avant).
+   * Une vue enregistrée avant #177 : mode, `sync` et `actions` gardés, anciennes cases ignorées (`normalizeSplit`), sans migration.
    */
   prefs?: import('./lib/splitView').SplitPrefs
   /** Place dans la barre : juste devant ce site (`CustomTab.id`). Absent, ou site disparu = à la fin, comme avant. */

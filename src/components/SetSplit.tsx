@@ -1,45 +1,44 @@
 import Pick from './Pick'
 import {
+  ACTIONS_OFF_HINT,
   FLAG_HELP,
-  FOLLOW_OPTIONS,
   KEYBOARD_OPTIONS,
   MODE_LABELS,
-  applyProfile,
+  MODIFIERS_HELP,
+  normalizeKeyboard,
   normalizeSplit,
-  patchPrefs,
-  type Follow,
+  withMode,
   type KeyboardChoice,
   type SplitPrefs,
 } from '../lib/splitView'
 
+type SplitSettings = SplitPrefs & { keyboard: KeyboardChoice }
+
 /**
- * Réglages → Vue scindée (issue #160) : le mode de départ (Messagerie / Flux) et les cases à cocher qui le
- * définissent. Dans la vue elle-même, la barre change ces cases pour la durée de la vue seulement.
+ * Réglages → Vue scindée (issue #160) : le mode de départ d'une nouvelle vue (Messagerie / Flux), ses deux cases, et
+ * le clavier (ici seulement, #177 : la détection automatique suffit presque toujours, et il ne change que les étiquettes).
  */
-export default function SetSplit({ value, onChange }: { value: unknown; onChange: (next: SplitPrefs) => void }) {
+export default function SetSplit({ value, onChange }: { value: unknown; onChange: (next: SplitSettings) => void }) {
   const p = normalizeSplit(value)
-  const flag = (f: (typeof FLAG_HELP)[number]) => (
-    <label className="set-toggle" key={f.key}>
-      <input type="checkbox" checked={p[f.key]} onChange={(e) => onChange(patchPrefs(p, { [f.key]: e.target.checked }))} />
-      <span>
-        {f.label}
-        <em>{f.hint}</em>
-      </span>
-    </label>
-  )
+  const keyboard = normalizeKeyboard(value)
+  const write = (next: SplitPrefs, kb: KeyboardChoice = keyboard) => onChange({ ...next, keyboard: kb })
+  const flag = (f: (typeof FLAG_HELP)[number]) => {
+    const off = f.key === 'actions' && p.mode !== 'scroll'
+    return (
+      <label className="set-toggle" key={f.key} aria-disabled={off || undefined}>
+        <input type="checkbox" checked={p[f.key]} disabled={off} onChange={(e) => write({ ...p, [f.key]: e.target.checked })} />
+        <span>
+          {f.label}
+          <em>{off ? ACTIONS_OFF_HINT : f.hint}</em>
+        </span>
+      </label>
+    )
+  }
   return (
     <>
       <div className="split-group" role="group" aria-label="Mode de départ">
         {MODE_LABELS.map((m) => (
-          <button
-            key={m.id}
-            type="button"
-            className="split-chip"
-            aria-pressed={p.mode === m.id}
-            disabled={m.id === 'custom'}
-            title={m.hint}
-            onClick={() => m.id !== 'custom' && onChange(applyProfile(p, m.id))}
-          >
+          <button key={m.id} type="button" className="split-chip" aria-pressed={p.mode === m.id} title={m.hint} onClick={() => write(withMode(p, m.id))}>
             {m.label}
           </button>
         ))}
@@ -47,27 +46,14 @@ export default function SetSplit({ value, onChange }: { value: unknown; onChange
       <p className="set-hint">
         {p.mode === 'classic'
           ? 'Messagerie (Instagram et Discord, par exemple) : tous les panneaux gardent leur son, jamais de pause, aucune touche n’est interceptée.'
-          : p.mode === 'scroll'
-            ? 'Flux (TikTok, X, Instagram…) : un seul panneau a le son, les vidéos des autres sont en pause, et le clavier pilote le panneau actif.'
-            : 'Tes cases à cocher ne correspondent ni à Messagerie ni à Flux : recliquer un mode les remet à son préréglage.'}
+          : 'Flux (TikTok, X, Instagram…) : le panneau où tu agis (survol, molette, touche, clic) a le son, les vidéos des autres sont en pause ; table de mixage et raccourcis clavier.'}
       </p>
+      <p className="set-hint">{MODIFIERS_HELP}</p>
       <div className="set-toggles">
-        <div className="split-menu-row">
-          <Pick
-            value={p.follow}
-            options={FOLLOW_OPTIONS}
-            onChange={(v) => onChange(patchPrefs(p, { follow: v as Follow }))}
-            title="Qui a le son"
-          />
-        </div>
         {FLAG_HELP.map(flag)}
         <div className="split-menu-row">
-          <Pick
-            value={p.keyboard}
-            options={KEYBOARD_OPTIONS}
-            onChange={(v) => onChange(patchPrefs(p, { keyboard: v as KeyboardChoice }))}
-            title="Préréglage clavier"
-          />
+          <Pick value={keyboard} options={KEYBOARD_OPTIONS} onChange={(v) => write(p, v as KeyboardChoice)} title="Clavier" />
+          <span className="split-menu-note">Les touches sont lues à leur place : ce choix ne change que les lettres affichées.</span>
         </div>
       </div>
     </>
