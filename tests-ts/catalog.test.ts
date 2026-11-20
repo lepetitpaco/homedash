@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { adviceFor, CATALOG, catalogBackground, catalogTab, pauseHiddenOf } from '../src/lib/catalog.ts'
+import { adviceFor, CATALOG, catalogBackground, catalogTab, pauseChoice, pauseDefault, pauseHiddenOf } from '../src/lib/catalog.ts'
 import { hiddenPauseWanted } from '../src/lib/splitView.ts'
 import * as store from '../server/store.ts'
 
@@ -39,8 +39,13 @@ describe('catalogue de sites', () => {
 
   it('reconnaît un raccourci avant son site', () => {
     const direct = { id: 'x-6', label: 'DM', url: 'https://www.instagram.com/direct/inbox/', embed: true, icon: 'x' }
-    expect(adviceFor(direct)?.patch).toEqual({ pauseHidden: false })
+    // déjà effectif par le catalogue (sans clé) : rien à proposer
+    expect(adviceFor(direct)).toBeNull()
     expect(adviceFor({ ...direct, pauseHidden: false })).toBeNull()
+    // un réglage manuel contraire : proposé de revenir au catalogue en RETIRANT la clé
+    const adv = adviceFor({ ...direct, pauseHidden: true })
+    expect(adv && 'pauseHidden' in adv.patch ? adv.patch.pauseHidden : 'absent').toBeUndefined()
+    expect(adv?.changes.join()).toMatch(/jamais de pause/)
   })
 
   it('un raccourci ne capte pas les liens de son site', () => {
@@ -88,8 +93,10 @@ describe('catalogue de sites', () => {
 
     it('adviceFor propose le bon réglage, jamais pour un site déjà conforme', () => {
       const yt = { id: 'y', label: 'YT', url: 'https://www.youtube.com/', embed: true, preload: false, icon: 'x' }
-      expect(adviceFor(yt)).toEqual({ patch: { pauseHidden: false }, changes: ['joue en fond (jamais de pause)'] })
-      expect(adviceFor({ ...yt, pauseHidden: true })?.patch).toEqual({ pauseHidden: false })
+      // sans clé, le catalogue donne déjà « joue en fond » : rien à proposer (pas de changement déjà effectif)
+      expect(adviceFor(yt)).toBeNull()
+      // un réglage manuel contraire : retour au catalogue en retirant la clé
+      expect(adviceFor({ ...yt, pauseHidden: true })).toEqual({ patch: { pauseHidden: undefined }, changes: ['joue en fond (jamais de pause)'] })
       expect(adviceFor({ ...yt, pauseHidden: false })).toBeNull()
       const fb = { id: 'f', label: 'FB', url: 'https://www.facebook.com/', embed: true, preload: false, sleep: true, icon: 'x' }
       expect(adviceFor(fb)).toBeNull()
@@ -115,5 +122,16 @@ describe('catalogue de sites', () => {
       expect(store.validateConfig({ groups: [], tabs: [{ ...tab, pauseHidden: false }] })).toBeNull()
       expect(store.validateConfig({ groups: [], tabs: [{ ...tab, pauseHidden: 'non' }] })).toContain('pauseHidden')
     })
+  })
+
+  it('choisir « Oui / Non » retire la clé quand le choix égale le défaut du catalogue', () => {
+    const gmailLike = { id: 'x-1', label: 'DM', url: 'https://www.instagram.com/direct/inbox/', embed: true }
+    const x = { id: 'x-2', label: 'X', url: 'https://x.com/', embed: true }
+    expect(pauseDefault(gmailLike)).toBe(false)
+    expect(pauseChoice(gmailLike, false)).toBeUndefined()
+    expect(pauseChoice(gmailLike, true)).toBe(true)
+    expect(pauseDefault(x)).toBe(true)
+    expect(pauseChoice(x, true)).toBeUndefined()
+    expect(pauseChoice(x, false)).toBe(false)
   })
 })

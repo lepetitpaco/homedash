@@ -35,6 +35,8 @@ type Props = {
   editing: boolean
   onSaveEdit: () => void
   onCancelEdit: () => void
+  /** Avertissement d'édition (« deux sites au moins »), dans la barre : pas un panneau, pas un champ. */
+  editWarning?: string
   /** Proportions des séparateurs, par chemin de nœud (`''`, `'0'`, `'1'`…) ; `commit` : le séparateur est lâché. */
   ratios: Record<string, number[]>
   onRatios: (next: Record<string, number[]>, commit: boolean) => void
@@ -407,7 +409,7 @@ export default function SplitView(p: Props) {
               const r = e.currentTarget.getBoundingClientRect()
               setMenu((v) => (v ? null : { left: Math.max(8, Math.min(r.left, window.innerWidth - 436)), top: r.bottom + 4 }))
             }}
-            title="Raccourcis clavier, actions, mixage…"
+            title="Valable le temps de la vue ; pour garder, Modifier la vue (clic droit sur la vue)"
           >
             Options ▾
           </button>
@@ -419,6 +421,11 @@ export default function SplitView(p: Props) {
           </span>
           {p.editing ? (
             <>
+              {p.editWarning ? (
+                <span className="split-warn" role="alert">
+                  {p.editWarning}
+                </span>
+              ) : null}
               <button className="split-chip" onClick={p.onSaveEdit} title="Enregistrer la composition de cette vue">
                 Enregistrer
               </button>

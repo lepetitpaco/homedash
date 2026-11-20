@@ -1214,6 +1214,7 @@ export default function App() {
   const rawRef = useRef(raw)
   rawRef.current = raw
   const [composing, setComposing] = useState(false)
+  const [editWarn, setEditWarn] = useState('')
   /** Écrit la liste des vues dans la config d'aujourd'hui (relue : elle a pu changer pendant une attente). */
   const writeViews = (f: (views: typeof savedViews) => typeof savedViews) => {
     const now = rawRef.current
@@ -1245,7 +1246,11 @@ export default function App() {
     const s = splitRef.current
     const cur = s?.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
     if (!s || !cur) return
-    if (s.slots.slice(0, layoutOf(s.layout).n).filter(Boolean).length < 2) return noteSplit(s.focus.active, 'Une vue scindée a besoin de deux sites au moins')
+    if (s.slots.slice(0, layoutOf(s.layout).n).filter(Boolean).length < 2) {
+      setEditWarn('Une vue scindée a besoin de deux sites au moins')
+      window.setTimeout(() => setEditWarn(''), 5000)
+      return
+    }
     if (!(await confirmDropped(s.slots, s.layout))) return
     const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, s.copies, s.prefs)
     writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
@@ -2778,7 +2783,8 @@ export default function App() {
           onTempClose={closeTemp}
           folders={tabFolders}
           sessions={tabSessions}
-          active={split ? null : railActive}
+          // une vue ouverte : aucun site ni ⚡ n'est « actif » (seule la vue l'est), d'où une valeur qui ne vise rien
+          active={split ? 'vue-scindee' : railActive}
           size={railSize}
           labels={shownLabels}
           collapse={railLabels === 'none' ? undefined : { open: railOpen, onToggle: () => changeRailOpen(!railOpen) }}
@@ -2825,7 +2831,7 @@ export default function App() {
                   badgeAlert: t.badgeAlert,
                   badgeTitle: t.badgeTitle,
                   onContext: t.onContext,
-                  active: shown === t.id,
+                  active: !split && shown === t.id,
                 }))
               : undefined
           }
@@ -2843,7 +2849,7 @@ export default function App() {
         <Tabs
           id={STRIP_ID}
           tabs={strip}
-          active={shown}
+          active={split ? ('f:vue-scindee' as TabId) : shown}
           onSelect={selectTab}
           onMenu={railOn ? undefined : stripMenu}
           size={stripSize}
@@ -2950,6 +2956,7 @@ export default function App() {
           names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
           editing={!!split.editing}
           onSaveEdit={() => void saveEdit()}
+          editWarning={editWarn}
           onCancelEdit={cancelEdit}
           ratios={split.ratios}
           onRatios={(next, commit) => {

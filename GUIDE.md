@@ -201,7 +201,7 @@ Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajout
 | Son | **Tous les sons** : un appel Discord reste audible | **Un seul panneau** : celui sous la souris (ou choisi au clavier) |
 | Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Raccourcis et actions par site |
 
-Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : en changer une donne *Personnalisé*, et
+Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre, **valables le temps de la vue** : pour les garder, *Modifier la vue…*, clic droit sur la vue) : en changer une donne *Personnalisé*, et
 recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
 *Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
 raccourcis les décoche ; **la table de mixage est cochée en Flux** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Défilement synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,

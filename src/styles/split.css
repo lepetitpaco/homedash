@@ -389,3 +389,33 @@
     display: none;
   }
 }
+/* « Ajouter un site » : jamais plus haut que la fenêtre, le corps défile, le pied (dont « Ajouter une vue scindée ») reste visible. */
+.modal.add-tab {
+  display: flex;
+  flex-direction: column;
+  width: min(780px, 100%);
+  max-height: calc(100vh - 24px);
+}
+.add-tab .add-tab-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.add-tab .modal-head,
+.add-tab .modal-foot {
+  flex: none;
+}
+.add-tab .modal-foot {
+  flex-wrap: wrap;
+}
+.add-tab .modal-foot .btn {
+  white-space: nowrap;
+}
+.split-warn {
+  padding: 0 10px;
+  border: 1px solid var(--sig-warn);
+  border-radius: 8px;
+  color: var(--sig-warn);
+  font-size: 0.8rem;
+  line-height: 30px;
+}

@@ -80,6 +80,12 @@ export function pauseHiddenOf(t: CustomTab): boolean {
   return t.pauseHidden ?? !catalogBackground(t)
 }
 
+/** Le défaut de « Pause quand je n'y suis pas » pour ce site : celui du catalogue. */
+export const pauseDefault = (t: CustomTab): boolean => !catalogBackground(t)
+
+/** Ce qu'on écrit pour ce choix : rien (la clé est retirée) quand il égale le défaut, pour que le site suive le catalogue. */
+export const pauseChoice = (t: CustomTab, value: boolean): boolean | undefined => (value === pauseDefault(t) ? undefined : value)
+
 export type Advice = { patch: Partial<CustomTab>; changes: string[] }
 
 /**
@@ -104,9 +110,10 @@ export function adviceFor(t: CustomTab): Advice | null {
   }
   // Seul un site qui joue en fond reçoit un réglage écrit ; les autres suivent le défaut (pause), un réglage manuel
   // différent est proposé de revenir au défaut.
+  // On compare l'effet réel (clé ou défaut du catalogue) : jamais de changement proposé qui serait déjà effectif.
   const bg = !!site.background
-  if (bg ? t.pauseHidden !== false : t.pauseHidden === false) {
-    patch.pauseHidden = bg ? false : undefined
+  if (pauseHiddenOf(t) !== !bg) {
+    patch.pauseHidden = pauseChoice(t, !bg)
     changes.push(bg ? 'joue en fond (jamais de pause)' : 'pause quand je n’y suis pas')
   }
   const icon = catalogTab(site).icon

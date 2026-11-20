@@ -360,6 +360,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   de vue jetable** : toute vue est enregistrée. Composition **fixe** (pas de sélecteur de site dans les panneaux) sauf en
   mode édition (« Modifier la vue… »). La table de mixage est le défilement par défaut : elle n'enlève rien, seule la
   touche d'agrandir passe de Z à X (Z = « panneau 2 haut » en AZERTY).
+- Les cases du menu Options d'une vue enregistrée ne sont **pas** gardées à la réouverture : voulu (décision de Paco). Le
+  type et les cases d'une vue se changent par « Modifier la vue… », qui les enregistre dans `prefs`.
 - Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
   Flux = copies (`copies[]`, une webview de plus sur la **même partition**, page à part, démarre sur `tab.url`, clé
   `copy:<case>`, fermée avec la vue ; ni compteur ni Activité ni onglet temporaire), Messagerie = vrais sites. La copie est

@@ -22,7 +22,7 @@ import { confirmDialog } from './ConfirmHost'
 import SiteIcon, { isImageIcon } from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
-import { adviceFor, CATALOG, catalogHint, catalogTab, pauseHiddenOf, type CatalogSite } from '../lib/catalog'
+import { adviceFor, CATALOG, catalogHint, catalogTab, pauseChoice, pauseHiddenOf, type CatalogSite } from '../lib/catalog'
 import { keys } from '../lib/keys'
 import { shown } from '../lib/errors'
 
@@ -468,7 +468,7 @@ export default function SetTabs({
                   role="radio"
                   aria-checked={pauseHiddenOf(t)}
                   className={pauseHiddenOf(t) ? 'is-on' : ''}
-                  onClick={() => patch(t.id, { pauseHidden: true })}
+                  onClick={() => patch(t.id, { pauseHidden: pauseChoice(t, true) })}
                 >
                   Oui
                 </button>
@@ -477,7 +477,7 @@ export default function SetTabs({
                   role="radio"
                   aria-checked={!pauseHiddenOf(t)}
                   className={pauseHiddenOf(t) ? '' : 'is-on'}
-                  onClick={() => patch(t.id, { pauseHidden: false })}
+                  onClick={() => patch(t.id, { pauseHidden: pauseChoice(t, false) })}
                 >
                   Non, joue en fond
                 </button>
