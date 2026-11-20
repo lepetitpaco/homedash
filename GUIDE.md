@@ -166,6 +166,55 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.
 
+## ◫ Vue scindée
+
+*Appli de bureau.* Le bouton **◫** de la barre du haut (visible dès que tu as deux sites) affiche **2 à 4 sites côte à
+côte dans un seul onglet** : une grille de panneaux, chacun avec le site que tu choisis (le titre du panneau est un
+menu). Les sites sont ceux déjà ouverts dans homedash, avec leur connexion : **rien n'est rechargé**, et en fermant
+la vue (*Fermer*, `Échap` en mode Scroll, ou en ouvrant une autre page) chaque site retrouve sa place. Un site affiché ne se met
+pas en veille. La barre de la vue propose 6 dispositions (2 colonnes, 2 lignes, 3 colonnes, 1 grand et 2 petits,
+2 par 2, 4 colonnes) ; **glisse un séparateur** pour redimensionner ; **double-clic sur le titre** (ou `Z` en mode Scroll)
+agrandit un panneau. La dernière disposition et ses sites sont mémorisés automatiquement (dans ce navigateur) et
+rouverts à la prochaine ouverture ; la position des séparateurs n'est pas gardée.
+
+Deux **modes**, un clic dans la barre (*Classic*, *Scroll*), et au départ dans *Réglages → Vue scindée* :
+
+| | Classic | Scroll |
+| --- | --- | --- |
+| Pour | Un double écran : messages Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
+| Son | **Tous les sons** : un appel Discord reste audible | **Un seul panneau** : celui sous la souris (ou choisi au clavier) |
+| Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Raccourcis et actions par site |
+
+Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre) : en changer une donne *Personnalisé*, et
+recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
+*Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
+raccourcis les décoche ; **la table de mixage remplace J K, N P, Z et les actions** tant qu'elle est cochée, car leurs
+lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
+*Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
+
+**Garder une vue** : *Garder cette vue* (barre de la vue) demande un nom et range la vue dans la barre de gauche, sous
+tes sites, avec son icône ◫ et un compteur (la somme de ceux de ses sites). Un clic l'ouvre (mêmes sites vivants, rien
+n'est rechargé ; quand tu la fermes, seul le site qui reste affiché reprend ses vidéos et son, les sites garés restent en pause jusqu'à ce que tu les affiches), le clic droit propose *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Ouverte, le
+bouton devient *Mettre à jour* (le nom de la vue est dans sa bulle). Une vue garde ses sites et sa disposition ; si tu supprimes un site de *Mes
+sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker n'est jamais gardé (homedash te le dit avant d'enregistrer ; son panneau revient vide). Quand un
+même site existe avec plusieurs comptes, le menu d'un panneau les distingue (« X · pro », « X · perso ») et grise celui
+qu'un autre panneau de la vue utilise déjà.
+
+**Clavier** (mode Scroll, ou raccourcis cochés ; **en Classic, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
+chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
+
+| Touche | Effet |
+| --- | --- |
+| `Alt` + `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY) | Panneau 1 à 4 : il prend les touches (et le son si celui-ci suit le clavier) |
+| `J` `K` ou `↓` `↑` | Défiler le panneau actif d'un cran (une carte sur TikTok, Reels) |
+| `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente |
+| `Z` | Agrandir / restaurer le panneau actif |
+| `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
+| `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant |
+| *Table de mixage* (remplace J K, N P, Z et les actions) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main |
+
+Chaque touche = une action de ta part : homedash ne boucle jamais, ne lit ni ne collecte rien des pages.
+
 ## 🔔 Notifications
 
 La cloche, en haut à droite : ce qui s'est passé (CI, PRs, branches à nettoyer, Basecamp, Trello, nouvelle
@@ -357,6 +406,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
+| ◫ Vue scindée | Le mode de départ (Classic / Scroll), le son, les raccourcis, les actions par site, le clavier AZERTY / QWERTY |
 | 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
 | 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |

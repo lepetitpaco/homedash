@@ -35,6 +35,26 @@
   visibility: hidden;
   pointer-events: none;
 }
+.xtab.is-tiled {
+  position: fixed;
+  z-index: 5;
+  gap: 0;
+  min-width: 0;
+}
+/* Vue scindée : l'en-tête est celui du panneau (SplitView), le site prend toute sa case. */
+.app .xtab.is-tiled .xtab-bar {
+  display: none;
+}
+.app .xtab.is-tiled .xtab-body {
+  flex: 1;
+  min-height: 0;
+}
+.app .xtab.is-tiled .xtab-frame {
+  height: 100%;
+  min-height: 0;
+  border: 0;
+  border-radius: 0 0 6px 6px;
+}
 .xtab-bar {
   display: flex;
   align-items: center;
@@ -472,6 +492,18 @@
   position: relative;
   display: inline-flex;
   min-width: 0;
+}
+.pick-icon {
+  display: inline-grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.pick-icon img,
+.pick-icon svg {
+  max-width: 100%;
+  max-height: 100%;
 }
 .pick-btn {
   display: inline-flex;

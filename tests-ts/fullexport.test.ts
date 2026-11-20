@@ -48,6 +48,12 @@ describe('export complet', () => {
     f.kdf.N = 2 ** 24
     expect(() => fullexport.open(JSON.stringify(f), 'motdepasse')).toThrow('fichier invalide')
   })
+  it('les vues scindées (#169) font partie de l’export complet', () => {
+    const cfg = store.read<any>(store.CONFIG, {})
+    store.write(store.CONFIG, { ...cfg, splitViews: [{ id: 'sv-1', name: 'Flux', layout: 'c2', slots: ['gm', null] }] })
+    const payload = fullexport.open(fullexport.seal(fullexport.collect({}, '2.0.0'), 'motdepasse'), 'motdepasse')
+    expect((payload.files.config as any).splitViews).toEqual([{ id: 'sv-1', name: 'Flux', layout: 'c2', slots: ['gm', null] }])
+  })
   it("l'aperçu ne montre aucun secret", () => {
     const sum = fullexport.summary(fullexport.open(sealed(), 'motdepasse'))
     expect(sum).toMatchObject({ title: 'chez moi', links: 1, tabs: 1, github_tokens: 1, basecamp: true, notes: 1, cookies: 1, cookie_sites: 1 })

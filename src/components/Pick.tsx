@@ -4,9 +4,13 @@ import { createPortal } from 'react-dom'
 export type PickOption = {
   value: string
   label: string
+  /** Icône (site) devant le libellé. */
+  icon?: React.ReactNode
   /** Pastille de couleur devant le libellé (compte, dossier). */
   color?: string
   hint?: string
+  /** Grisé : visible mais pas choisissable (le `hint` dit pourquoi). */
+  disabled?: boolean
 }
 
 /**
@@ -91,6 +95,7 @@ export default function Pick({
         title={title}
       >
         {cur?.color ? <span className="pick-dot" style={{ background: cur.color }} /> : null}
+        {cur?.icon ? <span className="pick-icon" aria-hidden="true">{cur.icon}</span> : null}
         <span className="pick-label">{cur?.label}</span>
         <span className="pick-caret" aria-hidden="true">
           ▾
@@ -111,13 +116,15 @@ export default function Pick({
               type="button"
               role="option"
               aria-selected={o.value === value}
-              className={`pick-item${o.value === value ? ' is-on' : ''}`}
+              className={`pick-item${o.value === value ? ' is-on' : ''}${o.disabled ? ' is-disabled' : ''}`}
+              disabled={o.disabled}
               onClick={() => {
                 onChange(o.value)
                 setOpen(false)
               }}
             >
               {o.color ? <span className="pick-dot" style={{ background: o.color }} /> : <span className="pick-dot is-none" />}
+              {o.icon ? <span className="pick-icon" aria-hidden="true">{o.icon}</span> : null}
               <span>{o.label}</span>
               {o.hint ? <em>{o.hint}</em> : null}
             </button>

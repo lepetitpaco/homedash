@@ -152,6 +152,18 @@ describe('notes, compteurs, sauvegardes', () => {
     expect(r.json.before).toMatch(/avant-restauration(-\d+)?\.json$/)
     expect(store.read<any>(store.CONFIG, {}).title).toBe('t')
   })
+  it('vues scindées (#169) : sauvegardées, restaurées ; une vue abîmée est refusée', async () => {
+    const views = [{ id: 'sv-1', name: 'Flux', layout: 'c2', slots: ['x-a', null], ratios: { '': [2, 1] } }]
+    store.write(store.CONFIG, { ...BASE, splitViews: views })
+    const exported = (await call('GET', '/api/backup')).json
+    expect(exported.files.config.splitViews).toEqual(views)
+    store.write(store.CONFIG, { ...BASE, splitViews: [] })
+    const bad = { homedash_backup: 1, files: { config: { ...BASE, splitViews: [{ id: 'sv-1', name: 'x', slots: [7] }] } } }
+    expect((await call('POST', '/api/backup/restore', { body: bad })).status).toBe(422)
+    expect(store.read<any>(store.CONFIG, {}).splitViews).toEqual([])
+    expect((await call('POST', '/api/backup/restore', { body: exported })).status).toBe(200)
+    expect(store.read<any>(store.CONFIG, {}).splitViews).toEqual(views)
+  })
   it('nom de sauvegarde venu de l\'URL : vérifié', async () => {
     expect((await call('GET', '/api/backups/..%2Fsecrets.json')).status).toBe(404)
     expect((await call('DELETE', '/api/backups/..%2Fconfig.json')).status).toBe(404)

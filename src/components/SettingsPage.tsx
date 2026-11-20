@@ -45,6 +45,7 @@ import SetBellKinds from './SetBellKinds'
 import SetRepos, { type Use } from './SetRepos'
 import BarLayoutForm, { type Bars } from './BarLayoutForm'
 import SetDisplay from './SetDisplay'
+import SetSplit from './SetSplit'
 import SetOverview from './SetOverview'
 import SetPerf from './SetPerf'
 import SetTabs from './SetTabs'
@@ -56,7 +57,7 @@ import { Markdown } from '../lib/markdown'
 import type { useChangelog } from '../lib/changelog'
 import SetTeam from './SetTeam'
 import { keys } from '../lib/keys'
-import { desktop } from '../lib/desktop'
+import { desktop, hasSplitView } from '../lib/desktop'
 
 const NOTIF_LABEL: Record<NotifState, string> = {
   unsupported: 'Non supportées par ce navigateur',
@@ -102,6 +103,7 @@ const SECTIONS = [
   { id: 'set-tabs', icon: '🗂', label: 'Mes sites', group: 'La page' },
   { id: 'set-bars', icon: '🧭', label: 'Barres et onglets', group: 'La page' },
   { id: 'set-display', icon: '🎛', label: 'Affichage', group: 'La page' },
+  { id: 'set-split', icon: '◫', label: 'Vue scindée', group: 'La page' },
   { id: 'set-notifs', icon: '🔔', label: 'Notifications', group: 'La page' },
   { id: 'set-backups', icon: '💾', label: 'Sauvegardes', group: 'Données' },
 ] as const
@@ -309,7 +311,7 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
       .catch(() => undefined)
   }, [])
   // Une fonctionnalité décochée quitte le menu tout de suite (brouillon compris).
-  const shown = (id: string) => !SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id])
+  const shown = (id: string) => (id !== 'set-split' || hasSplitView) && (!SECTION_FEATURE[id] || featureOn(draft, SECTION_FEATURE[id]))
   const nav = [...SECTIONS.filter((sec) => shown(sec.id)), GUIDE, DIAG]
   const [guidePart, setGuidePart] = useState<string | null>(() => {
     try {
@@ -1108,6 +1110,20 @@ export default function SettingsPage({ config, onSave, onReload, saving, changel
           </Block>
           <Block icon="📐" title="Mise en page" hint="Des modèles plutôt que des chiffres. Appliqué à « Enregistrer ».">
             <SetDisplay ui={draft.ui ?? {}} onChange={(patch) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), ...patch } })} />
+          </Block>
+        </Card>
+        ) : null}
+        {active === 'set-split' ? (
+        <Card id="set-split" icon="◫" title="Vue scindée">
+          <Block
+            icon="◫"
+            title="Plusieurs sites côte à côte"
+            hint="Le mode de départ de la vue scindée (bouton ◫ de la barre du haut, appli de bureau). Appliqué à « Enregistrer » ; dans la vue, la barre change ces cases pour la durée de la vue."
+          >
+            <SetSplit
+              value={draft.ui?.split}
+              onChange={(next) => setDraft({ ...draft, ui: { ...(draft.ui ?? {}), split: next } })}
+            />
           </Block>
         </Card>
         ) : null}

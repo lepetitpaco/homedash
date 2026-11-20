@@ -136,6 +136,8 @@ export type UiConfig = {
    * perso) est gardé à la relance (`true`) ou éphémère (défaut).
    */
   linkTabsKept: boolean
+  /** Vue scindée (Réglages → Vue scindée) : mode, son, clavier. Absent = les défauts du code (`normalizeSplit`). */
+  split?: Partial<import('./lib/splitView').SplitPrefs>
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
   /**
@@ -223,6 +225,20 @@ export type TabFolder = {
   before?: string
 }
 
+/** Vue scindée enregistrée (#169) : s'ouvre depuis la barre de gauche comme un site. */
+export type SavedSplitView = {
+  id: string
+  name: string
+  layout: string
+  /**
+   * Proportions des séparateurs, par nœud de la disposition (`splitView.ts`) : la clé est le chemin du nœud
+   * (`''` = la racine, `'1'` = son 2e enfant, `'10'`…), la valeur la liste de ses parts (2 à 4 nombres > 0).
+   */
+  ratios?: Record<string, number[]>
+  /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
+  slots: (string | null)[]
+}
+
 /**
  * Compte de connexion, comme un conteneur Firefox : ses onglets partagent des
  * cookies à part. La session suit l'`id` : renommer ne déconnecte pas.
@@ -268,6 +284,8 @@ export type Config = {
   tabFolders?: TabFolder[]
   /** Comptes de connexion des onglets perso (appli de bureau). Absent = aucun. */
   tabSessions?: TabSession[]
+  /** Vues scindées gardées (#169). Absent = aucune. */
+  splitViews?: SavedSplitView[]
   /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
   features?: Partial<Record<Feature, boolean>>
   /** Liens vers les containers Docker (Réglages → Mes sites → Docker). Absent = désactivé. */

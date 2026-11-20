@@ -301,6 +301,36 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
 - Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
   son titre (les compteurs).
+- Vue scindée (#160) : les sites déjà montés sont posés en grille par CSS (`.xtab.is-tiled`, `position: fixed` aux
+  coordonnées de la case), **jamais reparentés** (une webview déplacée se recharge) ; hors grille ils restent garés.
+  Le muet automatique se calcule là où `muted` est passé (`effectiveMuted`) : le muet manuel prime. Les touches sont
+  décidées dans `guest-preload.js` (seul à voir si le focus est dans un champ), d'après la table que la page tire de
+  `splitView.ts` (`interceptTable`) et envoie à `main.js` (`homedash:split-config`) ; table vide en Classic et vue
+  fermée : rien retenu, rien relayé. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
+  `site-adapters.js`.
+- Vue scindée, touches envoyées par homedash à un site (`site-adapters.js`, `sendKey`) : le préload du site les
+  retiendrait (J, K, L, flèches… sont dans sa table) et on tournerait en rond. `main.js` annonce donc la touche
+  (`homedash:split-pass`) et **attend l'accusé** (`split-pass-ok`, 300 ms au plus) avant d'envoyer ; le préload laisse
+  passer ce keydown une fois (500 ms). Cas limites : accusé perdu = la touche part quand même (au pire retenue, une fois,
+  puis plus rien) ; rien n'est envoyé si le focus du site est dans un champ (le « j » irait dans un brouillon) ; une
+  action envoyée en touche (X) renvoie toujours « faite » : homedash ne sait pas si le site l'a prise. La molette
+  synchronisée (`createWheelSync`) pose son anti-écho **après** l'attente de la taille de la page (bornée à 100 ms).
+- Vue scindée, pause des vidéos (#168) : les `<video>` en lecture d'un panneau sans le son reçoivent `data-hd-paused`
+  puis `pause()` ; `window.__hdHold` fait remettre en pause une vidéo que le site relance seul (écouteur `play`) ;
+  la reprise ne relance que les vidéos marquées (une pause à la main n'est jamais défaite). Renvoyée à chaque chargement
+  de page ; limite : une vidéo dans un shadow DOM fermé ou un iframe d'une autre origine n'est pas vue. À la fermeture,
+  seul le site affiché reprend (`CLOSE_KEEPS_PARKED_PAUSED`, `splitView.ts`).
+- Vues scindées enregistrées (#169) : clé **additive** `config.splitViews` (absente = aucune vue, défaut dans le
+  code), donc **aucune étape dans `accounts.migrate()`** ; `store.validateConfig` la contrôle avant toute écriture
+  (sauvegardes, restauration et export complet reprennent `config.json` en entier : testé). Une vue garde des **id de
+  sites**, jamais un onglet temporaire ni un container Docker (« Garder cette vue » le dit). Fichiers :
+  `src/lib/splitViews.ts` (pur), `src/lib/splitView.ts` (modes, clavier, son), `SplitView.tsx` (barre et grille),
+  `SetSplit.tsx` (Réglages).
+- Vue scindée, Échap : il ferme la couche du dessus, jamais la vue en plus. Une couche flottante (menu, liste de choix,
+  fenêtre) **porte `role="dialog"`, `"menu"` ou `"listbox"`** : c'est ce que `layerOpen()` cherche (`LAYER_SELECTOR`,
+  `splitView.ts`), il n'y a pas de liste de classes à tenir à jour. Un Échap tapé dans un site arrive deux fois (la page
+  ferme sa couche, puis le relais du site) : le 2e est ignoré 300 ms quand une couche était ouverte. `keepOnTab` : ouvrir
+  une vue depuis Réglages ou Activité change de page, et ce changement ne doit pas refermer la vue qu'on ouvre.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

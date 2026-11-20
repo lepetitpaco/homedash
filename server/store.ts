@@ -274,7 +274,7 @@ export function validateConfig(cfg: unknown): string | null {
       seen.add(tab.id as string)
     }
   }
-  for (const key of ['tabFolders', 'tabSessions']) {
+  for (const key of ['tabFolders', 'tabSessions', 'splitViews']) {
     const items = cfg[key]
     if (items === undefined || items === null) continue
     if (!Array.isArray(items)) return `"${key}" doit être un tableau`
@@ -286,6 +286,23 @@ export function validateConfig(cfg: unknown): string | null {
       }
       if (seen.has(f.id as string)) return `${key}[${i}].id en double : ${f.id}`
       seen.add(f.id as string)
+      // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
+      if (key === 'splitViews') {
+        if (String(f.name).length > 60) return `splitViews[${i}].name trop long (60 caractères au plus)`
+        const ratios = f.ratios
+        if (ratios !== undefined && ratios !== null) {
+          const good =
+            isObj(ratios) &&
+            Object.values(ratios).every((l) => Array.isArray(l) && l.length >= 2 && l.length <= 4 && l.every((n) => typeof n === 'number' && Number.isFinite(n) && n > 0))
+          if (!good) return `splitViews[${i}].ratios doit être des listes de 2 à 4 nombres positifs`
+        }
+        if (f.layout !== undefined && f.layout !== null && !isStr(f.layout)) return `splitViews[${i}].layout doit être un texte`
+        const slots = f.slots
+        if (slots !== undefined && slots !== null) {
+          if (!Array.isArray(slots) || slots.length > 4 || slots.some((x) => x !== null && !isStr(x)))
+            return `splitViews[${i}].slots doit être une liste de 4 sites au plus (ou null)`
+        }
+      }
     }
   }
   const order = cfg.pinnedOrder

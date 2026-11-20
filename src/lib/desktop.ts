@@ -40,6 +40,14 @@ export type Desktop = {
   extensions?: (req: { action: 'list' | 'add' | 'remove' | 'reload' | 'settings'; path?: string }) => Promise<{ list: ExtensionInfo[]; error?: string } | null>
   /** ⌘⇧F tapé dans un site (`focus-key` dans features, #144) ; renvoie de quoi se désabonner. */
   onFocusToggle?: (cb: () => void) => () => void
+  /** Vue scindée (`split-view` dans features, #160) : ouverte ou non, touches retenues dans les sites, survol, molette. */
+  splitConfig?: (cfg: SplitConfig) => void
+  /** Une action sur un panneau (id de sa webview) ; true si faite, `'busy'` si un champ de saisie y a le focus. */
+  splitDo?: (id: number, op: SplitOp) => Promise<boolean | 'busy'>
+  /** Touche retenue dans un site de la vue scindée ; renvoie de quoi se désabonner. */
+  onSplitKey?: (cb: (k: { id: number; key: string; code: string; shift: boolean; alt: boolean }) => void) => () => void
+  /** La souris entre, clique (`pick`) ou sort (`leave`) d'un site de la vue scindée (id de sa webview) ; renvoie de quoi se désabonner. */
+  onSplitHover?: (cb: (id: number, kind: 'hover' | 'pick' | 'leave') => void) => () => void
   /** ⇧⌘R du menu de l'appli (≥ 1.1.0) ; renvoie de quoi se désabonner. */
   onReloadTab?: (cb: () => void) => () => void
 }
@@ -49,6 +57,21 @@ export type Desktop = {
  * a une popup ou une page d'options, que ⚙ ouvre (`extension-settings` dans features).
  */
 export type ExtensionInfo = { path: string; name: string; version: string; error: string; loaded: boolean; settings?: boolean }
+
+export type SplitOp = 'next' | 'prev' | 'pageNext' | 'pagePrev' | 'like' | 'save' | 'share' | 'comment' | 'focus' | 'focusSoft' | 'pause' | 'resume'
+export type SplitConfig =
+  | { open: false }
+  | {
+      open: true
+      table: { keys: string[]; alt: string[]; relay: string[] }
+      /** Sélecteur d'un champ de saisie (splitView.ts) : les sites n'y retiennent aucune touche. */
+      field: string
+      /** Où Espace garde son sens natif (bouton, lien, vidéo). */
+      spaceKeep: string
+      sync: boolean
+      /** Webviews des panneaux affichés (molette synchronisée). */
+      ids: number[]
+    }
 
 export const desktop: Desktop | undefined = (window as unknown as { homedashDesktop?: Desktop }).homedashDesktop
 
@@ -97,6 +120,8 @@ export const hasSessions = !!desktop?.features?.includes('sessions')
 
 /** L'appli dit-elle si un lien de site a été ⌘cliqué (⇧cliqué) ? (appli ≥ 1.5.6) */
 export const hasLinkFlip = !!desktop?.features?.includes('link-flip')
+/** L'appli sait afficher plusieurs sites côte à côte (vue scindée, #160). */
+export const hasSplitView = !!desktop?.features?.includes('split-view')
 /** L'appli sait donner la mémoire de chaque site. */
 export const hasTabMemory = !!desktop?.features?.includes('tab-memory')
 
@@ -151,4 +176,5 @@ export type WebviewEl = HTMLElement & {
   setAudioMuted: (muted: boolean) => void
   getWebContentsId: () => number
   executeJavaScript: (code: string) => Promise<unknown>
+  focus: () => void
 }
