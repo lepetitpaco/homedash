@@ -10,6 +10,7 @@ import {
   dragRatios,
   layoutOf,
   mixLabel,
+  zoomKey,
   type Follow,
   type KeyboardChoice,
   type Preset,
@@ -271,7 +272,7 @@ export default function SplitView(p: Props) {
           <button
             className="split-btn"
             onClick={() => p.onZoom(zoomed ? null : i)}
-            title={zoomed ? 'Restaurer la grille (en mode Flux : Z)' : 'Agrandir ce panneau (double-clic sur le titre ; en mode Flux : Z)'}
+            title={zoomed ? `Restaurer la grille (en mode Flux : ${zoomKey(p.prefs).toUpperCase()})` : `Agrandir ce panneau (double-clic sur le titre ; en mode Flux : ${zoomKey(p.prefs).toUpperCase()})`}
             aria-label={zoomed ? 'Restaurer la grille' : 'Agrandir ce panneau'}
           >
             {zoomed ? '⤡' : '⤢'}

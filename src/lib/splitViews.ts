@@ -53,7 +53,6 @@ export function newViewId(taken: string[]): string {
   return id
 }
 
-/** Une vue qu'on garde : seuls les sites (hors onglets temporaires) entrent dans ses cases. */
 /**
  * Les vues d'un endroit de la barre : dans ce dossier (`folder`, absent = hors dossier), devant ce site (`before`,
  * `null` = à la fin). Un dossier ou un site disparu ne perd pas la vue : elle retombe hors dossier, à la fin.
@@ -93,6 +92,7 @@ export function moveView(
   return others
 }
 
+/** Une vue qu'on garde : seuls les sites (hors onglets temporaires et Docker) entrent dans ses cases. */
 export function makeView(
   id: string,
   name: string,

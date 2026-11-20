@@ -130,16 +130,22 @@ function scrollScript(dir) {
  * n'est jamais relancée par homedash.
  */
 const PAUSE_SCRIPT = `(function () {
+  // Jamais un appel : un média à srcObject (flux WebRTC : appel Instagram, Messenger, Meet, Zoom, Teams, Jitsi…) n'est
+  // ni coupé ni suivi. Un <audio> (notification) relancé par la page est seulement remis en pause, sans être marqué :
+  // sinon un vieux « ding » repartirait au retour sur le site.
+  var skip = function (m) { return !!m.srcObject };
   window.__hdHold = true;
   if (!window.__hdHoldOn) {
     window.__hdHoldOn = true;
     document.addEventListener('play', function (e) {
       var v = e.target;
-      if (window.__hdHold && v && (v.tagName === 'VIDEO' || v.tagName === 'AUDIO')) { v.setAttribute('data-hd-paused', '1'); v.pause() }
+      if (!window.__hdHold || !v || skip(v)) return;
+      if (v.tagName === 'VIDEO') { v.setAttribute('data-hd-paused', '1'); v.pause() }
+      else if (v.tagName === 'AUDIO') v.pause();
     }, true);
   }
   document.querySelectorAll('video, audio').forEach(function (v) {
-    if (!v.paused && !v.ended) { v.setAttribute('data-hd-paused', '1'); v.pause() }
+    if (!skip(v) && !v.paused && !v.ended) { v.setAttribute('data-hd-paused', '1'); v.pause() }
   });
   return true;
 })()`

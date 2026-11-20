@@ -34,6 +34,8 @@ export type Tab = {
   onToggleMute?: () => void
   /** Dossier : une pastille qui déplie ses sites (`kids`) sous elle ; son compteur = la somme des leurs. */
   kids?: Tab[]
+  /** Entrée qui n'est pas une page de homedash (une vue scindée) : le clic l'ouvre ici plutôt que `selectTab`. */
+  onOpen?: () => void
   /** Couleur du dossier (point devant son nom). */
   color?: string
 }
@@ -113,7 +115,7 @@ function TabButton({ t, active, onSelect }: { t: Tab; active: boolean; onSelect:
       aria-selected={active}
       className={`tab${active ? ' is-active' : ''}${t.session ? ' has-session' : ''}${t.onClose ? ' is-temp' : ''}${t.asleep ? ' is-asleep' : ''}`}
       style={t.session ? { ['--session' as string]: t.session.color } : undefined}
-      onClick={() => onSelect(t.id)}
+      onClick={() => (t.onOpen ? t.onOpen() : onSelect(t.id))}
       // clic molette : fermer, comme dans un navigateur
       onAuxClick={
         t.onClose

@@ -1209,7 +1209,6 @@ export default function App() {
     leavePage()
     const { keys, gone, copies } = viewSlots(v, embedSites)
     setSplitNotes([null, null, null, null])
-    copyGuests.current.clear()
     setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs: v.prefs ?? splitDefaults, focus: { active: 0, sound: (v.prefs ?? splitDefaults).follow === 'all' ? null : 0 } })
   }
   const rawRef = useRef(raw)
@@ -1246,15 +1245,18 @@ export default function App() {
     const s = splitRef.current
     const cur = s?.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
     if (!s || !cur) return
+    if (s.slots.slice(0, layoutOf(s.layout).n).filter(Boolean).length < 2) return noteSplit(s.focus.active, 'Une vue scindée a besoin de deux sites au moins')
     if (!(await confirmDropped(s.slots, s.layout))) return
     const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, s.copies, s.prefs)
     writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
     setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites).gone } : x))
   }
+  const cancelEditRef = useRef<() => void>(() => undefined)
   const cancelEdit = () => {
     const cur = splitRef.current?.viewId ? savedViews.find((v) => v.id === splitRef.current?.viewId) : undefined
     if (cur) openSavedView(cur)
   }
+  cancelEditRef.current = cancelEdit
   const editView = (v: (typeof savedViews)[number]) => {
     openSavedView(v)
     setSplit((x) => (x ? { ...x, editing: true } : x))
@@ -1422,6 +1424,8 @@ export default function App() {
       if (a.type === 'focus') return doPick(a.pane)
       if (a.type === 'leave') {
         if (layerOpen() || Date.now() < ignoreLeaveUntil.current) return
+        // En édition, Échap annule : jamais de changement perdu en silence.
+        if (s.editing) return cancelEditRef.current()
         return s.zoom !== null ? setSplit({ ...s, zoom: null }) : setSplit(null)
       }
       if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
@@ -2515,6 +2519,16 @@ export default function App() {
           ]
         }),
         ...allTemps.filter((t) => !parentOf(t)).map(entry),
+        // Onglets en haut : les vues scindées s'ouvrent d'ici, comme dans la barre de gauche.
+        ...savedViews.map((v): Tab => ({
+          id: `f:view-${v.id}` as TabId,
+          icon: '◫',
+          label: v.name,
+          badge: viewCounter(v, tabCounts, embedSites),
+          badgeAlert: true,
+          onOpen: () => openSavedView(v),
+          onContext: (ev: React.MouseEvent) => viewMenu(ev, v),
+        })),
         ...(dockerSites.length
           ? [{ id: 'f:docker' as TabId, icon: '🐳', label: 'Docker', kids: dockerSites.map(entry) }]
           : []),
@@ -2948,8 +2962,10 @@ export default function App() {
           copies={split.copies}
           onCopy={(slot, copy) => setSplit((x) => (x ? { ...x, copies: x.copies.map((c, i) => (i === slot ? copy : c)) } : x))}
           onCopyGuest={(slot, id) => {
-            if (id === null) copyGuests.current.delete(slot)
-            else copyGuests.current.set(slot, id)
+            if (id === null) {
+              copyGuests.current.delete(slot)
+              setAudible((a) => (a[`copy:${slot}`] ? { ...a, [`copy:${slot}`]: false } : a))
+            } else copyGuests.current.set(slot, id)
             setGuestVer((v) => v + 1)
           }}
           copyMuted={Array.from({ length: 4 }, (_, i) => effectiveMuted(`copy:${i}`, false, { open: true, follow: split.prefs.follow, shown: splitShown, sound: splitSoundKey }))}
