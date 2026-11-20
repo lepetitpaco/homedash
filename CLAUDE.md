@@ -328,10 +328,10 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   homedash pour une touche (J, N, Espace… repli `wheel()`) est notée d'avance comme écho (`hooks.wheel` → `expect`),
   sinon la synchro la recopiait et Maj + touche défilait les autres plusieurs fois ; (3) Maj + molette d'une souris arrive
   **horizontale** (Windows, et macOS) : `sideways`, la valeur horizontale sert de verticale et le panneau d'origine reçoit
-  lui aussi la molette (`self`) ; en Flux, la molette horizontale native est alors **bloquée** (`blockSideways`, écouteur
-  non passif posé seulement vue Flux ouverte), sinon elle freinait le panneau d'origine et les panneaux se désalignaient
-  (trempe : 199 px au lieu de 600) ; une molette horizontale sans Maj (trackpad) n'est jamais touchée, la Messagerie non
-  plus. (4) Un `mouseover` provoqué par le contenu qui défile sous une souris immobile n'est **pas** un geste
+  lui aussi la molette (`self`) ; vue ouverte (Flux **et** Messagerie : la trempe a vu le même retard dans les deux), la
+  molette horizontale native est alors **bloquée** (`blockSideways`, écouteur non passif posé seulement vue ouverte,
+  retiré à la fermeture : `blockWanted`), sinon elle freinait le panneau d'origine et les panneaux se désalignaient
+  (trempe : 199 px au lieu de 600) ; une molette horizontale sans Maj (trackpad) n'est jamais touchée. (4) Un `mouseover` provoqué par le contenu qui défile sous une souris immobile n'est **pas** un geste
   (`pointerMoved` : même position d'écran que le dernier évènement de souris), sinon le son sautait de panneau après la
   molette et la vidéo active se mettait en pause. `forget` n'oublie rien moins de 150 ms après une vraie molette : l'élan d'un trackpad
   qui traverse un panneau ne doit pas libérer ses échos. Une vraie molette (pas un écho) est relayée à la page comme un

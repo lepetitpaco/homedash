@@ -137,6 +137,11 @@ function sidewaysWheel(e) {
 function pointerMoved(last, x, y) {
   return !last || last.x !== x || last.y !== y
 }
+// La molette horizontale de Maj est bloquée dès qu'une vue scindée est ouverte, Flux comme Messagerie (dans les deux,
+// le panneau d'origine reçoit la molette verticale relayée, que le natif horizontal freinait).
+function blockWanted(cfg) {
+  return !!(cfg && cfg.open)
+}
 // </wheelHover>
 
 // Survol et clic : la page sait ainsi quel panneau est visé (en Flux, le son et les touches le suivent : dernier geste).
@@ -181,17 +186,17 @@ window.addEventListener(
   },
   { capture: true, passive: true },
 )
-// En Flux, la molette horizontale native de Maj + molette est bloquée : le panneau reçoit la molette verticale relayée
-// (`self`), et le défilement horizontal natif la freinait (panneau d'origine en retard, panneaux désalignés, #177).
-// Écouteur non passif seulement vue Flux ouverte (il retarde un peu chaque molette) ; une molette horizontale sans Maj
-// (trackpad) n'est jamais touchée. Messagerie : rien de bloqué.
+// Vue ouverte (Flux ou Messagerie), la molette horizontale native de Maj + molette est bloquée : le panneau reçoit la
+// molette verticale relayée (`self`), et le défilement horizontal natif la freinait (panneau d'origine en retard,
+// panneaux désalignés, #177). Écouteur non passif seulement vue ouverte (il retarde un peu chaque molette), retiré à
+// la fermeture ; une molette horizontale sans Maj (trackpad) n'est jamais touchée.
 const blockSideways = (e) => {
   if (e.isTrusted && sidewaysWheel(e)) e.preventDefault()
 }
 let blocking = false
 function setSplit(cfg) {
   split = cfg
-  const want = !!(split.open && split.table && (split.table.codes || []).length)
+  const want = blockWanted(split)
   if (want === blocking) return
   blocking = want
   if (want) window.addEventListener('wheel', blockSideways, { capture: true, passive: false })

@@ -65,7 +65,8 @@ describe('garde d’Échap des sites : seules les fenêtres visibles comptent', 
 
 // Molette et survol de la vue scindée (#177) : le vrai code du préload, extrait de la même façon.
 const wh = src.slice(src.indexOf('// <wheelHover>'), src.indexOf('// </wheelHover>'))
-const { sidewaysWheel, pointerMoved } = new Function(`${wh}\nreturn { sidewaysWheel, pointerMoved }`)() as {
+const { sidewaysWheel, pointerMoved, blockWanted } = new Function(`${wh}\nreturn { sidewaysWheel, pointerMoved, blockWanted }`)() as {
+  blockWanted: (cfg: unknown) => boolean
   sidewaysWheel: (e: { shiftKey: boolean; deltaX: number; deltaY: number }) => boolean
   pointerMoved: (last: { x: number; y: number } | null, x: number, y: number) => boolean
 }
@@ -77,6 +78,12 @@ describe('vue scindée : molette horizontale de Maj et survol sans mouvement (#1
     // Maj sur un trackpad Mac : la molette reste verticale, rien à bloquer
     expect(sidewaysWheel({ shiftKey: true, deltaX: 0, deltaY: 60 })).toBe(false)
     expect(sidewaysWheel({ shiftKey: true, deltaX: 3, deltaY: 60 })).toBe(false)
+  })
+  it('le blocage de Maj + molette horizontale vaut vue ouverte, Flux comme Messagerie ; retiré à la fermeture', () => {
+    expect(blockWanted({ open: true, table: { codes: ['KeyJ'] } })).toBe(true) // Flux
+    expect(blockWanted({ open: true, table: { codes: [], shift: [], alt: [], relay: [] } })).toBe(true) // Messagerie
+    expect(blockWanted({ open: false })).toBe(false)
+    expect(blockWanted(null)).toBe(false)
   })
   it('un survol compte si la souris a bougé, pas si le contenu a défilé sous elle', () => {
     expect(pointerMoved(null, 10, 10)).toBe(true)
