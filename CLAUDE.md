@@ -322,13 +322,18 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   synchronisée (`createWheelSync`) pose son anti-écho **après** l'attente de la taille de la page (bornée à 100 ms).
 - Vue scindée, molette (#177) : le préload signale **toute** molette vue ouverte (`{ dy, shift, sideways }`) ; `main.js`
   décide qui suit (`wheelTargets` : synchro, Maj qui l'inverse) et passe **toujours** par `createWheelSync`, même sans
-  destinataire : c'est lui qui absorbe les échos. Trois pièges : (1) un panneau gardait des échos en attente (pages lentes
+  destinataire : c'est lui qui absorbe les échos. Quatre pièges : (1) un panneau gardait des échos en attente (pages lentes
   qui fusionnent les molettes) et sa vraie molette était avalée, d'où « un seul panneau pilote » : la souris qui **entre**
   dans un site (`mouseover` sans `relatedTarget`, `enter`) oublie ses échos (`forget`) ; (2) une molette envoyée par
   homedash pour une touche (J, N, Espace… repli `wheel()`) est notée d'avance comme écho (`hooks.wheel` → `expect`),
   sinon la synchro la recopiait et Maj + touche défilait les autres plusieurs fois ; (3) Maj + molette d'une souris arrive
   **horizontale** (Windows, et macOS) : `sideways`, la valeur horizontale sert de verticale et le panneau d'origine reçoit
-  lui aussi la molette (`self`). `forget` n'oublie rien moins de 150 ms après une vraie molette : l'élan d'un trackpad
+  lui aussi la molette (`self`) ; en Flux, la molette horizontale native est alors **bloquée** (`blockSideways`, écouteur
+  non passif posé seulement vue Flux ouverte), sinon elle freinait le panneau d'origine et les panneaux se désalignaient
+  (trempe : 199 px au lieu de 600) ; une molette horizontale sans Maj (trackpad) n'est jamais touchée, la Messagerie non
+  plus. (4) Un `mouseover` provoqué par le contenu qui défile sous une souris immobile n'est **pas** un geste
+  (`pointerMoved` : même position d'écran que le dernier évènement de souris), sinon le son sautait de panneau après la
+  molette et la vidéo active se mettait en pause. `forget` n'oublie rien moins de 150 ms après une vraie molette : l'élan d'un trackpad
   qui traverse un panneau ne doit pas libérer ses échos. Une vraie molette (pas un écho) est relayée à la page comme un
   survol, le son la suit ; seulement quand le panneau qui défile change (ou toutes les 500 ms), pas à chaque cran.
 - Vue scindée, pause des vidéos (#168) : les `<video>` en lecture d'un panneau sans le son reçoivent `data-hd-paused`
