@@ -194,8 +194,8 @@ lettres se croisent), *Scroll synchronisé* (une molette pour tous les panneaux)
 
 **Garder une vue** : *Garder cette vue* (barre de la vue) demande un nom et range la vue dans la barre de gauche, sous
 tes sites, avec son icône ◫ et un compteur (la somme de ceux de ses sites). Un clic l'ouvre (mêmes sites vivants, rien
-n'est rechargé), le clic droit propose *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Ouverte, le
-bouton devient *Mettre à jour « nom »*. Une vue garde ses sites et sa disposition ; si tu supprimes un site de *Mes
+n'est rechargé ; quand tu la fermes, seul le site qui reste affiché reprend ses vidéos et son, les sites garés restent en pause jusqu'à ce que tu les affiches), le clic droit propose *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Ouverte, le
+bouton devient *Mettre à jour* (le nom de la vue est dans sa bulle). Une vue garde ses sites et sa disposition ; si tu supprimes un site de *Mes
 sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker n'est jamais gardé (homedash te le dit avant d'enregistrer ; son panneau revient vide). Quand un
 même site existe avec plusieurs comptes, le menu d'un panneau les distingue (« X · pro », « X · perso ») et grise celui
 qu'un autre panneau de la vue utilise déjà.

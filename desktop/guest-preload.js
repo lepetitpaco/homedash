@@ -81,14 +81,16 @@ const inField = (el) => {
     return false
   }
 }
+// <visibleDialog> : seule une fenêtre VISIBLE retient Échap (un role="dialog" caché, transparent ou hors de l'écran ne compte pas).
 const DIALOG = '[aria-modal="true"], [role="dialog"], [role="alertdialog"], dialog[open]'
-// <visibleDialog> : seule une fenêtre VISIBLE retient Échap (un role="dialog" resté caché dans la page ne compte pas).
 function visibleDialog(doc, win) {
   for (const el of doc.querySelectorAll(DIALOG)) {
     if (el.getAttribute('aria-hidden') === 'true' || el.hidden) continue
     const st = win.getComputedStyle(el)
-    if (st.display === 'none' || st.visibility === 'hidden') continue
-    if (el.getClientRects().length > 0) return true
+    if (st.display === 'none' || st.visibility === 'hidden' || Number(st.opacity) === 0) continue
+    const r = el.getBoundingClientRect()
+    if (r.width <= 0 || r.height <= 0 || r.right <= 0 || r.bottom <= 0 || r.left >= win.innerWidth || r.top >= win.innerHeight) continue
+    return true
   }
   return false
 }

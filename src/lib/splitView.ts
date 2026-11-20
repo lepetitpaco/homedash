@@ -255,6 +255,27 @@ export function effectivePaused(
  */
 export const CLOSE_KEEPS_PARKED_PAUSED = true
 
+/**
+ * Une couche flottante (menu, liste de choix, fenêtre) : tout ce qui porte ces rôles. Échap est à elle, pas à la vue.
+ * Règle : une nouvelle couche porte `role="dialog"`, `role="menu"` ou `role="listbox"` (le conseil du Dock, un toast,
+ * n'en est pas une).
+ */
+export const LAYER_SELECTOR = '[role="dialog"]:not(.dock-hint), [role="menu"], [role="listbox"]'
+
+/**
+ * La pause voulue d'un site, d'après l'état de la vue (#168). `prev` : en pause d'après nous jusqu'ici ; `parked` :
+ * il était dans la vue qui vient de se fermer ; `tab` : le site affiché. Un site HORS de la grille ouverte garde son
+ * état : une autre vue ne relance pas, caché, un site garé en pause.
+ */
+export function pauseWanted(
+  key: string,
+  c: { open: boolean; prefs: Pick<SplitPrefs, 'pause' | 'follow'>; shown: string[]; sound: string | null; tab: string; prev?: boolean; parked?: boolean },
+): boolean {
+  if (c.open) return c.shown.includes(key) ? effectivePaused(key, c.prefs, c.shown, c.sound) : !!c.prev
+  if (!(c.prev || c.parked)) return false
+  return CLOSE_KEEPS_PARKED_PAUSED && key !== c.tab
+}
+
 // ── clavier ────────────────────────────────────────────────────────────────
 
 export type Preset = {

@@ -11,6 +11,8 @@ import {
   dragRatios,
   effectiveMuted,
   effectivePaused,
+  pauseWanted,
+  LAYER_SELECTOR,
   focusOnHover,
   focusOnLeave,
   focusOnPick,
@@ -316,5 +318,30 @@ describe('libellés partagés et champs de saisie', () => {
     expect(isEditing(el(false, true))).toBe(true)
     expect(isEditing(el(false))).toBe(false)
     expect(isEditing(null)).toBe(false)
+  })
+})
+
+describe('pause et fermeture de la vue (#168)', () => {
+  const base = { prefs: { pause: true, follow: 'hover' as const }, sound: 'x:1', tab: 'links' }
+  it('vue A [1,2] fermée sans site affiché : tous les sites garés restent en pause', () => {
+    expect(pauseWanted('x:1', { ...base, open: false, shown: [], parked: true })).toBe(true)
+    expect(pauseWanted('x:2', { ...base, open: false, shown: [], prev: true })).toBe(true)
+  })
+  it('le site affiché reprend, un autre reste en pause', () => {
+    expect(pauseWanted('x:1', { ...base, open: false, shown: [], parked: true, tab: 'x:1' })).toBe(false)
+    expect(pauseWanted('x:2', { ...base, open: false, shown: [], prev: true, tab: 'x:1' })).toBe(true)
+  })
+  it('vue B [1,3] ouverte après : le site 2, hors de la grille, garde sa pause (pas de son caché)', () => {
+    const b = { ...base, open: true, shown: ['x:1', 'x:3'] }
+    expect(pauseWanted('x:2', { ...b, prev: true })).toBe(true)
+    expect(pauseWanted('x:2', { ...b, prev: false })).toBe(false)
+    expect(pauseWanted('x:1', b)).toBe(false)
+    expect(pauseWanted('x:3', b)).toBe(true)
+  })
+  it('un site jamais touché par la pause n’est pas pris à la fermeture', () => {
+    expect(pauseWanted('x:9', { ...base, open: false, shown: [] })).toBe(false)
+  })
+  it('les couches se reconnaissent à leur rôle', () => {
+    for (const r of ['dialog', 'menu', 'listbox']) expect(LAYER_SELECTOR).toContain(`[role="${r}"]`)
   })
 })

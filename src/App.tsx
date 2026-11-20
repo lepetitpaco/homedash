@@ -42,7 +42,8 @@ import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
 import { droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
-  CLOSE_KEEPS_PARKED_PAUSED,
+  LAYER_SELECTOR,
+  pauseWanted,
   DEFAULT_SPLIT_LAYOUT,
   FIELD_SELECTOR,
   SPACE_KEEPS,
@@ -51,7 +52,6 @@ import {
   assignSites,
   detectKeyboard,
   effectiveMuted,
-  effectivePaused,
   focusOnHover,
   focusOnLeave,
   focusOnPick,
@@ -1164,7 +1164,17 @@ export default function App() {
   }, [])
   const closeSplit = useCallback(() => setSplit(null), [])
   // Une couche (menu, fenêtre de confirmation ou de nom, liste de choix) est ouverte au-dessus de la vue : Échap est à elle.
-  const layerOpen = () => !!document.querySelector('.modal-backdrop, .split-menu, .pick-menu, .ctx')
+  const layerOpen = () => !!document.querySelector(LAYER_SELECTOR)
+  // Échap tapé dans un site : la page ferme sa couche, puis le relais du site arrive (un peu après) : il ne doit pas aussi
+  // fermer la vue. On l'ignore le temps qu'il arrive.
+  const ignoreLeaveUntil = useRef(0)
+  useEffect(
+    () =>
+      desktop?.onGuestDown?.((kind) => {
+        if (kind === 'escape' && document.querySelector(LAYER_SELECTOR)) ignoreLeaveUntil.current = Date.now() + 300
+      }),
+    [],
+  )
   // Ouvrir la vue depuis Réglages ou Activité : on quitte cette page (une seule chose active), sans que ce
   // changement de page ne referme la vue qu'on ouvre.
   const keepOnTab = useRef(false)
@@ -1327,17 +1337,23 @@ export default function App() {
     if (!desktop?.splitDo) return
     const reload = pauseVer.current !== guestVer
     pauseVer.current = guestVer
+    // Ce qui était dans la vue (si la pause y était active) et ce qu'on a déjà mis en pause : choix dans `pauseWanted`.
+    if (split) leftOpen.current = split.prefs.pause && split.prefs.follow !== 'all' ? splitShown : leftOpen.current.filter((k) => !splitShown.includes(k))
+    const keys = new Set([...splitShown, ...Object.keys(pausedNow.current), ...(split ? [] : leftOpen.current)])
     const want: Record<string, boolean> = {}
-    if (split) {
-      for (const k of splitShown) want[k] = effectivePaused(k, split.prefs, splitShown, splitSoundKey)
-      leftOpen.current = split.prefs.pause && split.prefs.follow !== 'all' ? splitShown : []
-    } else {
-      const parked = new Set([...leftOpen.current, ...Object.keys(pausedNow.current).filter((k) => pausedNow.current[k].paused)])
-      for (const k of parked) want[k] = CLOSE_KEEPS_PARKED_PAUSED && k !== tab
-      // un site affiché reprend et n'est plus suivi : une fois quitté, il vit sa vie comme avant
-      leftOpen.current = CLOSE_KEEPS_PARKED_PAUSED ? leftOpen.current.filter((k) => k !== tab) : []
-    }
-    for (const k of new Set([...Object.keys(want), ...Object.keys(pausedNow.current)])) {
+    for (const k of keys)
+      want[k] = pauseWanted(k, {
+        open: !!split,
+        prefs: split?.prefs ?? splitDefaults,
+        shown: splitShown,
+        sound: splitSoundKey,
+        tab,
+        prev: pausedNow.current[k]?.paused,
+        parked: leftOpen.current.includes(k),
+      })
+    // un site affiché reprend et n'est plus suivi : une fois quitté, il vit sa vie comme avant
+    if (!split) leftOpen.current = leftOpen.current.filter((k) => k !== tab)
+    for (const k of keys) {
       const id = guestIdOf(k)
       const prev = pausedNow.current[k]
       if (id === null) {
@@ -1371,7 +1387,7 @@ export default function App() {
       const k = s.slots[pane]
       const id = k ? guestIdOf(k) : null
       // « soft » : le survol ne vole pas le focus d'un champ de saisie en cours dans l'autre panneau.
-      if (id !== null) void desktop?.splitDo?.(id, 'focusSoft')
+      if (id !== null && !layerOpen()) void desktop?.splitDo?.(id, 'focusSoft')
     },
     [guestIdOf],
   )
@@ -1387,7 +1403,7 @@ export default function App() {
       const n = layoutOf(s.layout).n
       if (a.type === 'focus') return doPick(a.pane)
       if (a.type === 'leave') {
-        if (layerOpen()) return
+        if (layerOpen() || Date.now() < ignoreLeaveUntil.current) return
         return s.zoom !== null ? setSplit({ ...s, zoom: null }) : setSplit(null)
       }
       if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
@@ -1398,7 +1414,8 @@ export default function App() {
       if (id === null) return
       const op = a.type === 'scroll' ? (a.page ? (a.dir > 0 ? 'pageNext' : 'pagePrev') : a.dir > 0 ? 'next' : 'prev') : a.id
       void desktop?.splitDo?.(id, op).then((ok) => {
-        if (!ok) noteSplit(pane, 'Action indisponible sur ce site')
+        if (ok === 'busy') noteSplit(pane, 'Brouillon en cours dans ce panneau')
+        else if (!ok) noteSplit(pane, 'Action indisponible sur ce site')
       })
     },
     [doPick, guestIdOf, noteSplit],

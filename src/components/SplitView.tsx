@@ -322,7 +322,7 @@ export default function SplitView(p: Props) {
         </div>
         <div className="split-end">
           {legendEl}
-          <span className="split-info" role="img" aria-label={legendText} title={legendText} tabIndex={0}>
+          <span className="split-info" role="img" aria-label={legendText} title={legendText}>
             ⓘ
           </span>
           <button className="split-chip" onClick={p.onSave} title={p.savedName ? `Mettre à jour la vue « ${p.savedName} »` : 'Garder cette vue dans la barre de gauche, avec son compteur'}>

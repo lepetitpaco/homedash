@@ -326,6 +326,11 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   sites**, jamais un onglet temporaire ni un container Docker (« Garder cette vue » le dit). Fichiers :
   `src/lib/splitViews.ts` (pur), `src/lib/splitView.ts` (modes, clavier, son), `SplitView.tsx` (barre et grille),
   `SetSplit.tsx` (Réglages).
+- Vue scindée, Échap : il ferme la couche du dessus, jamais la vue en plus. Une couche flottante (menu, liste de choix,
+  fenêtre) **porte `role="dialog"`, `"menu"` ou `"listbox"`** : c'est ce que `layerOpen()` cherche (`LAYER_SELECTOR`,
+  `splitView.ts`), il n'y a pas de liste de classes à tenir à jour. Un Échap tapé dans un site arrive deux fois (la page
+  ferme sa couche, puis le relais du site) : le 2e est ignoré 300 ms quand une couche était ouverte. `keepOnTab` : ouvrir
+  une vue depuis Réglages ou Activité change de page, et ce changement ne doit pas refermer la vue qu'on ouvre.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

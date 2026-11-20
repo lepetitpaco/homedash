@@ -5,7 +5,7 @@ import { DEFAULT_SPLIT, PRESETS, applyProfile, interceptTable } from '../src/lib
 // desktop/site-adapters.js est du CommonJS de l'appli : chargé tel quel, sans Electron.
 const adapters = createRequire(import.meta.url)('../desktop/site-adapters.js') as {
   siteOf: (url: string) => string | null
-  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void; field?: string }) => Promise<boolean>
+  run: (wc: unknown, op: string, hooks?: { before?: (name: string) => Promise<void> | void; field?: string }) => Promise<boolean | 'busy'>
   keyName: (k: string) => string
   createWheelSync: (now?: () => number) => (from: number, targets: unknown[], dy: number) => Promise<void>
   PLANS: Record<string, Record<string, unknown>>
@@ -115,7 +115,7 @@ describe('adaptateurs de sites (vue scindée)', () => {
   })
 })
 
-describe('molette synchronisée : pas d’écho, même avec une page lente', () => {
+describe('molette synchronisée : pas d’écho, même avec une page lente ou un écho en retard', () => {
   const wcOf = (id: number, slow = false) => {
     const sent: { deltaY: number }[] = []
     return {
@@ -128,7 +128,7 @@ describe('molette synchronisée : pas d’écho, même avec une page lente', () 
     }
   }
 
-  it('l’écho d’une recopie est ignoré, même quand la page met plus de 150 ms à répondre', async () => {
+  it('chaque recopie attend un écho, reconnu même très en retard (page lente)', async () => {
     let t = 0
     const forward = adapters.createWheelSync(() => t)
     const a = wcOf(1)
@@ -137,35 +137,47 @@ describe('molette synchronisée : pas d’écho, même avec une page lente', () 
     await forward(1, [a, b], -120)
     expect(Date.now() - start).toBeLessThan(400)
     expect(b.sent).toHaveLength(1)
-    expect(b.sent[0].deltaY).toBe(-120)
     expect(a.sent).toHaveLength(0)
-    // la recopie est une molette : B la renvoie tout de suite, et plus de 150 ms après l'attente lente
-    t += 120
+    // l'écho de B arrive 1 s plus tard : ignoré (une fenêtre de 150 ms l'aurait laissé repartir)
+    t += 1000
     await forward(2, [a, b], -120)
     expect(a.sent).toHaveLength(0)
-    // plus tard (une vraie molette de B) : recopiée
-    t += 500
+    // une vraie molette de B ensuite : recopiée
+    t += 100
     await forward(2, [a, b], -60)
     expect(a.sent).toHaveLength(1)
   })
 
-  it('l’anti-écho est posé après l’attente, pas avant', async () => {
+  it('un écho qui ne vient jamais n’empêche pas la molette suivante (au-delà de 1,5 s)', async () => {
     let t = 0
     const forward = adapters.createWheelSync(() => t)
-    const b = wcOf(2, true)
-    const pending = forward(1, [b], -50)
-    // pendant que la page de B hésite, B ne peut pas encore être pris pour un écho
-    t += 1000
-    await pending
-    t += 100
-    // l'écho est daté de l'envoi (t = 1000 + 150) : à t = 1100 il est encore actif
-    await forward(2, [wcOf(1)], -50)
-    expect(b.sent).toHaveLength(1)
+    const a = wcOf(1)
+    const b = wcOf(2)
+    await forward(1, [a, b], -50)
+    t += 2000
+    await forward(2, [a, b], -50)
+    expect(a.sent).toHaveLength(1)
   })
 
-  it('une touche native n’est pas envoyée si le focus du site est dans un champ de saisie', async () => {
+  it('la taille de la page est gardée (pas une requête à chaque cran) et oubliée avec le site', async () => {
+    let t = 0
+    let calls = 0
+    const forward = adapters.createWheelSync(() => t)
+    const a = wcOf(1)
+    const b = { ...wcOf(2), executeJavaScript: () => (calls++, Promise.resolve([800, 600])) }
+    await forward(1, [a, b], -10)
+    t += 10
+    await forward(1, [a, b], -10)
+    await forward(1, [a, b], -10)
+    expect(calls).toBe(1)
+    t += 2000
+    await forward(1, [a, b], -10)
+    expect(calls).toBe(2)
+  })
+
+  it('une touche native n’est pas envoyée si le focus du site est dans un champ de saisie : « busy »', async () => {
     const wc = fakeWc('https://x.com/home', true)
-    expect(await adapters.run(wc, 'like', { field: 'input, textarea' })).toBe(false)
+    expect(await adapters.run(wc, 'like', { field: 'input, textarea' })).toBe('busy')
     expect(wc.sent).toEqual([])
     const free = fakeWc('https://x.com/home', false)
     expect(await adapters.run(free, 'like', { field: 'input, textarea' })).toBe(true)

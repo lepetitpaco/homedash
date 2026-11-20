@@ -173,11 +173,6 @@ async function wheel(wc, dir, page) {
 const NAV = { next: 1, prev: -1, pageNext: 1, pagePrev: -1 }
 const lastNav = new WeakMap()
 
-/**
- * Exécute `op` (next, prev, pageNext, pagePrev, like, save, share, comment) sur la page `wc`.
- * Résout true si c'est fait, false si l'action n'existe pas pour ce site ou que sa cible est introuvable
- * (la page affiche alors « action indisponible »).
- */
 /** Le focus du site est-il dans un champ de saisie ? (même requête que le focus donné par le survol) */
 async function inField(wc, field) {
   if (!field) return false
@@ -190,13 +185,19 @@ async function inField(wc, field) {
   }
 }
 
+/**
+ * Exécute `op` (next, prev, pageNext, pagePrev, like, save, share, comment) sur la page `wc`.
+ * Résout true si c'est fait ; false si l'action n'existe pas pour ce site ou que sa cible est introuvable (la page
+ * affiche « action indisponible ») ; `'busy'` si le focus du site est dans un champ de saisie (un brouillon en cours :
+ * rien n'est envoyé).
+ */
 async function run(wc, op, hooks = {}) {
   // Avec un geste de la personne (2e argument) : sans lui, `play()` peut être refusé par le site.
   if (op === 'pause') return !!(await wc.executeJavaScript(PAUSE_SCRIPT, true))
   if (op === 'resume') return !!(await wc.executeJavaScript(RESUME_SCRIPT, true))
   const plan = PLANS[siteOf(wc.getURL())]?.[op]
   // Une touche native tomberait dans un brouillon en cours : rien n'est envoyé (« indisponible »).
-  if (plan?.key && (await inField(wc, hooks.field))) return false
+  if (plan?.key && (await inField(wc, hooks.field))) return 'busy'
   if (op in NAV) {
     const page = op.startsWith('page')
     // Un flux qui avance carte par carte : pas deux crans en moins d'un quart de seconde (touche maintenue).
@@ -215,24 +216,43 @@ async function run(wc, op, hooks = {}) {
 
 /**
  * Molette d'un panneau recopiée dans les autres (« Scroll synchronisé »). La recopie est elle-même une molette :
- * son écho est ignoré, et l'anti-écho est posé JUSTE avant l'envoi (après l'attente de la taille de la page, qui est
- * bornée à 100 ms et gardée en cache) : une page lente ne peut pas laisser repartir l'écho.
+ * chaque envoi attend UN écho, décompté à sa réception (un écho en retard est donc reconnu, quel que soit son retard,
+ * jusqu'à 1,5 s ; passé ce délai on cesse de l'attendre). La taille de la page est gardée en cache (rafraîchie 1 fois
+ * par seconde au plus, attente bornée à 100 ms) et oubliée quand le site disparaît.
  */
 function createWheelSync(now = Date.now) {
-  const echo = new Map()
-  const sizes = new Map()
-  const sizeOf = async (wc) => {
-    const fresh = Promise.race([wc.executeJavaScript('[innerWidth, innerHeight]'), new Promise((r) => setTimeout(() => r(null), 100))])
-      .then((v) => (Array.isArray(v) ? (sizes.set(wc.id, v), v) : null))
+  const echoes = new Map() // id → { n: échos attendus, until }
+  const sizes = new Map() // id → { size, at }
+  const refresh = (wc) =>
+    Promise.race([wc.executeJavaScript('[innerWidth, innerHeight]'), new Promise((r) => setTimeout(() => r(null), 100))])
+      .then((v) => {
+        if (Array.isArray(v)) sizes.set(wc.id, { size: v, at: now() })
+        return v
+      })
       .catch(() => null)
-    return sizes.get(wc.id) || (await fresh) || [400, 400]
+  const sizeOf = async (wc) => {
+    const hit = sizes.get(wc.id)
+    if (hit) {
+      if (now() - hit.at > 1000) void refresh(wc)
+      return hit.size
+    }
+    return (await refresh(wc)) || [400, 400]
   }
   return async (from, targets, dy) => {
-    if (!Number.isFinite(dy) || (echo.get(from) || 0) > now()) return
+    if (!Number.isFinite(dy)) return
+    const mine = echoes.get(from)
+    if (mine && mine.until > now() && mine.n > 0) {
+      mine.n--
+      return
+    }
+    const live = new Set(targets.filter((t) => t && !(t.isDestroyed && t.isDestroyed())).map((t) => t.id))
+    for (const id of [...sizes.keys()]) if (!live.has(id)) sizes.delete(id)
+    for (const id of [...echoes.keys()]) if (!live.has(id)) echoes.delete(id)
     for (const wc of targets) {
-      if (!wc || wc.id === from || (wc.isDestroyed && wc.isDestroyed())) continue
+      if (!wc || wc.id === from || !live.has(wc.id)) continue
       const size = await sizeOf(wc)
-      echo.set(wc.id, now() + 150)
+      const e = echoes.get(wc.id)
+      echoes.set(wc.id, { n: (e && e.until > now() ? e.n : 0) + 1, until: now() + 1500 })
       wc.sendInputEvent({ type: 'mouseWheel', x: Math.round(size[0] / 2), y: Math.round(size[1] / 2), deltaX: 0, deltaY: Math.max(-2000, Math.min(2000, dy)), canScroll: true })
     }
   }

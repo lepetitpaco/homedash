@@ -42,8 +42,8 @@ export type Desktop = {
   onFocusToggle?: (cb: () => void) => () => void
   /** Vue scindée (`split-view` dans features, #160) : ouverte ou non, touches retenues dans les sites, survol, molette. */
   splitConfig?: (cfg: SplitConfig) => void
-  /** Une action sur un panneau (id de sa webview) ; résout true si elle a été faite. */
-  splitDo?: (id: number, op: SplitOp) => Promise<boolean>
+  /** Une action sur un panneau (id de sa webview) ; true si faite, `'busy'` si un champ de saisie y a le focus. */
+  splitDo?: (id: number, op: SplitOp) => Promise<boolean | 'busy'>
   /** Touche retenue dans un site de la vue scindée ; renvoie de quoi se désabonner. */
   onSplitKey?: (cb: (k: { id: number; key: string; code: string; shift: boolean; alt: boolean }) => void) => () => void
   /** La souris entre, clique (`pick`) ou sort (`leave`) d'un site de la vue scindée (id de sa webview) ; renvoie de quoi se désabonner. */
