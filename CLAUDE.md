@@ -58,9 +58,8 @@ Toute page ou réglage nouveau entre dans `src/lib/settingsIndex.ts` (la recherc
 | Local | l'onglet et ses réglages (les dépôts de ton disque) | Dépôts locaux |
 | Raccourcis | la page d'accueil (⚡) | |
 | vue scindée | plusieurs sites côte à côte, rangée dans la barre de gauche comme un site | split, multi-fenêtre |
-| Flux, Messagerie | les deux types d'une vue scindée : Flux (doomscroll : copies, son à la souris, pause), Messagerie (vrais sites, tous les sons). Ne pas les confondre avec le groupe « Messageries » du catalogue ni avec « Messagerie LinkedIn » : ce sont des sites ; le type d'une vue ne s'écrit que dans sa fenêtre et ses réglages | Classic, Scroll (noms internes du code seulement) |
+| Flux, Messagerie | les deux types d'une vue scindée : Flux (doomscroll : copies, son au dernier geste, pause, table de mixage), Messagerie (vrais sites, tous les sons, aucune touche). Ne pas les confondre avec le groupe « Messageries » du catalogue ni avec « Messagerie LinkedIn » : ce sont des sites ; le type d'une vue ne s'écrit que dans sa fenêtre et ses réglages | Classic, Scroll (noms internes du code seulement) |
 | copie | un panneau de vue Flux : une page de plus sur la connexion du site, sans toucher au site de la barre | onglet temporaire |
-| Personnalisé | le type d'une vue dont une case a été changée | |
 | Défilement synchronisé | une molette pour tous les panneaux | Scroll synchronisé |
 
 Boutons : une majuscule au premier mot (« Déconnecter », « Restaurer »), le même verbe pour la même action d'un
@@ -311,7 +310,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   Le muet automatique se calcule là où `muted` est passé (`effectiveMuted`) : le muet manuel prime. Les touches sont
   décidées dans `guest-preload.js` (seul à voir si le focus est dans un champ), d'après la table que la page tire de
   `splitView.ts` (`interceptTable`) et envoie à `main.js` (`homedash:split-config`) ; table vide en Messagerie et vue
-  fermée : rien retenu, rien relayé. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
+  fermée : rien retenu, rien relayé. Touches **physiques** (`event.code`, jamais `event.key` : Alt donne des symboles
+  sur Mac, Maj des majuscules) ; la table a une liste avec Maj (`shift`) à part. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
   `site-adapters.js`.
 - Vue scindée, touches envoyées par homedash à un site (`site-adapters.js`, `sendKey`) : le préload du site les
   retiendrait (J, K, L, flèches… sont dans sa table) et on tournerait en rond. `main.js` annonce donc la touche
@@ -320,6 +320,15 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   puis plus rien) ; rien n'est envoyé si le focus du site est dans un champ (le « j » irait dans un brouillon) ; une
   action envoyée en touche (X) renvoie toujours « faite » : homedash ne sait pas si le site l'a prise. La molette
   synchronisée (`createWheelSync`) pose son anti-écho **après** l'attente de la taille de la page (bornée à 100 ms).
+- Vue scindée, molette (#177) : le préload signale **toute** molette vue ouverte (`{ dy, shift, sideways }`) ; `main.js`
+  décide qui suit (`wheelTargets` : synchro, Maj qui l'inverse) et passe **toujours** par `createWheelSync`, même sans
+  destinataire : c'est lui qui absorbe les échos. Trois pièges : (1) un panneau gardait des échos en attente (pages lentes
+  qui fusionnent les molettes) et sa vraie molette était avalée, d'où « un seul panneau pilote » : la souris qui **entre**
+  dans un site (`mouseover` sans `relatedTarget`, `enter`) oublie ses échos (`forget`) ; (2) une molette envoyée par
+  homedash pour une touche (J, N, Espace… repli `wheel()`) est notée d'avance comme écho (`hooks.wheel` → `expect`),
+  sinon la synchro la recopiait et Maj + touche défilait les autres plusieurs fois ; (3) Maj + molette d'une souris arrive
+  **horizontale** (Windows, et macOS) : `sideways`, la valeur horizontale sert de verticale et le panneau d'origine reçoit
+  lui aussi la molette (`self`). Une vraie molette (pas un écho) est relayée à la page comme un survol : le son la suit.
 - Vue scindée, pause des vidéos (#168) : les `<video>` en lecture d'un panneau sans le son reçoivent `data-hd-paused`
   puis `pause()` ; `window.__hdHold` fait remettre en pause une vidéo que le site relance seul (écouteur `play`) ;
   la reprise ne relance que les vidéos marquées (une pause à la main n'est jamais défaite). Renvoyée à chaque chargement
@@ -358,10 +367,26 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Vues enregistrées dans la barre (#172) : une vue est une entrée de la barre comme un site (`before` : devant quel site,
   `folder` : dans quel dossier, `ratios` : proportions ; clés additives, absentes = à la fin, hors dossier). Il n'y a **pas
   de vue jetable** : toute vue est enregistrée. Composition **fixe** (pas de sélecteur de site dans les panneaux) sauf en
-  mode édition (« Modifier la vue… »). La table de mixage est le défilement par défaut : elle n'enlève rien, seule la
-  touche d'agrandir passe de Z à X (Z = « panneau 2 haut » en AZERTY).
+  mode édition (« Modifier la vue… »). Agrandir = X (Z = « panneau 2 haut » en AZERTY, table de mixage).
 - Les cases du menu Options d'une vue enregistrée ne sont **pas** gardées à la réouverture : voulu (décision de Paco). Le
   type et les cases d'une vue se changent par « Modifier la vue… », qui les enregistre dans `prefs`.
+- **Le mode décide, deux cases restent** (#177, décision de Paco : trop d'options pour un comportement qui doit être
+  évident). Flux = table de mixage et raccourcis toujours actifs, pause des panneaux sans le son toujours active, son au
+  **dernier geste** (survol, molette, touche de mixage, Alt+chiffre, clic ; la souris qui sort ne coupe rien) ;
+  Messagerie = tous les sons, jamais de pause, aucune touche. Cases : *Défilement synchronisé* (cochée par défaut : c'est
+  l'usage du doomscroll à plusieurs) et *Actions par site* (un J'aime par erreur est le seul vrai risque, donc ça se
+  coupe), les mêmes dans les deux modes. Plus de « Le son suit », raccourcis, mixage, pause, garder le son, ni
+  « Personnalisé » : ne pas les recréer. Le clavier AZERTY / QWERTY est détecté ; le choix manuel reste **seulement**
+  dans Réglages (`ui.split.keyboard`, lu par `normalizeKeyboard`) et ne change que les étiquettes : les touches sont
+  physiques. **Vues d'avant** : seul leur mode compte, sans migration (`normalizeSplit` reconnaît l'ancien format à
+  `LEGACY_SPLIT_KEYS` et rend les défauts ; l'ancien « Personnalisé » redevient Messagerie si le son était à tous,
+  sinon Flux) ; `store.validateConfig` accepte toujours les anciennes clés, sinon une config ancienne serait refusée à
+  l'écriture.
+- Modificateurs de la vue (#177, « layout à la gamer », identiques Mac et Windows) : **Maj = tous les panneaux**
+  (touches de mixage dans leur sens, J K, flèches, N P ; Maj + molette inverse la synchro). J K et flèches visent le
+  panneau **sous la souris** (sinon l'actif), une touche de mixage toujours son panneau. Alt+chiffre choisit le panneau ;
+  Ctrl et ⌘ jamais pris ; Maj + Espace garde son sens (page précédente) ; agrandir et les actions par site ne prennent
+  pas Maj (pas de « J'aime » à tous). Les clics avec Maj ne sont pas interceptés.
 - Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
   Flux = copies (`copies[]`, une webview de plus sur la **même partition**, page à part, démarre sur `tab.url`, clé
   `copy:<case>`, fermée avec la vue ; ni compteur ni Activité ni onglet temporaire), Messagerie = vrais sites. La copie est

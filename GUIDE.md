@@ -188,7 +188,7 @@ enregistrée, et se supprime au clic droit.
 Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles démarrent sur la page d'accueil du site, ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (leur position est alors perdue ; chaque copie est une page de plus en mémoire). La composition d'une vue
 est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
 (sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
-les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `X` en mode Flux, `Z` sans la table de mixage) l'agrandit. En fermant la
+les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `X` en mode Flux) l'agrandit. En fermant la
 vue (*Fermer*, `Échap` en mode Flux, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
 ne se met pas en veille.
 
@@ -198,14 +198,16 @@ Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajout
 | --- | --- | --- |
 | Pour | Suivre plusieurs messageries : Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
 | Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre (réglable par panneau dans *Modifier la vue…*) |
-| Son | **Tous les sons** : un appel Discord reste audible | **Un seul panneau** : celui sous la souris (ou choisi au clavier) |
-| Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Raccourcis et actions par site |
+| Son | **Tous les sons** : un appel Discord reste audible, jamais de pause | **Le panneau où tu agis** : le dernier geste gagne (survol, molette, touche de mixage, `Alt` + chiffre, clic) ; les autres sont coupés et leurs vidéos en pause, elles reprennent quand le panneau retrouve le son |
+| Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Table de mixage et raccourcis, toujours actifs (tableau ci-dessous) |
 
-Ce sont des préréglages de **cases à cocher** (menu *Options* de la barre, **valables le temps de la vue** : pour les garder, *Modifier la vue…*, clic droit sur la vue) : en changer une donne *Personnalisé*, et
-recliquer un mode remet son préréglage. Cases : *Le son suit la souris / le clavier* (ou *Tous les sons*),
-*Raccourcis clavier*, *Actions par site* et *Table de mixage* (elles cochent les raccourcis ; décocher les
-raccourcis les décoche ; **la table de mixage est cochée en Flux** et n'enlève rien : seul agrandir passe de `Z` à `X`, car `Z` est « panneau 2 haut » en AZERTY), *Défilement synchronisé* (une molette pour tous les panneaux), *Pause : les panneaux inactifs* (les vidéos du panneau qui n'a pas le son sont mises en pause et reprennent quand il le retrouve ; une vidéo que tu as mise en pause toi-même n'est jamais relancée), *Garder le son à la sortie*,
-*Clavier : automatique / AZERTY / QWERTY*. Le son coupé à la main (clic droit sur un site) reste prioritaire.
+Le type décide de tout. Il ne reste que **deux cases**, les mêmes dans les deux types (menu *Options* de la barre,
+**valables le temps de la vue** : pour les garder, *Modifier la vue…*, clic droit sur la vue) : *Défilement
+synchronisé* (**coché par défaut** : faire défiler n'importe quel panneau à la molette ou au trackpad fait défiler
+tous les autres ; `Maj` + molette fait l'inverse : un seul panneau quand c'est coché, tous quand c'est décoché) et
+*Actions par site* (en Flux : `L` `B` `T` `C`). Une vidéo que tu as mise en pause toi-même n'est jamais relancée ; le
+son coupé à la main (clic droit sur un site) reste prioritaire. Une vue enregistrée avant cette version garde
+seulement son type (ses anciennes cases sont ignorées).
 
 **Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
 qui reste affiché reprend ses vidéos et son ; les sites garés restent en pause jusqu'à ce que tu les affiches. Le clic
@@ -213,18 +215,23 @@ droit propose *Modifier la vue…*, *Renommer* et *Supprimer* (seule la vue disp
 site de *Mes sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker
 n'entre pas dans une vue (homedash te le dit avant d'enregistrer ; son panneau revient vide).
 
-**Clavier** (mode Flux, ou raccourcis cochés ; **en Messagerie, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les lettres suivent l'étiquette de la touche, `Alt` +
-chiffre la touche physique, donc pareil en AZERTY et en QWERTY.
+**Clavier** (mode Flux ; **en Messagerie, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les
+touches sont lues **à leur place sur le clavier**, pas par la lettre qu'elles tapent : **pareil sur Mac et sur
+Windows**, en AZERTY comme en QWERTY (le clavier est détecté tout seul ; s'il se trompe, *Réglages → Vue scindée*
+corrige les lettres affichées). **`Maj` (⇧) maintenu = tous les panneaux d'un coup.** `Ctrl` et `⌘` ne sont jamais
+pris (copier, coller, raccourcis du système), et un clic avec `Maj` dans un site reste au site. L'aide ⓘ de la barre
+le rappelle.
 
 | Touche | Effet |
 | --- | --- |
-| `Alt` + `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY) | Panneau 1 à 4 : il prend les touches (et le son si celui-ci suit le clavier) |
-| `J` `K` ou `↓` `↑` | Défiler le panneau actif d'un cran (une carte sur TikTok, Reels) |
-| `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente |
-| `Z` (`X` avec la table de mixage) | Agrandir / restaurer le panneau actif |
+| *Table de mixage* : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main : un seul panneau, qui prend le son. **`Maj` + touche** : tous les panneaux, dans le sens de la touche |
+| `J` `K` ou `↓` `↑` | Défiler d'un cran (une carte sur TikTok, Reels) **le panneau sous la souris** (sans souris sur la grille : le panneau actif). **`Maj`** : tous |
+| `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente du panneau actif (`Maj` + `N` `P` : tous) |
+| `Alt` + `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY) | Panneau 1 à 4 : il devient actif et prend le son |
+| `X` | Agrandir / restaurer le panneau actif (`Z` est « panneau 2 haut » en AZERTY) |
 | `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
-| `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant |
-| *Table de mixage* (défaut en Flux) : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main ; les autres touches restent actives sur le panneau actif |
+| `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant ; jamais avec `Maj` (pas de « J'aime » à tous) |
+| Molette, trackpad | Avec *Défilement synchronisé* : tous les panneaux suivent ; `Maj` + molette fait l'inverse |
 
 Chaque touche = une action de ta part : homedash ne boucle jamais, ne lit ni ne collecte rien des pages.
 
@@ -419,7 +426,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) ; dans ▾ de chaque site : pause quand je n'y suis pas (appli) |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
-| ◫ Vue scindée | Les réglages qui pré-remplissent une nouvelle vue (Messagerie / Flux), le son, les raccourcis, les actions par site, le clavier AZERTY / QWERTY |
+| ◫ Vue scindée | Ce qui pré-remplit une nouvelle vue (Messagerie / Flux, défilement synchronisé, actions par site) ; les lettres affichées du clavier (automatique, AZERTY, QWERTY) |
 | 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
 | 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |
