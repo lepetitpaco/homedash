@@ -207,7 +207,7 @@ export function canFocus(siteShown: boolean, splitOpen: boolean): boolean {
 }
 
 /**
- * Un geste sur un panneau : survol, molette, touche de mixage, Alt+chiffre, clic. En Flux il devient actif et prend
+ * Un geste sur un panneau : survol, molette, touche de mixage, chiffre (ou Alt+chiffre), clic. En Flux il devient actif et prend
  * le son, **le dernier geste gagne** (#177) ; la souris qui sort de la grille ne coupe rien. En Messagerie tous ont
  * le son : seul le panneau actif change.
  */
@@ -286,7 +286,7 @@ export type Preset = {
   name: string
   /** [haut, bas] pour chaque panneau, en lettres telles qu'étiquetées sur la touche : pour l'affichage seulement. */
   mix: [string, string][]
-  /** Étiquettes de la rangée du haut pour Alt+chiffre (la touche se lit par `event.code`). */
+  /** Étiquettes de la rangée du haut pour choisir le panneau (la touche se lit par `event.code`). */
   digits: string[]
 }
 
@@ -352,7 +352,8 @@ export type SplitAction =
  * Ce que fait une touche dans la vue scindée, ou `null` : alors elle passe au site, intacte.
  * Jamais en Messagerie (aucune touche prise) ni dans un champ de saisie (`editing`). Touches physiques (`code`).
  * Modificateurs (#177, mêmes sur Mac et Windows) : **Maj = tous les panneaux** (touches de mixage, J K, flèches, N P) ;
- * Alt + chiffre choisit le panneau ; Ctrl et ⌘ ne sont jamais pris (copier, coller, raccourcis du système).
+ * Un chiffre de la rangée du haut (& é " ' en AZERTY) choisit le panneau (#191 ; Alt + chiffre fait la même chose, sans être
+ * mis en avant) ; Ctrl et ⌘ ne sont jamais pris (copier, coller, raccourcis du système).
  * J K et les flèches visent le panneau sous la souris ; une touche de mixage, toujours son panneau.
  */
 export function resolveKey(e: KeyEvt, prefs: Pick<SplitPrefs, 'mode' | 'actions'>, ctx: { editing: boolean; panes: number }): SplitAction | null {
@@ -365,6 +366,10 @@ export function resolveKey(e: KeyEvt, prefs: Pick<SplitPrefs, 'mode' | 'actions'
   }
   const c = e.code
   if (c === 'Escape' || e.key === 'Escape') return { type: 'leave' }
+  // Chiffre seul (#191, demande de Paco : Alt ne sert à rien en doomscroll, aucun site de Flux n'utilise les chiffres hors champ) :
+  // le panneau. Maj + chiffre reste au site (en AZERTY c'est le chiffre à taper) ; au-delà des panneaux, rien.
+  const digit = /^(?:Digit|Numpad)([1-4])$/.exec(c)
+  if (digit) return !e.shift && Number(digit[1]) <= ctx.panes ? { type: 'focus', pane: Number(digit[1]) - 1 } : null
   const all = e.shift
   for (let i = 0; i < Math.min(MIX_CODES.length, ctx.panes); i++) {
     const [up, down] = MIX_CODES[i]
@@ -392,13 +397,15 @@ export type InterceptTable = {
   codes: string[]
   /** Touches avec Maj seule. */
   shift: string[]
-  /** Touches physiques d'Alt+chiffre. */
+  /** Touches physiques d'Alt+chiffre (toujours valable ; le chiffre seul est dans `codes`, #191). */
   alt: string[]
   /** Échap : relayé à la page, jamais retenu (le site doit pouvoir fermer sa fenêtre). */
   relay: string[]
 }
 
-const ALL_CODES = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ'].map((l) => `Key${l}`).concat(['ArrowDown', 'ArrowUp', 'Space'])
+const ALL_CODES = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
+  .map((l) => `Key${l}`)
+  .concat(['ArrowDown', 'ArrowUp', 'Space'], [1, 2, 3, 4].flatMap((d) => [`Digit${d}`, `Numpad${d}`]))
 
 /** La table, tirée de `resolveKey` lui-même : aucune liste à tenir à jour à côté. Vide en Messagerie. */
 export function interceptTable(prefs: Pick<SplitPrefs, 'mode' | 'actions'>, panes: number): InterceptTable {
@@ -435,11 +442,11 @@ export function splitLegend(mode: SplitMode, preset: Preset, panes: number): { s
   }
   const mix = preset.mix.slice(0, panes).map((_, i) => `${i + 1} : ${mixLabel(preset, i)}`).join('  ·  ')
   return {
-    short: `Défiler : ${mix}  ·  Maj : tous  ·  Alt + chiffre : panneau  ·  ${ZOOM_LABEL} : agrandir`,
+    short: `Défiler : ${mix}  ·  Maj : tous  ·  ${preset.digits.slice(0, panes).join(' ')} : panneau  ·  ${ZOOM_LABEL} : agrandir`,
     long: [
       `Table de mixage : ${mix} (un panneau ; Maj + touche : tous).`,
       'J K ou ↓ ↑ : le panneau sous la souris (Maj : tous). N P, Espace : page suivante / précédente.',
-      `Alt + ${preset.digits.slice(0, panes).join(' ')} : choisir le panneau. ${ZOOM_LABEL} : agrandir. Échap : quitter.`,
+      `${preset.digits.slice(0, panes).join(' ')} : choisir le panneau. ${ZOOM_LABEL} : agrandir. Échap : quitter.`,
       "Molette : avec le défilement synchronisé, tous les panneaux suivent ; Maj + molette fait l'inverse.",
       'Le panneau où tu agis (survol, molette, touche, clic) a le son ; les autres sont coupés et en pause.',
       MODIFIERS_HELP,

@@ -201,6 +201,34 @@ describe('clavier : touche physique → action', () => {
     expect(r(ev('Digit4', { alt: true }), flux, 4)).toEqual({ type: 'focus', pane: 3 })
   })
 
+  it('le chiffre seul choisit le panneau, sur la touche physique (#191)', () => {
+    expect(r(ev('Digit1', { key: '&' }))).toEqual({ type: 'focus', pane: 0 })
+    expect(r(ev('Digit2', { key: 'é' }))).toEqual({ type: 'focus', pane: 1 })
+    expect(r(ev('Digit3', { key: '"' }))).toEqual({ type: 'focus', pane: 2 })
+    expect(r(ev('Numpad2'))).toEqual({ type: 'focus', pane: 1 })
+    expect(r(ev('Digit4', { key: "'" }), flux, 4)).toEqual({ type: 'focus', pane: 3 })
+  })
+
+  it('le chiffre seul : au-delà des panneaux, avec Maj, Ctrl ou ⌘ ou dans un champ : rien', () => {
+    expect(r(ev('Digit4'))).toBeNull()
+    expect(r(ev('Digit5'))).toBeNull()
+    expect(r(ev('Digit0'))).toBeNull()
+    expect(r(ev('Digit1', { shift: true }))).toBeNull()
+    expect(r(ev('Digit1', { ctrl: true }))).toBeNull()
+    expect(r(ev('Digit1', { meta: true }))).toBeNull()
+    expect(resolveKey(ev('Digit1'), flux, { editing: true, panes: 3 })).toBeNull()
+    expect(r(ev('Digit1'), classic)).toBeNull()
+  })
+
+  it('la table du préload prend les chiffres seuls (et plus que les panneaux présents), Alt+chiffre reste', () => {
+    const t = interceptTable(flux, 3)
+    expect(t.codes).toEqual(expect.arrayContaining(['Digit1', 'Digit2', 'Digit3', 'Numpad1', 'Numpad2', 'Numpad3']))
+    expect(t.codes).not.toContain('Digit4')
+    expect(t.shift).not.toContain('Digit1')
+    expect(t.alt).toEqual(expect.arrayContaining(['Digit1', 'Numpad1']))
+    expect(interceptTable(flux, 2).codes).not.toContain('Digit3')
+  })
+
   it('Alt + chiffre au-delà des panneaux, avec Maj ou Ctrl : rien', () => {
     expect(r(ev('Digit4', { alt: true }))).toBeNull()
     expect(r(ev('Digit1', { alt: true, shift: true }))).toBeNull()

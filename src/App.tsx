@@ -1493,7 +1493,7 @@ export default function App() {
   }, [split?.prefs.mode, splitShownKey, splitSoundKey, !!split, guestVer, tab, searchingNow, pauseSig]) // eslint-disable-line react-hooks/exhaustive-deps
   // Le panneau sous la souris (`null` : la souris est hors de la grille) : J K et les flèches le visent (#177).
   const hoverPane = useRef<number | null>(null)
-  // Clic ou Alt+chiffre : le panneau devient actif ; en Flux il prend le son (dernier geste, #177).
+  // Clic ou chiffre (#191, ou Alt+chiffre) : le panneau devient actif ; en Flux il prend le son (dernier geste, #177).
   const doPick = useCallback(
     (pane: number, focusSite = true) => {
       const s = splitRef.current

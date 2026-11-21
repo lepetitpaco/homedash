@@ -379,7 +379,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   type et les cases d'une vue se changent par « Modifier la vue… », qui les enregistre dans `prefs`.
 - **Le mode décide, deux cases restent** (#177, décision de Paco : trop d'options pour un comportement qui doit être
   évident). Flux = table de mixage et raccourcis toujours actifs, pause des panneaux sans le son toujours active, son au
-  **dernier geste** (survol, molette, touche de mixage, Alt+chiffre, clic ; la souris qui sort ne coupe rien) ;
+  **dernier geste** (survol, molette, touche de mixage, chiffre, clic ; la souris qui sort ne coupe rien) ;
   Messagerie = tous les sons, jamais de pause, aucune touche. Cases : *Défilement synchronisé* (défaut **selon le mode**,
   `syncDefault` : cochée en Flux, c'est l'usage du doomscroll à plusieurs ; décochée en Messagerie, comme avant ; changer
   de mode, `withMode`, remet ce défaut) et *Actions par site* (un J'aime par erreur est le seul vrai risque, donc ça se
@@ -393,7 +393,9 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - Modificateurs de la vue (#177, « layout à la gamer », identiques Mac et Windows) : **Maj = tous les panneaux**
   (touches de mixage dans leur sens, J K, flèches, N P ; Maj + molette inverse la synchro). J K et flèches visent le
   panneau **sous la souris** (sinon l'actif) et lui donnent le son, une touche de mixage toujours son panneau (qui prend
-  le son). Alt+chiffre choisit le panneau ;
+  le son). Un **chiffre seul** (& é " ' en AZERTY ; `Digit1`..`4` et pavé numérique) choisit le panneau (#191, décision de
+  Paco : « Alt ne sert à rien en doomscroll ») ; Alt+chiffre marche toujours, sans être mis en avant ; Maj+chiffre reste au
+  site (en AZERTY c'est le chiffre à taper), jamais dans un champ de saisie ;
   Ctrl et ⌘ jamais pris ; Maj + Espace garde son sens (page précédente) ; agrandir et les actions par site ne prennent
   pas Maj (pas de « J'aime » à tous). Les clics avec Maj ne sont pas interceptés.
 - Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
