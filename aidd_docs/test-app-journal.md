@@ -189,3 +189,77 @@ Commit testé : `a880667`. Typecheck + tests : 460 ✓, 9 ignorés. Même métho
 ### Non testé
 
 Vraie souris, vrai trackpad avec élan, vrai clavier, Windows, vrais sites, autres tailles et thème clair (rien d'affiché n'a changé).
+
+## 2026-11-21 — Vue Flux : toujours des copies (#179), trempe courte
+
+Commit testé : `738da49` (branche paco/fix/flux-toujours-copies). Typecheck + tests : 461 ✓, 9 ignorés. Même méthode : appli construite depuis une copie du HEAD (`desktop/*.js` identiques au dépôt), instance à part (profil, container et données jetables), sites factices locaux (4 ports, 3 partitions : compte perso, compte pro, commun ; flux, vidéo webm, `<audio>`, cookie posé par le vrai site), molette / souris / touches réelles par CDP (touches AZERTY par `code`). Config jetable : vue Flux d'avant #172 **sans `copies`** (3 panneaux), la même sans `prefs`, une vue Flux avec `copies: [false, false]`, une Messagerie avec `copies: [true, true, true]`, une Flux 4.
+
+| Cas | Tailles / thèmes | Résultat | Commit | Dépend de |
+|---|---|---|---|---|
+| Ancienne vue Flux sans `copies` (et sans `prefs`) : 3 copies sur la partition de chaque site (`-s1`, `-s2`, commune), badge « copie », aucun vrai site affiché ; cookie posé par l'onglet lu par la tuile | 1280 sombre | ✅ | 738da49 | `splitViews.ts` (`viewSlots`, `copiesFor`), `App.tsx` |
+| Onglet ↔ tuile indépendants : onglets défilés à 600 (molette réelle) → tuiles à 0 à l'ouverture ; molette sur les tuiles (400) → onglets toujours à 600 ; onglet A défilé à 900 → tuile A à 0 ; vidéo / son : la tuile qui a le son joue, les onglets garés en pause (#175) | 1280 sombre | ✅ | 738da49 | idem |
+| Vue Flux avec `copies: [false, false]` stocké : des copies ; Messagerie avec `copies: [true…]` stocké : vrais sites | 1280 sombre | ✅ | 738da49 | `splitViews.ts` |
+| Nouvelle vue Flux (fenêtre Ajouter) : 3 copies, son au panneau 1 ; nouvelle Messagerie : les 3 vrais sites (mêmes webviews que les onglets : 3 webviews en tout), tous les sons | 1280 sombre | ✅ | 738da49 | `SplitViewComposer.tsx`, `App.tsx` |
+| Modifier la vue : aucun bouton Copie / Site réel par panneau (badge « copie » seul) ; Messagerie → Flux → Messagerie → Flux : 3 → 6 → 3 → 6 webviews (aucune orpheline), son SSS / S.. ; Enregistrer (`prefs.mode: scroll`), Annuler, re-clic sur la vue ouverte : copies toujours pilotées (survol → son, S → seul le panneau 2 défile de 160, vidéos des autres en pause `data-hd-paused`) | 1280 sombre | ✅ | 738da49 | `SplitView.tsx`, `App.tsx`, `split.css` |
+| Compteurs : sites à 3, 2, 4 → vues Flux 0, Messagerie 9 ; une copie qui affiche « (9) » ne compte nulle part | 1280 sombre | ✅ | 738da49 | `splitViews.ts` (`viewCounter`), `Rail.tsx` |
+| Fermer la vue : copies fermées (7 → 3 webviews), le site affiché reprend (vidéo et son), les sites garés restent en pause ; Messagerie ouverte : les 3 vrais sites jouent | 1280 sombre | ✅ | 738da49 | `App.tsx` |
+| Régression #177 (Flux 4) : molette synchronisée depuis chaque panneau (1000 partout, stable à 3 s, 10 molettes par panneau), le son reste au panneau qu'on fait défiler ; Maj + molette verticale et horizontale : seul le 2 (600) ; touches de mixage, Maj + S, ↓ / J sous la souris (et le son), Maj + ↓, Alt+2 souris dehors, E | 1280 sombre | ✅ | 738da49 | `guest-preload.js`, `main.js`, `App.tsx` |
+
+Aucun bug trouvé.
+
+### Non testé
+
+Compteur de l'icône du Dock et de l'Activité (le Dock reste à 0 dans un profil neuf, même pour les sites : réglage des notifications non activé ; rien vu de faux, rien vérifié), notifications système d'une copie, vrais sites (Instagram…), vraie souris et vrai clavier, autres tailles et thème clair (seul le bouton par panneau a disparu, vu en capture à 1280 sombre).
+
+## 2026-11-21 — Vue Flux : dernière adresse de chaque panneau (#180), trempe
+
+Commit testé : `05c6451` (branche paco/feature/flux-derniere-adresse, worktree à part ; contient #179). Typecheck + tests : 480 ✓, 9 ignorés. Appli construite depuis une copie du HEAD (`desktop/*.js` identiques), instance à part (profil, container, données jetables). Sites factices servis dans le container jetable (5 ports, toute adresse = la page, `/notfound` = 404, 8794 refuse l'encadrement par en-têtes), un **proxy qui note chaque appel de l'API** entre la page et le serveur. Navigations des copies : `history.pushState` (reels) et vraies navigations (`location.href`) lancées dans la page de la copie ; molette, souris, touches réelles (CDP). Navigateur : Chromium (Playwright, Docker), requêtes hors local bloquées.
+
+| Cas | Tailles / thèmes | Résultat | Commit | Dépend de |
+|---|---|---|---|---|
+| Flux 3 : panneau 1 `/reels/111/?token=SECRET&x=1#frag` puis `instagram://…` ; panneau 2 `/p/222?auth=zz&y=2` puis une 404 ; panneau 3 `/reel/333` puis une autre origine. Noté : `/reels/111/?x=1`, `/p/222?y=2`, `null` ; à la réouverture : ces deux adresses et l'**accueil** pour le 3 (jamais l'autre site, jamais la 404, ni `#` ni `token` / `auth`) | 1280 sombre | ✅ | 05c6451 | `splitViews.ts` (`navOk`, `navFail`, `cleanUrl`, `startUrl`), `SplitView.tsx` |
+| Pas de rechargement d'une copie ouverte quand `last` s'écrit (marque posée dans la page, toujours là après l'écriture) | 1280 sombre | ✅ | 05c6451 | `SplitView.tsx` (`useState`) |
+| **Mesure** : 100 navigations (un reel toutes les 2 s) pendant 201 s, vue ouverte : **3 PUT** (à ~60 s, puis 49 s et 61 s d'écart) ; aucun PUT pendant les 8 premières s ; `config.prev.json` inchangé ; aucun rechargement des copies | 1280 sombre | ✅ | 05c6451 | `lastKeeper.ts`, `server/app.ts`, `store.ts` (`onlyLastChanged`) |
+| Un vrai réglage (Réglages → Vue scindée → Enregistrer) sauvegarde encore `config.prev.json` | 1280 sombre | ✅ | 05c6451 | `server/app.ts` |
+| Première écriture de `last` sur une config dont les vues n'ont pas 4 cases (écrite à la main) : prise pour un vrai changement (`config.prev.json` réécrit, `reloadAll`) | 1280 sombre | ❌ basse (bug 3), une seule fois | 05c6451 | `store.ts` (`onlyLastChanged`), `accounts.normalized` |
+| Clic droit : « Repartir du début » en Flux seulement (absent en Messagerie) ; efface `last`, réouverture sur l'accueil des sites | 1280 sombre | ✅ | 05c6451 | `App.tsx` |
+| Modifier la vue : panneau 2 B → D puis Annuler = adresses gardées (et copies ouvertes à leur adresse) ; puis Enregistrer = seule l'adresse du panneau 2 oubliée | 1280 sombre | ✅ | 05c6451 | `App.tsx`, `splitViews.ts` (`keepLast`) |
+| Messagerie : navigation dans un vrai site, fermeture : rien noté, aucun PUT ; vue ancienne sans `last` ouverte / fermée sans navigation : rien écrit | 1280 sombre | ✅ | 05c6451 | idem |
+| Adresses en attente dans une vue, puis Ajouter une vue scindée → Ajouter : la vue neuve ET l'adresse en attente sont dans la config (2 PUT), encore 8 s après | 1280 sombre | ✅ | 05c6451 | `useConfigState.ts`, `App.tsx` |
+| Conflit : config changée par l'API (titre) pendant qu'une adresse attend → 409 puis nouvel essai silencieux (200) ; aucune fenêtre ni message ; titre et adresse gardés | 1280 sombre | ✅ | 05c6451 | `useConfigState.ts` |
+| Fenêtre cachée vue ouverte : écrit en moins de 2 s ; fermeture de la vue, rechargement de la page (`location.reload`) : écrit, juste | 1280 sombre | ✅ | 05c6451 | `App.tsx` (`visibilitychange`, `pagehide`) |
+| **Quitter l'appli** (⌘Q) ou **Recharger tout homedash** (⇧⌘R) avec une vue Flux ouverte | 1280 sombre | ❌ **haute** : toutes les adresses de la vue sont effacées (bug 1) | 05c6451 | `desktop/main.js` (`unloadGuests`), `SplitView.tsx`, `splitViews.ts` (`navOk`) |
+| Navigateur (hors appli) : vue Flux = cadres ; site connu pour refuser (x.com) : la phrase, aucune requête vers lui ; site inconnu qui refuse par en-têtes : panneau blanc | 1280 sombre | ✅ ; ❌ basse (bug 2) | 05c6451 | `splitViews.ts` (`copyFrame`), `customTabs.ts` (`NO_EMBED`) |
+| Régressions #177 / #179 (Flux 4) : molette synchronisée depuis chaque panneau (1000 partout, stable, 10 molettes chacun), le son reste au panneau ; Maj + molette verticale et horizontale (seul le 2, 600) ; touches de mixage, Maj + S, ↓ / J sous la souris, Maj + ↓, Alt+2, E ; copie indépendante de l'onglet (onglet à 500, tuile à 0 puis 300, onglet toujours à 500) | 1280 sombre | ✅ | 05c6451 | `guest-preload.js`, `App.tsx` |
+
+### Bugs
+
+1. **haute** : quitter l'appli (⌘Q, ou une mise à jour qui relance) ou « Recharger tout homedash » (⇧⌘R) avec une vue Flux ouverte **efface toutes ses adresses** (`last` disparaît de la config), celles déjà écrites comme celles en attente. Repro : ouvrir Flux 4, un reel dans le panneau 1, attendre l'écriture (`last` = `[…/reel/a, null, null, null]` sur le disque), ⌘Q → `last` absent. Pareil avec ⇧⌘R sans aucune navigation depuis l'ouverture. Cause : `unloadGuests` (`main.js`) charge `about:blank` dans **toutes** les webviews avant de quitter ou de recharger, copies comprises ; chaque copie signale cette navigation (autre site → `null`), puis l'écriture de `pagehide` enregistre quatre `null`, donc plus rien. Un `location.reload()` de la page seule (sans `unloadGuests`) garde bien les adresses. Fichiers : `desktop/main.js`, `SplitView.tsx` (`CopyPane`, `did-navigate`), `splitViews.ts` (`navOk`).
+2. **basse** : hors de l'appli, seuls les sites de `NO_EMBED` (`customTabs.ts`) affichent « Ce site refuse de s'afficher… ». Instagram et TikTok, les sites du doomscroll, n'y sont pas : leur panneau serait blanc dans un navigateur (vu avec un site factice qui refuse par `X-Frame-Options` / CSP : panneau blanc, aucune phrase).
+3. **basse** : la première écriture de `last` sur une config dont les vues n'ont pas 4 cases (`slots` / `copies` plus courts : config écrite à la main, ou très ancienne) n'est pas reconnue comme « seulement `last` » : la page envoie les vues complétées à 4 cases, le serveur compare à la config brute. Effet une seule fois : `config.prev.json` écrasé et `reloadAll`. La vue de la config de dev de Paco a déjà 4 cases (non concernée). Fichier : `server/app.ts` / `store.ts` (`onlyLastChanged` après `accounts.normalized`, qui ne complète pas les vues).
+
+### Non testé
+
+Vrais sites (Instagram, TikTok : leurs vraies adresses de reels, leurs navigations internes), vraie souris et vrai clavier, ⌘Q avec la fenêtre cachée, mise à jour réelle de l'appli (même chemin que ⇧⌘R d'après le code, pas exécutée), relecture GitHub / scan Local réels (aucun compte ni dossier dans la config jetable : vu par `config.prev.json`, qui est écrit dans la même branche du code que `reloadAll`), autres tailles et thème clair.
+
+## 2026-11-21 — Dernière adresse (#180), trempe courte après les correctifs `5900c24` et `5c4a3eb`
+
+Commit testé : `5c4a3eb` (worktree paco/feature/flux-derniere-adresse). Typecheck + tests : 482 ✓, 9 ignorés. Même méthode que la trempe précédente (copie du HEAD, instance à part, sites factices et proxy qui note les appels de l'API dans un container jetable).
+
+| Cas | Tailles / thèmes | Résultat | Commit | Dépend de |
+|---|---|---|---|---|
+| Bug 1 : Flux 4, panneaux 1 et 2 écrits (`/reel/q1`, `/p/q2`), panneau 3 en attente (`/reel/q3`), puis Quitter par le vrai chemin (`app.quit()` → `before-quit` → `unloadGuests` → fin) : `last` = q1, q2, q3 sur le disque ; relance sur le même profil : les copies rouvrent sur q1, q2, q3, accueil | 1280 sombre | ✅ (avant : `last` effacé) | 5c4a3eb | `splitViews.ts` (`navOk`), `desktop/main.js` |
+| « Recharger tout homedash » (⇧⌘R, `reloadHome` → `unloadGuests`), vue ouverte sans navigation : `last` gardé, la vue rouvre aux mêmes adresses | 1280 sombre | ✅ | 5c4a3eb | idem |
+| Une copie qui va vraiment sur un autre site : le panneau qui avait `/reel/q1` passe à `null`, et rouvre sur l'accueil ; un panneau sans adresse qui part ailleurs reste à `null` | 1280 sombre | ✅ | 5c4a3eb | `splitViews.ts` |
+| Bug 3 : vue ancienne à 2 cases, 1re écriture d'adresses : `config.prev.json` intact (même empreinte), 1 PUT | 1280 sombre | ✅ | 5c4a3eb | `store.ts` (`onlyLastChanged`) |
+| Bug 2 : navigateur (Chromium, requêtes hors local bloquées), vue Flux A + Instagram + TikTok : cadre pour A, la phrase « Ce site refuse de s'afficher… » pour Instagram et TikTok, aucune requête vers eux | 1280 sombre | ✅ | 5c4a3eb | `customTabs.ts` (`NO_EMBED`) |
+| Mesure : 93 navigations (un reel toutes les 2 s) pendant 187 s : **3 PUT, à 60 s d'écart pile** ; copies jamais rechargées ; `config.prev.json` inchangé | 1280 sombre | ✅ | 5c4a3eb | `lastKeeper.ts`, `server/app.ts` |
+| Régressions #177 / #179 (Flux 4) : molette synchronisée depuis chaque panneau (1000 partout, stable, 10 molettes chacun), son au panneau qui défile ; Maj + molette verticale et horizontale (seul le 2, 600) ; touches de mixage, Maj + S, ↓ / J sous la souris (et le son), Maj + ↓, Alt+2, E ; copie indépendante de l'onglet (onglet 500, tuile 0 puis 300) | 1280 sombre | ✅ | 5c4a3eb | `guest-preload.js`, `App.tsx` |
+
+Note harnais : une première passe des régressions a donné des valeurs fausses (une touche faisait défiler tous les panneaux) parce que des scripts interrompus avaient laissé une touche enfoncée et que la fenêtre de test était recouverte (page « hidden »). Une fois les touches relâchées et la fenêtre gardée au premier plan, la passe complète est juste. Ce n'est pas un bug de l'appli.
+
+Aucun bug trouvé.
+
+### Non testé
+
+Le chemin « Mettre à jour » (refusé en mode dev par l'appli ; il passe par le même `unloadGuests` que Quitter), vrais sites (vraies adresses de reels), vraie souris et vrai clavier, autres tailles et thème clair.
