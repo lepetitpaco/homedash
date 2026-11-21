@@ -197,7 +197,7 @@ Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajout
 | | Messagerie | Flux |
 | --- | --- | --- |
 | Pour | Suivre plusieurs messageries : Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
-| Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre (réglable par panneau dans *Modifier la vue…*) |
+| Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre : défiler la tuile ne bouge jamais l'onglet du site, et inversement. **Toujours** des copies, vues anciennes comprises ; changer le type dans *Modifier la vue…* passe tous les panneaux en copies ou en vrais sites |
 | Son | **Tous les sons** : un appel Discord reste audible, jamais de pause | **Le panneau où tu agis** : le dernier geste gagne (survol, molette, touche de mixage, `Alt` + chiffre, clic) ; les autres sont coupés et leurs vidéos en pause, elles reprennent quand le panneau retrouve le son |
 | Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Table de mixage et raccourcis, toujours actifs (tableau ci-dessous) |
 

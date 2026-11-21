@@ -401,6 +401,13 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   `copy:<case>`, fermée avec la vue ; ni compteur ni Activité ni onglet temporaire), Messagerie = vrais sites. La copie est
   posée en `position: fixed` sur l'emplacement de son panneau (comme un site réel), jamais recréée à l'agrandissement.
   Pas d'onglet temporaire dans un panneau ni de vue temporaire (principe « pas un navigateur », décision de Paco).
+- **Flux = toujours des copies, Messagerie = toujours les vrais sites** (#179, décision de Paco : « mon onglet Instagram
+  ne doit pas être synchronisé avec la tuile : un autre lien avec les mêmes cookies, c'est tout »). Le type décide seul
+  (`copiesFor(viewMode(v, défaut de Réglages))`, `splitViews.ts`) ; le `copies[]` stocké n'est **plus lu** : une vue Flux
+  d'avant #172 n'en avait pas et ouvrait les vrais sites, liés à leur onglet (même défilement, même vidéo). Sans migration ;
+  il est encore écrit, à la même valeur, pour les applis d'avant. Plus de bascule « Copie / Site réel » par panneau ;
+  changer le type (`onProfile`) remplace tout de suite les panneaux. Le compteur d'une vue Flux vaut donc 0 (`viewCounter` :
+  une copie n'a ni compteur ni notification).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

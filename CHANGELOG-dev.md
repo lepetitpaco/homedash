@@ -40,3 +40,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 - **Défilement synchronisé depuis n'importe quel panneau** : un panneau qui venait d'être suivi avalait sa propre molette (échos en attente), oubliés quand la souris y entre ; une molette envoyée pour une touche n'est plus recopiée.
 - **Maj + molette** (qui arrive horizontale d'une souris) : la molette horizontale native est bloquée vue ouverte (Flux et Messagerie), le panneau d'origine ne traîne plus derrière les autres ; une molette horizontale sans Maj reste native. Un survol causé par le contenu qui défile (souris immobile) ne donne plus le son.
 - **Modificateurs**, mêmes touches sur Mac et Windows (lues à leur place, `event.code`) : Maj = tous les panneaux (touches de mixage, J K, flèches, N P), Maj + molette inverse la synchro ; J K et flèches visent le panneau sous la souris. Légende ⓘ de la barre et Réglages → Vue scindée le disent.
+
+## paco/fix/flux-toujours-copies
+
+- **Une vue Flux n'ouvre que des copies** (#179) : une vue Flux enregistrée avant les copies ouvrait les vrais sites, liés à leur onglet (défiler la tuile Instagram faisait défiler l'onglet Instagram). Le type décide seul, vues anciennes comprises, sans migration : Flux = copies (même compte, page à part), Messagerie = vrais sites. La bascule « Copie / Site réel » par panneau disparaît de *Modifier la vue…* ; changer le type change tous les panneaux tout de suite. Le compteur d'une vue Flux ne compte plus rien (une copie n'a pas de compteur).
