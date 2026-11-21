@@ -339,7 +339,7 @@ describe('étiquettes du clavier', () => {
 
 describe('libellés partagés et champs de saisie', () => {
   it('deux modes, deux cases, chacune avec son aide', () => {
-    expect(MODE_LABELS.map((m) => m.id)).toEqual(['classic', 'scroll'])
+    expect(MODE_LABELS.map((m) => m.id)).toEqual(['scroll', 'classic'])
     expect(FLAG_HELP.map((f) => f.key)).toEqual(['sync', 'actions'])
     expect(FLAG_HELP.find((f) => f.key === 'sync')?.hint).toMatch(/Maj/)
   })

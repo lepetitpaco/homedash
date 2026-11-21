@@ -73,9 +73,10 @@ export function normalizeKeyboard(raw: unknown): KeyboardChoice {
 
 // ── libellés partagés (barre de la vue et Réglages) ───────────────────────
 
+/** Flux d'abord, Messagerie ensuite : l'ordre du lexique (`CLAUDE.md`), le même dans la barre de la vue, le composeur et Réglages (#187). */
 export const MODE_LABELS: { id: SplitMode; label: string; hint: string }[] = [
-  { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
   { id: 'scroll', label: 'Flux', hint: 'Défiler TikTok, X, Instagram : le panneau où tu agis a le son, les autres sont en pause ; table de mixage et raccourcis' },
+  { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
 ]
 
 /** Seulement dans Réglages : la détection automatique se trompe rarement, et le choix ne change que les étiquettes. */

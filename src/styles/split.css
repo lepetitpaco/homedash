@@ -10,8 +10,8 @@
   top: calc(var(--topbar-h, 0px) + var(--strip-h, 0px));
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: 4px;
+  padding: 4px;
   background: var(--bg);
   color: var(--text);
 }
@@ -28,7 +28,7 @@
   gap: 4px;
 }
 .split-chip {
-  min-height: 44px;
+  min-height: 32px;
   padding: 0 0.65rem;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -52,8 +52,8 @@
   opacity: 0.7;
 }
 .split-lay {
-  width: 44px;
-  padding: 6px;
+  width: 40px;
+  padding: 5px;
   display: flex;
 }
 .split-mini {
@@ -63,7 +63,7 @@
   height: 100%;
 }
 .split-lay > .split-mini {
-  height: 30px;
+  height: 20px;
 }
 .split-mini .split-mini {
   flex: 1;
@@ -94,12 +94,33 @@
 }
 /* Les raccourcis : en toutes lettres sur un grand écran, sinon dans la bulle de ⓘ. */
 .split-info {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font: inherit;
   color: var(--text-dim);
-  cursor: help;
+  cursor: pointer;
+}
+.split-info::before {
+  content: '';
+  position: absolute;
+  inset: -6px; /* 44 px de zone pour 32 px visibles */
+}
+.split-info:hover,
+.split-info[aria-expanded='true'] {
+  color: var(--sig-info);
+}
+.split-menu.split-bubble {
+  width: min(520px, calc(100vw - 16px));
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-dim);
 }
 .split-legend {
   display: none;
@@ -163,11 +184,15 @@
   touch-action: none;
 }
 .split-node.is-row > .split-sep {
-  width: 10px;
+  width: 16px;
+  margin: 0 -3px; /* zone sensible élargie (#188), même espace visible */
+  z-index: 1;
   cursor: col-resize;
 }
 .split-node.is-col > .split-sep {
-  height: 10px;
+  height: 16px;
+  margin: -3px 0;
+  z-index: 1;
   cursor: row-resize;
 }
 .split-sep::after {
@@ -208,7 +233,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  min-height: 44px;
+  min-height: 32px;
   padding: 0 6px 0 10px;
   overflow: hidden;
   border-bottom: 1px solid var(--border);
@@ -229,14 +254,29 @@
   color: var(--bg);
 }
 .split-sound {
-  color: var(--text-faint);
+  display: inline-flex;
+  color: var(--text-dim);
+}
+.split-sound svg {
+  width: 16px;
+  height: 16px;
 }
 .split-sound.is-on {
   color: var(--sig-ok);
 }
+.split-paused {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+@container (max-width: 300px) {
+  .split-paused {
+    display: none;
+  }
+}
 .split-btn {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 32px;
   border: 0;
   background: transparent;
   color: var(--text-dim);
@@ -351,7 +391,8 @@
   position: fixed;
   z-index: 5;
   display: flex;
-  background: #fff;
+  /* le fond de la page, pas du blanc : un coin blanc perçait au bout d'une barre de défilement (#185) */
+  background: var(--bg);
 }
 .split-copy.is-parked {
   left: -200vw;
@@ -491,4 +532,10 @@
    panneaux, en focus comme hors focus (#183). Rien de la page du dessous ne doit recouvrir la vue. */
 .app:has(.split-root) .footer {
   display: none;
+}
+
+/* Composeur « Ajouter une vue scindée » (#189) : Annuler, Ajouter et les sélecteurs de site à 44 px comme le reste. */
+.svc .modal-foot .btn,
+.svc .svc-slot .pick-btn {
+  min-height: 44px;
 }

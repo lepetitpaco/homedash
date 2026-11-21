@@ -194,6 +194,20 @@ function CopyPane({
   )
 }
 
+/**
+ * État du son d'un panneau : une icône SVG monochrome (`currentColor`), pas un emoji. Un emoji ignore la couleur (le vert
+ * « a le son » ne se voyait jamais) et ses trois états diffèrent à peine à 14 px ; ici le contraste suit le thème (#186).
+ */
+function SoundIcon({ state }: { state: 'on' | 'off' | 'muted' }) {
+  return (
+    <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M2.5 6v4h2.6L8.5 12.6V3.4L5.1 6z" fill="currentColor" stroke="none" />
+      {state === 'on' ? <path d="M10.6 5.6a3.4 3.4 0 0 1 0 4.8M12.4 3.8a6 6 0 0 1 0 8.4" /> : null}
+      {state === 'muted' ? <path d="M11 6l3.5 4M14.5 6L11 10" /> : null}
+    </svg>
+  )
+}
+
 export default function SplitView(p: Props) {
   const root = useRef<HTMLDivElement>(null)
   const bodies = useRef<(HTMLDivElement | null)[]>([])
@@ -203,6 +217,8 @@ export default function SplitView(p: Props) {
   const ratios = p.ratios
   const [dragging, setDragging] = useState(false)
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
+  // L'aide (ⓘ) : une vraie bulle (`role="dialog"`), pas l'infobulle native de 688 caractères (#188).
+  const [info, setInfo] = useState<{ left: number; top: number } | null>(null)
   const lay = layoutOf(p.layout)
   const zoomed = p.zoom !== null && p.zoom < lay.n
 
@@ -238,21 +254,57 @@ export default function SplitView(p: Props) {
     }
   }, [measure])
 
-  // Menu des cases à cocher : se ferme au clic ailleurs.
+  // Menu des cases à cocher et bulle d'aide : se ferment au clic ailleurs, et à Échap (qui rend le focus au bouton).
+  const popOpen = !!menu || !!info
   useEffect(() => {
-    if (!menu) return
+    if (!popOpen) return
     const down = (e: MouseEvent) => {
-      if (!(e.target as HTMLElement).closest?.('.split-menu, .split-menu-btn, .pick-menu')) setMenu(null)
+      if (!(e.target as HTMLElement).closest?.('.split-menu, .split-menu-btn, .split-info, .pick-menu')) {
+        setMenu(null)
+        setInfo(null)
+      }
     }
-    // Échap ferme ce menu, et lui seul : la vue reste ouverte (App ne prend pas l'Échap quand une couche est ouverte).
-    const esc = (e: KeyboardEvent) => e.key === 'Escape' && setMenu(null)
+    // Échap ferme cette couche, et elle seule : la vue reste ouverte (App ne prend pas l'Échap quand une couche est ouverte).
+    // Tab reste dans la couche tant qu'elle est ouverte ; Échap rend le focus à son bouton.
+    const key = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        const back = menu ? '.split-menu-btn' : '.split-info'
+        setMenu(null)
+        setInfo(null)
+        document.querySelector<HTMLElement>(`.split-bar ${back}`)?.focus()
+        return
+      }
+      if (e.key !== 'Tab') return
+      const layer = document.querySelector<HTMLElement>('.split-menu')
+      if (!layer || !layer.contains(document.activeElement)) return
+      const items = [...layer.querySelectorAll<HTMLElement>('input:not(:disabled), button:not(:disabled)')]
+      if (!items.length) return
+      const first = items[0]
+      const last = items[items.length - 1]
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
     window.addEventListener('mousedown', down)
-    window.addEventListener('keydown', esc)
+    window.addEventListener('keydown', key)
     return () => {
       window.removeEventListener('mousedown', down)
-      window.removeEventListener('keydown', esc)
+      window.removeEventListener('keydown', key)
     }
-  }, [menu])
+  }, [popOpen, menu])
+  // Ouvert, le menu prend le focus (sa première case) : sans cela il restait injoignable au clavier (portail en fin de <body>).
+  useEffect(() => {
+    if (!menu) return
+    document.querySelector<HTMLElement>('.split-menu input:not(:disabled)')?.focus()
+  }, [!!menu]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => {
+    if (!info) return
+    document.querySelector<HTMLElement>('.split-bubble')?.focus()
+  }, [!!info]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Un site n'est que dans une case : celui d'une autre case est grisé (« déjà dans cette vue »).
   const siteOptions = (i: number) => [
@@ -288,6 +340,8 @@ export default function SplitView(p: Props) {
     return (
       <div
         key={i}
+        role="region"
+        aria-label={`Panneau ${i + 1}${key ? ` : ${p.names[key] ?? site?.label ?? ''}` : ' (vide)'}`}
         className={`split-pane${isActive ? ' is-active' : ''}`}
         onMouseEnter={() => p.onHover(i)}
         onMouseDown={() => p.onPick(i)}
@@ -315,9 +369,17 @@ export default function SplitView(p: Props) {
           {key ? (
             <span
               className={`split-sound${plays && audioKey && p.audible[audioKey] ? ' is-on' : ''}`}
+              role="img"
+              aria-label={manual ? 'Son coupé à la main' : plays ? 'Ce panneau a le son' : 'Son coupé'}
               title={manual ? 'Son coupé à la main (clic droit sur le site)' : plays ? 'Ce panneau a le son' : 'Son coupé ici'}
             >
-              {manual ? '🔇' : plays ? '🔊' : '🔈'}
+              <SoundIcon state={manual ? 'muted' : plays ? 'on' : 'off'} />
+            </span>
+          ) : null}
+          {/* Flux : un panneau sans le son est en pause (les pages sont au-dessus de la grille : un voile ne se verrait pas). */}
+          {key && p.prefs.mode === 'scroll' && !plays && !manual ? (
+            <span className="split-paused" title="La vidéo de ce panneau est en pause : elle reprend quand il a le son">
+              En pause
             </span>
           ) : null}
           <span className="set-spacer" />
@@ -334,9 +396,18 @@ export default function SplitView(p: Props) {
             bodies.current[i] = el
           }}>
           {/* une seule phrase : le site a disparu, ou la case est vide */}
-          {key && !site ? <p className="split-empty">Site retiré de Mes sites.</p> : null}
+          {/* hors édition il n'y a pas de sélecteur : on dit où le trouver (#187) */}
+          {key && !site ? <p className="split-empty">{p.editing ? 'Site retiré de Mes sites : choisis-en un autre.' : 'Site retiré de Mes sites. Clic droit sur la vue → Modifier la vue… pour en choisir un autre.'}</p> : null}
           {!key ? (
-            <p className="split-empty">{p.gone[i] ? 'Site retiré de Mes sites : choisis-en un autre.' : 'Choisis un site pour ce panneau.'}</p>
+            <p className="split-empty">
+              {p.editing
+                ? p.gone[i]
+                  ? 'Site retiré de Mes sites : choisis-en un autre.'
+                  : 'Choisis un site pour ce panneau.'
+                : p.gone[i]
+                  ? 'Site retiré de Mes sites. Clic droit sur la vue → Modifier la vue… pour en choisir un autre.'
+                  : 'Aucun site ici. Clic droit sur la vue → Modifier la vue… pour en choisir un.'}
+            </p>
           ) : null}
         </div>
         {p.notes[i] ? note(i) : null}
@@ -361,7 +432,20 @@ export default function SplitView(p: Props) {
             key={`s${i}`}
             className="split-sep"
             role="separator"
+            tabIndex={0}
+            aria-label="Redimensionner les panneaux (flèches)"
             aria-orientation={node.dir === 'row' ? 'vertical' : 'horizontal'}
+            aria-valuemin={10}
+            aria-valuemax={90}
+            aria-valuenow={Math.round((100 * r[i]) / r.reduce((a, b) => a + b, 0))}
+            onKeyDown={(e) => {
+              // Flèches : le séparateur bouge de 2 % ; même règle que la souris (`dragRatios`), écrite à la fin du geste.
+              const back = node.dir === 'row' ? 'ArrowLeft' : 'ArrowUp'
+              const fwd = node.dir === 'row' ? 'ArrowRight' : 'ArrowDown'
+              if (e.key !== back && e.key !== fwd) return
+              e.preventDefault()
+              p.onRatios({ ...ratios, [id]: dragRatios(r, i, e.key === fwd ? 0.02 : -0.02) }, true)
+            }}
             onPointerDown={(e) => {
               const el = e.currentTarget
               const box = el.parentElement!.getBoundingClientRect()
@@ -413,7 +497,7 @@ export default function SplitView(p: Props) {
   const legendEl = <span className="split-legend">{legend.short}</span>
 
   return (
-    <div className={`split-root${dragging ? ' is-dragging' : ''}`} ref={root} aria-label="Vue scindée">
+    <div className={`split-root${dragging ? ' is-dragging' : ''}`} ref={root} role="region" aria-label="Vue scindée">
       <div className="split-bar" onMouseEnter={p.onLeave}>
         <div className="split-group" role="group" aria-label="Mode de la vue scindée">
           {MODE_LABELS.map((m) => (
@@ -450,6 +534,7 @@ export default function SplitView(p: Props) {
             aria-expanded={!!menu}
             onClick={(e) => {
               const r = e.currentTarget.getBoundingClientRect()
+              setInfo(null)
               setMenu((v) => (v ? null : { left: Math.max(8, Math.min(r.left, window.innerWidth - 436)), top: r.bottom + 4 }))
             }}
             title="Valable le temps de la vue ; pour garder, Modifier la vue (clic droit sur la vue)"
@@ -459,9 +544,19 @@ export default function SplitView(p: Props) {
         </div>
         <div className="split-end">
           {legendEl}
-          <span className="split-info" role="img" aria-label={legend.long} title={legend.long}>
+          <button
+            className="split-info"
+            aria-expanded={!!info}
+            aria-label="Aide : raccourcis et comportement de la vue"
+            title="Aide de la vue scindée"
+            onClick={(e) => {
+              const r = e.currentTarget.getBoundingClientRect()
+              setMenu(null)
+              setInfo((v) => (v ? null : { left: Math.max(8, Math.min(r.right - 520, window.innerWidth - 536)), top: r.bottom + 6 }))
+            }}
+          >
             ⓘ
-          </span>
+          </button>
           {p.editing ? (
             <>
               {p.editWarning ? (
@@ -482,6 +577,24 @@ export default function SplitView(p: Props) {
             </button>
           )}
         </div>
+        {info
+          ? createPortal(
+              <div
+                className="split-menu split-bubble"
+                role="dialog"
+                aria-label="Aide de la vue scindée"
+                tabIndex={-1}
+                style={{ left: info.left, top: info.top, maxHeight: Math.max(160, window.innerHeight - info.top - 8), overflowY: 'auto' }}
+              >
+                {legend.long.split('. ').map((t, k, all) => (
+                  <p key={k} className="split-bubble-line">
+                    {k < all.length - 1 && !t.endsWith('.') ? `${t}.` : t}
+                  </p>
+                ))}
+              </div>,
+              document.body,
+            )
+          : null}
         {menu
           ? createPortal(
           <div className="split-menu" role="dialog" aria-label="Options de la vue scindée" style={{ left: menu.left, top: menu.top, maxHeight: Math.max(160, window.innerHeight - menu.top - 8), overflowY: 'auto' }}>
