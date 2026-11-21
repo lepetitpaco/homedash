@@ -415,6 +415,15 @@ describe('séparateur au clavier (#188)', () => {
     expect(v.min).toBe(12)
     expect(v.max).toBe(Math.round((100 * (2 - 0.12 * 4)) / 4))
   })
+  it('2e séparateur d\'une vue à trois : la part du 2e panneau, bornée par le 3e', () => {
+    expect(separatorValue([2, 1, 1], 1)).toEqual({ now: 25, min: 12, max: Math.round((100 * (2 - 0.12 * 4)) / 4) })
+  })
+  it('deux voisins trop serrés pour bouger : plage réduite à la valeur, jamais max < min', () => {
+    const v = separatorValue([0.2, 0.2, 3.6], 0)
+    expect(v.max).toBeGreaterThanOrEqual(v.min)
+    expect(v.now).toBeGreaterThanOrEqual(v.min)
+    expect(v.now).toBeLessThanOrEqual(v.max)
+  })
   it('séparateur inconnu : valeur neutre, sans plantage', () => {
     expect(separatorValue([1, 1], 5)).toEqual({ now: 50, min: 0, max: 100 })
   })

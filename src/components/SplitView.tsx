@@ -467,6 +467,10 @@ export default function SplitView(p: Props) {
               kbTimer.current = window.setTimeout(kbCommit, 600)
             }}
             onPointerDown={(e) => {
+              // Un glissé souris prend la main sur une flèche en attente d'écriture : sinon le minuteur du clavier
+              // écrasait le glissé 600 ms plus tard. L'aperçu des flèches est déjà dans `ratios`, donc dans le glissé.
+              window.clearTimeout(kbTimer.current)
+              kbLatest.current = null
               const el = e.currentTarget
               const box = el.parentElement!.getBoundingClientRect()
               const size = node.dir === 'row' ? box.width : box.height
@@ -605,7 +609,11 @@ export default function SplitView(p: Props) {
                 aria-label="Aide de la vue scindée"
                 tabIndex={-1}
                 onBlur={(e) => {
-                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setInfo(null)
+                  // Le focus passe à ⓘ au clic de souris (mousedown, avant click) : sa propre bascule referme la bulle ;
+                  // fermer ici la ferait rouvrir aussitôt (régression vue par le vérificateur).
+                  const to = e.relatedTarget as HTMLElement | null
+                  if (to?.closest?.('.split-info')) return
+                  if (!e.currentTarget.contains(to)) setInfo(null)
                 }}
                 style={{ left: info.left, top: info.top, maxHeight: Math.max(160, window.innerHeight - info.top - 8), overflowY: 'auto' }}
               >

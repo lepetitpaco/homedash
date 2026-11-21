@@ -363,6 +363,7 @@
 .split-head .pick-btn {
   min-width: 0;
   max-width: 100%;
+  min-height: 32px; /* mode édition : la hauteur de l'en-tête (32 px, #185), pas 29 */
 }
 .split-site {
   display: inline-flex;
@@ -567,8 +568,4 @@
 }
 .svc .split-lay > .split-mini {
   height: 30px;
-}
-/* Mode édition : le sélecteur de site prend toute la hauteur de l'en-tête (32 px, #185), pas 29. */
-.split-head .pick-btn {
-  min-height: 32px;
 }
