@@ -22,7 +22,7 @@ import { confirmDialog } from './ConfirmHost'
 import SiteIcon, { isImageIcon } from './SiteIcon'
 import { askNameColor } from './NameColorHost'
 import Pick from './Pick'
-import { adviceFor, CATALOG, catalogHint, catalogTab, type CatalogSite } from '../lib/catalog'
+import { adviceFor, CATALOG, catalogHint, catalogTab, pauseChoice, pauseHiddenOf, type CatalogSite } from '../lib/catalog'
 import { keys } from '../lib/keys'
 import { shown } from '../lib/errors'
 
@@ -258,6 +258,7 @@ export default function SetTabs({
   const changedOptions = (t: CustomTab) =>
     [
       !!t.sleep,
+      t.pauseHidden !== undefined && t.pauseHidden !== pauseHiddenOf({ ...t, pauseHidden: undefined }),
       isWeb(t) && t.preload !== undefined && t.preload !== preloads({ ...t, preload: undefined }),
       isWeb(t) && t.notify === false,
       isWeb(t) && (t.capture === false || !!t.domains?.length),
@@ -452,6 +453,39 @@ export default function SetTabs({
               <em className="xs-note">
                 En veille, l'onglet est déchargé (mémoire libérée) et rechargé quand tu cliques dessus ; il ne reçoit
                 plus de notifications ni de non-lus entre-temps.
+              </em>
+            </div>
+          ) : null}
+
+          {t.embed && desktop ? (
+            <div className="xs-field xs-wide">
+              <span title="Quand ce site n'est pas affiché (autre site, autre page), ses vidéos et ses sons en lecture sont mis en pause, puis repris quand tu reviens. Une pause faite à la main n'est jamais relancée.">
+                Pause quand je n'y suis pas
+              </span>
+              <span className="xs-seg" role="radiogroup">
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={pauseHiddenOf(t)}
+                  className={pauseHiddenOf(t) ? 'is-on' : ''}
+                  onClick={() => patch(t.id, { pauseHidden: pauseChoice(t, true) })}
+                >
+                  Oui
+                </button>
+                <button
+                  type="button"
+                  role="radio"
+                  aria-checked={!pauseHiddenOf(t)}
+                  className={pauseHiddenOf(t) ? '' : 'is-on'}
+                  onClick={() => patch(t.id, { pauseHidden: pauseChoice(t, false) })}
+                >
+                  Non, joue en fond
+                </button>
+              </span>
+              <em className="xs-note">
+                Oui : quand le site n'est plus affiché, ses vidéos et ses sons sont mis en pause et reprennent à ton
+                retour. Par défaut : oui, sauf pour les lecteurs (YouTube, Spotify…), les appels et les messageries du
+                catalogue. Un site qui joue de la musique en fond (radio, web app perso) : choisis « Non ».
               </em>
             </div>
           ) : null}

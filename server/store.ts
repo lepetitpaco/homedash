@@ -172,6 +172,39 @@ export function backupConfig(): void {
   }
 }
 
+/** JSON aux clés triées : deux configs égales ont la même forme, quel que soit l'ordre des clés. */
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`
+  if (v && typeof v === 'object')
+    return `{${Object.keys(v as Obj)
+      .sort()
+      .filter((k) => (v as Obj)[k] !== undefined)
+      .map((k) => `${JSON.stringify(k)}:${canonical((v as Obj)[k])}`)
+      .join(',')}}`
+  return JSON.stringify(v) ?? 'null'
+}
+
+/**
+ * Vue Flux (#180) : l'écriture ne change-t-elle **que** les dernières adresses des copies (`splitViews[].last`) ? Alors le
+ * serveur l'écrit sans relire GitHub ni le disque (`reloadAll`) et sans écraser la sauvegarde d'avant (`backupConfig`) :
+ * une navigation n'est pas un changement de réglage. Décidé en comparant les deux configs, jamais sur la foi de la page.
+ */
+export function onlyLastChanged(before: unknown, after: unknown): boolean {
+  // Les vues ramenées à la forme que la page écrit (`normalizeViews`) : 4 cases, `copies` complété à 4 ; sinon une config
+  // écrite avant (vue à 2 cases) faisait passer la 1re écriture d'adresses pour un vrai réglage.
+  const pad = (l: unknown, fill: null | false) =>
+    Array.isArray(l) ? Array.from({ length: Math.max(4, l.length) }, (_, i) => (l[i] === undefined ? fill : l[i])) : l
+  const strip = (c: unknown): unknown => {
+    if (!isObj(c) || !Array.isArray(c.splitViews)) return c
+    return {
+      ...c,
+      splitViews: c.splitViews.map((v) => (isObj(v) ? { ...v, slots: pad(v.slots, null), copies: pad(v.copies, false), last: undefined } : v)),
+    }
+  }
+  if (!isObj(before) || !isObj(after)) return false
+  return canonical(strip(before)) === canonical(strip(after)) && canonical(before) !== canonical(after)
+}
+
 // ── Validation de config.json ──────────────────────────────────────────────────
 /** Fonctionnalités qu'on peut couper (Réglages → Fonctionnalités) : clé absente = active. */
 export const FEATURES = ['github', 'basecamp', 'local', 'trello'] as const
@@ -264,7 +297,7 @@ export function validateConfig(cfg: unknown): string | null {
       for (const field of ['session', 'parent']) {
         if (tab[field] !== undefined && tab[field] !== null && !isStr(tab[field])) return `tabs[${i}].${field} doit être un texte`
       }
-      for (const flag of ['sleep', 'kept', 'embed', 'capture', 'preload', 'notify']) {
+      for (const flag of ['sleep', 'kept', 'embed', 'capture', 'preload', 'notify', 'pauseHidden']) {
         if (tab[flag] !== undefined && tab[flag] !== null && typeof tab[flag] !== 'boolean')
           return `tabs[${i}].${flag} doit être vrai ou faux`
       }
@@ -274,7 +307,7 @@ export function validateConfig(cfg: unknown): string | null {
       seen.add(tab.id as string)
     }
   }
-  for (const key of ['tabFolders', 'tabSessions']) {
+  for (const key of ['tabFolders', 'tabSessions', 'splitViews']) {
     const items = cfg[key]
     if (items === undefined || items === null) continue
     if (!Array.isArray(items)) return `"${key}" doit être un tableau`
@@ -286,6 +319,44 @@ export function validateConfig(cfg: unknown): string | null {
       }
       if (seen.has(f.id as string)) return `${key}[${i}].id en double : ${f.id}`
       seen.add(f.id as string)
+      // Vue scindée enregistrée (#169) : sa disposition et ses cases (id de site, ou null = vide).
+      if (key === 'splitViews') {
+        if (f.prefs !== undefined && f.prefs !== null) {
+          // `mode`, `sync`, `actions` ; les autres sont les cases d'avant #177 : toujours acceptées (une config ancienne ne doit
+          // jamais être refusée à l'écriture), ignorées à la lecture (`normalizeSplit`), sans migration.
+          const known = ['mode', 'sync', 'actions', 'follow', 'keys', 'mixer', 'pause', 'keep', 'keyboard']
+          if (!isObj(f.prefs) || Object.keys(f.prefs).some((k) => !known.includes(k)) || JSON.stringify(f.prefs).length > 400)
+            return `splitViews[${i}].prefs doit être les réglages de la vue (champs connus, petite taille)`
+        }
+        const copies = f.copies
+        if (copies !== undefined && copies !== null && (!Array.isArray(copies) || copies.length > 4 || copies.some((c) => typeof c !== 'boolean')))
+          return `splitViews[${i}].copies doit être une liste de 4 vrai / faux au plus`
+        for (const field of ['before', 'folder']) {
+          if (f[field] !== undefined && f[field] !== null && !isStr(f[field])) return `splitViews[${i}].${field} doit être un texte`
+        }
+        if (String(f.name).length > 60) return `splitViews[${i}].name trop long (60 caractères au plus)`
+        const ratios = f.ratios
+        if (ratios !== undefined && ratios !== null) {
+          const good =
+            isObj(ratios) &&
+            Object.values(ratios).every((l) => Array.isArray(l) && l.length >= 2 && l.length <= 4 && l.every((n) => typeof n === 'number' && Number.isFinite(n) && n > 0))
+          if (!good) return `splitViews[${i}].ratios doit être des listes de 2 à 4 nombres positifs`
+        }
+        if (f.layout !== undefined && f.layout !== null && !isStr(f.layout)) return `splitViews[${i}].layout doit être un texte`
+        // #180 : dernière adresse de chaque copie (http(s) seulement, bornée), ou null.
+        const last = f.last
+        if (last !== undefined && last !== null) {
+          // même borne et même règle que `LAST_MAX` / `isPageUrl` (src/lib/splitViews.ts, que le serveur n'importe pas)
+          const page = (x: unknown) => isStr(x) && x.length <= 2048 && /^https?:\/\//i.test(x)
+          if (!Array.isArray(last) || last.length > 4 || last.some((x) => x !== null && !page(x)))
+            return `splitViews[${i}].last doit être une liste de 4 adresses web au plus (ou null)`
+        }
+        const slots = f.slots
+        if (slots !== undefined && slots !== null) {
+          if (!Array.isArray(slots) || slots.length > 4 || slots.some((x) => x !== null && !isStr(x)))
+            return `splitViews[${i}].slots doit être une liste de 4 sites au plus (ou null)`
+        }
+      }
     }
   }
   const order = cfg.pinnedOrder

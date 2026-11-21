@@ -41,6 +41,13 @@ docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "
     --electron-version=$ELECTRON --app-version=$VERSION --out=dist.noindex --overwrite \
     --app-bundle-id=$BUNDLE --extend-info=Info.extra.plist"
 
+# `npm ci` a remplacé node_modules sous les pieds de Vite : son cache des dépendances ne correspond
+# plus (504 « Outdated Optimize Dep », page noire dans l'appli dev). On relance le container de dev.
+if docker ps --format '{{.Names}}' | grep -qx homedash-dev; then
+  rm -rf node_modules/.vite
+  docker restart homedash-dev >/dev/null && echo "✓ homedash-dev relancé (cache Vite refait)"
+fi
+
 # Icône : le PNG converti en .icns avec les outils de macOS (orange pour l'appli de dev).
 cd desktop
 ICON=../public/icon-512.png

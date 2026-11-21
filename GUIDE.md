@@ -45,7 +45,10 @@ même sans aucun site : son **＋** ajoute le premier.
   côté de la recherche, et le site prend toute la place qui reste, bord à bord, quelle que soit la disposition.
 - **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F (Ctrl+Maj+F), même en tapant dans le site : le site prend toute la
   fenêtre. La barre du haut revient quand la souris touche le bord haut (ou avec ⌘K), celle de gauche au bord gauche.
-  ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi.
+  ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi. **Aussi dans une vue scindée** (même ouverte sur
+  l'accueil) : les panneaux prennent toute la fenêtre (8 px seulement entre deux), avec un en-tête réduit (numéro, site, son, agrandir) ;
+  la barre de la vue (Flux / Messagerie, Options, Fermer) revient avec la barre du haut quand la souris touche le bord haut.
+  Fermer la vue sort du focus.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
   et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
   automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page ; les sites
@@ -100,6 +103,12 @@ même sans aucun site : son **＋** ajoute le premier.
   (messageries chargées au démarrage, réseaux sociaux en veille, musique sans veille), et des raccourcis directs
   comme Instagram Direct. Tout se change ensuite dans la fiche du site. Pour les sites déjà là : ✨ *Configuration
   recommandée*, qui montre ce qui change avant d'appliquer.
+- **Pause quand je n'y suis pas** (appli de bureau) : quand un site n'est plus affiché (tu es sur un autre site ou une
+  autre page), ses vidéos et ses sons en lecture sont mis en pause, puis reprennent à ton retour (TikTok, Instagram et
+  les autres sites de scroll ne jouent donc plus dans ton dos). Les lecteurs (YouTube, Spotify, Twitch…), les appels et
+  les messageries du catalogue ne sont jamais coupés. Une pause faite à la main n'est jamais relancée. Réglable site par
+  site : *Réglages → Mes sites → ▾ → Plus d'options → Pause quand je n'y suis pas* (« Non, joue en fond » pour une radio
+  ou une web app perso).
 - Un **fichier** de ton disque marche aussi (`~/Documents/procédure.pdf`) : lu, jamais modifié.
 - Dans un navigateur, Gmail, Chat et la plupart des grands sites refusent de s'afficher dans une page :
   l'**appli de bureau** les affiche tous.
@@ -153,7 +162,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 | `⇧⌘R` | `Ctrl+Maj+R` | Recharger tout homedash (tous les sites se rechargent) |
 | `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
 | `Ctrl+Tab` | `Ctrl+Tab` | Revenir au site d'avant. `Ctrl` gardé appuyé : tes sites s'affichent en tuiles. `Tab` ou `Maj+Tab` pour choisir, relâcher `Ctrl` ou cliquer pour ouvrir, `1` à `9` pour ouvrir directement, `Échap` pour rester (⌘Tab et Alt+Tab restent ceux du système) |
-| `⌘⇧F` | `Ctrl+Maj+F` | Mode focus : le site affiché prend toute la fenêtre, même quand tu tapes dans le site ; les barres reviennent au bord. Encore une fois pour en sortir |
+| `⌘⇧F` | `Ctrl+Maj+F` | Mode focus : le site affiché (ou la vue scindée) prend toute la fenêtre, même quand tu tapes dans le site ; les barres reviennent au bord. Encore une fois pour en sortir |
 | `⌘,` | `Ctrl+,` | Réglages |
 | `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : compteurs et cloche continuent |
 
@@ -165,6 +174,81 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 - **Son** : 🔊 sur l'icône d'un onglet qui joue du son ; un clic le coupe.
 - **Sans l'appli**, homedash s'installe aussi comme une page : ⊕ *Installer* dans Chrome, *Fichier →
   Ajouter au Dock* dans Safari.
+
+## ◫ Vue scindée
+
+*Appli de bureau.* Pour **doomscroller plusieurs flux en parallèle** (TikTok, X, Instagram) ou **suivre plusieurs
+messageries** (Instagram et Discord) : **2 à 4 sites côte à côte dans un seul onglet**. homedash reste un dash avec
+tes sites principaux, pas un navigateur : pas de barre d'adresse, pas de navigation libre dans les panneaux.
+
+**Créer une vue** : *Ajouter* (＋ de la barre de gauche, ou clic droit sur la barre) → **Ajouter une vue scindée** : un
+nom, une disposition (2 colonnes, 2 lignes, 3 colonnes, 1 grand et 2 petits, 2 par 2, 4 colonnes) et le site de chaque
+panneau (avec le nom du compte quand un même site en a plusieurs : « X · pro », « X · perso » ; un compte déjà pris par
+un autre panneau est grisé). La vue apparaît **dans la barre de gauche comme un site** : **glisse-la** où tu veux,
+entre tes sites, dans ou hors d'un dossier. Un clic l'ouvre. Il n'y a pas de vue « jetable » : toute vue est
+enregistrée, et se supprime au clic droit.
+
+Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles rouvrent la dernière page où tu étais (voir plus bas), ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (chaque copie est une page de plus en mémoire). La composition d'une vue
+est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
+(sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
+les proportions sont gardées ; au clavier, `Tab` jusqu'au séparateur puis les flèches le déplacent de 2 %. **Double-clic sur le titre**
+d'un panneau (ou `X` en mode Flux) l'agrandit. En fermant la vue (*Fermer*, `Échap` en mode Flux, ou en ouvrant une autre
+page), chaque site retrouve sa place ; un site affiché ne se met pas en veille. **Lancer une recherche** (taper dans la barre
+du haut) ferme aussi la vue : voulu, les résultats prennent la place.
+
+L'en-tête d'un panneau montre son numéro, son site, *copie* (vue Flux), l'état du son (haut-parleur : le panneau a le son,
+barré : son coupé à la main) et, en Flux, **En pause** pour un panneau sans le son. **ⓘ** ouvre l'aide (raccourcis, Maj,
+molette) dans une bulle ; **Options** ouvre le menu des cases : les deux se ferment avec `Échap`, qui rend le focus au bouton.
+
+Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajouter → Ajouter une vue scindée). Le changer passe tous les panneaux en copies ou en vrais sites : depuis la barre de la vue, le temps de la vue ; dans *Modifier la vue…*, enregistré ; *Réglages → Vue scindée* ne sert qu'à pré-remplir une nouvelle vue :
+
+| | Messagerie | Flux |
+| --- | --- | --- |
+| Pour | Suivre plusieurs messageries : Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
+| Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre : défiler la tuile ne bouge jamais l'onglet du site. Toujours des copies, vues anciennes comprises |
+| Son | **Tous les sons** : un appel Discord reste audible, jamais de pause | **Le panneau où tu agis** : le dernier geste gagne (survol, molette, touche de mixage, chiffre, clic) ; les autres sont coupés et leurs vidéos en pause, elles reprennent quand le panneau retrouve le son |
+| Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Table de mixage et raccourcis, toujours actifs (tableau ci-dessous) |
+
+Le type décide de tout. Il ne reste que **deux cases**, les mêmes dans les deux types (menu *Options* de la barre,
+**valables le temps de la vue** : pour les garder, *Modifier la vue…*, clic droit sur la vue) : *Défilement
+synchronisé* (**coché par défaut en Flux, décoché en Messagerie** ; changer de type remet ce défaut : faire défiler
+n'importe quel panneau à la molette ou au trackpad fait défiler tous les autres ; `Maj` + molette fait l'inverse : un
+seul panneau quand c'est coché, tous quand c'est décoché) et *Actions par site* (en Flux : `L` `B` `T` `C` ; grisée
+en Messagerie, où elle est sans effet). Une vidéo que tu as mise en pause toi-même n'est jamais relancée ; le son
+coupé à la main (clic droit sur un site) reste prioritaire. Une vue enregistrée avant cette version garde son type et
+ces deux cases ; ses autres anciennes cases sont ignorées.
+
+**Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
+qui reste affiché reprend ses vidéos et son ; les sites garés restent en pause jusqu'à ce que tu les affiches. Le clic
+droit propose *Modifier la vue…*, *Repartir du début* (vue Flux), *Renommer* et *Supprimer* (seule la vue disparaît,
+jamais tes sites). Si tu supprimes un site de *Mes sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un
+onglet temporaire ou un container Docker n'entre pas dans une vue (homedash te le dit avant d'enregistrer ; son panneau
+revient vide).
+
+**Une vue Flux reprend où tu en étais** : chaque panneau rouvre la dernière page où tu étais (un reel, un post), si elle
+est sur le même site ; sinon, ou après une page en erreur, il repart de l'accueil du site (la position exacte dans un fil
+n'est pas gardée). *Repartir du début* oublie ces pages ; changer le site d'un panneau dans *Modifier la vue…* oublie la
+sienne (échanger deux panneaux oublie les deux), passer la vue en Messagerie les oublie toutes. Ces adresses restent dans
+tes réglages, sur ta machine, sans ce qui suit `#` ni les paramètres qui ressemblent à un jeton ou un code.
+
+**Clavier** (mode Flux ; **en Messagerie, aucune de ces touches ne fait rien** ; jamais dans un champ de saisie) : les
+touches sont lues **à leur place sur le clavier**, pas par la lettre qu'elles tapent : **pareil sur Mac et sur
+Windows**, en AZERTY comme en QWERTY (le clavier est détecté tout seul ; s'il se trompe, *Réglages → Vue scindée*
+corrige les lettres affichées). **`Maj` (⇧) maintenu = tous les panneaux d'un coup.** `Ctrl` et `⌘` ne sont jamais
+pris (copier, coller, raccourcis du système), et un clic avec `Maj` dans un site reste au site. L'aide ⓘ de la barre
+et *Réglages → Vue scindée* le rappellent.
+
+| Touche | Effet |
+| --- | --- |
+| *Table de mixage* : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main : un seul panneau, qui prend le son. **`Maj` + touche** : tous les panneaux, dans le sens de la touche |
+| `↓` `↑` | Défiler d'un cran (une carte sur TikTok, Reels) **le panneau sous la souris** (sans souris sur la grille : le panneau actif), qui prend le son. **`Maj`** : tous |
+| `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY), seuls | Panneau 1 à 4 : il devient actif et prend le son (pas dans un champ de saisie ; `Alt` + la même touche marche toujours) |
+| `X` | Agrandir / restaurer le panneau actif (`Z` est « panneau 2 haut » en AZERTY) |
+| `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
+| `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant ; jamais avec `Maj` (pas de « J'aime » à tous) |
+| Molette, trackpad | Avec *Défilement synchronisé* : tous les panneaux suivent ; `Maj` + molette fait l'inverse |
+
+Chaque touche = une action de ta part : homedash ne boucle jamais, ne lit ni ne collecte rien des pages.
 
 ## 🔔 Notifications
 
@@ -354,9 +438,10 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 💻 Local | Les dossiers où chercher tes clones |
 | 🏕 Basecamp | La connexion, les repos où créer les issues, les stats en arrière-plan |
 | 📋 Trello | La clé d'API et le jeton, les repos où créer les issues |
-| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) |
+| 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) ; dans ▾ de chaque site : pause quand je n'y suis pas (appli) |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
+| ◫ Vue scindée | Ce qui pré-remplit une nouvelle vue (Flux / Messagerie, défilement synchronisé, actions par site) ; les lettres affichées du clavier (automatique, AZERTY, QWERTY) |
 | 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
 | 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |

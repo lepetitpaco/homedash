@@ -12,7 +12,7 @@ Branches : `<qui>/<type>/<nom>`. Le tag et la Release partent seuls à la fusion
 
 - Docker dev à jour sur :7778 ; `homedash dev` quittée puis relancée avec `open "/Applications/homedash dev.app" --args --remote-debugging-port=9333`.
 - `desktop/` a changé : `sh desktop/build-local.sh --dev --install` d'abord.
-- Liste de `full` : `aidd_docs/test-app-full.md`.
+- Liste de `full` : `aidd_docs/test-app-full.md`. Journal et bugs de chaque trempe : `aidd_docs/test-app-journal.md` (jamais dans `docs/`, qui est le site public).
 - Tests : `docker run --rm -v "$PWD":/app -w /app node:24-alpine sh -c "apk add -q git; npm run typecheck && npm test"`.
 
 ## Preprod

@@ -40,20 +40,22 @@ src/
   components/             une vue ou un bloc par fichier (Gh*, LocalRepos, Set*, EventBell, BcStats, WhatsNew…) ; IssueComposer :
                           la fenêtre d'une tâche ou d'une carte, et la création d'issue (IssueHost, TrIssueHost)
   lib/                    appels API et polling (ghboard, local, events, admin…), markdown (aide),
-                          tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
+                          splitView (vue scindée : modes Flux / Messagerie et leurs deux cases, dispositions, son au dernier geste, pause, touches physiques et Maj, étiquettes AZERTY / QWERTY), splitViews (vues scindées gardées : `config.splitViews`, sans migration ; `last` = la dernière adresse de chaque copie), lastKeeper (écriture groupée de ces adresses : 5 s après la dernière navigation, au plus tard 60 s, jamais plus d'une fois par 30 s), SplitView.tsx / SplitViewComposer.tsx / SetSplit.tsx (la vue, sa fenêtre « Ajouter une vue scindée » et ses Réglages ; les copies du type Flux sont des webviews de plus sur la même partition, posées sur l'emplacement de leur panneau), tabCount (compteurs de Mes sites), railOrder (place des dossiers), siteSwitch (Ctrl+Tab),
                           dockerTabs (lignes Docker), settingsIndex (ce que la recherche trouve dans Réglages),
                           issueText (corps d'une issue liée), openTabs (↗ ouvrir les N), bcStats (📊 Stats),
                           bellPrefs (ce qui compte dans la cloche), unreadSites (non-lus près de la cloche),
                           ghDate (dates GitHub à l'heure locale), whatsNew (cartes « Quoi de neuf » par version)
   styles/                 index.css importe les feuilles dans l'ordre de la cascade
 desktop/                  l'appli (Electron)
-  main.js                 fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
+  main.js                 vue scindée (IPC `homedash:split-*` : config, touches, survol, molette, actions) ; fenêtre, webviews de Mes sites (guest-preload.js : souris, clavier, rien
                           d'exposé), badge du Dock / barre des tâches, icône près de l'horloge (Windows),
                           menus, connexion Basecamp interceptée, cookies de l'export complet,
                           reprise des données Docker au premier lancement, extensions des sites
                           (loadExtensions, dossiers dans desktop.json, IPC homedash:extensions, ⚙ réglages dans
                           leur fenêtre : openExtSettings), relais de
                           ⌘⇧F depuis un site vers le mode focus (watchFocusKey)
+  site-adapters.js        vue scindée (annonce `split-pass` avant une touche, pause des vidéos, molette synchronisée) : touche native ou clic par site (X, TikTok, Instagram) ; le seul fichier à
+                          reprendre quand un de ces sites change ses pages
   server.js               lance le serveur, intercepte http://localhost:7777 (sessions des sites :
                           GET /api/file seulement)
   updater.js              mise à jour par la dernière Release (sha512 vérifié, données sauvegardées, journal Windows)

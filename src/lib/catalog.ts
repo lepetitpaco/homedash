@@ -13,6 +13,8 @@ import { hostOf, preloads } from './customTabs'
  *
  * `shortcut` : une page d'un site déjà au catalogue (Instagram Direct). Les liens de ce site
  * ne s'y ouvrent pas : ils restent pour l'onglet du site lui-même.
+ *
+ * `background` : joue en fond (YouTube, Spotify, appels, messageries) : le site garde `pauseHidden: false`.
  */
 export type CatalogSite = {
   label: string
@@ -22,6 +24,11 @@ export type CatalogSite = {
   use: 'live' | 'click' | 'nap'
   shortcut?: boolean
   domains?: string[]
+  /**
+   * Joue en fond, jamais de pause quand on n'y est pas (#175) : lecteurs média, appels, réunions et messageries.
+   * Absent = en pause dès qu'il n'est plus affiché (apps de scroll, bureautique, IA, dev, liens perso).
+   */
+  background?: boolean
 }
 export type CatalogGroup = { title: string; sites: CatalogSite[] }
 
@@ -36,6 +43,7 @@ export function catalogTab(site: CatalogSite): Omit<CustomTab, 'id'> {
     preload: site.use === 'live',
     ...(site.icon ? { icon: `${ICONS}${site.icon}.png` } : {}),
     ...(site.use === 'nap' ? { sleep: true } : {}),
+    ...(site.background ? { pauseHidden: false } : {}),
     ...(site.shortcut ? { capture: false } : {}),
     ...(site.domains ? { domains: site.domains } : {}),
   }
@@ -43,13 +51,14 @@ export function catalogTab(site: CatalogSite): Omit<CustomTab, 'id'> {
 
 /** Le réglage recommandé, en mots (bulle du catalogue). */
 export function catalogHint(site: CatalogSite): string {
-  if (site.use === 'live') return 'Chargé au démarrage, pour ses non-lus'
-  if (site.use === 'click') return 'Chargé au premier clic, sans mise en veille'
-  return 'Chargé au premier clic, mis en veille si tu n’y vas plus'
+  const play = site.background ? ', joue en fond' : ', vidéos en pause quand tu n’y es pas'
+  if (site.use === 'live') return `Chargé au démarrage, pour ses non-lus${play}`
+  if (site.use === 'click') return `Chargé au premier clic, sans mise en veille${play}`
+  return `Chargé au premier clic, mis en veille si tu n’y vas plus${play}`
 }
 
 /** Le site du catalogue d'un onglet existant : raccourci d'abord (même hôte que son site). */
-function siteOf(t: CustomTab): CatalogSite | undefined {
+export function siteOf(t: CustomTab): CatalogSite | undefined {
   const all = CATALOG.flatMap((g) => g.sites)
   const host = hostOf(t.url)
   return (
@@ -57,6 +66,25 @@ function siteOf(t: CustomTab): CatalogSite | undefined {
     (host ? all.find((s) => !s.shortcut && hostOf(s.url) === host) : undefined)
   )
 }
+
+/** Le site joue-t-il en fond d'après le catalogue (reconnu par son adresse) ? Faux pour un lien perso inconnu. */
+export function catalogBackground(t: CustomTab): boolean {
+  return !!siteOf(t)?.background
+}
+
+/**
+ * « Pause quand je n'y suis pas » (#175) : le réglage du site, sinon le défaut du code : pause, sauf si le catalogue
+ * dit que le site joue en fond. Une config ancienne sans la clé marche donc telle quelle, sans migration.
+ */
+export function pauseHiddenOf(t: CustomTab): boolean {
+  return t.pauseHidden ?? !catalogBackground(t)
+}
+
+/** Le défaut de « Pause quand je n'y suis pas » pour ce site : celui du catalogue. */
+export const pauseDefault = (t: CustomTab): boolean => !catalogBackground(t)
+
+/** Ce qu'on écrit pour ce choix : rien (la clé est retirée) quand il égale le défaut, pour que le site suive le catalogue. */
+export const pauseChoice = (t: CustomTab, value: boolean): boolean | undefined => (value === pauseDefault(t) ? undefined : value)
 
 export type Advice = { patch: Partial<CustomTab>; changes: string[] }
 
@@ -79,6 +107,14 @@ export function adviceFor(t: CustomTab): Advice | null {
   if (!!t.sleep !== sleep) {
     patch.sleep = sleep ? true : undefined
     changes.push(sleep ? 'mise en veille' : 'plus de mise en veille')
+  }
+  // Seul un site qui joue en fond reçoit un réglage écrit ; les autres suivent le défaut (pause), un réglage manuel
+  // différent est proposé de revenir au défaut.
+  // On compare l'effet réel (clé ou défaut du catalogue) : jamais de changement proposé qui serait déjà effectif.
+  const bg = !!site.background
+  if (pauseHiddenOf(t) !== !bg) {
+    patch.pauseHidden = pauseChoice(t, !bg)
+    changes.push(bg ? 'joue en fond (jamais de pause)' : 'pause quand je n’y suis pas')
   }
   const icon = catalogTab(site).icon
   if (icon && !t.icon) {
@@ -106,18 +142,18 @@ export const CATALOG: CatalogGroup[] = [
   {
     title: 'Messageries',
     sites: [
-      { label: 'WhatsApp', url: 'https://web.whatsapp.com/', icon: 'whatsapp', use: 'live' },
-      { label: 'Messenger', url: 'https://www.messenger.com/', icon: 'facebook-messenger', use: 'live' },
-      { label: 'Instagram Direct', url: 'https://www.instagram.com/direct/inbox/', icon: 'instagram', use: 'live', shortcut: true },
-      { label: 'Messages X', url: 'https://x.com/messages', use: 'live', shortcut: true },
-      { label: 'Messagerie LinkedIn', url: 'https://www.linkedin.com/messaging/', icon: 'linkedin', use: 'live', shortcut: true },
-      { label: 'Chat Reddit', url: 'https://www.reddit.com/chat/', icon: 'reddit', use: 'live', shortcut: true },
-      { label: 'Telegram', url: 'https://web.telegram.org/', icon: 'telegram', use: 'live' },
-      { label: 'Discord', url: 'https://discord.com/app', icon: 'discord', use: 'live' },
-      { label: 'Slack', url: 'https://app.slack.com/', icon: 'slack', use: 'live' },
-      { label: 'Teams', url: 'https://teams.microsoft.com/', icon: 'microsoft-teams', use: 'live' },
-      { label: 'Google Chat', url: 'https://chat.google.com/', icon: 'google-chat', use: 'live' },
-      { label: 'Element', url: 'https://app.element.io/', icon: 'element', use: 'live' },
+      { label: 'WhatsApp', url: 'https://web.whatsapp.com/', icon: 'whatsapp', use: 'live', background: true },
+      { label: 'Messenger', url: 'https://www.messenger.com/', icon: 'facebook-messenger', use: 'live', background: true },
+      { label: 'Instagram Direct', url: 'https://www.instagram.com/direct/inbox/', icon: 'instagram', use: 'live', shortcut: true, background: true },
+      { label: 'Messages X', url: 'https://x.com/messages', use: 'live', shortcut: true, background: true },
+      { label: 'Messagerie LinkedIn', url: 'https://www.linkedin.com/messaging/', icon: 'linkedin', use: 'live', shortcut: true, background: true },
+      { label: 'Chat Reddit', url: 'https://www.reddit.com/chat/', icon: 'reddit', use: 'live', shortcut: true, background: true },
+      { label: 'Telegram', url: 'https://web.telegram.org/', icon: 'telegram', use: 'live', background: true },
+      { label: 'Discord', url: 'https://discord.com/app', icon: 'discord', use: 'live', background: true },
+      { label: 'Slack', url: 'https://app.slack.com/', icon: 'slack', use: 'live', background: true },
+      { label: 'Teams', url: 'https://teams.microsoft.com/', icon: 'microsoft-teams', use: 'live', background: true },
+      { label: 'Google Chat', url: 'https://chat.google.com/', icon: 'google-chat', use: 'live', background: true },
+      { label: 'Element', url: 'https://app.element.io/', icon: 'element', use: 'live', background: true },
     ],
   },
   {
@@ -153,15 +189,15 @@ export const CATALOG: CatalogGroup[] = [
   {
     title: 'Vidéo & musique',
     sites: [
-      { label: 'YouTube', url: 'https://www.youtube.com/', icon: 'youtube', use: 'click' },
-      { label: 'YouTube Music', url: 'https://music.youtube.com/', icon: 'youtube-music', use: 'click' },
-      { label: 'Spotify', url: 'https://open.spotify.com/', icon: 'spotify', use: 'click' },
-      { label: 'Deezer', url: 'https://www.deezer.com/', icon: 'deezer', use: 'click' },
-      { label: 'Apple Music', url: 'https://music.apple.com/', icon: 'apple-music', use: 'click' },
-      { label: 'SoundCloud', url: 'https://soundcloud.com/', use: 'click' },
-      { label: 'Twitch', url: 'https://www.twitch.tv/', icon: 'twitch', use: 'click' },
-      { label: 'Netflix', url: 'https://www.netflix.com/', icon: 'netflix', use: 'click' },
-      { label: 'Plex', url: 'https://app.plex.tv/', icon: 'plex', use: 'click' },
+      { label: 'YouTube', url: 'https://www.youtube.com/', icon: 'youtube', use: 'click', background: true },
+      { label: 'YouTube Music', url: 'https://music.youtube.com/', icon: 'youtube-music', use: 'click', background: true },
+      { label: 'Spotify', url: 'https://open.spotify.com/', icon: 'spotify', use: 'click', background: true },
+      { label: 'Deezer', url: 'https://www.deezer.com/', icon: 'deezer', use: 'click', background: true },
+      { label: 'Apple Music', url: 'https://music.apple.com/', icon: 'apple-music', use: 'click', background: true },
+      { label: 'SoundCloud', url: 'https://soundcloud.com/', use: 'click', background: true },
+      { label: 'Twitch', url: 'https://www.twitch.tv/', icon: 'twitch', use: 'click', background: true },
+      { label: 'Netflix', url: 'https://www.netflix.com/', icon: 'netflix', use: 'click', background: true },
+      { label: 'Plex', url: 'https://app.plex.tv/', icon: 'plex', use: 'click', background: true },
     ],
   },
   {
@@ -172,8 +208,8 @@ export const CATALOG: CatalogGroup[] = [
       { label: 'Sheets', url: 'https://docs.google.com/spreadsheets/', icon: 'google-sheets', use: 'nap' },
       { label: 'Keep', url: 'https://keep.google.com/', icon: 'google-keep', use: 'nap' },
       { label: 'Photos', url: 'https://photos.google.com/', icon: 'google-photos', use: 'nap' },
-      { label: 'Meet', url: 'https://meet.google.com/', icon: 'google-meet', use: 'click' },
-      { label: 'Zoom', url: 'https://app.zoom.us/wc/', icon: 'zoom', use: 'click' },
+      { label: 'Meet', url: 'https://meet.google.com/', icon: 'google-meet', use: 'click', background: true },
+      { label: 'Zoom', url: 'https://app.zoom.us/wc/', icon: 'zoom', use: 'click', background: true },
       { label: 'Dropbox', url: 'https://www.dropbox.com/home', icon: 'dropbox', use: 'nap' },
       { label: 'Notion', url: 'https://www.notion.so/', icon: 'notion', use: 'nap' },
       { label: 'Figma', url: 'https://www.figma.com/', icon: 'figma', use: 'nap' },

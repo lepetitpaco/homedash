@@ -522,6 +522,13 @@ async function apiWrite(req: Req, method: string): Promise<Res> {
     const base = req.headers['x-config-version']
     if (base !== undefined && base !== store.version(store.CONFIG))
       return json({ error: 'config modifiée ailleurs depuis le chargement de la page', conflict: true }, 409)
+    // #180 : seules les dernières adresses des vues Flux changent → ni sauvegarde d'avant écrasée, ni relecture GitHub / Local.
+    const before = store.read<Record<string, any>>(store.CONFIG, {}) || {}
+    if (store.onlyLastChanged(accounts.normalized(before), cfg)) {
+      store.write(store.CONFIG, cfg)
+      const v = store.version(store.CONFIG)
+      return json({ ok: true, savedAt: Date.now() / 1000, version: v }, 200, { 'X-Config-Version': v })
+    }
     store.backupConfig()
     store.write(store.CONFIG, cfg)
     reloadAll()

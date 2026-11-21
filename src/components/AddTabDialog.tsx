@@ -22,6 +22,7 @@ export default function AddTabDialog({
   sessions,
   onAdd,
   onMore,
+  onSplit,
   onClose,
 }: {
   folders: TabFolder[]
@@ -30,6 +31,8 @@ export default function AddTabDialog({
   onAdd: (tab: Omit<CustomTab, 'id'>) => void
   /** Avec ce qui est déjà saisi (une adresse valable), sinon rien : l'onglet est créé puis ouvert dans Réglages. */
   onMore: (draft?: Omit<CustomTab, 'id'>) => void
+  /** « Ajouter une vue scindée » (appli de bureau, deux sites ou plus) : ouvre la composition d'une vue. */
+  onSplit?: () => void
   onClose: () => void
 }) {
   const [url, setUrl] = useState('')
@@ -185,6 +188,11 @@ export default function AddTabDialog({
           >
             Plus de réglages…
           </button>
+          {onSplit ? (
+            <button className="btn add-tab-more" onClick={onSplit} title="Plusieurs de tes sites côte à côte, rangés dans la barre comme un site">
+              Ajouter une vue scindée…
+            </button>
+          ) : null}
           <span className="modal-hint">↵ ajouter · Échap annuler</span>
           <button className="btn" onClick={onClose}>
             Annuler

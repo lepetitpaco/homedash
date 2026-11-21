@@ -18,6 +18,8 @@ export type NameColorOptions = {
   /** Une phrase sous le champ : ce que ça fait. */
   hint?: string
   okLabel?: string
+  /** Sans choix de couleur (renommer, nommer une vue) : la couleur ne sert à rien. */
+  noColor?: boolean
 }
 
 export type NameColor = { name: string; color: string }
@@ -82,6 +84,18 @@ export default function NameColorHost() {
     setPending(null)
   }
 
+  // Échap annule, même quand le champ n'a pas le focus (comme ConfirmHost) ; il est pris ici et nulle part ailleurs.
+  useEffect(() => {
+    if (!pending) return
+    const esc = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.stopPropagation()
+      close(false)
+    }
+    window.addEventListener('keydown', esc, true)
+    return () => window.removeEventListener('keydown', esc, true)
+  })
+
   if (!pending) return null
   return (
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && close(false)}>
@@ -99,13 +113,12 @@ export default function NameColorHost() {
             onChange={(e) => setName(e.target.value)}
             onKeyDown={(e) => {
               if (e.key === 'Enter') close(true)
-              if (e.key === 'Escape') close(false)
             }}
             style={{ borderColor: color }}
             autoComplete="off"
             data-1p-ignore
           />
-          <ColorSwatches value={color} onChange={setColor} />
+          {pending.noColor ? null : <ColorSwatches value={color} onChange={setColor} />}
           {pending.hint ? <p className="set-hint">{pending.hint}</p> : null}
         </div>
         <div className="modal-foot">

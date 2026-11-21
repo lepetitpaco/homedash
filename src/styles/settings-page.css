@@ -203,6 +203,11 @@
   border: 1px solid var(--border-soft);
   color: var(--text-faint);
 }
+/* Case sans effet dans ce contexte (Actions par site en Messagerie) : grisée, son aide dit pourquoi. */
+.set-toggle[aria-disabled='true'] {
+  opacity: 0.55;
+  cursor: default;
+}
 .set-toggle em {
   font-style: normal;
   font-size: 0.7rem;

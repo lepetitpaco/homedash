@@ -57,6 +57,10 @@ Toute page ou réglage nouveau entre dans `src/lib/settingsIndex.ts` (la recherc
 | Activité | la cloche et sa page | événements, journal |
 | Local | l'onglet et ses réglages (les dépôts de ton disque) | Dépôts locaux |
 | Raccourcis | la page d'accueil (⚡) | |
+| vue scindée | plusieurs sites côte à côte, rangée dans la barre de gauche comme un site | split, multi-fenêtre |
+| Flux, Messagerie | les deux types d'une vue scindée : Flux (doomscroll : copies, son au dernier geste, pause, table de mixage), Messagerie (vrais sites, tous les sons, aucune touche). Ne pas les confondre avec le groupe « Messageries » du catalogue ni avec « Messagerie LinkedIn » : ce sont des sites ; le type d'une vue ne s'écrit que dans sa fenêtre et ses réglages | Classic, Scroll (noms internes du code seulement) |
+| copie | un panneau de vue Flux : une page de plus sur la connexion du site, sans toucher au site de la barre | onglet temporaire |
+| Défilement synchronisé | une molette pour tous les panneaux | Scroll synchronisé |
 
 Boutons : une majuscule au premier mot (« Déconnecter », « Restaurer »), le même verbe pour la même action d'un
 service à l'autre (Basecamp, Trello).
@@ -301,6 +305,180 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   actions reviennent par `homedash:guest`, limitées aux webviews connues (`guests`) et à une liste fixe.
 - Webview masquée = garée hors écran (`.is-parked`), pas `display: none` : elle doit continuer à suivre
   son titre (les compteurs).
+- Vue scindée (#160) : les sites déjà montés sont posés en grille par CSS (`.xtab.is-tiled`, `position: fixed` aux
+  coordonnées de la case), **jamais reparentés** (une webview déplacée se recharge) ; hors grille ils restent garés.
+  Le muet automatique se calcule là où `muted` est passé (`effectiveMuted`) : le muet manuel prime. Les touches sont
+  décidées dans `guest-preload.js` (seul à voir si le focus est dans un champ), d'après la table que la page tire de
+  `splitView.ts` (`interceptTable`) et envoie à `main.js` (`homedash:split-config`) ; table vide en Messagerie et vue
+  fermée : rien retenu, rien relayé. Touches **physiques** (`event.code`, jamais `event.key` : Alt donne des symboles
+  sur Mac, Maj des majuscules) ; la table a une liste avec Maj (`shift`) à part. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
+  `site-adapters.js`.
+- Vue scindée, touches envoyées par homedash à un site (`site-adapters.js`, `sendKey`) : le préload du site les
+  retiendrait (L, flèches… sont dans sa table) et on tournerait en rond. `main.js` annonce donc la touche
+  (`homedash:split-pass`) et **attend l'accusé** (`split-pass-ok`, 300 ms au plus) avant d'envoyer ; le préload laisse
+  passer ce keydown une fois (500 ms). Cas limites : accusé perdu = la touche part quand même (au pire retenue, une fois,
+  puis plus rien) ; rien n'est envoyé si le focus du site est dans un champ (le « j » irait dans un brouillon) ; une
+  action envoyée en touche (X) renvoie toujours « faite » : homedash ne sait pas si le site l'a prise. La molette
+  synchronisée (`createWheelSync`) pose son anti-écho **après** l'attente de la taille de la page (bornée à 100 ms).
+- Vue scindée, molette (#177) : le préload signale **toute** molette vue ouverte (`{ dy, shift, sideways }`) ; `main.js`
+  décide qui suit (`wheelTargets` : synchro, Maj qui l'inverse) et passe **toujours** par `createWheelSync`, même sans
+  destinataire : c'est lui qui absorbe les échos. Quatre pièges : (1) un panneau gardait des échos en attente (pages lentes
+  qui fusionnent les molettes) et sa vraie molette était avalée, d'où « un seul panneau pilote » : la souris qui **entre**
+  dans un site (`mouseover` sans `relatedTarget`, `enter`) oublie ses échos (`forget`) ; (2) une molette envoyée par
+  homedash pour une touche (J, N, Espace… repli `wheel()`) est notée d'avance comme écho (`hooks.wheel` → `expect`),
+  sinon la synchro la recopiait et Maj + touche défilait les autres plusieurs fois ; (3) Maj + molette d'une souris arrive
+  **horizontale** (Windows, et macOS) : `sideways`, la valeur horizontale sert de verticale et le panneau d'origine reçoit
+  lui aussi la molette (`self`) ; vue ouverte (Flux **et** Messagerie : la trempe a vu le même retard dans les deux), la
+  molette horizontale native est alors **bloquée** (`blockSideways`, écouteur non passif posé seulement vue ouverte,
+  retiré à la fermeture : `blockWanted`), sinon elle freinait le panneau d'origine et les panneaux se désalignaient
+  (trempe : 199 px au lieu de 600) ; une molette horizontale sans Maj (trackpad) n'est jamais touchée. (4) Un `mouseover` provoqué par le contenu qui défile sous une souris immobile n'est **pas** un geste
+  (`pointerMoved` : même position d'écran que le dernier évènement de souris), sinon le son sautait de panneau après la
+  molette et la vidéo active se mettait en pause. `forget` n'oublie rien moins de 150 ms après une vraie molette : l'élan d'un trackpad
+  qui traverse un panneau ne doit pas libérer ses échos. Une vraie molette (pas un écho) est relayée à la page comme un
+  survol, le son la suit ; seulement quand le panneau qui défile change (ou toutes les 500 ms), pas à chaque cran.
+- Vue scindée, pause des vidéos (#168) : les `<video>` en lecture d'un panneau sans le son reçoivent `data-hd-paused`
+  puis `pause()` ; `window.__hdHold` fait remettre en pause une vidéo que le site relance seul (écouteur `play`) ;
+  la reprise ne relance que les vidéos marquées (une pause à la main n'est jamais défaite). Renvoyée à chaque chargement
+  de page ; limite : une vidéo dans un shadow DOM fermé ou un iframe d'une autre origine n'est pas vue. À la fermeture,
+  seul le site affiché reprend (`CLOSE_KEEPS_PARKED_PAUSED`, `splitView.ts`).
+- Pause quand je n'y suis pas (#175) : clé **additive** `CustomTab.pauseHidden` (absente = défaut du code, **aucune étape
+  `migrate()`**) : `pauseHiddenOf(t) = t.pauseHidden ?? !catalogBackground(t)` (`catalog.ts`), où le catalogue marque
+  `background: true` les sites reconnus **par leur adresse** (`siteOf`, raccourcis compris). Décision de Paco : les apps
+  de scroll (X, Instagram, TikTok…) ne doivent **pas** jouer en fond ; les lecteurs média (YouTube, Spotify, Twitch,
+  Netflix, Plex…) et les appels / messageries (Meet, Zoom, Discord, WhatsApp…) **ne sont jamais coupés** (couper un
+  appel est pire que le bruit). Comme `use` (veille, chargement), `catalogTab()` écrit le réglage sur un site créé et
+  `adviceFor()` le propose aux existants (jamais appliqué tout seul). **Un seul mécanisme avec #168** : l'effet de
+  `App.tsx` (« Pause des vidéos ») calcule `pauseWanted` (vue) OU `hiddenPauseWanted` (#175), mêmes `pause`/`resume` et
+  même script (`PAUSE_SCRIPT`, maintenant `video` et `audio`) ; `pausedNow[k].view` garde la raison « vue » à part, sinon
+  décocher la case ne relancerait pas un site que la vue a lâché. « Affiché » = la grille d'une vue ouverte, sinon l'onglet
+  courant hors recherche ; une copie de vue n'est pas un site : elle n'a pas le réglage du site d'origine ; elle ne se cache que si un panneau agrandi la gare, et suit alors la règle de la vue (#168 : en pause tant qu'elle n'a pas le son). Fermer
+  une vue ne relance pas un site garé dont #175 s'applique. Limites : média dans un shadow DOM fermé, iframe d'une autre
+  origine, `new Audio()` hors du DOM, WebAudio : non vus ; un son court (notification) en cours au masquage reprend à
+  l'affichage.
+- Vues scindées enregistrées (#169) : clé **additive** `config.splitViews` (absente = aucune vue, défaut dans le
+  code), donc **aucune étape dans `accounts.migrate()`** ; `store.validateConfig` la contrôle avant toute écriture
+  (sauvegardes, restauration et export complet reprennent `config.json` en entier : testé). Une vue garde des **id de
+  sites**, jamais un onglet temporaire ni un container Docker (« Enregistrer » le dit). Fichiers :
+  `src/lib/splitViews.ts` (pur), `src/lib/splitView.ts` (modes, clavier, son), `SplitView.tsx` (barre et grille),
+  `SetSplit.tsx` (Réglages).
+- Vue scindée, Échap : il ferme la couche du dessus, jamais la vue en plus. Une couche flottante (menu, liste de choix,
+  fenêtre) **porte `role="dialog"`, `"menu"` ou `"listbox"`** : c'est ce que `layerOpen()` cherche (`LAYER_SELECTOR`,
+  `splitView.ts`), il n'y a pas de liste de classes à tenir à jour. Un Échap tapé dans un site arrive deux fois (la page
+  ferme sa couche, puis le relais du site) : le 2e est ignoré 300 ms quand une couche était ouverte. `keepOnTab` : ouvrir
+  une vue depuis Réglages ou Activité change de page, et ce changement ne doit pas refermer la vue qu'on ouvre.
+- Principe de Paco : **homedash n'a pas vocation à devenir un navigateur web mais un dash avec les sites principaux.** La
+  vue scindée est pensée d'abord pour doomscroller (TikTok / X / Instagram) et suivre plusieurs messageries (Instagram +
+  Discord) ; elle peut servir ailleurs, mais ces deux usages priment. Ne pas diverger du but original : ni barre
+  d'adresse, ni historique, ni navigation libre dans les panneaux. Chaque ajout doit servir ces deux usages, sinon on le
+  signale dans l'issue au lieu de le faire.
+- Vues enregistrées dans la barre (#172) : une vue est une entrée de la barre comme un site (`before` : devant quel site,
+  `folder` : dans quel dossier, `ratios` : proportions ; clés additives, absentes = à la fin, hors dossier). Il n'y a **pas
+  de vue jetable** : toute vue est enregistrée. Composition **fixe** (pas de sélecteur de site dans les panneaux) sauf en
+  mode édition (« Modifier la vue… »). Agrandir = X (Z = « panneau 2 haut » en AZERTY, table de mixage).
+- Les cases du menu Options d'une vue enregistrée ne sont **pas** gardées à la réouverture : voulu (décision de Paco). Le
+  type et les cases d'une vue se changent par « Modifier la vue… », qui les enregistre dans `prefs`.
+- **Le mode décide, deux cases restent** (#177, décision de Paco : trop d'options pour un comportement qui doit être
+  évident). Flux = table de mixage et raccourcis toujours actifs, pause des panneaux sans le son toujours active, son au
+  **dernier geste** (survol, molette, touche de mixage, chiffre, clic ; la souris qui sort ne coupe rien) ;
+  Messagerie = tous les sons, jamais de pause, aucune touche. Cases : *Défilement synchronisé* (défaut **selon le mode**,
+  `syncDefault` : cochée en Flux, c'est l'usage du doomscroll à plusieurs ; décochée en Messagerie, comme avant ; changer
+  de mode, `withMode`, remet ce défaut) et *Actions par site* (un J'aime par erreur est le seul vrai risque, donc ça se
+  coupe ; grisée en Messagerie, où elle est sans effet), les mêmes dans les deux modes. Plus de « Le son suit », raccourcis, mixage, pause, garder le son, ni
+  « Personnalisé » : ne pas les recréer. Le clavier AZERTY / QWERTY est détecté ; le choix manuel reste **seulement**
+  dans Réglages (`ui.split.keyboard`, lu par `normalizeKeyboard`) et ne change que les étiquettes : les touches sont
+  physiques. **Vues d'avant**, sans migration : `normalizeSplit` garde `mode`, `sync` et `actions` (même sens) et
+  ignore les clés disparues (`LEGACY_SPLIT_KEYS`, jamais renvoyées) ; l'ancien « Personnalisé » redevient Messagerie si
+  le son était à tous, sinon Flux ; `store.validateConfig` accepte toujours les anciennes clés, sinon une config ancienne serait refusée à
+  l'écriture.
+- Modificateurs de la vue (#177, « layout à la gamer », identiques Mac et Windows) : **Maj = tous les panneaux**
+  (touches de mixage dans leur sens, flèches ; Maj + molette inverse la synchro). Les flèches visent le
+  panneau **sous la souris** (sinon l'actif) et lui donnent le son, une touche de mixage toujours son panneau (qui prend
+  le son). Un **chiffre seul** (& é " ' en AZERTY ; `Digit1`..`4` et pavé numérique) choisit le panneau (#191, décision de
+  Paco : « Alt ne sert à rien en doomscroll ») ; Alt+chiffre marche toujours, sans être mis en avant ; Maj+chiffre reste au
+  site (en AZERTY c'est le chiffre à taper), jamais dans un champ de saisie ;
+  **J K, N P et Espace ne sont plus pris** (#193, décision de Paco : « soit je fais A Q Z S E D R F, soit j'utilise la souris ;
+  les flèches c'est intuitif, le reste pas vraiment » : J K doublonnaient les flèches, N P et Espace la souris) : ils vont au site
+  (J K : tweet suivant sur X ; Espace : lecture / pause sur TikTok) ; ne pas les recréer. Le champ `page` de l'action `scroll`
+  reste dans le type, plus aucune touche ne le pose. Ctrl et ⌘ jamais pris ; agrandir et les actions par site ne prennent
+  pas Maj (pas de « J'aime » à tous). Les clics avec Maj ne sont pas interceptés.
+- Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
+  Flux = copies (`copies[]`, une webview de plus sur la **même partition**, page à part, démarre sur `tab.url`, clé
+  `copy:<case>`, fermée avec la vue ; ni compteur ni Activité ni onglet temporaire), Messagerie = vrais sites. La copie est
+  posée en `position: fixed` sur l'emplacement de son panneau (comme un site réel), jamais recréée à l'agrandissement.
+  Pas d'onglet temporaire dans un panneau ni de vue temporaire (principe « pas un navigateur », décision de Paco).
+- **Flux = toujours des copies, Messagerie = toujours les vrais sites** (#179, décision de Paco : « mon onglet Instagram
+  ne doit pas être synchronisé avec la tuile : un autre lien avec les mêmes cookies, c'est tout »). Le type décide seul
+  (`copiesFor(viewMode(v, défaut de Réglages))`, `splitViews.ts`) ; le `copies[]` stocké n'est **plus lu** : une vue Flux
+  d'avant #172 n'en avait pas et ouvrait les vrais sites, liés à leur onglet (même défilement, même vidéo). Sans migration ;
+  il est encore écrit, à la même valeur, pour les applis d'avant. Plus de bascule « Copie / Site réel » par panneau ;
+  changer le type (`onProfile`) remplace tout de suite les panneaux. **Le compteur d'une vue Flux vaut 0** (décision :
+  une copie n'a ni compteur ni notification ; avant, une ancienne vue Flux comptait ses vrais sites). Hors de l'appli
+  (navigateur), une copie est un `<iframe>` sur l'adresse du site (`copyFrame`, même bac à sable que `CustomTabView`) : la
+  page doit marcher sans l'appli ; un site qui refuse d'être encadré le dit dans son panneau. Limite, comme #175 : après
+  Messagerie → Flux, un site sans « pause quand je n'y suis pas » (YouTube, Discord…) garé continue de jouer derrière les
+  copies.
+- **Vue Flux : dernière adresse de chaque copie** (#180, décision de Paco : reprendre les reels là où il en était, sans
+  garder les copies ouvertes, ~140 Mo chacune). Clé **additive** `splitViews[].last` (adresse http(s) ou `null` par
+  panneau ; absente = rien de noté, jamais écrite vide), sans migration ; même borne (`LAST_MAX`, 2048) et même règle
+  (`^https?://`) côté page (`isPageUrl`) et serveur (`store.validateConfig`), testé des deux côtés. **Vie privée** :
+  `cleanUrl` retire `#…`, `user:pass@` et tout paramètre dont le nom contient token, auth, code, key, pass, secret, sig,
+  session ou jwt (ligne dans `PRIVACY.md`). Notée sur `did-navigate` / `did-navigate-in-page` des copies (`CopyPane`,
+  `navOk` : réponse HTTP ≥ 400 jamais notée ; `navFail` : un échec rend la dernière bonne adresse, sauf -3 chargement
+  remplacé et -302 schéma inconnu) ; **une navigation qui n'est pas une page web (about:blank, page d'erreur, data:) ne
+  note rien, pas même `null`** : avant de quitter, recharger (⇧⌘R) ou se mettre à jour, `unloadGuests` (main.js) charge
+  about:blank dans **toutes** les webviews, copies comprises, et noter `null` effaçait toutes les adresses (trempe) ;
+  seule une vraie page d'un autre site fait repartir de l'accueil ; même site au `www.` et à http/https près ; l'accueil n'est jamais noté (comparé au `/`
+  final, au `www.` et à http → https près). À l'ouverture, `startUrl`, lue **à la création** de la copie seulement
+  (`useState`) : changer `last` ne recharge jamais une copie ouverte.
+  **Écriture** (`src/lib/lastKeeper.ts`, testé) : 5 s après la dernière navigation, **au plus tard 60 s après la première
+  navigation non écrite**, jamais plus d'une fois par 30 s ; tout de suite à la fermeture, au changement de vue, avant
+  d'ajouter une vue et quand la page est cachée ou quittée (`visibilitychange`, `pagehide`, `beforeunload` : au mieux, la
+  requête peut ne pas partir si l'appli est tuée) ; seulement si les adresses changent. Toute écriture de config part de
+  `latest` (`useConfigState` : la config la plus récente, écritures en cours comprises), jamais de l'état React du dernier
+  rendu : sinon « Ajouter une vue » suivi de l'écriture des adresses en attente réécrivait l'ancienne config et effaçait
+  la vue neuve. Écriture discrète (`persist(…, { quiet, rebase })`) : pas de toast ; sur un 409, relecture en silence et
+  un seul nouvel essai, sans dialogue. **Côté serveur**, une écriture qui ne change **que** `last` (`onlyLastChanged`,
+  décidé en comparant les deux configs aux clés triées, vues ramenées à 4 cases des deux côtés comme les écrit la page,
+  jamais sur la foi de la page) est écrite sans `backupConfig()`
+  (la sauvegarde d'avant reste celle d'un vrai réglage) ni `reloadAll()` (ni relecture GitHub ni scan Local pour une
+  navigation). Pendant « Modifier la vue », rien n'est noté ; Annuler repart de l'enregistré (`open(…, { reset })`).
+  Enregistrer : un panneau dont le site change perd son adresse (`keepLast` ; échanger deux sites oublie les deux,
+  voulu : chaque adresse appartient à son site), passer en Messagerie les efface toutes. Clic droit → *Repartir du début*.
+- **Mode focus d'une vue scindée** (#183, demande de Paco : « ya du blanc, c'est dommage » en ⌘⇧F). `canFocus(site, vue)`
+  (`splitView.ts`) : permis sur un site ou une vue ouverte, même sur l'accueil ; le focus s'oublie à la fermeture de la vue
+  (`App.tsx`). Les règles de masquage de la barre du haut sont sous `.app.is-focus`, **pas** `.app.is-site.is-focus` (une vue
+  sur l'accueil n'a pas `is-site`). Pièges, tous mesurés : (1) `.split-root` se place sous `--strip-h`, hauteur **mesurée** de la
+  barre, que le `transform` de focus ne change pas : en focus la racine est à `top: 0`, sinon bande vide ; (2) la racine devient
+  **transparente, traversable** (`pointer-events: none`) et passe à `z-index: 6` : la barre de la vue, surcouche qui revient
+  avec la barre du haut, doit être au-dessus des copies (`z-index: 5`, dans la **même** racine, donc la barre est à 8) ; un
+  fond `.app.is-focus:has(.split-root)::before` (z-index 4, sous les copies) évite que la page du dessous se voie entre les panneaux ;
+  (3) la barre de la vue se place sous la barre du haut grâce à `--focus-bar-top`, mesurée (`offsetHeight` ignore le
+  `transform`) : `--topbar-h` n'est **jamais posée** (son repli 0 est partout), ne pas s'en servir ; (4) `:has()` ne
+  s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, site, son,
+  agrandir), compact, car le son et le panneau actif doivent rester lisibles ; (6) le pied de page de l'accueil (z-index 40) passait
+  par-dessus le bas des panneaux : caché tant qu'une vue est ouverte ; (7) **la racine à `pointer-events: none` est héritée par
+  les copies** (filles directes de la racine) et la grille, plein cadre, avalait la souris des vrais sites de Messagerie
+  (dessous, z-index 5) : en focus, ni clic ni molette n'arrivaient aux pages (le vérificateur : 0 / 0, alors que la géométrie
+  était parfaite). Seuls l'en-tête, la barre de la vue et les séparateurs captent la souris ; les copies la reprennent
+  (`auto`) ; **toute règle qui pose `pointer-events: none` sur une racine se vérifie par de vrais clics et de vraie molette
+  comptés dans les pages**, pas par des rectangles ; (8) l'espace entre deux panneaux est celui du séparateur (6 px) plus les bordures : 8 px en focus.
+- **Revue UX/UI de la vue scindée** (#184). Décisions : l'état du son est une **icône SVG** (`SoundIcon`), jamais un emoji (un emoji
+  ignore `color` : le vert « a le son » ne se voyait pas, et le contraste était de 3 à 3,8:1) ; un panneau Flux sans le son
+  affiche **En pause** dans son en-tête, pas de voile (les copies sont au-dessus de la grille, un voile serait invisible) ;
+  **Flux avant Messagerie** partout (`MODE_LABELS`, lexique) ; ⓘ est un bouton qui ouvre une bulle `role="dialog"`
+  (`layerOpen()` la voit), jamais l'infobulle native (688 caractères). **Lancer une recherche ferme la vue** : voulu (#160),
+  les résultats prennent la place. Pièges : (1) `.split-menu.split-bubble` (et non `.split-bubble` seul) : `.split-menu`
+  est défini plus loin et écrasait la largeur ; (2) le menu Options et la bulle sont des portails dans `<body>` : sans
+  `focus()` à l'ouverture et sans piège de Tab, ils étaient injoignables au clavier ; (3) la zone sensible d'un séparateur
+  (16 px) est obtenue par une marge négative (le visuel et l'espace ne changent pas) ; (4) `.split-copy` a `background:
+  var(--bg)`, pas `#fff` : un coin blanc perçait au bout d'une barre de défilement ; (5) les flèches d'un séparateur
+  **n'écrivent pas la config à chaque appui** (une flèche tenue = une écriture + `reloadAll()` par répétition, mesuré : 5 PUT
+  pour 5 appuis) : aperçu à chaque appui, écriture 600 ms après le dernier ou à la sortie du séparateur ; (6) la zone de prise
+  d'un séparateur est une marge négative : il doit être **au-dessus des copies** (`z-index: 6` > 5), sinon elles la mangent
+  (12 px réels au lieu de 16) ; (7) en mode focus, Échap dans Options **lâche** le focus au lieu de le rendre au bouton : un
+  bouton gardé au focus clavier (`:focus-visible`) laisse les barres affichées sans fin ; (8) *En pause* ne s'affiche que dans
+  l'appli (`desktop.splitDo`) : la pause n'existe pas dans un navigateur ; (9) la barre d'une vue ouverte est compacte (32 px),
+  mais le composeur garde ses pastilles à 44 px (`.svc .split-chip`).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
@@ -320,7 +498,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - `accounts.remoteVersion()` ne bouge que si le distant change : chaque nouvelle version relance un
   scan Local complet du disque.
 - Une écriture de config déclenche `reloadAll()` (relecture GitHub) : ne pas écrire à chaque
-  navigation (cf. onglets temporaires gardés).
+  navigation (cf. onglets temporaires gardés). Seule exception : une écriture qui ne change que `splitViews[].last`
+  (#180, `onlyLastChanged`).
 
 **Front**
 - Erreurs : jamais de jargon à l'écran (nom de fichier, code HTTP, `Failed to fetch`). `shown(où, e)`

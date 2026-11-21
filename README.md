@@ -16,8 +16,9 @@ Le site : **[lepetitpaco.github.io/homedash](https://lepetitpaco.github.io/homed
 
 - **Raccourcis** : liens, tuiles des plus utilisés, notes, infos à copier (Wi-Fi, IP…).
 - **Mes sites** : tes sites dans l'appli, avec leurs non-lus, rangés en dossiers, plusieurs comptes par site, une barre
-  à ta façon et `Ctrl+Tab` pour passer de l'un à l'autre, un mode focus (`⌘⇧F`), et les extensions de navigateur
-  que tu ajoutes. Pour les développeurs : tes containers Docker à côté.
+  à ta façon et `Ctrl+Tab` pour passer de l'un à l'autre, un mode focus (`⌘⇧F`), la **vue scindée** (plusieurs sites côte
+  à côte : un *Flux* pour défiler TikTok, X, Instagram ; une *Messagerie* pour suivre tes conversations), et les extensions
+  de navigateur que tu ajoutes. Pour les développeurs : tes containers Docker à côté.
 - **GitHub et Local** : branches, PRs, CI et builds en cours ; les branches de ton disque qu'on peut supprimer sans risque.
 - **Basecamp et Trello** : tes tâches et tes cartes en retard ou à venir, tes tableaux Trello tels quels ;
   une tâche ou une carte devient une issue GitHub, et son rapport revient en commentaire. 📊 Stats : qui crée et

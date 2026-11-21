@@ -39,6 +39,32 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
+import { copiesFor, keepLast, moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewMode, viewSlots, withLast } from './lib/splitViews'
+import { createLastKeeper } from './lib/lastKeeper'
+import SplitViewComposer from './components/SplitViewComposer'
+import SplitView, { type PaneSite, type Rect } from './components/SplitView'
+import {
+  LAYER_SELECTOR,
+  hiddenPauseWanted,
+  pauseWanted,
+  FIELD_SELECTOR,
+  isEditing,
+  assignSites,
+  canFocus,
+  detectKeyboard,
+  effectiveMuted,
+  focusOnGesture,
+  interceptTable,
+  layoutOf,
+  normalizeKeyboard,
+  normalizeSplit,
+  presetOf,
+  resolveKey,
+  withMode,
+  type Focus,
+  type SplitAction,
+  type SplitPrefs,
+} from './lib/splitView'
 import { SEARCH_SCOPES, useSearch } from './hooks/useSearch'
 import { useTabs } from './hooks/useTabs'
 import { useUsage } from './hooks/useUsage'
@@ -64,8 +90,9 @@ import {
   srcOf,
   tabKey,
 } from './lib/customTabs'
+import { pauseHiddenOf } from './lib/catalog'
 import { perfEvent, setPerfLog } from './lib/perf'
-import { desktop, hasSessions, navKey, OPEN_IN_TAB, partitionOf, REFRESH_DATA, RELOAD_TAB, reloadSwap, SLEEP_TAB, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
+import { desktop, hasSessions, hasSplitView, navKey, OPEN_IN_TAB, partitionOf, REFRESH_DATA, RELOAD_TAB, reloadSwap, SLEEP_TAB, UNLOAD_TAB, type GuestMenu, type OpenInTab, type WebviewEl } from './lib/desktop'
 import { useGithub } from './lib/ghboard'
 import { useHealth } from './lib/health'
 import { useLocal } from './lib/local'
@@ -157,7 +184,7 @@ function readBadgeHidden(): Record<string, number> {
 }
 
 export default function App() {
-  const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad } = useConfigState()
+  const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad, latest: latestRaw } = useConfigState()
   // Fonctionnalités coupées dans Réglages : ni onglet, ni commande, ni résultat de recherche.
   const on = {
     github: featureOn(raw, 'github'),
@@ -249,9 +276,17 @@ export default function App() {
   // Onglets qui émettent du son (main.js le signale), et ceux qu'on a coupés.
   const [audible, setAudible] = useState<Record<string, boolean>>({})
   const [muted, setMuted] = useState<Record<string, boolean>>({})
+  // Vue scindée : webview des COPIES (case → id). Une copie n'est pas un site : elle a sa propre clé `copy:<case>`.
+  const copyGuests = useRef(new Map<number, number>())
   useEffect(
     () =>
       desktop?.onAudio?.(({ id, audible: on }) => {
+        const copy = [...copyGuests.current].find(([, gid]) => gid === id)
+        if (copy) {
+          const k = `copy:${copy[0]}`
+          setAudible((a) => (!!a[k] === on ? a : { ...a, [k]: on }))
+          return
+        }
         const tid = guestTab.current.get(id)
         if (!tid) return
         const key = `x:${tid}`
@@ -551,23 +586,36 @@ export default function App() {
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
   const railOn = !railHidden
+  // État de la vue scindée, déclaré ici car le mode focus (juste dessous) en dépend (#183).
+  type SplitState = { viewId?: string; editing?: boolean; copies: boolean[]; ratios: Record<string, number[]>; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
+  const [split, setSplit] = useState<SplitState | null>(null)
+  const splitRef = useRef(split)
+  splitRef.current = split
   // Mode focus (issue #144) : le site affiché prend toute la fenêtre, les barres reviennent au
-  // survol de leur bord. ⌘⇧F (Ctrl+Maj+F) ou ⤢ ; seulement sur un site, oublié en le quittant.
+  // survol de leur bord. ⌘⇧F (Ctrl+Maj+F) ou ⤢ ; sur un site, ou (#183) sur une vue scindée, quel que soit
+  // l'onglet dessous (même l'accueil) ; oublié en quittant le site ou en fermant la vue.
   const [focusWanted, setFocusWanted] = useState(false)
   const siteNow = tab.startsWith('x:') && allTabs.some((t) => tabKey(t) === tab && t.embed)
-  const focus = focusWanted && siteNow
-  const siteNowRef = useRef(siteNow)
-  siteNowRef.current = siteNow
+  const focusable = canFocus(siteNow, !!split)
+  const focus = focusWanted && focusable
+  const focusableRef = useRef(focusable)
+  focusableRef.current = focusable
   const toggleFocus = useCallback(() => {
-    if (siteNowRef.current) setFocusWanted((v) => !v)
+    if (focusableRef.current) setFocusWanted((v) => !v)
   }, [])
   useEffect(() => {
-    if (!siteNow) setFocusWanted(false)
-  }, [siteNow])
+    if (!focusable) setFocusWanted(false)
+  }, [focusable])
+  // Fermer la vue sort du focus (case de #183), même si le focus avait été pris sur le site avant d'ouvrir la vue.
+  const hadSplit = useRef(false)
+  useEffect(() => {
+    if (hadSplit.current && !split) setFocusWanted(false)
+    hadSplit.current = !!split
+  }, [split])
   useEffect(() => desktop?.onFocusToggle?.(toggleFocus), [toggleFocus])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.shiftKey && !e.altKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && siteNowRef.current) {
+      if (e.shiftKey && !e.altKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && focusableRef.current) {
         e.preventDefault()
         toggleFocus()
       }
@@ -575,6 +623,21 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [toggleFocus])
+  // Mode focus : où revient la barre de la vue scindée, juste sous la barre du haut qui revient au survol (#183).
+  // `--strip-h` ne dit pas cette hauteur (barre d'onglets seulement) ; `offsetHeight` ignore le `transform` qui la cache.
+  useLayoutEffect(() => {
+    if (!focus) return
+    const el = document.querySelector<HTMLElement>('.topbar')
+    if (!el) return
+    const set = () => document.documentElement.style.setProperty('--focus-bar-top', `${el.offsetHeight}px`)
+    set()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(set)
+    ro?.observe(el)
+    return () => {
+      ro?.disconnect()
+      document.documentElement.style.removeProperty('--focus-bar-top')
+    }
+  }, [focus])
   // Barres masquées par le réglage, ou le temps du mode focus.
   const hideBars = autoHide || focus
   useEffect(() => {
@@ -797,7 +860,7 @@ export default function App() {
     const id = window.setInterval(() => {
       const now = Date.now()
       const due = allTabsRef.current
-        .filter((t) => t.sleep && t.embed && tabKey(t) !== tabRef.current)
+        .filter((t) => t.sleep && t.embed && tabKey(t) !== tabRef.current && !splitShownRef.current.includes(tabKey(t)))
         .map((t) => tabKey(t))
         .filter((k) => now - (lastSeen.current.get(k) ?? startedAt.current) > sleepMinutes * 60_000)
       const fresh = due.filter((k) => !asleepRef.current.includes(k))
@@ -919,7 +982,7 @@ export default function App() {
       { id: 'events', icon: '🔔', label: 'Activité', keywords: 'journal cloche notifications', run: () => selectTab('events') },
       { id: 'settings', icon: '⚙', label: 'Réglages', keywords: 'options préférences config paramètres', run: () => selectTab('settings') },
       // Chaque page et réglage des Réglages, avec les mots qu'on tape vraiment : on ne cherche plus où c'est rangé.
-      ...settingsEntries(on).map((e) => ({
+      ...settingsEntries(on).filter((e) => e.id !== 'split' || hasSplitView).map((e) => ({
         id: `set:${e.id}`,
         icon: e.icon,
         label: `Réglages › ${e.label}`,
@@ -1096,6 +1159,442 @@ export default function App() {
       .then(setSetupState)
       .catch(() => undefined)
   }, [setupWanted, raw])
+
+  // ── vue scindée (issue #160) ──────────────────────────────────────────────
+  // Plusieurs sites côte à côte : les sites déjà vivants sont posés en grille par CSS (`tile`), jamais
+  // rechargés. Les réglages (`ui.split`) donnent le départ ; ceux de la barre de la vue ne durent que la vue.
+  const [splitRects, setSplitRects] = useState<(Rect | null)[]>([])
+  const [splitNotes, setSplitNotes] = useState<(string | null)[]>([null, null, null, null])
+  const [guestVer, setGuestVer] = useState(0)
+  const [detectedKb, setDetectedKb] = useState<'azerty' | 'qwerty'>('azerty')
+  useEffect(() => {
+    // « Automatique » : la touche Q porte-t-elle un q ? (Chromium) ; sans réponse, AZERTY.
+    const kb = (navigator as unknown as { keyboard?: { getLayoutMap?: () => Promise<Map<string, string>> } }).keyboard
+    kb?.getLayoutMap?.().then((m) => setDetectedKb(detectKeyboard(m.get('KeyQ')))).catch(() => undefined)
+  }, [])
+  const splitDefaults = useMemo(() => normalizeSplit(cfg?.ui.split), [cfg?.ui.split])
+  // Le clavier (Réglages seulement) ne change que les étiquettes : les touches sont physiques.
+  const splitPreset = presetOf(normalizeKeyboard(cfg?.ui.split), detectedKb)
+  const splitN = split ? layoutOf(split.layout).n : 0
+  // Clé de chaque case : `copy:<case>` pour une copie, la clé du site pour le vrai site (son, pause, touches, survol).
+  const paneKeyOf = (st: { slots: (string | null)[]; copies: boolean[] }, i: number) => (st.slots[i] ? (st.copies[i] ? `copy:${i}` : st.slots[i]) : null)
+  const splitShown = split ? Array.from({ length: splitN }, (_, i) => paneKeyOf(split, i)).filter((k): k is string => !!k) : []
+  const realShown = splitShown.filter((k) => !k.startsWith('copy:'))
+  const splitShownRef = useRef<string[]>([])
+  splitShownRef.current = splitShown
+  const splitSoundKey = split && split.focus.sound !== null ? paneKeyOf(split, split.focus.sound) : null
+  // Webview (id) d'un site : la plus récente (un rechargement en change).
+  const guestIdOf = useCallback((key: string) => {
+    if (key.startsWith('copy:')) return copyGuests.current.get(Number(key.slice(5))) ?? null
+    let found: number | null = null
+    for (const [id, tid] of guestTab.current) if (`x:${tid}` === key && (found === null || id > found)) found = id
+    return found
+  }, [])
+  const slotOfGuest = (id: number) => {
+    for (const [slot, gid] of copyGuests.current) if (gid === id) return slot
+    const tid = guestTab.current.get(id)
+    const st = splitRef.current
+    const i = tid && st ? st.slots.findIndex((k, j) => k === `x:${tid}` && !st.copies[j]) : -1
+    return i
+  }
+  const noteSplit = useCallback((pane: number, text: string) => {
+    setSplitNotes((n) => n.map((x, i) => (i === pane ? text : x)))
+    window.setTimeout(() => setSplitNotes((n) => n.map((x, i) => (i === pane && x === text ? null : x))), 2200)
+  }, [])
+  const closeSplit = useCallback(() => setSplit(null), [])
+  // Une couche (menu, fenêtre de confirmation ou de nom, liste de choix) est ouverte au-dessus de la vue : Échap est à elle.
+  const layerOpen = () => !!document.querySelector(LAYER_SELECTOR)
+  // Échap tapé dans un site : la page ferme sa couche, puis le relais du site arrive (un peu après) : il ne doit pas aussi
+  // fermer la vue. On l'ignore le temps qu'il arrive.
+  const ignoreLeaveUntil = useRef(0)
+  useEffect(
+    () =>
+      desktop?.onGuestDown?.((kind) => {
+        if (kind === 'escape' && document.querySelector(LAYER_SELECTOR)) ignoreLeaveUntil.current = Date.now() + 300
+      }),
+    [],
+  )
+  // Ouvrir la vue depuis Réglages ou Activité : on quitte cette page (une seule chose active), sans que ce
+  // changement de page ne referme la vue qu'on ouvre.
+  const keepOnTab = useRef(false)
+  const leavePage = () => {
+    if (tab !== 'settings' && tab !== 'events') return
+    keepOnTab.current = true
+    selectTab(lastNative.current)
+  }
+  // Fermée, la grille libère les sites : plus aucun emplacement, plus de panneau sous la souris.
+  useEffect(() => {
+    if (!split) setSplitRects([])
+    hoverPane.current = null
+  }, [!!split]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Vues enregistrées (#169) : lues dans la config, jamais d'erreur si la clé manque.
+  const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
+  const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
+  const openSavedView = (v: (typeof savedViews)[number], opts: { reset?: boolean } = {}) => {
+    leavePage()
+    const { keys, gone, copies } = viewSlots(v, embedSites, splitDefaults.mode)
+    setSplitNotes([null, null, null, null])
+    const prefs = v.prefs ?? splitDefaults
+    // #180 : les copies reprennent à la dernière adresse notée (celle en attente d'écriture, si c'est la même vue).
+    setCopyStart(lastKeeper.open(v.id, opts))
+    setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs, focus: { active: 0, sound: prefs.mode === 'scroll' ? 0 : null } })
+  }
+  // La config la plus récente, écritures en cours comprises (`useConfigState`) : toute écriture part d'ici.
+  const rawRef = latestRaw
+  const [composing, setComposing] = useState(false)
+  const [editWarn, setEditWarn] = useState('')
+  /** Écrit la liste des vues dans la config la plus récente ; `quiet` : écriture de fond, rejouée en silence sur un conflit. */
+  const writeViews = (f: (views: typeof savedViews) => typeof savedViews, opts?: { quiet?: boolean }) => {
+    const now = rawRef.current
+    if (!now) return
+    const build = (c: typeof now) => ({ ...c, splitViews: f(normalizeViews(c.splitViews)) })
+    persist(build(now), opts?.quiet ? { quiet: true, rebase: build } : undefined)
+  }
+  // ── dernière adresse des copies (#180) ──────────────────────────────────
+  // Notée à chaque navigation d'une copie, écrite regroupée et en silence par `lastKeeper` (règles dans lastKeeper.ts).
+  const writeViewsRef = useRef(writeViews)
+  writeViewsRef.current = writeViews
+  const lastKeeper = useMemo(
+    () =>
+      createLastKeeper(
+        {
+          stored: (id) => {
+            const v = normalizeViews(latestRaw.current?.splitViews).find((x) => x.id === id)
+            return v ? (v.last ?? []) : null
+          },
+          write: (id, last) => writeViewsRef.current((views) => views.map((v) => (v.id === id ? withLast(v, last) : v)), { quiet: true }),
+        },
+        { now: () => Date.now(), set: (fn, ms) => window.setTimeout(fn, ms), clear: (t) => window.clearTimeout(t) },
+      ),
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  )
+  // Adresse de départ notée par panneau, lue par les copies à leur création seulement (jamais rechargées après).
+  const [copyStart, setCopyStart] = useState<(string | null)[]>([null, null, null, null])
+  const noteLast = (slot: number, url: string | null) => {
+    const s = splitRef.current
+    // Pendant « Modifier la vue », rien n'est noté : Annuler repart de l'enregistré, sans adresse perdue.
+    if (!s?.viewId || s.editing) return
+    lastKeeper.note(s.viewId, slot, url)
+  }
+  /** Clic droit → « Repartir du début » : la vue oublie ses adresses (la prochaine ouverture repart de l'accueil des sites). */
+  const restartView = (id: string) => {
+    lastKeeper.adopt(id, [])
+    writeViews((views) => views.map((v) => (v.id === id ? withLast(v, []) : v)))
+  }
+  // La vue se ferme (ou on en ouvre une autre) : les adresses en attente sont écrites tout de suite.
+  const openViewId = split?.viewId
+  useEffect(() => {
+    if (!openViewId) return
+    return () => lastKeeper.close(openViewId)
+  }, [openViewId, lastKeeper])
+  // Page cachée (fenêtre fermée, qui cache l'appli) ou quittée : ce qui attend part tout de suite, au mieux.
+  useEffect(() => {
+    const now = () => lastKeeper.flush()
+    const hidden = () => document.visibilityState === 'hidden' && now()
+    window.addEventListener('pagehide', now)
+    window.addEventListener('beforeunload', now)
+    document.addEventListener('visibilitychange', hidden)
+    return () => {
+      window.removeEventListener('pagehide', now)
+      window.removeEventListener('beforeunload', now)
+      document.removeEventListener('visibilitychange', hidden)
+    }
+  }, [lastKeeper])
+  /** Les cases qu'une vue ne gardera pas (onglet temporaire, container Docker) : on le dit avant d'enregistrer. */
+  const confirmDropped = async (slots: (string | null)[], layout: string) => {
+    const dropped = droppedSlots(slots.slice(0, layoutOf(layout).n), embedSites)
+    if (!dropped.length) return true
+    return confirmDialog({
+      title: 'Enregistrer la vue ?',
+      body: [
+        `${dropped.length > 1 ? 'Les panneaux' : 'Le panneau'} ${dropped.map((i) => i + 1).join(', ')} ne ${dropped.length > 1 ? 'seront' : 'sera'} pas gardé${dropped.length > 1 ? 's' : ''} : un onglet temporaire ou un container Docker n'est jamais enregistré.`,
+        `${dropped.length > 1 ? 'Ils reviendront vides' : 'Il reviendra vide'} à l'ouverture de la vue.`,
+      ],
+      confirmLabel: 'Enregistrer quand même',
+    })
+  }
+  /** « Ajouter une vue scindée » : crée la vue enregistrée, à la fin de la barre, et l'ouvre. */
+  const createView = (v: { name: string; layout: string; slots: (string | null)[]; kind: 'flux' | 'messagerie' }) => {
+    const id = newViewId(savedViews.map((x) => x.id))
+    // Le mode choisi garde les cases de Réglages s'il est celui de Réglages ; sinon il prend la synchro par défaut du mode.
+    const mode = v.kind === 'flux' ? 'scroll' : 'classic'
+    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, copiesFor(mode), splitDefaults.mode === mode ? splitDefaults : withMode(splitDefaults, mode))
+    // Les adresses en attente d'une autre vue partent d'abord : l'ajout s'écrit ensuite sur la config qui les contient.
+    lastKeeper.flush()
+    writeViews((views) => [...views, view])
+    setComposing(false)
+    openSavedView(view)
+  }
+  /** Mode édition : Enregistrer garde la disposition, les sites et les proportions de la vue ouverte. */
+  const saveEdit = async () => {
+    const s = splitRef.current
+    const cur = s?.viewId ? savedViews.find((v) => v.id === s.viewId) : undefined
+    if (!s || !cur) return
+    if (s.slots.slice(0, layoutOf(s.layout).n).filter(Boolean).length < 2) {
+      setEditWarn('Une vue scindée a besoin de deux sites au moins')
+      window.setTimeout(() => setEditWarn(''), 5000)
+      return
+    }
+    if (!(await confirmDropped(s.slots, s.layout))) return
+    const made = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, copiesFor(s.prefs.mode), s.prefs)
+    // #180 : un panneau dont le site a changé perd son adresse, les autres la gardent ; passée en Messagerie, la vue les
+    // oublie toutes (pas de copies).
+    const last = s.prefs.mode === 'scroll' ? keepLast({ slots: cur.slots, last: lastKeeper.pendingOf(cur.id) ?? cur.last }, made.slots) : []
+    lastKeeper.adopt(cur.id, last)
+    const view = withLast(made, last)
+    writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
+    setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites, splitDefaults.mode).gone } : x))
+  }
+  const cancelEditRef = useRef<() => void>(() => undefined)
+  const cancelEdit = () => {
+    const id = splitRef.current?.viewId
+    const cur = id ? normalizeViews(rawRef.current?.splitViews).find((v) => v.id === id) : undefined
+    // Les adresses repartent de l'enregistré (rien n'a été noté pendant l'édition).
+    if (cur) openSavedView(cur, { reset: true })
+  }
+  cancelEditRef.current = cancelEdit
+  const editView = (v: (typeof savedViews)[number]) => {
+    // Ce qui attend est écrit avant l'édition : Annuler repartira de là.
+    lastKeeper.flush()
+    openSavedView(v)
+    setSplit((x) => (x ? { ...x, editing: true } : x))
+  }
+  const viewMenu = (e: React.MouseEvent, v: (typeof savedViews)[number]) => {
+    e.preventDefault()
+    menus.openMenu({
+      x: e.clientX,
+      y: e.clientY,
+      title: v.name,
+      items: [
+        { icon: '⚙', label: 'Modifier la vue…', onSelect: () => editView(v) },
+        // Vue Flux : les copies reprennent à leur dernière adresse (#180) ; ceci les fait repartir de l'accueil des sites.
+        ...(viewMode(v, splitDefaults.mode) === 'scroll'
+          ? [{ icon: '↺', label: 'Repartir du début', onSelect: () => restartView(v.id) }]
+          : []),
+        {
+          icon: '✎',
+          label: 'Renommer',
+          onSelect: async () => {
+            const r = await askNameColor({ title: 'Renommer la vue', name: v.name, okLabel: 'Renommer', noColor: true })
+            const now = rawRef.current
+            if (r && now) persist({ ...now, splitViews: renameView(normalizeViews(now.splitViews), v.id, r.name) })
+          },
+        },
+        {
+          icon: '🗑',
+          label: 'Supprimer',
+          onSelect: () =>
+            void confirmDialog({
+              title: `Supprimer la vue « ${v.name} » ?`,
+              body: ['Seule la vue disparaît de la barre : tes sites et leurs connexions ne bougent pas.', 'Tu peux revenir en arrière depuis Réglages → Sauvegardes.'],
+              confirmLabel: 'Supprimer',
+              danger: true,
+            }).then((ok) => {
+              const now = rawRef.current
+              if (!ok || !now) return
+              persist({ ...now, splitViews: removeView(normalizeViews(now.splitViews), v.id) })
+              if (splitRef.current?.viewId === v.id) setSplit(null)
+            }),
+        },
+      ],
+    })
+  }
+  // Un site de la grille est monté et réveillé ; jamais mis en veille tant qu'il est affiché.
+  const splitShownKey = splitShown.join('|')
+  useEffect(() => {
+    if (!realShown.length) return
+    setVisited((v) => (realShown.every((k) => v.includes(k)) ? v : [...v, ...realShown.filter((k) => !v.includes(k))]))
+    setAsleep((a) => (a.some((k) => realShown.includes(k)) ? a.filter((k) => !realShown.includes(k)) : a))
+  }, [splitShownKey]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Quitter vers une autre page ou lancer une recherche ferme la vue.
+  useEffect(() => {
+    if (keepOnTab.current) {
+      keepOnTab.current = false
+      return
+    }
+    closeSplit()
+  }, [tab, closeSplit])
+  useEffect(() => {
+    if (search.query.trim()) closeSplit()
+  }, [search.query, closeSplit])
+  // Ce que l'appli retient dans les sites : table de touches tirée du mode (vide en Messagerie).
+  const splitIds = splitShown.map(guestIdOf).filter((n): n is number => n !== null)
+  const splitIdsKey = splitIds.join(',')
+  useEffect(() => {
+    if (!desktop?.splitConfig) return
+    if (!split) return desktop.splitConfig({ open: false })
+    desktop.splitConfig({
+      open: true,
+      table: interceptTable(split.prefs, splitN),
+      field: FIELD_SELECTOR,
+      sync: split.prefs.sync,
+      ids: splitIds,
+    })
+  }, [!!split, split?.prefs, splitN, splitIdsKey, guestVer]) // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => () => desktop?.splitConfig?.({ open: false }), [])
+
+  // Pause des vidéos (#168) : suit le panneau qui a le son. À chaque chargement de page (guestVer) la pause est
+  // renvoyée (un rechargement efface le script du site) ; un site dont la webview a changé ou disparu repart de zéro.
+  // Fermer la vue : voir CLOSE_KEEPS_PARKED_PAUSED (seul le site affiché reprend).
+  // `view` : pause voulue par la vue (#168) ; `paused` : pause totale (vue ou #175 « Pause quand je n'y suis pas »).
+  const pausedNow = useRef<Record<string, { id: number; paused: boolean; view: boolean }>>({})
+  const pauseVer = useRef(0)
+  // Les sites de la vue qui vient de se fermer, si la pause était active : ce sont eux qu'on garde en pause.
+  const leftOpen = useRef<string[]>([])
+  const searchingNow = search.query.trim().length > 0
+  // Le réglage de chaque site (défaut du code compris) : relance l'effet quand l'un change.
+  const pauseSig = allTabs.filter((t) => t.embed).map((t) => `${t.id}:${pauseHiddenOf(t) ? 1 : 0}`).join('|')
+  useEffect(() => {
+    if (!desktop?.splitDo) return
+    const reload = pauseVer.current !== guestVer
+    pauseVer.current = guestVer
+    // Ce qui était dans la vue (si la pause y était active) et ce qu'on a déjà mis en pause : choix dans `pauseWanted`.
+    if (split) leftOpen.current = split.prefs.mode === 'scroll' ? splitShown : leftOpen.current.filter((k) => !splitShown.includes(k))
+    // Tous les sites chargés : un site garé est en pause d'après son réglage, vue ouverte ou non.
+    const loaded = [...new Set(guestTab.current.values())].map((tid) => `x:${tid}`)
+    const keys = new Set([...splitShown, ...Object.keys(pausedNow.current), ...(split ? [] : leftOpen.current), ...loaded])
+    const byView: Record<string, boolean> = {}
+    const want: Record<string, boolean> = {}
+    for (const k of keys) {
+      byView[k] = pauseWanted(k, {
+        open: !!split,
+        mode: (split?.prefs ?? splitDefaults).mode,
+        shown: splitShown,
+        sound: splitSoundKey,
+        tab,
+        prev: pausedNow.current[k]?.view,
+        parked: leftOpen.current.includes(k),
+      })
+      // #175 : une copie suit le site d'origine, mais n'est jamais cachée (voir hiddenPauseWanted)
+      const site = allTabsRef.current.find((t) => tabKey(t) === k)
+      want[k] = byView[k] || (!!site && hiddenPauseWanted(k, pauseHiddenOf(site), { open: !!split, shown: splitShown, tab, searching: searchingNow }))
+    }
+    // un site affiché reprend et n'est plus suivi : une fois quitté, il vit sa vie comme avant
+    if (!split) leftOpen.current = leftOpen.current.filter((k) => k !== tab)
+    for (const k of keys) {
+      const id = guestIdOf(k)
+      const prev = pausedNow.current[k]
+      if (id === null) {
+        delete pausedNow.current[k]
+        continue
+      }
+      const w = !!want[k]
+      // webview changée : son état d'avant ne vaut plus ; page rechargée : une pause voulue est renvoyée
+      const same = prev && prev.id === id && prev.paused === w && !(reload && w)
+      if (same || (!prev && !w)) {
+        if (prev) prev.view = byView[k]
+        continue
+      }
+      pausedNow.current[k] = { id, paused: w, view: byView[k] }
+      void desktop.splitDo(id, w ? 'pause' : 'resume')
+    }
+  }, [split?.prefs.mode, splitShownKey, splitSoundKey, !!split, guestVer, tab, searchingNow, pauseSig]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Le panneau sous la souris (`null` : la souris est hors de la grille) : J K et les flèches le visent (#177).
+  const hoverPane = useRef<number | null>(null)
+  // Clic ou chiffre (#191, ou Alt+chiffre) : le panneau devient actif ; en Flux il prend le son (dernier geste, #177).
+  const doPick = useCallback(
+    (pane: number, focusSite = true) => {
+      const s = splitRef.current
+      if (!s) return
+      setSplit({ ...s, focus: focusOnGesture(s.focus, pane, s.prefs.mode) })
+      const k = paneKeyOf(s, pane)
+      const id = k ? guestIdOf(k) : null
+      if (focusSite && id !== null) void desktop?.splitDo?.(id, 'focus')
+    },
+    [guestIdOf],
+  )
+  // Survol, ou vraie molette (relayée par l'appli comme un survol) : en Flux, ce panneau prend le son et le focus.
+  const doHover = useCallback(
+    (pane: number) => {
+      hoverPane.current = pane
+      const s = splitRef.current
+      if (!s || s.prefs.mode !== 'scroll' || (s.focus.active === pane && s.focus.sound === pane)) return
+      setSplit({ ...s, focus: focusOnGesture(s.focus, pane, s.prefs.mode) })
+      const k = paneKeyOf(s, pane)
+      const id = k ? guestIdOf(k) : null
+      // « soft » : le survol ne vole pas le focus d'un champ de saisie en cours dans l'autre panneau.
+      if (id !== null && !layerOpen()) void desktop?.splitDo?.(id, 'focusSoft')
+    },
+    [guestIdOf],
+  )
+  // La souris sort de la grille (barre de la vue, hors d'un site) : le son reste au dernier geste.
+  const doLeave = useCallback(() => {
+    hoverPane.current = null
+  }, [])
+  const doAction = useCallback(
+    (a: SplitAction) => {
+      const s = splitRef.current
+      if (!s) return
+      const n = layoutOf(s.layout).n
+      if (a.type === 'focus') return doPick(a.pane)
+      if (a.type === 'leave') {
+        if (layerOpen() || Date.now() < ignoreLeaveUntil.current) return
+        // En édition, Échap annule : jamais de changement perdu en silence.
+        if (s.editing) return cancelEditRef.current()
+        return s.zoom !== null ? setSplit({ ...s, zoom: null }) : setSplit(null)
+      }
+      if (a.type === 'zoom') return setSplit({ ...s, zoom: s.zoom === null ? s.focus.active : null })
+      const target = a.type === 'scroll' ? a.pane : 'active'
+      // Maj : tous les panneaux affichés (seul l'agrandi quand il y en a un) ; J K, flèches : celui sous la souris.
+      const one = typeof target === 'number' ? target : target === 'hover' ? (hoverPane.current ?? s.focus.active) : s.focus.active
+      const panes = target === 'all' ? (s.zoom !== null ? [s.zoom] : Array.from({ length: n }, (_, i) => i)) : [one]
+      // Une touche de mixage, J K ou une flèche est un geste sur son panneau : il prend le son (dernier geste, #177).
+      if ((typeof target === 'number' || target === 'hover') && one < n && (s.focus.active !== one || s.focus.sound !== one))
+        setSplit({ ...s, focus: focusOnGesture(s.focus, one, s.prefs.mode) })
+      const op = a.type === 'scroll' ? (a.page ? (a.dir > 0 ? 'pageNext' : 'pagePrev') : a.dir > 0 ? 'next' : 'prev') : a.id
+      for (const pane of panes) {
+        if (pane >= n) continue
+        const k = paneKeyOf(s, pane)
+        const id = k ? guestIdOf(k) : null
+        if (id === null) continue
+        void desktop?.splitDo?.(id, op).then((ok) => {
+          if (ok === 'busy') noteSplit(pane, 'Brouillon en cours dans ce panneau')
+          else if (!ok) noteSplit(pane, 'Action indisponible sur ce site')
+        })
+      }
+    },
+    [doPick, guestIdOf, noteSplit],
+  )
+  // Touches retenues dans un site (relayées par l'appli) et survol ou clic dans un site.
+  useEffect(() => {
+    const offKey = desktop?.onSplitKey?.((k) => {
+      const s = splitRef.current
+      if (!s) return
+      const a = resolveKey({ ...k, ctrl: false, meta: false }, s.prefs, { editing: false, panes: layoutOf(s.layout).n })
+      if (a) doAction(a)
+    })
+    const offHover = desktop?.onSplitHover?.((id, kind) => {
+      const pane = slotOfGuest(id)
+      if (pane < 0) return
+      if (kind === 'pick') doPick(pane, false)
+      else if (kind === 'leave') doLeave()
+      else doHover(pane)
+    })
+    return () => {
+      offKey?.()
+      offHover?.()
+    }
+  }, [doAction, doPick, doHover, doLeave]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Touches tapées dans la page homedash elle-même (pas dans un site).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const s = splitRef.current
+      // Les Échap rejoués par la page pour fermer ses menus (`onGuestDown`) ne sont pas des touches : jamais pris.
+      if (!s || !e.isTrusted) return
+      // Échap ferme la couche du dessus, pas la vue : la capture passe avant elle, on voit donc encore la couche.
+      if (e.key === 'Escape' && layerOpen()) return
+      const t = e.target as HTMLElement | null
+      const a = resolveKey({ key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey, meta: e.metaKey }, s.prefs, {
+        editing: isEditing(t),
+        panes: layoutOf(s.layout).n,
+      })
+      if (!a) return
+      if (a.type !== 'leave') e.preventDefault()
+      doAction(a)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [doAction])
 
   if (error && !cfg) return <LoadTrouble error={error} onRetry={retryLoad} />
 
@@ -1556,6 +2055,7 @@ export default function App() {
       title: 'Barre de gauche',
       items: [
         { icon: '＋', label: 'Ajouter un site', onSelect: addTab },
+        ...(hasSplitView && embedSites.length > 1 ? [{ icon: '◫', label: 'Ajouter une vue scindée', onSelect: () => setComposing(true) }] : []),
         { icon: '⧉', label: 'Nouvel onglet temporaire', onSelect: () => newTemp(at) },
         ...(temps.length
           ? [{ icon: '✕', label: 'Fermer tous les onglets temporaires', hint: `${temps.length}`, onSelect: closeAllTemps }]
@@ -2121,6 +2621,16 @@ export default function App() {
           ]
         }),
         ...allTemps.filter((t) => !parentOf(t)).map(entry),
+        // Onglets en haut : les vues scindées s'ouvrent d'ici, comme dans la barre de gauche.
+        ...savedViews.map((v): Tab => ({
+          id: `f:view-${v.id}` as TabId,
+          icon: '◫',
+          label: v.name,
+          badge: viewCounter(v, tabCounts, embedSites, splitDefaults.mode),
+          badgeAlert: true,
+          onOpen: () => openSavedView(v),
+          onContext: (ev: React.MouseEvent) => viewMenu(ev, v),
+        })),
         ...(dockerSites.length
           ? [{ id: 'f:docker' as TabId, icon: '🐳', label: 'Docker', kids: dockerSites.map(entry) }]
           : []),
@@ -2140,6 +2650,13 @@ export default function App() {
   const railActive = shown === 'settings' ? 'settings' : space === DASH ? null : (space ?? (shown.startsWith('x:') ? shown : null))
   // La recherche court-circuite les onglets : ses résultats valent partout.
   const view: TabId | 'search' = searching ? 'search' : shown
+  // Vue scindée : l'emplacement de la case de ce site (`null` = pas dans la grille, ou grille agrandie sur un autre).
+  const tileOf = (key: string): Rect | null => {
+    if (!split) return null
+    const i = split.slots.findIndex((k, j) => k === key && !split.copies[j])
+    return i >= 0 && i < splitN ? (splitRects[i] ?? null) : null
+  }
+  const splitSites: PaneSite[] = allTabs.filter((t) => t.embed).map((t) => ({ key: tabKey(t), label: t.label, icon: iconOf[t.id], color: sessionOf(t, tabSessions)?.color, url: new URL(srcOf(t.url), window.location.href).href, partition: partitionOf(sessionOf(t, tabSessions)?.id) }))
   const setupOn = view === 'links' && setupWanted
   const openSection = (id: string) => {
     search.setQuery('')
@@ -2234,7 +2751,7 @@ export default function App() {
       {focus ? <div className="topbar-hot" aria-hidden="true" /> : null}
       <TopBar
         site={view.startsWith('x:')}
-        focus={view.startsWith('x:') ? { on: focus, toggle: toggleFocus } : undefined}
+        focus={view.startsWith('x:') || !!split ? { on: focus, toggle: toggleFocus } : undefined}
         unread={(() => {
           // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
           // Rien à lire = rien d'affiché ; pas de réglage.
@@ -2363,7 +2880,8 @@ export default function App() {
           onTempClose={closeTemp}
           folders={tabFolders}
           sessions={tabSessions}
-          active={railActive}
+          // une vue ouverte : aucun site ni ⚡ n'est « actif » (seule la vue l'est), d'où une valeur qui ne vise rien
+          active={split ? 'vue-scindee' : railActive}
           size={railSize}
           labels={shownLabels}
           collapse={railLabels === 'none' ? undefined : { open: railOpen, onToggle: () => changeRailOpen(!railOpen) }}
@@ -2382,6 +2900,17 @@ export default function App() {
             selectTab(key)
           }}
           onAdd={addTab}
+          onViewMove={(id, to) => writeViews((vs) => moveView(vs, id, to))}
+          views={savedViews.map((v) => ({
+            id: v.id,
+            name: v.name,
+            folder: v.folder,
+            before: v.before,
+            counter: viewCounter(v, tabCounts, embedSites, splitDefaults.mode),
+            open: split?.viewId === v.id,
+            onOpen: () => openSavedView(v),
+            onContext: (e) => viewMenu(e, v),
+          }))}
           onMenu={railMenu}
           onTabs={(next) => saveTabs([...next, ...keptTabs])}
           onFolders={(next) => saveTabs(customTabs, next)}
@@ -2399,7 +2928,7 @@ export default function App() {
                   badgeAlert: t.badgeAlert,
                   badgeTitle: t.badgeTitle,
                   onContext: t.onContext,
-                  active: shown === t.id,
+                  active: !split && shown === t.id,
                 }))
               : undefined
           }
@@ -2417,7 +2946,7 @@ export default function App() {
         <Tabs
           id={STRIP_ID}
           tabs={strip}
-          active={shown}
+          active={split ? ('f:vue-scindee' as TabId) : shown}
           onSelect={selectTab}
           onMenu={railOn ? undefined : stripMenu}
           size={stripSize}
@@ -2452,7 +2981,8 @@ export default function App() {
             // compte supprimé = connexion commune
             tab={{ ...t, session: sessionOf(t, tabSessions)?.id }}
             session={sessionOf(t, tabSessions)}
-            hidden={view !== tabKey(t)}
+            hidden={split ? !tileOf(tabKey(t)) : view !== tabKey(t)}
+            tile={tileOf(tabKey(t))}
             onSettings={() => {
               if (!dockerSites.includes(t)) return openTabSettings(t.id)
               presetSettingsSection('set-docker')
@@ -2460,7 +2990,10 @@ export default function App() {
             }}
             onCopyLink={() => copyTabLink(t)}
             copied={copiedKey === `tab:${t.id}`}
-            onGuest={(id) => guestTab.current.set(id, t.id)}
+            onGuest={(id) => {
+              guestTab.current.set(id, t.id)
+              setGuestVer((v) => v + 1)
+            }}
             takeLink={() => takeLink(tabKey(t))}
             icon={iconOf[t.id]}
             onNavigate={
@@ -2490,10 +3023,94 @@ export default function App() {
               perfEvent('load', { tab: t.label, host: hostOf(t.url), ms })
               setWarmLoaded((l) => (l.includes(tabKey(t)) ? l : [...l, tabKey(t)]))
             }}
-            muted={!!muted[tabKey(t)]}
-            merged={view === tabKey(t)}
+            muted={effectiveMuted(tabKey(t), !!muted[tabKey(t)], {
+              open: !!split,
+              mode: split?.prefs.mode ?? 'classic',
+              shown: splitShown,
+              sound: splitSoundKey,
+            })}
+            merged={view === tabKey(t) && !split}
           />
         ))}
+
+      {split ? (
+        <SplitView
+          layout={split.layout}
+          onLayout={(id) => {
+            const n = layoutOf(id).n
+            const embeds = allTabs.filter((t) => t.embed).map(tabKey)
+            setSplit({
+              ...split,
+              layout: id,
+              ratios: {},
+              zoom: null,
+              slots: assignSites(split.slots, n, orderSites(recentSites.current, embeds)),
+              focus: { ...split.focus, active: Math.min(split.focus.active, n - 1), sound: split.focus.sound !== null && split.focus.sound >= n ? 0 : split.focus.sound },
+            })
+          }}
+          slots={split.slots}
+          sites={splitSites}
+          names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
+          editing={!!split.editing}
+          onSaveEdit={() => void saveEdit()}
+          editWarning={editWarn}
+          onCancelEdit={cancelEdit}
+          ratios={split.ratios}
+          onRatios={(next, commit) => {
+            setSplit((x) => (x ? { ...x, ratios: next } : x))
+            // Les proportions d'une vue enregistrée se gardent au lâcher du séparateur (en édition : à Enregistrer).
+            const cur = split.viewId ? savedViews.find((v) => v.id === split.viewId) : undefined
+            if (commit && cur && !split.editing) writeViews((vs) => vs.map((v) => (v.id === cur.id ? { ...v, ratios: next } : v)))
+          }}
+          gone={split.gone}
+          copies={split.copies}
+          copyStart={copyStart}
+          onCopyNav={noteLast}
+          onCopyGuest={(slot, id) => {
+            if (id === null) {
+              copyGuests.current.delete(slot)
+              setAudible((a) => (a[`copy:${slot}`] ? { ...a, [`copy:${slot}`]: false } : a))
+            } else copyGuests.current.set(slot, id)
+            setGuestVer((v) => v + 1)
+          }}
+          copyMuted={Array.from({ length: 4 }, (_, i) => effectiveMuted(`copy:${i}`, false, { open: true, mode: split.prefs.mode, shown: splitShown, sound: splitSoundKey }))}
+          onSite={(slot, key) => {
+            const slots = [...split.slots]
+            const from = key ? slots.indexOf(key) : -1
+            // Un site n'est que dans une case : celui qu'on prend à une autre case y laisse la place à l'ancien.
+            if (from >= 0 && from !== slot) slots[from] = slots[slot]
+            slots[slot] = key
+            // #180 : un autre site dans ce panneau repart de son accueil (l'adresse notée est celle de l'ancien site).
+            setCopyStart((c) => c.map((u, i) => (i === slot || (from >= 0 && i === from) ? null : u)))
+            // « Site retiré » ne s'affiche que tant qu'on n'a pas touché la case.
+            setSplit({ ...split, slots, gone: split.gone.map((g, i) => (i === slot ? false : g)) })
+          }}
+          prefs={split.prefs}
+          preset={splitPreset}
+          onProfile={(id) =>
+            // Le type décide copie ou vrai site (#179) : Messagerie → Flux ouvre des copies tout de suite, et l'inverse.
+            setSplit({
+              ...split,
+              prefs: withMode(split.prefs, id),
+              copies: copiesFor(id),
+              focus: id === 'scroll' ? { active: split.focus.active, sound: split.focus.active } : { ...split.focus, sound: null },
+            })
+          }
+          onPrefs={(patch) => setSplit({ ...split, prefs: { ...split.prefs, ...patch } })}
+          active={split.focus.active}
+          sound={split.focus.sound}
+          muted={muted}
+          audible={audible}
+          zoom={split.zoom}
+          onZoom={(slot) => setSplit({ ...split, zoom: slot, focus: slot === null ? split.focus : focusOnGesture(split.focus, slot, split.prefs.mode) })}
+          onHover={doHover}
+          onLeave={doLeave}
+          onPick={(slot) => doPick(slot, false)}
+          onClose={closeSplit}
+          onRects={setSplitRects}
+          notes={splitNotes}
+        />
+      ) : null}
 
       {view === 'search' ? (
         <SearchResults
@@ -2781,11 +3398,24 @@ export default function App() {
       <NameColorHost />
       <IssueHost />
       <TrIssueHost />
+      {composing ? (
+        <SplitViewComposer
+          sites={splitSites.filter((x) => embedSites.some((t) => tabKey(t) === x.key))}
+          names={Object.fromEntries(Object.entries(siteNames(embedSites, tabSessions)).map(([id, n]) => [`x:${id}`, n]))}
+          recent={recentSites.current}
+          onCreate={createView}
+          onClose={() => setComposing(false)}
+        />
+      ) : null}
       {adding ? (
         <AddTabDialog
           folders={tabFolders}
           sessions={desktop && hasSessions ? tabSessions : []}
           onClose={() => setAdding(false)}
+          onSplit={hasSplitView && embedSites.length > 1 ? () => {
+            setAdding(false)
+            setComposing(true)
+          } : undefined}
           onMore={(t) => {
             if (!t) return addTabInSettings()
             const id = newTabId(allTabs.map((x) => x.id))

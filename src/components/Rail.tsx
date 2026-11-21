@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { folderOf, moveTab, sessionOf, srcOf, tabKey } from '../lib/customTabs'
+import { viewsAt } from '../lib/splitViews'
 import { keepFolderPlaces, moveFolder, railEntries } from '../lib/railOrder'
 import type { CustomTab, TabFolder, TabSession } from '../types'
 
@@ -86,6 +87,10 @@ type Props = {
   onSelect: (key: `x:${string}`) => void
   /** ＋ : nouvel onglet (une fenêtre, sans passer par Réglages). */
   onAdd: () => void
+  /** Vues scindées gardées (#169) : une entrée chacune, avec la somme des compteurs de ses sites. */
+  views?: { id: string; name: string; folder?: string; before?: string; counter: number; open: boolean; onOpen: () => void; onContext: (e: React.MouseEvent) => void }[]
+  /** Une vue glissée : devant un site, dans un dossier, à la fin (`{}`), ou devant une autre vue. */
+  onViewMove?: (id: string, to: { before?: string; folder?: string; beforeView?: string }) => void
   /** Clic droit sur la barre hors d'une icône : ajouter, éphémère, largeur, cacher. */
   onMenu: (e: React.MouseEvent) => void
   /** Ordre ou dossier changé par glisser-déposer : écrit dans la config. */
@@ -152,6 +157,8 @@ export default function Rail({
   onHomeTab,
   onHomeMenu,
   onAdd,
+  views = [],
+  onViewMove,
   onMenu,
   onTabs,
   onFolders,
@@ -180,6 +187,45 @@ export default function Rail({
   }
 
   const loose = tabs.filter((t) => !folderOf(t, folders))
+  // Une vue scindée est une entrée comme un site : on la glisse devant un site, dans un dossier ou hors de tout dossier.
+  const viewItem = (v: NonNullable<Props['views']>[number]) => (
+    <div
+      key={`v:${v.id}`}
+      className={`rail-item rail-view${v.open ? ' is-active' : ''}${over?.id === `v:${v.id}` ? ' is-before' : ''}${drag === `v:${v.id}` ? ' is-dragging' : ''}`}
+      draggable
+      onDragStart={(e) => {
+        e.dataTransfer.effectAllowed = 'move'
+        e.dataTransfer.setData('text/plain', v.name)
+        setDrag(`v:${v.id}`)
+      }}
+      onDragEnd={endDrag}
+      onDragOver={(e) => {
+        if (!drag?.startsWith('v:') || drag === `v:${v.id}`) return
+        e.preventDefault()
+        e.stopPropagation()
+        setOver({ id: `v:${v.id}`, zone: 'before' })
+      }}
+      onDrop={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        if (drag?.startsWith('v:')) onViewMove?.(drag.slice(2), { beforeView: v.id })
+        endDrag()
+      }}
+      onContextMenu={v.onContext}
+    >
+      <span className="rail-pill" aria-hidden="true" />
+      <button className="rail-btn" onClick={v.onOpen} title={`Vue scindée « ${v.name} » : ses sites côte à côte · clic droit : modifier, renommer, supprimer`}>
+        <span className="rail-icon">
+          {textOnly ? null : <span aria-hidden="true">◫</span>}
+          {badge(v.counter)}
+        </span>
+        {wide ? <span className="rail-label">{v.name}</span> : null}
+      </button>
+    </div>
+  )
+  const folderIds = folders.map((f) => f.id)
+  const viewsHere = (folder: string | undefined, before: string | null, scope: CustomTab[]) =>
+    viewsAt(views, { folder, before }, { folders: folderIds, sites: scope.map((t) => t.id) })
   const inFolder = (f: TabFolder) => tabs.filter((t) => folderOf(t, folders) === f.id)
   const wide = labels !== 'none'
   /** Noms seuls : plus d'image, mais les pastilles restent. */
@@ -333,7 +379,7 @@ export default function Rail({
           if (draggedFolder && folderOf(t, folders)) return
           e.preventDefault()
           e.stopPropagation()
-          if (draggedFolder) return setOver({ id: t.id, zone: 'before' })
+          if (draggedFolder || drag.startsWith('v:')) return setOver({ id: t.id, zone: 'before' })
           // Haut de l'icône : placer avant ; le reste : réunir (comme Discord).
           const r = e.currentTarget.getBoundingClientRect()
           setOver({ id: t.id, zone: e.clientY - r.top < r.height * 0.3 ? 'before' : 'merge' })
@@ -341,6 +387,11 @@ export default function Rail({
         onDrop={(e) => {
           e.preventDefault()
           e.stopPropagation()
+          if (drag?.startsWith('v:')) {
+            const f = folderOf(t, folders)
+            onViewMove?.(drag.slice(2), { before: t.id, ...(f ? { folder: f } : {}) })
+            return endDrag()
+          }
           if (draggedFolder) {
             placeFolders(moveFolder(railFolders, draggedFolder, { tab: t.id }))
             return endDrag()
@@ -539,7 +590,7 @@ export default function Rail({
           </div>
         ) : null}
         {railEntries(loose, railFolders).map((entry) => {
-          if ('tab' in entry) return item(entry.tab)
+          if ('tab' in entry) return [...viewsHere(undefined, entry.tab.id, loose).map(viewItem), item(entry.tab)]
           const f = entry.folder
           if (f.id === DOCKER_FOLDER) return dockerFolder
           const kids = inFolder(f)
@@ -582,6 +633,7 @@ export default function Rail({
                     e.preventDefault()
                     e.stopPropagation()
                     if (draggedFolder) placeFolders(moveFolder(railFolders, draggedFolder, { folder: f.id }))
+                    else if (drag?.startsWith('v:')) onViewMove?.(drag.slice(2), { folder: f.id })
                     else if (drag) onTabs(moveTab(tabs, drag, null, f.id))
                     endDrag()
                   }}
@@ -602,7 +654,12 @@ export default function Rail({
                   {wide ? <span className="rail-label rail-folder-name">{f.name}</span> : null}
                 </button>
               </div>
-              {open ? <div className="rail-kids">{kids.map(item)}</div> : null}
+              {open ? (
+                <div className="rail-kids">
+                  {kids.flatMap((t) => [...viewsHere(f.id, t.id, kids).map(viewItem), item(t)])}
+                  {viewsHere(f.id, null, kids).map(viewItem)}
+                </div>
+              ) : null}
             </div>
           )
         })}
@@ -660,11 +717,13 @@ export default function Rail({
           </div>
         ) : null}
 
+        {viewsHere(undefined, null, loose).map(viewItem)}
+
         {/* Zone libre en bas : y déposer une icône la sort de son dossier. */}
         <div
           className={`rail-end${over?.id === 'end' ? ' is-over' : ''}`}
           {...dropZone('end', (id) =>
-            draggedFolder ? placeFolders(moveFolder(railFolders, draggedFolder, {})) : onTabs(moveTab(tabs, id, null)),
+            id.startsWith('v:') ? onViewMove?.(id.slice(2), {}) : draggedFolder ? placeFolders(moveFolder(railFolders, draggedFolder, {})) : onTabs(moveTab(tabs, id, null)),
           )}
         />
       </div>

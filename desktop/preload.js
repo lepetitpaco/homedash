@@ -39,6 +39,8 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     'extensions',
     // ⚙ : la popup ou la page d'options d'une extension, dans sa fenêtre.
     'extension-settings',
+    // Vue scindée : plusieurs sites côte à côte (#160).
+    'split-view',
   ],
   /** Nombre affiché sur l'icône du Dock (0 = rien). */
   setBadge: (n) => ipcRenderer.send('homedash:badge', n),
@@ -104,6 +106,25 @@ contextBridge.exposeInMainWorld('homedashDesktop', {
     const handler = () => cb()
     ipcRenderer.on('homedash:focus', handler)
     return () => ipcRenderer.removeListener('homedash:focus', handler)
+  },
+  /**
+   * Vue scindée (#160) : la page dit si elle est ouverte et quelles touches les sites retiennent
+   * ({ open, table, field, sync, ids }) ; { open: false } la ferme.
+   */
+  splitConfig: (cfg) => ipcRenderer.send('homedash:split-config', cfg),
+  /** Une action sur un panneau (id de sa webview) : scroll, touche ou clic du site. Résout true si faite. */
+  splitDo: (id, op) => ipcRenderer.invoke('homedash:split-do', { id, op }),
+  /** Touche retenue dans un site de la vue scindée ({ id, key, code, shift, alt }). Renvoie de quoi se désabonner. */
+  onSplitKey: (cb) => {
+    const handler = (_e, k) => cb(k)
+    ipcRenderer.on('homedash:split-key', handler)
+    return () => ipcRenderer.removeListener('homedash:split-key', handler)
+  },
+  /** La souris entre (`hover`), clique (`pick`) ou sort (`leave`) d'un site de la vue scindée (id de sa webview). Renvoie de quoi se désabonner. */
+  onSplitHover: (cb) => {
+    const handler = (_e, id, kind) => cb(id, kind)
+    ipcRenderer.on('homedash:split-hover', handler)
+    return () => ipcRenderer.removeListener('homedash:split-hover', handler)
   },
   onSiteSwitch: (cb) => {
     const handler = (_e, step) => cb(step)

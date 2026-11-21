@@ -136,6 +136,11 @@ export type UiConfig = {
    * perso) est gardé à la relance (`true`) ou éphémère (défaut).
    */
   linkTabsKept: boolean
+  /**
+   * Vue scindée (Réglages → Vue scindée) : mode et cases d'une nouvelle vue, et le clavier (étiquettes seulement).
+   * Absent = les défauts du code (`normalizeSplit`, `normalizeKeyboard`) ; les clés d'avant #177 sont ignorées.
+   */
+  split?: Partial<import('./lib/splitView').SplitPrefs> & { keyboard?: import('./lib/splitView').KeyboardChoice }
   /** Journal de performance dans data/perf/ (Réglages → Affichage). Désactivé par défaut. */
   perfLog: boolean
   /**
@@ -192,6 +197,12 @@ export type CustomTab = {
    */
   sleep?: boolean
   /**
+   * Pause quand je n'y suis pas (#175) : tant que le site n'est pas affiché, ses vidéos et sons en lecture sont
+   * mis en pause, puis repris à son retour. Absent = pause, sauf si le catalogue dit que le site joue en fond
+   * (YouTube, Spotify, appels, messageries) ; `catalog.ts` → `pauseHiddenOf`.
+   */
+  pauseHidden?: boolean
+  /**
    * Appli de bureau : chargé dès le démarrage (ses non-lus sont suivis sans
    * l'ouvrir) plutôt qu'au premier clic. Absent = selon le site (mails,
    * messageries et réseaux sociaux oui, le reste non), pour ménager la mémoire.
@@ -221,6 +232,40 @@ export type TabFolder = {
   session?: string
   /** Site devant lequel le dossier est placé dans la barre. Absent ou site disparu : en bas. */
   before?: string
+}
+
+/** Vue scindée enregistrée (#169) : s'ouvre depuis la barre de gauche comme un site. */
+export type SavedSplitView = {
+  id: string
+  name: string
+  layout: string
+  /**
+   * Proportions des séparateurs, par nœud de la disposition (`splitView.ts`) : la clé est le chemin du nœud
+   * (`''` = la racine, `'1'` = son 2e enfant, `'10'`…), la valeur la liste de ses parts (2 à 4 nombres > 0).
+   */
+  ratios?: Record<string, number[]>
+  /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
+  slots: (string | null)[]
+  /**
+   * Par case : `true` = une copie du site. Écrit pour les applis d'avant #179, **plus lu** : le type décide
+   * (`copiesFor`, `splitViews.ts` : Flux = copies, Messagerie = vrais sites).
+   */
+  copies?: boolean[]
+  /**
+   * Le type de la vue : « Flux » (doomscroll) ou « Messagerie », et ses deux cases (`SplitPrefs`, `splitView.ts`).
+   * Absent = les réglages de Réglages → Vue scindée au moment de l'ouverture (le comportement des vues d'avant).
+   * Une vue enregistrée avant #177 : mode, `sync` et `actions` gardés, anciennes cases ignorées (`normalizeSplit`), sans migration.
+   */
+  prefs?: import('./lib/splitView').SplitPrefs
+  /**
+   * Vue Flux (#180) : la dernière adresse de chaque copie (http(s), même site que le panneau), ou `null`. La copie y
+   * reprend à la réouverture. Absent = rien de noté (vues d'avant, « Repartir du début ») ; clé additive, sans migration.
+   */
+  last?: (string | null)[]
+  /** Place dans la barre : juste devant ce site (`CustomTab.id`). Absent, ou site disparu = à la fin, comme avant. */
+  before?: string
+  /** Dossier de la barre (`tabFolders[].id`) ; absent, ou dossier disparu = hors dossier. */
+  folder?: string
 }
 
 /**
@@ -268,6 +313,8 @@ export type Config = {
   tabFolders?: TabFolder[]
   /** Comptes de connexion des onglets perso (appli de bureau). Absent = aucun. */
   tabSessions?: TabSession[]
+  /** Vues scindées gardées (#169). Absent = aucune. */
+  splitViews?: SavedSplitView[]
   /** Fonctionnalités coupées (Réglages → Fonctionnalités) : `false` = coupée, absent = active. */
   features?: Partial<Record<Feature, boolean>>
   /** Liens vers les containers Docker (Réglages → Mes sites → Docker). Absent = désactivé. */
