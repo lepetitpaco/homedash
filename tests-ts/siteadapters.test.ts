@@ -76,9 +76,11 @@ describe('adaptateurs de sites (vue scindée)', () => {
     // la table est en touches physiques ; `keyName` donne le nom de la touche envoyée (j, arrowdown…)
     const nameOf = (code: string) => (code.startsWith('Key') ? code.slice(3).toLowerCase() : code === 'Space' ? ' ' : code.toLowerCase())
     const retained = new Set([...table.codes, ...table.shift].map(nameOf))
-    expect(retained).toContain('j')
+    // J K ne sont plus pris (#193) : la boucle ne concerne plus que les touches encore dans la table (L, flèches…)
+    expect(retained).toContain('l')
+    expect(retained).not.toContain('j')
     for (const [url, ops] of [
-      ['https://x.com/home', ['next', 'prev']],
+      ['https://x.com/home', ['next', 'prev', 'like']],
       ['https://www.tiktok.com/foryou', ['next', 'prev', 'like']],
     ] as const) {
       for (const op of ops) {

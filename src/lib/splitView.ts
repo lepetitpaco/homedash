@@ -97,12 +97,10 @@ export const ACTIONS_OFF_HINT = 'sans effet en Messagerie : aucune touche n’y 
 
 /** Les modificateurs, dits pareil dans la bulle ⓘ de la vue et dans Réglages (#177). */
 export const MODIFIERS_HELP =
-  'Mêmes touches sur Mac et Windows (lues à leur place sur le clavier) : Maj (⇧) maintenu = tous les panneaux ; J K et ↓ ↑ visent le panneau sous la souris ; Maj + molette inverse le défilement synchronisé.'
+  'Mêmes touches sur Mac et Windows (lues à leur place sur le clavier) : Maj (⇧) maintenu = tous les panneaux ; ↓ ↑ visent le panneau sous la souris ; Maj + molette inverse le défilement synchronisé.'
 
 /** Un champ de saisie : les touches ne sont jamais prises dedans (page, sites et focus du survol). */
 export const FIELD_SELECTOR = 'input, textarea, select, [contenteditable=""], [contenteditable="true"], [role="textbox"]'
-/** Espace garde son sens natif sur un bouton, un lien ou une vidéo (page et sites : la même règle). */
-export const SPACE_KEEPS = 'button, a, [role="button"], video, summary'
 /** Un champ de saisie, ou un contenteditable. */
 export function isEditing(el: { closest?: (s: string) => unknown; isContentEditable?: boolean } | null | undefined): boolean {
   return !!el && (!!el.closest?.(FIELD_SELECTOR) || el.isContentEditable === true)
@@ -351,10 +349,11 @@ export type SplitAction =
 /**
  * Ce que fait une touche dans la vue scindée, ou `null` : alors elle passe au site, intacte.
  * Jamais en Messagerie (aucune touche prise) ni dans un champ de saisie (`editing`). Touches physiques (`code`).
- * Modificateurs (#177, mêmes sur Mac et Windows) : **Maj = tous les panneaux** (touches de mixage, J K, flèches, N P) ;
+ * Modificateurs (#177, mêmes sur Mac et Windows) : **Maj = tous les panneaux** (touches de mixage, flèches) ;
  * Un chiffre de la rangée du haut (& é " ' en AZERTY) choisit le panneau (#191 ; Alt + chiffre fait la même chose, sans être
  * mis en avant) ; Ctrl et ⌘ ne sont jamais pris (copier, coller, raccourcis du système).
- * J K et les flèches visent le panneau sous la souris ; une touche de mixage, toujours son panneau.
+ * Les flèches visent le panneau sous la souris ; une touche de mixage, toujours son panneau. J K, N P et Espace ne sont plus
+ * pris (#193, décision de Paco : doublons des flèches) : ils retrouvent leur sens dans le site.
  */
 export function resolveKey(e: KeyEvt, prefs: Pick<SplitPrefs, 'mode' | 'actions'>, ctx: { editing: boolean; panes: number }): SplitAction | null {
   if (prefs.mode !== 'scroll' || ctx.editing) return null
@@ -375,12 +374,8 @@ export function resolveKey(e: KeyEvt, prefs: Pick<SplitPrefs, 'mode' | 'actions'
     const [up, down] = MIX_CODES[i]
     if (c === up || c === down) return { type: 'scroll', pane: all ? 'all' : i, dir: c === up ? -1 : 1, page: false }
   }
-  if (c === 'KeyJ' || c === 'ArrowDown') return { type: 'scroll', pane: all ? 'all' : 'hover', dir: 1, page: false }
-  if (c === 'KeyK' || c === 'ArrowUp') return { type: 'scroll', pane: all ? 'all' : 'hover', dir: -1, page: false }
-  if (c === 'KeyN') return { type: 'scroll', pane: all ? 'all' : 'active', dir: 1, page: true }
-  if (c === 'KeyP') return { type: 'scroll', pane: all ? 'all' : 'active', dir: -1, page: true }
-  // Maj + Espace garde son sens de toujours : une page plus haut.
-  if (c === 'Space') return { type: 'scroll', pane: 'active', dir: e.shift ? -1 : 1, page: true }
+  if (c === 'ArrowDown') return { type: 'scroll', pane: all ? 'all' : 'hover', dir: 1, page: false }
+  if (c === 'ArrowUp') return { type: 'scroll', pane: all ? 'all' : 'hover', dir: -1, page: false }
   // Agrandir et les actions n'ont pas de sens « pour tous » : avec Maj, la touche reste au site.
   if (all) return null
   if (c === ZOOM_CODE) return { type: 'zoom' }
@@ -393,7 +388,7 @@ export function resolveKey(e: KeyEvt, prefs: Pick<SplitPrefs, 'mode' | 'actions'
 
 /** Ce que `guest-preload.js` doit intercepter dans un site (puis relayer à la page). Touches physiques (`event.code`). */
 export type InterceptTable = {
-  /** Touches sans modificateur (`KeyJ`, `ArrowDown`, `Space`). */
+  /** Touches sans modificateur (`KeyA`, `ArrowDown`, `Digit1`). */
   codes: string[]
   /** Touches avec Maj seule. */
   shift: string[]
@@ -405,7 +400,7 @@ export type InterceptTable = {
 
 const ALL_CODES = [...'ABCDEFGHIJKLMNOPQRSTUVWXYZ']
   .map((l) => `Key${l}`)
-  .concat(['ArrowDown', 'ArrowUp', 'Space'], [1, 2, 3, 4].flatMap((d) => [`Digit${d}`, `Numpad${d}`]))
+  .concat(['ArrowDown', 'ArrowUp'], [1, 2, 3, 4].flatMap((d) => [`Digit${d}`, `Numpad${d}`]))
 
 /** La table, tirée de `resolveKey` lui-même : aucune liste à tenir à jour à côté. Vide en Messagerie. */
 export function interceptTable(prefs: Pick<SplitPrefs, 'mode' | 'actions'>, panes: number): InterceptTable {
@@ -445,7 +440,7 @@ export function splitLegend(mode: SplitMode, preset: Preset, panes: number): { s
     short: `Défiler : ${mix}  ·  Maj : tous  ·  ${preset.digits.slice(0, panes).join(' ')} : panneau  ·  ${ZOOM_LABEL} : agrandir`,
     long: [
       `Table de mixage : ${mix} (un panneau ; Maj + touche : tous).`,
-      'J K ou ↓ ↑ : le panneau sous la souris (Maj : tous). N P, Espace : page suivante / précédente.',
+      '↓ ↑ : le panneau sous la souris (Maj : tous).',
       `${preset.digits.slice(0, panes).join(' ')} : choisir le panneau. ${ZOOM_LABEL} : agrandir. Échap : quitter.`,
       "Molette : avec le défilement synchronisé, tous les panneaux suivent ; Maj + molette fait l'inverse.",
       'Le panneau où tu agis (survol, molette, touche, clic) a le son ; les autres sont coupés et en pause.',

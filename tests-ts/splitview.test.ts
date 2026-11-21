@@ -179,7 +179,7 @@ describe('clavier : touche physique → action', () => {
   const r = (e: KeyEvt, p: SplitPrefs = flux, panes = 3) => resolveKey(e, p, { editing: false, panes })
 
   it('Messagerie : aucune touche n’est interceptée', () => {
-    for (const code of ['KeyJ', 'KeyK', 'KeyL', 'KeyX', 'KeyN', 'Space', 'ArrowDown', 'Escape', 'KeyQ']) {
+    for (const code of ['KeyL', 'KeyX', 'ArrowDown', 'Escape', 'KeyQ', 'Digit1']) {
       expect(r(ev(code), classic)).toBeNull()
       expect(r(ev(code, { shift: true }), classic)).toBeNull()
     }
@@ -188,7 +188,7 @@ describe('clavier : touche physique → action', () => {
   })
 
   it('jamais dans un champ de saisie', () => {
-    expect(resolveKey(ev('KeyJ'), flux, { editing: true, panes: 3 })).toBeNull()
+    expect(resolveKey(ev('ArrowDown'), flux, { editing: true, panes: 3 })).toBeNull()
     expect(resolveKey(ev('KeyQ', { shift: true }), flux, { editing: true, panes: 3 })).toBeNull()
     expect(resolveKey(ev('Digit1', { alt: true }), flux, { editing: true, panes: 3 })).toBeNull()
     expect(resolveKey(ev('Escape'), flux, { editing: true, panes: 3 })).toBeNull()
@@ -236,7 +236,7 @@ describe('clavier : touche physique → action', () => {
   })
 
   it('Ctrl et ⌘ ne sont jamais pris (copier, coller…), avec ou sans Maj', () => {
-    for (const code of ['KeyC', 'KeyL', 'KeyQ', 'KeyJ', 'ArrowDown']) {
+    for (const code of ['KeyC', 'KeyL', 'KeyQ', 'ArrowDown']) {
       expect(r(ev(code, { ctrl: true }))).toBeNull()
       expect(r(ev(code, { meta: true }))).toBeNull()
       expect(r(ev(code, { meta: true, shift: true }))).toBeNull()
@@ -275,21 +275,26 @@ describe('clavier : touche physique → action', () => {
     }
   })
 
-  it('J K et flèches : le panneau sous la souris ; Maj : tous', () => {
-    expect(r(ev('KeyJ'))).toEqual({ type: 'scroll', pane: 'hover', dir: 1, page: false })
-    expect(r(ev('KeyK'))).toEqual({ type: 'scroll', pane: 'hover', dir: -1, page: false })
+  it('flèches : le panneau sous la souris ; Maj : tous', () => {
     expect(r(ev('ArrowDown'))).toEqual({ type: 'scroll', pane: 'hover', dir: 1, page: false })
     expect(r(ev('ArrowUp'))).toEqual({ type: 'scroll', pane: 'hover', dir: -1, page: false })
     expect(r(ev('ArrowDown', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: 1, page: false })
-    expect(r(ev('KeyK', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: -1, page: false })
+    expect(r(ev('ArrowUp', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: -1, page: false })
   })
 
-  it('N P, Espace (Maj + Espace = page précédente), X, Échap', () => {
-    expect(r(ev('KeyN'))).toEqual({ type: 'scroll', pane: 'active', dir: 1, page: true })
-    expect(r(ev('KeyP'))).toEqual({ type: 'scroll', pane: 'active', dir: -1, page: true })
-    expect(r(ev('KeyN', { shift: true }))).toEqual({ type: 'scroll', pane: 'all', dir: 1, page: true })
-    expect(r(ev('Space'))).toEqual({ type: 'scroll', pane: 'active', dir: 1, page: true })
-    expect(r(ev('Space', { shift: true }))).toEqual({ type: 'scroll', pane: 'active', dir: -1, page: true })
+  it('J K, N P et Espace ne sont plus pris : ils vont au site (#193)', () => {
+    for (const code of ['KeyJ', 'KeyK', 'KeyN', 'KeyP', 'Space']) {
+      expect(r(ev(code)), code).toBeNull()
+      expect(r(ev(code, { shift: true })), `Maj ${code}`).toBeNull()
+    }
+    const t = interceptTable(flux, 3)
+    for (const code of ['KeyJ', 'KeyK', 'KeyN', 'KeyP', 'Space']) {
+      expect(t.codes).not.toContain(code)
+      expect(t.shift).not.toContain(code)
+    }
+  })
+
+  it('X (agrandir), Échap', () => {
     expect(r(ev('KeyX'))).toEqual({ type: 'zoom' })
     expect(r(ev('KeyZ'))).toBeNull()
     expect(r(ev('Escape'))).toEqual({ type: 'leave' })
@@ -305,28 +310,28 @@ describe('clavier : touche physique → action', () => {
     expect(r(ev('KeyX', { shift: true }))).toBeNull()
     const noActions = { ...flux, actions: false }
     expect(r(ev('KeyL'), noActions)).toBeNull()
-    expect(r(ev('KeyJ'), noActions)).not.toBeNull()
+    expect(r(ev('ArrowDown'), noActions)).not.toBeNull()
   })
 
   it('les lettres se lisent par la place, jamais par le caractère (Maj, Alt sur Mac)', () => {
-    expect(r(ev('KeyJ', { key: 'J' }))).toEqual(r(ev('KeyJ', { key: 'j' })))
-    // la touche qui porte « j » ailleurs ne compte pas : seule la place compte
-    expect(r(ev('KeyY', { key: 'j' }))).toBeNull()
+    expect(r(ev('KeyL', { key: 'L' }))).toEqual(r(ev('KeyL', { key: 'l' })))
+    // la touche qui porte « l » ailleurs ne compte pas : seule la place compte
+    expect(r(ev('KeyY', { key: 'l' }))).toBeNull()
   })
 
   it('aucune collision entre la table de mixage et le reste', () => {
-    const others = ['KeyJ', 'KeyK', 'KeyN', 'KeyP', 'KeyL', 'KeyB', 'KeyT', 'KeyC', 'Space', 'ArrowDown', 'ArrowUp', 'KeyX', 'Escape']
+    const others = ['KeyL', 'KeyB', 'KeyT', 'KeyC', 'ArrowDown', 'ArrowUp', 'KeyX', 'Escape']
     for (const code of MIX_CODES.flat()) expect(others).not.toContain(code)
   })
 
   it('la table du préload se tire de resolveKey, Maj comprise', () => {
     const t = interceptTable(flux, 3)
     expect(t.codes).toEqual(
-      expect.arrayContaining(['KeyQ', 'KeyA', 'KeyW', 'KeyS', 'KeyE', 'KeyD', 'KeyJ', 'KeyK', 'KeyN', 'KeyP', 'KeyX', 'KeyL', 'KeyB', 'KeyT', 'KeyC', 'ArrowDown', 'ArrowUp', 'Space']),
+      expect.arrayContaining(['KeyQ', 'KeyA', 'KeyW', 'KeyS', 'KeyE', 'KeyD', 'KeyX', 'KeyL', 'KeyB', 'KeyT', 'KeyC', 'ArrowDown', 'ArrowUp']),
     )
     expect(t.codes).not.toContain('KeyR') // 3 panneaux
     expect(t.codes).not.toContain('KeyZ')
-    expect(t.shift).toEqual(expect.arrayContaining(['KeyQ', 'KeyA', 'KeyJ', 'KeyK', 'ArrowDown', 'ArrowUp', 'KeyN', 'KeyP', 'Space']))
+    expect(t.shift).toEqual(expect.arrayContaining(['KeyQ', 'KeyA', 'ArrowDown', 'ArrowUp']))
     expect(t.shift).not.toContain('KeyL')
     expect(t.shift).not.toContain('KeyX')
     expect(t.alt).toEqual(['Digit1', 'Numpad1', 'Digit2', 'Numpad2', 'Digit3', 'Numpad3'])

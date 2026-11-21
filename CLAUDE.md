@@ -314,7 +314,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   sur Mac, Maj des majuscules) ; la table a une liste avec Maj (`shift`) à part. Échap est relayé sans être retenu. Les sélecteurs des sites sont tous dans
   `site-adapters.js`.
 - Vue scindée, touches envoyées par homedash à un site (`site-adapters.js`, `sendKey`) : le préload du site les
-  retiendrait (J, K, L, flèches… sont dans sa table) et on tournerait en rond. `main.js` annonce donc la touche
+  retiendrait (L, flèches… sont dans sa table) et on tournerait en rond. `main.js` annonce donc la touche
   (`homedash:split-pass`) et **attend l'accusé** (`split-pass-ok`, 300 ms au plus) avant d'envoyer ; le préload laisse
   passer ce keydown une fois (500 ms). Cas limites : accusé perdu = la touche part quand même (au pire retenue, une fois,
   puis plus rien) ; rien n'est envoyé si le focus du site est dans un champ (le « j » irait dans un brouillon) ; une
@@ -391,12 +391,15 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   le son était à tous, sinon Flux ; `store.validateConfig` accepte toujours les anciennes clés, sinon une config ancienne serait refusée à
   l'écriture.
 - Modificateurs de la vue (#177, « layout à la gamer », identiques Mac et Windows) : **Maj = tous les panneaux**
-  (touches de mixage dans leur sens, J K, flèches, N P ; Maj + molette inverse la synchro). J K et flèches visent le
+  (touches de mixage dans leur sens, flèches ; Maj + molette inverse la synchro). Les flèches visent le
   panneau **sous la souris** (sinon l'actif) et lui donnent le son, une touche de mixage toujours son panneau (qui prend
   le son). Un **chiffre seul** (& é " ' en AZERTY ; `Digit1`..`4` et pavé numérique) choisit le panneau (#191, décision de
   Paco : « Alt ne sert à rien en doomscroll ») ; Alt+chiffre marche toujours, sans être mis en avant ; Maj+chiffre reste au
   site (en AZERTY c'est le chiffre à taper), jamais dans un champ de saisie ;
-  Ctrl et ⌘ jamais pris ; Maj + Espace garde son sens (page précédente) ; agrandir et les actions par site ne prennent
+  **J K, N P et Espace ne sont plus pris** (#193, décision de Paco : « soit je fais A Q Z S E D R F, soit j'utilise la souris ;
+  les flèches c'est intuitif, le reste pas vraiment » : J K doublonnaient les flèches, N P et Espace la souris) : ils vont au site
+  (J K : tweet suivant sur X ; Espace : lecture / pause sur TikTok) ; ne pas les recréer. Le champ `page` de l'action `scroll`
+  reste dans le type, plus aucune touche ne le pose. Ctrl et ⌘ jamais pris ; agrandir et les actions par site ne prennent
   pas Maj (pas de « J'aime » à tous). Les clics avec Maj ne sont pas interceptés.
 - Vues Flux et Messagerie (#172) : le type est stocké dans la vue (`splitViews[].prefs`, absent = réglages du moment) ;
   Flux = copies (`copies[]`, une webview de plus sur la **même partition**, page à part, démarre sur `tab.url`, clé

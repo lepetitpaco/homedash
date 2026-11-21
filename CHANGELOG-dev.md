@@ -60,3 +60,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 ## paco/feature/flux-chiffres-direct
 
 - **Un chiffre choisit le panneau** (#191) : en Flux, `& é " '` (QWERTY `1 2 3 4`) choisissent directement le panneau 1 à 4, sans Alt (Alt + chiffre marche toujours). Jamais dans un champ de saisie, ni avec Maj, Ctrl ou ⌘ ; au-delà du nombre de panneaux, la touche reste au site. L'aide ⓘ, la légende et le GUIDE le disent. Non vérifié : Windows, vrais sites.
+
+## paco/refactor/flux-touches-doublons
+
+- **Moins de touches en Flux** (#193) : `J K`, `N P` et `Espace` ne sont plus pris (doublons des flèches et de la souris) ; ils vont au site (J K : tweet suivant sur X, Espace : lecture / pause sur TikTok). Restent : mixage (A Q Z S E D R F), flèches (Maj : tous), chiffres, X, actions par site, Échap. L'aide ⓘ et le GUIDE le disent. Non vérifié : vrais sites.

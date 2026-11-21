@@ -68,7 +68,6 @@ export type SplitConfig =
       /** Sélecteur d'un champ de saisie (splitView.ts) : les sites n'y retiennent aucune touche. */
       field: string
       /** Où Espace garde son sens natif (bouton, lien, vidéo). */
-      spaceKeep: string
       /** Défilement synchronisé (main.js décide de la molette : Maj l'inverse). */
       sync: boolean
       /** Webviews des panneaux affichés (molette synchronisée). */

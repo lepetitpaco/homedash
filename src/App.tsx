@@ -48,7 +48,6 @@ import {
   hiddenPauseWanted,
   pauseWanted,
   FIELD_SELECTOR,
-  SPACE_KEEPS,
   isEditing,
   assignSites,
   canFocus,
@@ -1428,7 +1427,6 @@ export default function App() {
       open: true,
       table: interceptTable(split.prefs, splitN),
       field: FIELD_SELECTOR,
-      spaceKeep: SPACE_KEEPS,
       sync: split.prefs.sync,
       ids: splitIds,
     })
@@ -1586,7 +1584,6 @@ export default function App() {
       // Échap ferme la couche du dessus, pas la vue : la capture passe avant elle, on voit donc encore la couche.
       if (e.key === 'Escape' && layerOpen()) return
       const t = e.target as HTMLElement | null
-      if (e.code === 'Space' && t?.closest?.(SPACE_KEEPS)) return
       const a = resolveKey({ key: e.key, code: e.code, shift: e.shiftKey, alt: e.altKey, ctrl: e.ctrlKey, meta: e.metaKey }, s.prefs, {
         editing: isEditing(t),
         panes: layoutOf(s.layout).n,

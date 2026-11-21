@@ -80,7 +80,7 @@ describe('vue scindée : molette horizontale de Maj et survol sans mouvement (#1
     expect(sidewaysWheel({ shiftKey: true, deltaX: 3, deltaY: 60 })).toBe(false)
   })
   it('le blocage de Maj + molette horizontale vaut vue ouverte, Flux comme Messagerie ; retiré à la fermeture', () => {
-    expect(blockWanted({ open: true, table: { codes: ['KeyJ'] } })).toBe(true) // Flux
+    expect(blockWanted({ open: true, table: { codes: ['ArrowDown'] } })).toBe(true) // Flux
     expect(blockWanted({ open: true, table: { codes: [], shift: [], alt: [], relay: [] } })).toBe(true) // Messagerie
     expect(blockWanted({ open: false })).toBe(false)
     expect(blockWanted(null)).toBe(false)

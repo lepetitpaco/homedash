@@ -60,7 +60,7 @@ window.addEventListener(
 // aucune touche retenue, rien relayé. Sinon : les touches de la table sont retenues (le site ne les voit pas,
 // pour ne pas doubler ses propres raccourcis) et relayées à la page, qui décide de l'action. Jamais dans un
 // champ de saisie. Échap est relayé sans être retenu, et seulement si le site ne s'en est pas servi.
-let split = { open: false, table: { codes: [], shift: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false }
+let split = { open: false, table: { codes: [], shift: [], alt: [], relay: [] }, field: '', sync: false }
 // Touche que homedash va envoyer lui-même à ce site (site-adapters.js) : on la laisse passer une fois.
 let pass = { name: '', until: 0 }
 ipcRenderer.on('homedash:split-pass', (_e, name) => {
@@ -118,8 +118,6 @@ window.addEventListener(
       ? !e.shiftKey && (t.alt || []).includes(e.code)
       : ((e.shiftKey ? t.shift : t.codes) || []).includes(e.code)
     if (!hit) return
-    // Espace garde son sens sur un bouton, un lien, une vidéo (même règle que la page).
-    if (e.code === 'Space' && split.spaceKeep && e.target?.closest?.(split.spaceKeep)) return
     e.preventDefault()
     e.stopImmediatePropagation()
     send()
