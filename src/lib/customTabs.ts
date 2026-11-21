@@ -31,7 +31,8 @@ export function hostOf(url: string): string {
  * Sites connus pour refuser l'affichage dans une autre page (X-Frame-Options /
  * frame-ancestors) : on le dit avant que l'utilisateur ne tombe sur une page blanche.
  */
-const NO_EMBED = /(^|\.)(google\.com|github\.com|basecamp\.com|37signals\.com|trello\.com|slack\.com|notion\.so|figma\.com|linkedin\.com|facebook\.com|x\.com|twitter\.com|microsoft\.com|office\.com|live\.com|atlassian\.net|apple\.com|amazon\.[a-z.]+|youtube\.com)$/
+const NO_EMBED =
+  /(^|\.)(google\.com|github\.com|basecamp\.com|37signals\.com|trello\.com|slack\.com|notion\.so|figma\.com|linkedin\.com|facebook\.com|x\.com|twitter\.com|microsoft\.com|office\.com|live\.com|atlassian\.net|apple\.com|amazon\.[a-z.]+|youtube\.com|instagram\.com|tiktok\.com|threads\.net|messenger\.com|whatsapp\.com|discord\.com|reddit\.com|netflix\.com|spotify\.com|twitch\.tv|chatgpt\.com|claude\.ai|gitlab\.com|dropbox\.com|icloud\.com|proton\.me|yahoo\.com|mastodon\.social|pinterest\.com|snapchat\.com|deezer\.com|soundcloud\.com|asana\.com|perplexity\.ai)$/
 
 export function refusesEmbed(url: string): boolean {
   return NO_EMBED.test(hostOf(url))

@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Pick from './Pick'
 import { desktop } from '../lib/desktop'
-import { copyFrame } from '../lib/splitViews'
+import { NAV_START, copyFrame, navFail, navOk, startUrl } from '../lib/splitViews'
 import {
   ACTIONS_OFF_HINT,
   FLAG_HELP,
@@ -43,6 +43,10 @@ type Props = {
   gone: boolean[]
   /** Par case : une COPIE du site (nouvelle page, même connexion) plutôt que le vrai site ; décidé par le type (#179). */
   copies: boolean[]
+  /** Dernière adresse notée de chaque copie (#180), lue à sa création seulement ; `null` = l'adresse de départ du site. */
+  copyStart: (string | null)[]
+  /** Une copie a navigué : l'adresse à noter (même site), ou `null` (autre site, page en erreur, accueil). */
+  onCopyNav: (slot: number, url: string | null) => void
   /** La webview d'une copie est prête (id) ; `null` quand elle disparaît. */
   onCopyGuest: (slot: number, id: number | null) => void
   /** Son coupé d'office pour une copie (le panneau n'a pas le son). */
@@ -86,7 +90,25 @@ export function Mini({ node }: { node: SplitNode }) {
  * son historique et sa position. Posée en position fixe sur l'emplacement de son panneau (comme les sites réels) pour
  * ne pas être recréée quand on agrandit un panneau. Fermée avec la vue.
  */
-function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect | null; muted: boolean; onGuest: (id: number | null) => void }) {
+function CopyPane({
+  site,
+  rect,
+  muted,
+  start,
+  onGuest,
+  onNav,
+}: {
+  site: PaneSite
+  rect: Rect | null
+  muted: boolean
+  start: string | null
+  onGuest: (id: number | null) => void
+  onNav: (url: string | null) => void
+}) {
+  // L'adresse de départ est fixée à la création : la changer ensuite rechargerait la copie (#180).
+  const [src] = useState(() => (site.url ? startUrl(start, site.url) : site.url))
+  const navRef = useRef(onNav)
+  navRef.current = onNav
   const el = useRef<(HTMLElement & { setAudioMuted: (m: boolean) => void; getWebContentsId: () => number }) | null>(null)
   const mutedRef = useRef(muted)
   mutedRef.current = muted
@@ -105,8 +127,31 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
       }
     }
     w.addEventListener('dom-ready', ready)
+    // #180 : chaque navigation (page ou reel changé sans recharger) est notée, nettoyée (navOk / navFail, splitViews.ts) :
+    // une réponse HTTP en erreur n'est jamais notée, un échec de chargement rend la dernière bonne adresse.
+    const home = site.url ?? ''
+    let state = NAV_START
+    const emit = (next: typeof state) => {
+      if (next.current !== state.current) navRef.current(next.current)
+      state = next
+    }
+    const nav = (e: Event) => {
+      const ev = e as Event & { url?: string; isMainFrame?: boolean; httpResponseCode?: number }
+      if (ev.type === 'did-navigate-in-page' && ev.isMainFrame === false) return
+      emit(navOk(state, ev.url, home, ev.httpResponseCode))
+    }
+    const fail = (e: Event) => {
+      const ev = e as Event & { errorCode?: number; isMainFrame?: boolean; validatedURL?: string }
+      emit(navFail(state, ev.validatedURL, home, ev.errorCode ?? 0, ev.isMainFrame !== false))
+    }
+    w.addEventListener('did-navigate', nav)
+    w.addEventListener('did-navigate-in-page', nav)
+    w.addEventListener('did-fail-load', fail)
     return () => {
       w.removeEventListener('dom-ready', ready)
+      w.removeEventListener('did-navigate', nav)
+      w.removeEventListener('did-navigate-in-page', nav)
+      w.removeEventListener('did-fail-load', fail)
       guestRef.current(null)
     }
   }, [])
@@ -128,7 +173,7 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
           ref={(n) => {
             el.current = n as typeof el.current
           }}
-          src={site.url}
+          src={src}
           partition={site.partition}
           {...{ allowpopups: 'true' as unknown as boolean }}
         />
@@ -136,7 +181,7 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
         // Hors de l'appli : un cadre, comme les sites dans un navigateur (même bac à sable que CustomTabView).
         <iframe
           className="split-copy-frame"
-          src={site.url}
+          src={src}
           title={site.label}
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
           referrerPolicy="no-referrer"
@@ -462,7 +507,15 @@ export default function SplitView(p: Props) {
       {p.copies.map((c, i) => {
         const k = p.slots[i]
         const site = k ? p.sites.find((x) => x.key === k) : undefined
-        return c && site && i < lay.n ? <CopyPane key={`${i}:${k}`} site={site} rect={copyRects[i] ?? null} muted={p.copyMuted[i] ?? true} onGuest={(id) => p.onCopyGuest(i, id)} /> : null
+        return c && site && i < lay.n ? <CopyPane
+            key={`${i}:${k}`}
+            site={site}
+            rect={copyRects[i] ?? null}
+            muted={p.copyMuted[i] ?? true}
+            start={p.copyStart[i] ?? null}
+            onGuest={(id) => p.onCopyGuest(i, id)}
+            onNav={(url) => p.onCopyNav(i, url)}
+          /> : null
       })}
       {dragging ? createPortal(<div className="split-shield" />, document.body) : null}
     </div>
