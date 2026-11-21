@@ -267,6 +267,18 @@ describe('vue Flux : écriture des seules dernières adresses (#180)', () => {
     expect(r.status).toBe(200)
     expect(store.read<any>(store.CONFIG_PREV, {}).marque).toBeUndefined()
   })
+  it('une vue enregistrée à moins de 4 cases : la 1re écriture d’adresses reste discrète', async () => {
+    const short = { id: 'sv-1', name: 'Flux', layout: 'c2', slots: ['x-a', 'x-b'], copies: [true, true] }
+    store.write(store.CONFIG, { ...BASE, splitViews: [short] })
+    store.write(store.CONFIG_PREV, { marque: 'avant' })
+    // ce que la page écrit : la vue normalisée (4 cases), plus les adresses
+    const page = { ...short, slots: ['x-a', 'x-b', null, null], copies: [true, true, false, false], last: ['https://x.com/a', null, null, null] }
+    expect(store.onlyLastChanged(store.read(store.CONFIG, {}), { ...BASE, splitViews: [page] })).toBe(true)
+    expect((await call('PUT', '/api/config', { body: { ...BASE, splitViews: [page] } })).status).toBe(200)
+    expect(store.read<any>(store.CONFIG_PREV, {}).marque).toBe('avant')
+    // une case remplie en plus n'est pas une adresse : vrai réglage
+    expect(store.onlyLastChanged(store.read(store.CONFIG, {}), { ...BASE, splitViews: [{ ...page, slots: ['x-a', 'x-b', 'x-c', null] }] })).toBe(false)
+  })
   it('la décision se fait en comparant les configs, pas sur la foi de la page', () => {
     const a = { ...BASE, splitViews: [view()] }
     expect(store.onlyLastChanged(a, { ...BASE, splitViews: [view(['https://x.com/a'])] })).toBe(true)

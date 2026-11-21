@@ -184,8 +184,10 @@ describe('vues scindées enregistrées (#169)', () => {
   it('copie hors de l’appli (navigateur) : un cadre ; un site qui refuse d’être encadré le dit', () => {
     expect(copyFrame(true, 'https://www.instagram.com/')).toBe('webview')
     expect(copyFrame(true, 'https://x.com/home')).toBe('webview')
-    expect(copyFrame(false, 'https://www.instagram.com/')).toBe('iframe')
+    expect(copyFrame(false, 'https://example.org/')).toBe('iframe')
     expect(copyFrame(false, 'https://x.com/home')).toBe('refused')
+    for (const u of ['https://www.instagram.com/', 'https://www.tiktok.com/foryou', 'https://web.whatsapp.com/', 'https://discord.com/app'])
+      expect(copyFrame(false, u), u).toBe('refused')
   })
 })
 
@@ -269,6 +271,8 @@ describe('dernière adresse : vie privée, erreurs, accueil (#180)', () => {
     expect(navFail(s3, 'https://www.instagram.com/reel/3/', home, -302)).toBe(s3)
     expect(navFail(s3, 'https://www.instagram.com/reel/3/', home, -105, false)).toBe(s3)
     expect(navFail(s3, 'https://www.instagram.com/reel/9/', home, -105)).toBe(s3)
+    // pas une page web (about:blank du déchargement avant de quitter, page d'erreur) : rien, pas même null
+    for (const u of ['about:blank', 'chrome-error://chromewebdata/', 'data:text/html,x', '']) expect(navOk(s3, u, home)).toBe(s3)
     // autre site : on repartira de l'accueil
     expect(navOk(s3, 'https://www.facebook.com/x', home).current).toBeNull()
   })

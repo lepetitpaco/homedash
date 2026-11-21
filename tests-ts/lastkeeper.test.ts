@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { MAX_WAIT_MS, MIN_GAP_MS, QUIET_MS, createLastKeeper } from '../src/lib/lastKeeper'
-import { normalizeViews, withLast } from '../src/lib/splitViews'
+import { NAV_START, navOk, normalizeViews, withLast } from '../src/lib/splitViews'
 import type { SavedSplitView } from '../src/types'
 
 /** Une horloge et une config factices : `latest` avance à chaque écriture, comme `useConfigState`. */
@@ -112,5 +112,22 @@ describe('dernières adresses : écriture regroupée (#180)', () => {
     w.advance(MAX_WAIT_MS * 2)
     expect(w.writes).toHaveLength(0)
     expect(w.keeper.pendingOf('A')).toEqual([null, null, null, null])
+  })
+  it('quitter / recharger / mettre à jour : about:blank dans chaque copie ne note rien, l’adresse écrite est gardée', () => {
+    const home = 'https://www.instagram.com/'
+    const w = world([v('A', [reel(1)])])
+    w.keeper.open('A')
+    // la copie démarre sur l'adresse notée : rien de neuf
+    let nav = navOk(NAV_START, reel(1), home, 200)
+    w.keeper.note('A', 0, nav.current)
+    // unloadGuests (main.js) charge about:blank dans toutes les webviews, puis pagehide écrit ce qui attend
+    const after = navOk(nav, 'about:blank', home)
+    expect(after).toBe(nav)
+    nav = after
+    w.keeper.note('A', 0, nav.current)
+    w.keeper.flush()
+    w.keeper.close('A')
+    expect(w.writes).toHaveLength(0)
+    expect(normalizeViews(w.cfg.latest.splitViews)[0].last).toEqual([reel(1), null, null, null])
   })
 })

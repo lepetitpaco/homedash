@@ -190,9 +190,16 @@ function canonical(v: unknown): string {
  * une navigation n'est pas un changement de réglage. Décidé en comparant les deux configs, jamais sur la foi de la page.
  */
 export function onlyLastChanged(before: unknown, after: unknown): boolean {
+  // Les vues ramenées à la forme que la page écrit (`normalizeViews`) : 4 cases, `copies` complété à 4 ; sinon une config
+  // écrite avant (vue à 2 cases) faisait passer la 1re écriture d'adresses pour un vrai réglage.
+  const pad = (l: unknown, fill: null | false) =>
+    Array.isArray(l) ? Array.from({ length: Math.max(4, l.length) }, (_, i) => (l[i] === undefined ? fill : l[i])) : l
   const strip = (c: unknown): unknown => {
     if (!isObj(c) || !Array.isArray(c.splitViews)) return c
-    return { ...c, splitViews: c.splitViews.map((v) => (isObj(v) ? { ...v, last: undefined } : v)) }
+    return {
+      ...c,
+      splitViews: c.splitViews.map((v) => (isObj(v) ? { ...v, slots: pad(v.slots, null), copies: pad(v.copies, false), last: undefined } : v)),
+    }
   }
   if (!isObj(before) || !isObj(after)) return false
   return canonical(strip(before)) === canonical(strip(after)) && canonical(before) !== canonical(after)

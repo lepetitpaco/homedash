@@ -140,6 +140,10 @@ export const NAV_START: CopyNav = { current: null, previous: null }
 
 export function navOk(s: CopyNav, url: unknown, home: string, httpCode?: number): CopyNav {
   if (typeof httpCode === 'number' && httpCode >= 400) return s
+  // Pas une page web (about:blank, chrome-error:, data:…) : rien n'est noté, pas même `null`. L'appli charge
+  // about:blank dans toutes les webviews avant de quitter, recharger ou se mettre à jour (`unloadGuests`, main.js) :
+  // noter `null` effaçait toutes les adresses. Seule une vraie page d'un autre site fait repartir de l'accueil.
+  if (!cleanUrl(url)) return s
   const noted = notedUrl(url, home)
   return noted === s.current ? s : { current: noted, previous: s.current }
 }
