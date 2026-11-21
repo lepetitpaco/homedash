@@ -206,7 +206,7 @@ Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajout
 | --- | --- | --- |
 | Pour | Suivre plusieurs messageries : Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
 | Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre : défiler la tuile ne bouge jamais l'onglet du site. Toujours des copies, vues anciennes comprises |
-| Son | **Tous les sons** : un appel Discord reste audible, jamais de pause | **Le panneau où tu agis** : le dernier geste gagne (survol, molette, touche de mixage, `Alt` + chiffre, clic) ; les autres sont coupés et leurs vidéos en pause, elles reprennent quand le panneau retrouve le son |
+| Son | **Tous les sons** : un appel Discord reste audible, jamais de pause | **Le panneau où tu agis** : le dernier geste gagne (survol, molette, touche de mixage, chiffre, clic) ; les autres sont coupés et leurs vidéos en pause, elles reprennent quand le panneau retrouve le son |
 | Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Table de mixage et raccourcis, toujours actifs (tableau ci-dessous) |
 
 Le type décide de tout. Il ne reste que **deux cases**, les mêmes dans les deux types (menu *Options* de la barre,
@@ -243,7 +243,7 @@ et *Réglages → Vue scindée* le rappellent.
 | *Table de mixage* : `A`/`Q` `Z`/`S` `E`/`D` `R`/`F` (AZERTY), `Q`/`A` `W`/`S` `E`/`D` `R`/`F` (QWERTY) | Haut / bas des panneaux 1 à 4, d'une main : un seul panneau, qui prend le son. **`Maj` + touche** : tous les panneaux, dans le sens de la touche |
 | `J` `K` ou `↓` `↑` | Défiler d'un cran (une carte sur TikTok, Reels) **le panneau sous la souris** (sans souris sur la grille : le panneau actif), qui prend le son. **`Maj`** : tous |
 | `N` `P`, `Espace` `Maj+Espace` | Page suivante / précédente du panneau actif (`Maj` + `N` `P` : tous) |
-| `Alt` + `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY) | Panneau 1 à 4 : il devient actif et prend le son |
+| `&` `é` `"` `'` (AZERTY) ou `1` `2` `3` `4` (QWERTY), seuls | Panneau 1 à 4 : il devient actif et prend le son (pas dans un champ de saisie ; `Alt` + la même touche marche toujours) |
 | `X` | Agrandir / restaurer le panneau actif (`Z` est « panneau 2 haut » en AZERTY) |
 | `Échap` | Quitter l'agrandissement, puis la vue (un site qui s'en sert pour fermer sa fenêtre la garde pour lui) |
 | `L` `B` `T` `C` | *Actions par site* : j'aime, enregistrer, repartager, commenter (ouvre le champ, n'envoie rien), sur X, TikTok et Instagram, dans la publication au centre du panneau ; « Action indisponible sur ce site » sinon. Pas de « Suivre » pour l'instant ; jamais avec `Maj` (pas de « J'aime » à tous) |
