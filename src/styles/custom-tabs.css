@@ -1062,13 +1062,14 @@
 
 /* Mode focus (issue #144) : le site prend toute la fenêtre. La barre du haut sort de l'écran et revient
    au survol du bord haut (bande .topbar-hot), ou dès qu'elle a le focus (⌘K, Tab) ; la barre de gauche
-   passe en masquage automatique (App.tsx). */
-.app.is-site.is-focus {
+   passe en masquage automatique (App.tsx). Aussi sur une vue scindée (#183) : ces règles ne dépendent donc pas de
+   `is-site` (une vue ouverte sur l'accueil n'a pas cette classe) ; seul le cadre d'un site reste sous `is-site`. */
+.app.is-focus {
   --gutter: 0px;
   --site-gap: 0px;
   padding-top: 0;
 }
-.app.is-site.is-focus .topbar {
+.app.is-focus .topbar {
   position: fixed;
   top: 0;
   left: 0;
@@ -1087,9 +1088,9 @@
   z-index: 41;
 }
 /* même poids que la règle qui la cache, sinon le survol ne gagne pas */
-.app.is-site.is-focus .topbar-hot:hover + .topbar,
-.app.is-site.is-focus .topbar:hover,
-.app.is-site.is-focus .topbar:has(:focus-visible) {
+.app.is-focus .topbar-hot:hover + .topbar,
+.app.is-focus .topbar:hover,
+.app.is-focus .topbar:has(:focus-visible) {
   transform: none;
   transition-delay: 0s;
 }

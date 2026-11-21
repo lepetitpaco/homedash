@@ -175,6 +175,15 @@ export function dragRatios(ratios: number[], index: number, delta: number, min =
 export type Focus = { active: number; sound: number | null }
 
 /**
+ * Le mode focus (⌘⇧F, ⤢ : les barres se cachent, #144) est permis sur un site affiché ET sur une vue scindée ouverte,
+ * quel que soit l'onglet dessous, même l'accueil (#183). Avant, la vue scindée n'avait ni bouton ni raccourci à elle :
+ * ⌘⇧F ne marchait que par hasard, quand le site dessous en était un.
+ */
+export function canFocus(siteShown: boolean, splitOpen: boolean): boolean {
+  return siteShown || splitOpen
+}
+
+/**
  * Un geste sur un panneau : survol, molette, touche de mixage, Alt+chiffre, clic. En Flux il devient actif et prend
  * le son, **le dernier geste gagne** (#177) ; la souris qui sort de la grille ne coupe rien. En Messagerie tous ont
  * le son : seul le panneau actif change.

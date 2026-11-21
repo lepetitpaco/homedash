@@ -411,3 +411,84 @@
   font-size: 0.8rem;
   line-height: 30px;
 }
+
+/* ═══ Mode focus d'une vue scindée (#183) ════════════════════════════════════
+   ⌘⇧F / ⤢ : la barre du haut sort de l'écran par `transform`, mais `--strip-h` (sa hauteur mesurée) reste à sa valeur :
+   sans ces règles la vue gardait une bande vide de 69 px, et la barre de la vue + l'en-tête de panneau prenaient encore
+   ~120 px (la page n'avait que 78 % de la fenêtre). Ici : la grille part du haut de la fenêtre, bord à bord ; la barre de
+   la vue devient une surcouche qui revient avec la barre du haut (survol du bord haut) ; l'en-tête de panneau reste (numéro,
+   son, ⤡) mais compact. La racine passe au-dessus des sites posés (z-index 6 > 5) pour que la surcouche se voie, en étant
+   transparente et traversable (`pointer-events: none`) : elle ne masque ni ne capte rien de ce qui est dessous. */
+/* Fond de la fenêtre, juste sous les sites posés (z-index 5) : la racine est transparente en focus, sans lui la page
+   du dessous (accueil, site) se verrait entre les panneaux. */
+.app.is-focus:has(.split-root)::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  background: var(--bg);
+}
+.app.is-focus .split-root {
+  top: 0;
+  z-index: 6;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+}
+.app.is-focus .split-grid,
+.app.is-focus .split-head,
+.app.is-focus .split-bar {
+  pointer-events: auto;
+}
+/* le fond du panneau ne couvre plus la page (la racine est au-dessus) ; l'en-tête garde le sien */
+.app.is-focus .split-pane {
+  background: transparent;
+  border-radius: 0;
+}
+.app.is-focus .split-head {
+  min-height: 30px;
+  background: var(--panel);
+}
+.app.is-focus .split-btn {
+  width: 34px;
+  height: 30px;
+}
+.app.is-focus .split-bar {
+  position: absolute;
+  z-index: 8; /* au-dessus des copies (5), qui sont dans la même racine */
+  top: var(--focus-bar-top, 0px);
+  left: 8px;
+  right: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.35s, visibility 0s linear 0.5s;
+}
+/* revient avec la barre du haut (même délai de départ qu'elle) : survol du bord haut, de l'une ou de l'autre barre, et tant
+   que le menu Options (portail dans <body>, accroché à sa pastille) est ouvert */
+.app.is-focus:has(.topbar-hot:hover, .topbar:hover, .topbar :focus-visible, .split-bar:hover, .split-bar :focus-visible, .split-bar [aria-expanded='true']) .split-bar {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+/* la barre du haut reste là tant que celle de la vue est utilisée (sinon elle flotte seule sous un vide) */
+.app.is-focus:has(.split-bar:hover, .split-bar :focus-visible, .split-bar [aria-expanded='true']) .topbar {
+  transform: none;
+  transition-delay: 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.is-focus .split-bar {
+    transition: none;
+  }
+}
+
+/* Une vue scindée ouverte sur l'accueil : le pied de page de l'accueil (z-index 40) passait par-dessus le bas des
+   panneaux, en focus comme hors focus (#183). Rien de la page du dessous ne doit recouvrir la vue. */
+.app:has(.split-root) .footer {
+  display: none;
+}

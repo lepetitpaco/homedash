@@ -51,6 +51,7 @@ import {
   SPACE_KEEPS,
   isEditing,
   assignSites,
+  canFocus,
   detectKeyboard,
   effectiveMuted,
   focusOnGesture,
@@ -586,23 +587,36 @@ export default function App() {
   // Toujours là (sauf cachée exprès), même sans site : ⚡, ＋ et ⚙ disent par où
   // commencer (issue #45). Vide, elle invitait à rien et se cachait.
   const railOn = !railHidden
+  // État de la vue scindée, déclaré ici car le mode focus (juste dessous) en dépend (#183).
+  type SplitState = { viewId?: string; editing?: boolean; copies: boolean[]; ratios: Record<string, number[]>; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
+  const [split, setSplit] = useState<SplitState | null>(null)
+  const splitRef = useRef(split)
+  splitRef.current = split
   // Mode focus (issue #144) : le site affiché prend toute la fenêtre, les barres reviennent au
-  // survol de leur bord. ⌘⇧F (Ctrl+Maj+F) ou ⤢ ; seulement sur un site, oublié en le quittant.
+  // survol de leur bord. ⌘⇧F (Ctrl+Maj+F) ou ⤢ ; sur un site, ou (#183) sur une vue scindée, quel que soit
+  // l'onglet dessous (même l'accueil) ; oublié en quittant le site ou en fermant la vue.
   const [focusWanted, setFocusWanted] = useState(false)
   const siteNow = tab.startsWith('x:') && allTabs.some((t) => tabKey(t) === tab && t.embed)
-  const focus = focusWanted && siteNow
-  const siteNowRef = useRef(siteNow)
-  siteNowRef.current = siteNow
+  const focusable = canFocus(siteNow, !!split)
+  const focus = focusWanted && focusable
+  const focusableRef = useRef(focusable)
+  focusableRef.current = focusable
   const toggleFocus = useCallback(() => {
-    if (siteNowRef.current) setFocusWanted((v) => !v)
+    if (focusableRef.current) setFocusWanted((v) => !v)
   }, [])
   useEffect(() => {
-    if (!siteNow) setFocusWanted(false)
-  }, [siteNow])
+    if (!focusable) setFocusWanted(false)
+  }, [focusable])
+  // Fermer la vue rend la fenêtre telle qu'elle était : le focus de la vue ne reste pas sur le site dessous.
+  const hadSplit = useRef(false)
+  useEffect(() => {
+    if (hadSplit.current && !split) setFocusWanted(false)
+    hadSplit.current = !!split
+  }, [split])
   useEffect(() => desktop?.onFocusToggle?.(toggleFocus), [toggleFocus])
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.shiftKey && !e.altKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && siteNowRef.current) {
+      if (e.shiftKey && !e.altKey && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'f' && focusableRef.current) {
         e.preventDefault()
         toggleFocus()
       }
@@ -610,6 +624,21 @@ export default function App() {
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [toggleFocus])
+  // Mode focus : où revient la barre de la vue scindée, juste sous la barre du haut qui revient au survol (#183).
+  // `--strip-h` ne dit pas cette hauteur (barre d'onglets seulement) ; `offsetHeight` ignore le `transform` qui la cache.
+  useLayoutEffect(() => {
+    if (!focus) return
+    const el = document.querySelector<HTMLElement>('.topbar')
+    if (!el) return
+    const set = () => document.documentElement.style.setProperty('--focus-bar-top', `${el.offsetHeight}px`)
+    set()
+    const ro = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(set)
+    ro?.observe(el)
+    return () => {
+      ro?.disconnect()
+      document.documentElement.style.removeProperty('--focus-bar-top')
+    }
+  }, [focus])
   // Barres masquées par le réglage, ou le temps du mode focus.
   const hideBars = autoHide || focus
   useEffect(() => {
@@ -1135,10 +1164,6 @@ export default function App() {
   // ── vue scindée (issue #160) ──────────────────────────────────────────────
   // Plusieurs sites côte à côte : les sites déjà vivants sont posés en grille par CSS (`tile`), jamais
   // rechargés. Les réglages (`ui.split`) donnent le départ ; ceux de la barre de la vue ne durent que la vue.
-  type SplitState = { viewId?: string; editing?: boolean; copies: boolean[]; ratios: Record<string, number[]>; gone: boolean[]; layout: string; slots: (string | null)[]; zoom: number | null; prefs: SplitPrefs; focus: Focus }
-  const [split, setSplit] = useState<SplitState | null>(null)
-  const splitRef = useRef(split)
-  splitRef.current = split
   const [splitRects, setSplitRects] = useState<(Rect | null)[]>([])
   const [splitNotes, setSplitNotes] = useState<(string | null)[]>([null, null, null, null])
   const [guestVer, setGuestVer] = useState(0)
@@ -2729,7 +2754,7 @@ export default function App() {
       {focus ? <div className="topbar-hot" aria-hidden="true" /> : null}
       <TopBar
         site={view.startsWith('x:')}
-        focus={view.startsWith('x:') && !split ? { on: focus, toggle: toggleFocus } : undefined}
+        focus={view.startsWith('x:') || (!!split && view !== 'search') ? { on: focus, toggle: toggleFocus } : undefined}
         unread={(() => {
           // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
           // Rien à lire = rien d'affiché ; pas de réglage.

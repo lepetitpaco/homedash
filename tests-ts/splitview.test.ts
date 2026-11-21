@@ -11,6 +11,7 @@ import {
   effectivePaused,
   pauseWanted,
   LAYER_SELECTOR,
+  canFocus,
   focusOnGesture,
   interceptTable,
   layoutOf,
@@ -375,4 +376,11 @@ describe('pause et fermeture de la vue (#168)', () => {
   it('les couches se reconnaissent à leur rôle', () => {
     for (const r of ['dialog', 'menu', 'listbox']) expect(LAYER_SELECTOR).toContain(`[role="${r}"]`)
   })
+})
+
+describe('mode focus : site ou vue scindée (#183)', () => {
+  it('permis sur un site affiché', () => expect(canFocus(true, false)).toBe(true))
+  it('permis sur une vue scindée, même sans site dessous (accueil)', () => expect(canFocus(false, true)).toBe(true))
+  it('permis quand les deux sont là', () => expect(canFocus(true, true)).toBe(true))
+  it('refusé sur une page sans site ni vue', () => expect(canFocus(false, false)).toBe(false))
 })
