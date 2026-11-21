@@ -446,7 +446,7 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   barre, que le `transform` de focus ne change pas : en focus la racine est à `top: 0`, sinon bande vide ; (2) la racine devient
   **transparente, traversable** (`pointer-events: none`) et passe à `z-index: 6` : la barre de la vue, surcouche qui revient
   avec la barre du haut, doit être au-dessus des copies (`z-index: 5`, dans la **même** racine, donc la barre est à 8) ; un
-  fond `.app.is-focus::before` (z-index 4, sous les copies) évite que la page du dessous se voie entre les panneaux ;
+  fond `.app.is-focus:has(.split-root)::before` (z-index 4, sous les copies) évite que la page du dessous se voie entre les panneaux ;
   (3) la barre de la vue se place sous la barre du haut grâce à `--focus-bar-top`, mesurée (`offsetHeight` ignore le
   `transform`) : `--topbar-h` n'est **jamais posée** (son repli 0 est partout), ne pas s'en servir ; (4) `:has()` ne
   s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, site, son,
@@ -466,7 +466,14 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   est défini plus loin et écrasait la largeur ; (2) le menu Options et la bulle sont des portails dans `<body>` : sans
   `focus()` à l'ouverture et sans piège de Tab, ils étaient injoignables au clavier ; (3) la zone sensible d'un séparateur
   (16 px) est obtenue par une marge négative (le visuel et l'espace ne changent pas) ; (4) `.split-copy` a `background:
-  var(--bg)`, pas `#fff` : un coin blanc perçait au bout d'une barre de défilement.
+  var(--bg)`, pas `#fff` : un coin blanc perçait au bout d'une barre de défilement ; (5) les flèches d'un séparateur
+  **n'écrivent pas la config à chaque appui** (une flèche tenue = une écriture + `reloadAll()` par répétition, mesuré : 5 PUT
+  pour 5 appuis) : aperçu à chaque appui, écriture 600 ms après le dernier ou à la sortie du séparateur ; (6) la zone de prise
+  d'un séparateur est une marge négative : il doit être **au-dessus des copies** (`z-index: 6` > 5), sinon elles la mangent
+  (12 px réels au lieu de 16) ; (7) en mode focus, Échap dans Options **lâche** le focus au lieu de le rendre au bouton : un
+  bouton gardé au focus clavier (`:focus-visible`) laisse les barres affichées sans fin ; (8) *En pause* ne s'affiche que dans
+  l'appli (`desktop.splitDo`) : la pause n'existe pas dans un navigateur ; (9) la barre d'une vue ouverte est compacte (32 px),
+  mais le composeur garde ses pastilles à 44 px (`.svc .split-chip`).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
