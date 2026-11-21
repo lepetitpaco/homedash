@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
 import { DEFAULT_SPLIT, withMode } from '../src/lib/splitView'
-import { copiesFor, moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
+import { copiesFor, isPageUrl, keepLast, notedUrl, sameLast, sameSite, startUrl, withLast, moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
 const tab = (id: string, label: string, session?: string): CustomTab => ({ id, label, url: `https://${id}.example`, embed: true, session })
@@ -180,5 +180,56 @@ describe('vues scindées enregistrées (#169)', () => {
     expect(v.prefs).toEqual({ mode: 'classic', sync: true, actions: false })
     const custom = normalizeViews([{ ...legacy, prefs: { ...legacy.prefs, mode: 'custom', follow: 'hover' } }])[0]
     expect(custom.prefs?.mode).toBe('scroll')
+  })
+})
+
+describe('dernière adresse des copies (#180)', () => {
+  const home = 'https://www.instagram.com/'
+  it('on note une page du même site ; jamais un autre site, une page vide ou en erreur, ni l’accueil lui-même', () => {
+    expect(notedUrl('https://www.instagram.com/reel/abc/', home)).toBe('https://www.instagram.com/reel/abc/')
+    expect(notedUrl('https://instagram.com/p/xyz/', home)).toBe('https://instagram.com/p/xyz/') // au www. près
+    expect(notedUrl('https://www.facebook.com/x', home)).toBeNull()
+    expect(notedUrl('https://evil.example/www.instagram.com/', home)).toBeNull()
+    expect(notedUrl('about:blank', home)).toBeNull()
+    expect(notedUrl('chrome-error://chromewebdata/', home)).toBeNull()
+    expect(notedUrl('data:text/html,x', home)).toBeNull()
+    expect(notedUrl('', home)).toBeNull()
+    expect(notedUrl(undefined, home)).toBeNull()
+    expect(notedUrl(home, home)).toBeNull()
+    expect(notedUrl(`https://www.instagram.com/${'a'.repeat(3000)}`, home)).toBeNull()
+    expect(sameSite('http://www.instagram.com/', home)).toBe(false) // protocole différent
+  })
+  it('à la réouverture : l’adresse notée si elle reste sur le site du panneau, sinon l’adresse de départ', () => {
+    expect(startUrl('https://www.instagram.com/reel/abc/', home)).toBe('https://www.instagram.com/reel/abc/')
+    expect(startUrl('https://x.com/home', home)).toBe(home) // le panneau a changé de site
+    expect(startUrl(null, home)).toBe(home)
+    expect(startUrl(undefined, home)).toBe(home)
+    expect(startUrl('about:blank', home)).toBe(home)
+  })
+  it('clé additive : absente si rien de noté, jamais renvoyée vide ; validée avant écriture', () => {
+    const old = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c2', slots: ['x-a', 'x-b'] }])[0]
+    expect('last' in old).toBe(false)
+    const v = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c2', slots: ['x-a', 'x-b'], last: ['https://x.com/a', 'javascript:alert(1)', 'https://x.com/c'] }])[0]
+    // la 2e n'est pas une page, la 3e est hors de la disposition (2 panneaux)
+    expect(v.last).toEqual(['https://x.com/a', null, null, null])
+    expect(normalizeViews([{ ...old, last: [null, 'about:blank'] }])[0].last).toBeUndefined()
+    expect(validateConfig({ groups: [], splitViews: [v] })).toBeNull()
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', last: ['javascript:x'] }] })).toMatch(/last/)
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', last: [1] }] })).toMatch(/last/)
+    expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', last: [null, null, null, null, null] }] })).toMatch(/last/)
+    expect(isPageUrl('https://x.com/')).toBe(true)
+  })
+  it('« Repartir du début » efface tout ; changer le site d’un panneau efface son adresse seulement', () => {
+    const v = withLast(normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'] }])[0], ['https://x.com/1', 'https://x.com/2', null])
+    expect(v.last).toEqual(['https://x.com/1', 'https://x.com/2', null, null])
+    expect('last' in withLast(v, [])).toBe(false)
+    expect(keepLast(v, ['x-a', 'x-c', 'x-b', null])).toEqual(['https://x.com/1', null, null, null])
+    expect(keepLast(v, ['x-a', 'x-b', 'x-c', null])).toEqual(['https://x.com/1', 'https://x.com/2', null, null])
+    expect(keepLast({ slots: v.slots }, v.slots)).toEqual([null, null, null, null])
+  })
+  it('rien à écrire si les adresses n’ont pas changé', () => {
+    expect(sameLast(undefined, [null, null, null, null])).toBe(true)
+    expect(sameLast(['https://x.com/1'], ['https://x.com/1', null])).toBe(true)
+    expect(sameLast(['https://x.com/1'], ['https://x.com/2'])).toBe(false)
   })
 })

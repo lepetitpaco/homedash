@@ -39,7 +39,7 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
-import { copiesFor, moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
+import { copiesFor, keepLast, moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, sameLast, siteNames, viewCounter, viewMode, viewSlots, withLast } from './lib/splitViews'
 import SplitViewComposer from './components/SplitViewComposer'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
@@ -1210,6 +1210,12 @@ export default function App() {
     const { keys, gone, copies } = viewSlots(v, embedSites, splitDefaults.mode)
     setSplitNotes([null, null, null, null])
     const prefs = v.prefs ?? splitDefaults
+    // #180 : les copies reprennent à la dernière adresse notée (celle en attente d'écriture, si c'est la même vue).
+    if (lastPending.current?.viewId !== v.id) {
+      flushLast()
+      lastPending.current = { viewId: v.id, last: [...(v.last ?? [null, null, null, null])] }
+    }
+    setCopyStart([...lastPending.current.last])
     setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs, focus: { active: 0, sound: prefs.mode === 'scroll' ? 0 : null } })
   }
   const rawRef = useRef(raw)
@@ -1217,10 +1223,57 @@ export default function App() {
   const [composing, setComposing] = useState(false)
   const [editWarn, setEditWarn] = useState('')
   /** Écrit la liste des vues dans la config d'aujourd'hui (relue : elle a pu changer pendant une attente). */
-  const writeViews = (f: (views: typeof savedViews) => typeof savedViews) => {
+  const writeViews = (f: (views: typeof savedViews) => typeof savedViews, opts?: { quiet?: boolean }) => {
     const now = rawRef.current
-    if (now) persist({ ...now, splitViews: f(normalizeViews(now.splitViews)) })
+    if (now) persist({ ...now, splitViews: f(normalizeViews(now.splitViews)) }, opts)
   }
+  // ── dernière adresse des copies (#180) ──────────────────────────────────
+  // Notée à chaque navigation d'une copie, écrite plus tard et regroupée : 5 s après la dernière navigation, et pas plus
+  // d'une fois par minute (une écriture de config relance la lecture GitHub : un reel = une navigation) ; tout de suite
+  // à la fermeture ou au changement de vue. Écriture discrète (pas d'« Enregistré »), seulement si les adresses ont changé.
+  const lastPending = useRef<{ viewId: string; last: (string | null)[] } | null>(null)
+  const lastTimer = useRef(0)
+  const lastWrote = useRef(0)
+  // Adresse de départ notée par panneau, lue par les copies à leur création seulement (jamais rechargées après).
+  const [copyStart, setCopyStart] = useState<(string | null)[]>([null, null, null, null])
+  const flushLast = () => {
+    window.clearTimeout(lastTimer.current)
+    lastTimer.current = 0
+    const p = lastPending.current
+    const now = rawRef.current
+    if (!p || !now) return
+    const cur = normalizeViews(now.splitViews).find((v) => v.id === p.viewId)
+    if (!cur || sameLast(cur.last, p.last)) return
+    lastWrote.current = Date.now()
+    writeViews((views) => views.map((v) => (v.id === p.viewId ? withLast(v, p.last) : v)), { quiet: true })
+  }
+  const flushLastRef = useRef(flushLast)
+  flushLastRef.current = flushLast
+  const noteLast = (slot: number, url: string | null) => {
+    const p = lastPending.current
+    if (!p || p.viewId !== splitRef.current?.viewId || p.last[slot] === url) return
+    p.last[slot] = url
+    window.clearTimeout(lastTimer.current)
+    const wait = Math.max(5000, lastWrote.current + 60000 - Date.now())
+    lastTimer.current = window.setTimeout(() => flushLastRef.current(), wait)
+  }
+  /** Clic droit → « Repartir du début » : la vue oublie ses adresses (la prochaine ouverture repart de l'accueil des sites). */
+  const restartView = (id: string) => {
+    if (lastPending.current?.viewId === id) {
+      window.clearTimeout(lastTimer.current)
+      lastPending.current = { viewId: id, last: [null, null, null, null] }
+    }
+    writeViews((views) => views.map((v) => (v.id === id ? withLast(v, []) : v)))
+  }
+  // La vue se ferme (ou on en ouvre une autre) : les adresses en attente sont écrites tout de suite.
+  const openViewId = split?.viewId
+  useEffect(() => {
+    if (!openViewId) return
+    return () => {
+      flushLastRef.current()
+      if (lastPending.current?.viewId === openViewId) lastPending.current = null
+    }
+  }, [openViewId])
   /** Les cases qu'une vue ne gardera pas (onglet temporaire, container Docker) : on le dit avant d'enregistrer. */
   const confirmDropped = async (slots: (string | null)[], layout: string) => {
     const dropped = droppedSlots(slots.slice(0, layoutOf(layout).n), embedSites)
@@ -1255,7 +1308,13 @@ export default function App() {
       return
     }
     if (!(await confirmDropped(s.slots, s.layout))) return
-    const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, copiesFor(s.prefs.mode), s.prefs)
+    const made = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, copiesFor(s.prefs.mode), s.prefs)
+    // #180 : un panneau dont le site a changé perd son adresse ; les autres gardent la plus récente (en attente comprise).
+    const pending = lastPending.current?.viewId === cur.id ? lastPending.current.last : cur.last
+    const last = keepLast({ slots: cur.slots, last: pending }, made.slots)
+    if (lastPending.current?.viewId === cur.id) lastPending.current.last = [...last]
+    window.clearTimeout(lastTimer.current)
+    const view = withLast(made, last)
     writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
     setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites, splitDefaults.mode).gone } : x))
   }
@@ -1277,6 +1336,10 @@ export default function App() {
       title: v.name,
       items: [
         { icon: '⚙', label: 'Modifier la vue…', onSelect: () => editView(v) },
+        // Vue Flux : les copies reprennent à leur dernière adresse (#180) ; ceci les fait repartir de l'accueil des sites.
+        ...(viewMode(v, splitDefaults.mode) === 'scroll'
+          ? [{ icon: '↺', label: 'Repartir du début', onSelect: () => restartView(v.id) }]
+          : []),
         {
           icon: '✎',
           label: 'Renommer',
@@ -2972,6 +3035,8 @@ export default function App() {
           }}
           gone={split.gone}
           copies={split.copies}
+          copyStart={copyStart}
+          onCopyNav={noteLast}
           onCopyGuest={(slot, id) => {
             if (id === null) {
               copyGuests.current.delete(slot)
@@ -2986,6 +3051,8 @@ export default function App() {
             // Un site n'est que dans une case : celui qu'on prend à une autre case y laisse la place à l'ancien.
             if (from >= 0 && from !== slot) slots[from] = slots[slot]
             slots[slot] = key
+            // #180 : un autre site dans ce panneau repart de son accueil (l'adresse notée est celle de l'ancien site).
+            setCopyStart((c) => c.map((u, i) => (i === slot || (from >= 0 && i === from) ? null : u)))
             // « Site retiré » ne s'affiche que tant qu'on n'a pas touché la case.
             setSplit({ ...split, slots, gone: split.gone.map((g, i) => (i === slot ? false : g)) })
           }}

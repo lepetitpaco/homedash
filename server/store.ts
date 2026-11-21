@@ -310,6 +310,13 @@ export function validateConfig(cfg: unknown): string | null {
           if (!good) return `splitViews[${i}].ratios doit être des listes de 2 à 4 nombres positifs`
         }
         if (f.layout !== undefined && f.layout !== null && !isStr(f.layout)) return `splitViews[${i}].layout doit être un texte`
+        // #180 : dernière adresse de chaque copie (http(s) seulement, bornée), ou null.
+        const last = f.last
+        if (last !== undefined && last !== null) {
+          const page = (x: unknown) => isStr(x) && x.length <= 2048 && /^https?:\/\//i.test(x)
+          if (!Array.isArray(last) || last.length > 4 || last.some((x) => x !== null && !page(x)))
+            return `splitViews[${i}].last doit être une liste de 4 adresses web au plus (ou null)`
+        }
         const slots = f.slots
         if (slots !== undefined && slots !== null) {
           if (!Array.isArray(slots) || slots.length > 4 || slots.some((x) => x !== null && !isStr(x)))

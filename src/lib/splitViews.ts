@@ -30,6 +30,7 @@ export function normalizeViews(raw: unknown): SavedSplitView[] {
       }
     }
     const copies = Array.from({ length: SLOTS }, (_, i) => i < layout.n && Array.isArray(r.copies) && r.copies[i] === true)
+    const last = Array.from({ length: SLOTS }, (_, i) => (i < layout.n && Array.isArray(r.last) && isPageUrl(r.last[i]) ? (r.last[i] as string) : null))
     const text = (k: string) => (typeof r[k] === 'string' && r[k] ? (r[k] as string) : undefined)
     out.push({
       id: r.id,
@@ -38,12 +39,73 @@ export function normalizeViews(raw: unknown): SavedSplitView[] {
       slots,
       ...(copies.some(Boolean) ? { copies } : {}),
       ...(r.prefs && typeof r.prefs === 'object' ? { prefs: normalizeSplit(r.prefs) } : {}),
+      ...(last.some(Boolean) ? { last } : {}),
       ...(text('before') ? { before: text('before') } : {}),
       ...(text('folder') ? { folder: text('folder') } : {}),
       ...(Object.keys(ratios).length ? { ratios } : {}),
     })
   }
   return out
+}
+
+// ── dernière adresse des copies (#180) ─────────────────────────────────────
+
+/** Longueur au plus d'une adresse notée (la même borne que `store.validateConfig`). */
+export const LAST_MAX = 2048
+
+/** Une adresse de page qu'on peut rouvrir : http(s), bornée. Jamais `about:blank`, une page d'erreur, un `data:`… */
+export function isPageUrl(u: unknown): u is string {
+  if (typeof u !== 'string' || !u || u.length > LAST_MAX) return false
+  try {
+    const p = new URL(u).protocol
+    return p === 'https:' || p === 'http:'
+  } catch {
+    return false
+  }
+}
+
+/** Même site : même protocole et même hôte, au `www.` près (instagram.com ↔ www.instagram.com), même port. */
+export function sameSite(a: string, b: string): boolean {
+  try {
+    const x = new URL(a)
+    const y = new URL(b)
+    const host = (h: string) => h.replace(/^www\./, '')
+    return x.protocol === y.protocol && host(x.hostname) === host(y.hostname) && x.port === y.port
+  } catch {
+    return false
+  }
+}
+
+/**
+ * L'adresse à noter pour une copie qui vient de naviguer vers `url` : elle-même si c'est une page du même site que le
+ * panneau (`home` = l'adresse de départ du site) ; `null` sinon (autre site, page vide ou en erreur) ou si c'est
+ * l'adresse de départ elle-même (rien à reprendre).
+ */
+export function notedUrl(url: unknown, home: string): string | null {
+  if (!isPageUrl(url) || !sameSite(url, home)) return null
+  return url === home ? null : url
+}
+
+/** Où démarre une copie à l'ouverture : l'adresse notée si elle est encore valable pour ce site, sinon l'adresse de départ. */
+export function startUrl(noted: string | null | undefined, home: string): string {
+  return noted && notedUrl(noted, home) ? noted : home
+}
+
+/** Les adresses d'une vue, remplacées (`null` partout = rien de noté : la clé disparaît, comme une vue d'avant). */
+export function withLast<T extends Pick<SavedSplitView, 'last'>>(view: T, last: (string | null)[]): T {
+  const { last: _old, ...rest } = view
+  const clean = Array.from({ length: SLOTS }, (_, i) => (isPageUrl(last[i]) ? (last[i] as string) : null))
+  return (clean.some(Boolean) ? { ...rest, last: clean } : rest) as T
+}
+
+/** « Modifier la vue » enregistrée : un panneau dont le site a changé perd son adresse ; les autres la gardent. */
+export function keepLast(before: Pick<SavedSplitView, 'slots' | 'last'>, slots: (string | null)[]): (string | null)[] {
+  return Array.from({ length: SLOTS }, (_, i) => (before.last?.[i] && before.slots[i] && before.slots[i] === slots[i] ? before.last[i] : null))
+}
+
+/** Les adresses notées ont-elles changé ? (pour ne pas écrire la config pour rien) */
+export function sameLast(a: (string | null)[] | undefined, b: (string | null)[] | undefined): boolean {
+  return Array.from({ length: SLOTS }, (_, i) => (a?.[i] ?? null) === (b?.[i] ?? null)).every(Boolean)
 }
 
 export function newViewId(taken: string[]): string {

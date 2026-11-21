@@ -257,6 +257,11 @@ export type SavedSplitView = {
    * Une vue enregistrée avant #177 : mode, `sync` et `actions` gardés, anciennes cases ignorées (`normalizeSplit`), sans migration.
    */
   prefs?: import('./lib/splitView').SplitPrefs
+  /**
+   * Vue Flux (#180) : la dernière adresse de chaque copie (http(s), même site que le panneau), ou `null`. La copie y
+   * reprend à la réouverture. Absent = rien de noté (vues d'avant, « Repartir du début ») ; clé additive, sans migration.
+   */
+  last?: (string | null)[]
   /** Place dans la barre : juste devant ce site (`CustomTab.id`). Absent, ou site disparu = à la fin, comme avant. */
   before?: string
   /** Dossier de la barre (`tabFolders[].id`) ; absent, ou dossier disparu = hors dossier. */

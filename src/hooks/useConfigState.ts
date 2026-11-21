@@ -71,14 +71,17 @@ export function useConfigState() {
   const cfg = useMemo(() => (raw ? normalizeConfig(raw) : null), [raw])
 
   // --- persistance ---------------------------------------------------------
+  // `quiet` : une écriture de fond (adresses des copies, #180) n'affiche ni « Enregistrement… » ni « Enregistré » ;
+  // une erreur s'affiche toujours.
   const persist = useCallback(
-    (next: Config) => {
+    (next: Config, opts?: { quiet?: boolean }) => {
       setRaw(next)
-      setSaveState({ kind: 'saving' })
+      if (!opts?.quiet) setSaveState({ kind: 'saving' })
       queue.current = queue.current
         .then(() => saveConfig(next, version.current))
         .then((v) => {
           version.current = v
+          if (opts?.quiet) return
           setSaveState({ kind: 'saved' })
           window.setTimeout(() => setSaveState((s) => (s.kind === 'saved' ? { kind: 'idle' } : s)), 1600)
         })
