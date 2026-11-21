@@ -212,7 +212,11 @@ ces deux cases ; ses autres anciennes cases sont ignorées.
 
 **Une vue dans la barre** : son icône ◫ porte un compteur (la somme de ceux de ses sites). Quand tu la fermes, seul le site
 qui reste affiché reprend ses vidéos et son ; les sites garés restent en pause jusqu'à ce que tu les affiches. Le clic
-droit propose *Modifier la vue…*, *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites). Si tu supprimes un
+droit propose *Modifier la vue…*, *Renommer* et *Supprimer* (seule la vue disparaît, jamais tes sites).
+**Une vue Flux reprend où tu en étais** : chaque panneau rouvre la dernière page où tu étais (un reel, un post), si elle
+est sur le même site ; sinon, ou après une page en erreur, il repart de l'accueil du site (la position exacte dans un
+fil n'est pas gardée). Clic droit → *Repartir du début* oublie ces pages ; changer le site d'un panneau dans *Modifier la
+vue…* oublie la sienne. Ces adresses restent dans tes réglages, sur ta machine. Si tu supprimes un
 site de *Mes sites*, son panneau devient vide (« Site retiré ») et la vue reste. Un onglet temporaire ou un container Docker
 n'entre pas dans une vue (homedash te le dit avant d'enregistrer ; son panneau revient vide).
 

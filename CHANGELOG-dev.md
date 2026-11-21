@@ -44,3 +44,7 @@ l'appli et ne déclenche aucune version. Règles : `CLAUDE.md`, « À chaque liv
 ## paco/fix/flux-toujours-copies
 
 - **Une vue Flux n'ouvre que des copies** (#179) : une vue Flux enregistrée avant les copies ouvrait les vrais sites, liés à leur onglet (défiler la tuile Instagram faisait défiler l'onglet Instagram). Le type décide seul, vues anciennes comprises, sans migration : Flux = copies (même compte, page à part), Messagerie = vrais sites. La bascule « Copie / Site réel » par panneau disparaît de *Modifier la vue…* ; changer le type change tous les panneaux tout de suite. Le compteur d'une vue Flux ne compte plus rien (une copie n'a pas de compteur).
+
+## paco/feature/flux-derniere-adresse
+
+- **Une vue Flux reprend où tu en étais** (#180) : chaque panneau rouvre sa dernière page (reel, post) si elle est sur le même site, sinon l'accueil du site ; clic droit → *Repartir du début* ; changer le site d'un panneau oublie sa page. Clé additive `splitViews[].last`, sans migration ; écriture discrète et regroupée (5 s après la dernière navigation, au plus une fois par minute, et à la fermeture).

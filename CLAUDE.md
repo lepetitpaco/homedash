@@ -408,6 +408,19 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   il est encore écrit, à la même valeur, pour les applis d'avant. Plus de bascule « Copie / Site réel » par panneau ;
   changer le type (`onProfile`) remplace tout de suite les panneaux. Le compteur d'une vue Flux vaut donc 0 (`viewCounter` :
   une copie n'a ni compteur ni notification).
+- **Vue Flux : dernière adresse de chaque copie** (#180, décision de Paco : reprendre les reels là où il en était, sans
+  garder les copies ouvertes, ~140 Mo chacune). Clé **additive** `splitViews[].last` (adresse http(s) ou `null` par
+  panneau ; absente = rien de noté, jamais écrite vide ; validée par `store.validateConfig` et `normalizeViews`), sans
+  migration. Notée sur `did-navigate` / `did-navigate-in-page` des copies (`CopyPane`), filtrée par `notedUrl` (même site
+  au `www.` près, jamais `about:blank`, une page d'erreur — `did-fail-load` sauf -3 — ni l'accueil lui-même) ; à
+  l'ouverture `startUrl` (adresse notée encore valable, sinon `tab.url`), lue **à la création** de la copie seulement
+  (`useState`) : changer `last` ne recharge jamais une copie ouverte. Écriture **regroupée** (`flushLast`) : 5 s après la
+  dernière navigation et au plus une fois par minute, car une écriture de config relance la lecture GitHub et chaque reel
+  est une navigation ; tout de suite à la fermeture ou au changement de vue ; seulement si les adresses changent
+  (`sameLast`) ; par `writeViews` (config relue au moment d'écrire, rien d'autre d'écrasé), en `persist(…, { quiet })`
+  (pas de toast « Enregistré »). Clic droit → *Repartir du début* (`withLast(v, [])`) ; « Modifier la vue » enregistrée
+  efface l'adresse d'un panneau dont le site change (`keepLast`). Limite : quitter l'appli vue ouverte perd au plus la
+  dernière minute de navigation.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
