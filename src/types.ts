@@ -247,8 +247,8 @@ export type SavedSplitView = {
   /** Id de site (`CustomTab.id`) par case, `null` = vide. Jamais un onglet temporaire. */
   slots: (string | null)[]
   /**
-   * Par case : `true` = une COPIE du site (nouvelle page sur la même connexion, son propre historique), `false` ou absent
-   * = le vrai site. Absent = tous réels (le comportement des vues d'avant).
+   * Par case : `true` = une copie du site. Écrit pour les applis d'avant #179, **plus lu** : le type décide
+   * (`copiesFor`, `splitViews.ts` : Flux = copies, Messagerie = vrais sites).
    */
   copies?: boolean[]
   /**
