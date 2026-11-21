@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Pick from './Pick'
+import { desktop } from '../lib/desktop'
+import { copyFrame } from '../lib/splitViews'
 import {
   ACTIONS_OFF_HINT,
   FLAG_HELP,
@@ -39,9 +41,8 @@ type Props = {
   onRatios: (next: Record<string, number[]>, commit: boolean) => void
   /** Cases dont le site a été retiré de Mes sites. */
   gone: boolean[]
-  /** Par case : une COPIE du site (nouvelle page, même connexion) plutôt que le vrai site. */
+  /** Par case : une COPIE du site (nouvelle page, même connexion) plutôt que le vrai site ; décidé par le type (#179). */
   copies: boolean[]
-  onCopy: (slot: number, copy: boolean) => void
   /** La webview d'une copie est prête (id) ; `null` quand elle disparaît. */
   onCopyGuest: (slot: number, id: number | null) => void
   /** Son coupé d'office pour une copie (le panneau n'a pas le son). */
@@ -91,6 +92,7 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
   mutedRef.current = muted
   const guestRef = useRef(onGuest)
   guestRef.current = onGuest
+  const frame = copyFrame(!!desktop, site.url ?? '')
   useEffect(() => {
     const w = el.current
     if (!w) return
@@ -121,14 +123,28 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
       style={rect ? { left: rect.x, top: rect.y, width: rect.w, height: rect.h } : undefined}
       aria-hidden={!rect}
     >
-      <webview
-        ref={(n) => {
-          el.current = n as typeof el.current
-        }}
-        src={site.url}
-        partition={site.partition}
-        {...{ allowpopups: 'true' as unknown as boolean }}
-      />
+      {frame === 'webview' ? (
+        <webview
+          ref={(n) => {
+            el.current = n as typeof el.current
+          }}
+          src={site.url}
+          partition={site.partition}
+          {...{ allowpopups: 'true' as unknown as boolean }}
+        />
+      ) : frame === 'iframe' ? (
+        // Hors de l'appli : un cadre, comme les sites dans un navigateur (même bac à sable que CustomTabView).
+        <iframe
+          className="split-copy-frame"
+          src={site.url}
+          title={site.label}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+          referrerPolicy="no-referrer"
+          allow="clipboard-read; clipboard-write; fullscreen"
+        />
+      ) : (
+        <p className="split-empty">Ce site refuse de s’afficher dans une autre page : ouvre la vue dans l’appli de bureau.</p>
+      )}
     </div>
   )
 }
@@ -245,16 +261,8 @@ export default function SplitView(p: Props) {
               <span className="split-site-name">{key ? (p.names[key] ?? site?.label ?? '') : '—'}</span>
             </span>
           )}
-          {p.editing && key && site ? (
-            <button
-              className={`split-copy-toggle${isCopy ? ' is-on' : ''}`}
-              aria-pressed={isCopy}
-              title={isCopy ? 'Copie : une page à part, avec ta connexion (clic : revenir au vrai site)' : 'Vrai site : ses notifications et ses compteurs (clic : en faire une copie à part)'}
-              onClick={() => p.onCopy(i, !isCopy)}
-            >
-              {isCopy ? 'Copie' : 'Site réel'}
-            </button>
-          ) : isCopy ? (
+          {/* Copie ou vrai site : le type de la vue décide (#179), pas de bascule par panneau. */}
+          {isCopy ? (
             <span className="split-copy-badge" title="Copie : une page à part, avec ta connexion">
               copie
             </span>

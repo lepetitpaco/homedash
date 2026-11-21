@@ -3,7 +3,8 @@
  * Sans React, pour être testé. Une vue garde l'id des *sites* ; un onglet temporaire n'y entre jamais
  * (il est fermé au redémarrage, comme ailleurs).
  */
-import { DEFAULT_SPLIT_LAYOUT, layoutOf, normalizeSplit } from './splitView'
+import { DEFAULT_SPLIT_LAYOUT, layoutOf, normalizeSplit, type SplitMode } from './splitView'
+import { refusesEmbed } from './customTabs'
 import type { CustomTab, SavedSplitView, TabSession } from '../types'
 
 const SLOTS = 4
@@ -112,14 +113,40 @@ export function makeView(
   return normalizeViews([{ id, name, layout, slots, ratios, copies, prefs, ...(place ?? {}) }])[0]
 }
 
+/** Le type d'une vue : le sien (`prefs.mode`), sinon celui de Réglages au moment de l'ouverture (vue sans `prefs`). */
+export function viewMode(view: Pick<SavedSplitView, 'prefs'>, fallback: SplitMode): SplitMode {
+  return view.prefs?.mode ?? fallback
+}
+
+/**
+ * Copie ou vrai site, par panneau (#179) : **le type décide seul**. Flux = toujours des copies (une page à part sur la
+ * même connexion : défiler la tuile ne bouge jamais l'onglet du site), Messagerie = toujours les vrais sites
+ * (notifications, compteurs, appels). Le `copies[]` stocké n'est plus lu : une vue Flux d'avant #172, sans lui, ouvrait
+ * les vrais sites, liés à leur onglet. Aucune migration : il est encore écrit (même valeur) pour les applis d'avant.
+ */
+export function copiesFor(mode: SplitMode): boolean[] {
+  return Array.from({ length: SLOTS }, () => mode === 'scroll')
+}
+
+/**
+ * Comment afficher une copie : une `webview` dans l'appli (sur la connexion du site) ; hors de l'appli (navigateur), un
+ * simple cadre sur l'adresse du site, qui est déjà « une autre page, mêmes cookies » (la page doit marcher sans l'appli,
+ * comme les sites, `CustomTabView`) ; `refused` pour un site connu pour refuser d'être affiché dans une autre page.
+ */
+export function copyFrame(inApp: boolean, url: string): 'webview' | 'iframe' | 'refused' {
+  if (inApp) return 'webview'
+  return refusesEmbed(url) ? 'refused' : 'iframe'
+}
+
 /**
  * Les cases d'une vue, prêtes à ouvrir : la clé d'onglet du site, ou `null`. `gone` = ids dont le site a été
- * supprimé de Mes sites (le panneau affiche « Site retiré », la vue ne casse pas).
+ * supprimé de Mes sites (le panneau affiche « Site retiré », la vue ne casse pas). `copies` : d'après le type
+ * (`copiesFor`) ; `fallback` = le type de Réglages, pour une vue sans `prefs`.
  */
-export function viewSlots(view: SavedSplitView, sites: CustomTab[]): { keys: (string | null)[]; gone: boolean[]; copies: boolean[] } {
+export function viewSlots(view: SavedSplitView, sites: CustomTab[], fallback: SplitMode): { keys: (string | null)[]; gone: boolean[]; copies: boolean[] } {
   const ids = new Set(sites.map((t) => t.id))
   const gone = view.slots.map((id) => !!id && !ids.has(id))
-  return { keys: view.slots.map((id, i) => (id && !gone[i] ? `x:${id}` : null)), gone, copies: view.slots.map((_, i) => view.copies?.[i] === true) }
+  return { keys: view.slots.map((id, i) => (id && !gone[i] ? `x:${id}` : null)), gone, copies: copiesFor(viewMode(view, fallback)) }
 }
 
 /**
@@ -152,10 +179,11 @@ export function droppedSlots(slotKeys: (string | null)[], sites: CustomTab[]): n
  * Compteur d'une vue : la somme de ceux de ses sites, chacun une seule fois, comptés comme le Dock
  * (un site dont les notifications sont coupées ne compte pas).
  */
-export function viewCounter(view: SavedSplitView, counts: Record<string, number>, sites: CustomTab[]): number {
+export function viewCounter(view: SavedSplitView, counts: Record<string, number>, sites: CustomTab[], fallback: SplitMode): number {
   const ids = new Set(sites.filter((t) => t.embed && t.notify !== false).map((t) => t.id))
-  // une copie n'a ni compteur ni notification : seuls les panneaux « site réel » comptent (pas de doublon)
-  const once = new Set(view.slots.filter((id, i): id is string => !!id && ids.has(id) && view.copies?.[i] !== true))
+  // une copie n'a ni compteur ni notification : seuls les panneaux « site réel » comptent (pas de doublon) ; en Flux, aucun
+  const copies = copiesFor(viewMode(view, fallback))
+  const once = new Set(view.slots.filter((id, i): id is string => !!id && ids.has(id) && !copies[i]))
   let sum = 0
   for (const id of once) sum += counts[`x:${id}`] ?? 0
   return sum
