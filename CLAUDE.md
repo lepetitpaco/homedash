@@ -419,7 +419,10 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   `cleanUrl` retire `#…`, `user:pass@` et tout paramètre dont le nom contient token, auth, code, key, pass, secret, sig,
   session ou jwt (ligne dans `PRIVACY.md`). Notée sur `did-navigate` / `did-navigate-in-page` des copies (`CopyPane`,
   `navOk` : réponse HTTP ≥ 400 jamais notée ; `navFail` : un échec rend la dernière bonne adresse, sauf -3 chargement
-  remplacé et -302 schéma inconnu) ; même site au `www.` et à http/https près ; l'accueil n'est jamais noté (comparé au `/`
+  remplacé et -302 schéma inconnu) ; **une navigation qui n'est pas une page web (about:blank, page d'erreur, data:) ne
+  note rien, pas même `null`** : avant de quitter, recharger (⇧⌘R) ou se mettre à jour, `unloadGuests` (main.js) charge
+  about:blank dans **toutes** les webviews, copies comprises, et noter `null` effaçait toutes les adresses (trempe) ;
+  seule une vraie page d'un autre site fait repartir de l'accueil ; même site au `www.` et à http/https près ; l'accueil n'est jamais noté (comparé au `/`
   final, au `www.` et à http → https près). À l'ouverture, `startUrl`, lue **à la création** de la copie seulement
   (`useState`) : changer `last` ne recharge jamais une copie ouverte.
   **Écriture** (`src/lib/lastKeeper.ts`, testé) : 5 s après la dernière navigation, **au plus tard 60 s après la première
@@ -430,7 +433,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   rendu : sinon « Ajouter une vue » suivi de l'écriture des adresses en attente réécrivait l'ancienne config et effaçait
   la vue neuve. Écriture discrète (`persist(…, { quiet, rebase })`) : pas de toast ; sur un 409, relecture en silence et
   un seul nouvel essai, sans dialogue. **Côté serveur**, une écriture qui ne change **que** `last` (`onlyLastChanged`,
-  décidé en comparant les deux configs aux clés triées, jamais sur la foi de la page) est écrite sans `backupConfig()`
+  décidé en comparant les deux configs aux clés triées, vues ramenées à 4 cases des deux côtés comme les écrit la page,
+  jamais sur la foi de la page) est écrite sans `backupConfig()`
   (la sauvegarde d'avant reste celle d'un vrai réglage) ni `reloadAll()` (ni relecture GitHub ni scan Local pour une
   navigation). Pendant « Modifier la vue », rien n'est noté ; Annuler repart de l'enregistré (`open(…, { reset })`).
   Enregistrer : un panneau dont le site change perd son adresse (`keepLast` ; échanger deux sites oublie les deux,
