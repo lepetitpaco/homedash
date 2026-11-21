@@ -4,6 +4,7 @@
  * (il est fermé au redémarrage, comme ailleurs).
  */
 import { DEFAULT_SPLIT_LAYOUT, layoutOf, normalizeSplit, type SplitMode } from './splitView'
+import { refusesEmbed } from './customTabs'
 import type { CustomTab, SavedSplitView, TabSession } from '../types'
 
 const SLOTS = 4
@@ -125,6 +126,16 @@ export function viewMode(view: Pick<SavedSplitView, 'prefs'>, fallback: SplitMod
  */
 export function copiesFor(mode: SplitMode): boolean[] {
   return Array.from({ length: SLOTS }, () => mode === 'scroll')
+}
+
+/**
+ * Comment afficher une copie : une `webview` dans l'appli (sur la connexion du site) ; hors de l'appli (navigateur), un
+ * simple cadre sur l'adresse du site, qui est déjà « une autre page, mêmes cookies » (la page doit marcher sans l'appli,
+ * comme les sites, `CustomTabView`) ; `refused` pour un site connu pour refuser d'être affiché dans une autre page.
+ */
+export function copyFrame(inApp: boolean, url: string): 'webview' | 'iframe' | 'refused' {
+  if (inApp) return 'webview'
+  return refusesEmbed(url) ? 'refused' : 'iframe'
 }
 
 /**

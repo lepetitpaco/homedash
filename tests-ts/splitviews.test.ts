@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
 import { DEFAULT_SPLIT, withMode } from '../src/lib/splitView'
-import { copiesFor, moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
+import { copiesFor, copyFrame, moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
 const tab = (id: string, label: string, session?: string): CustomTab => ({ id, label, url: `https://${id}.example`, embed: true, session })
@@ -180,5 +180,11 @@ describe('vues scindées enregistrées (#169)', () => {
     expect(v.prefs).toEqual({ mode: 'classic', sync: true, actions: false })
     const custom = normalizeViews([{ ...legacy, prefs: { ...legacy.prefs, mode: 'custom', follow: 'hover' } }])[0]
     expect(custom.prefs?.mode).toBe('scroll')
+  })
+  it('copie hors de l’appli (navigateur) : un cadre ; un site qui refuse d’être encadré le dit', () => {
+    expect(copyFrame(true, 'https://www.instagram.com/')).toBe('webview')
+    expect(copyFrame(true, 'https://x.com/home')).toBe('webview')
+    expect(copyFrame(false, 'https://www.instagram.com/')).toBe('iframe')
+    expect(copyFrame(false, 'https://x.com/home')).toBe('refused')
   })
 })

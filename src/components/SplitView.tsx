@@ -1,6 +1,8 @@
 import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Pick from './Pick'
+import { desktop } from '../lib/desktop'
+import { copyFrame } from '../lib/splitViews'
 import {
   ACTIONS_OFF_HINT,
   FLAG_HELP,
@@ -90,6 +92,7 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
   mutedRef.current = muted
   const guestRef = useRef(onGuest)
   guestRef.current = onGuest
+  const frame = copyFrame(!!desktop, site.url ?? '')
   useEffect(() => {
     const w = el.current
     if (!w) return
@@ -120,14 +123,28 @@ function CopyPane({ site, rect, muted, onGuest }: { site: PaneSite; rect: Rect |
       style={rect ? { left: rect.x, top: rect.y, width: rect.w, height: rect.h } : undefined}
       aria-hidden={!rect}
     >
-      <webview
-        ref={(n) => {
-          el.current = n as typeof el.current
-        }}
-        src={site.url}
-        partition={site.partition}
-        {...{ allowpopups: 'true' as unknown as boolean }}
-      />
+      {frame === 'webview' ? (
+        <webview
+          ref={(n) => {
+            el.current = n as typeof el.current
+          }}
+          src={site.url}
+          partition={site.partition}
+          {...{ allowpopups: 'true' as unknown as boolean }}
+        />
+      ) : frame === 'iframe' ? (
+        // Hors de l'appli : un cadre, comme les sites dans un navigateur (même bac à sable que CustomTabView).
+        <iframe
+          className="split-copy-frame"
+          src={site.url}
+          title={site.label}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-downloads allow-modals"
+          referrerPolicy="no-referrer"
+          allow="clipboard-read; clipboard-write; fullscreen"
+        />
+      ) : (
+        <p className="split-empty">Ce site refuse de s’afficher dans une autre page : ouvre la vue dans l’appli de bureau.</p>
+      )}
     </div>
   )
 }

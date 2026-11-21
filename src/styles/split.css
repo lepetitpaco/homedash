@@ -361,7 +361,8 @@
   visibility: hidden;
   pointer-events: none;
 }
-.split-copy webview {
+.split-copy webview,
+.split-copy-frame {
   flex: 1;
   min-width: 0;
   border: 0;
