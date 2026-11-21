@@ -414,17 +414,27 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   copies.
 - **Vue Flux : dernière adresse de chaque copie** (#180, décision de Paco : reprendre les reels là où il en était, sans
   garder les copies ouvertes, ~140 Mo chacune). Clé **additive** `splitViews[].last` (adresse http(s) ou `null` par
-  panneau ; absente = rien de noté, jamais écrite vide ; validée par `store.validateConfig` et `normalizeViews`), sans
-  migration. Notée sur `did-navigate` / `did-navigate-in-page` des copies (`CopyPane`), filtrée par `notedUrl` (même site
-  au `www.` près, jamais `about:blank`, une page d'erreur — `did-fail-load` sauf -3 — ni l'accueil lui-même) ; à
-  l'ouverture `startUrl` (adresse notée encore valable, sinon `tab.url`), lue **à la création** de la copie seulement
-  (`useState`) : changer `last` ne recharge jamais une copie ouverte. Écriture **regroupée** (`flushLast`) : 5 s après la
-  dernière navigation et au plus une fois par minute, car une écriture de config relance la lecture GitHub et chaque reel
-  est une navigation ; tout de suite à la fermeture ou au changement de vue ; seulement si les adresses changent
-  (`sameLast`) ; par `writeViews` (config relue au moment d'écrire, rien d'autre d'écrasé), en `persist(…, { quiet })`
-  (pas de toast « Enregistré »). Clic droit → *Repartir du début* (`withLast(v, [])`) ; « Modifier la vue » enregistrée
-  efface l'adresse d'un panneau dont le site change (`keepLast`). Limite : quitter l'appli vue ouverte perd au plus la
-  dernière minute de navigation.
+  panneau ; absente = rien de noté, jamais écrite vide), sans migration ; même borne (`LAST_MAX`, 2048) et même règle
+  (`^https?://`) côté page (`isPageUrl`) et serveur (`store.validateConfig`), testé des deux côtés. **Vie privée** :
+  `cleanUrl` retire `#…`, `user:pass@` et tout paramètre dont le nom contient token, auth, code, key, pass, secret, sig,
+  session ou jwt (ligne dans `PRIVACY.md`). Notée sur `did-navigate` / `did-navigate-in-page` des copies (`CopyPane`,
+  `navOk` : réponse HTTP ≥ 400 jamais notée ; `navFail` : un échec rend la dernière bonne adresse, sauf -3 chargement
+  remplacé et -302 schéma inconnu) ; même site au `www.` et à http/https près ; l'accueil n'est jamais noté (comparé au `/`
+  final, au `www.` et à http → https près). À l'ouverture, `startUrl`, lue **à la création** de la copie seulement
+  (`useState`) : changer `last` ne recharge jamais une copie ouverte.
+  **Écriture** (`src/lib/lastKeeper.ts`, testé) : 5 s après la dernière navigation, **au plus tard 60 s après la première
+  navigation non écrite**, jamais plus d'une fois par 30 s ; tout de suite à la fermeture, au changement de vue, avant
+  d'ajouter une vue et quand la page est cachée ou quittée (`visibilitychange`, `pagehide`, `beforeunload` : au mieux, la
+  requête peut ne pas partir si l'appli est tuée) ; seulement si les adresses changent. Toute écriture de config part de
+  `latest` (`useConfigState` : la config la plus récente, écritures en cours comprises), jamais de l'état React du dernier
+  rendu : sinon « Ajouter une vue » suivi de l'écriture des adresses en attente réécrivait l'ancienne config et effaçait
+  la vue neuve. Écriture discrète (`persist(…, { quiet, rebase })`) : pas de toast ; sur un 409, relecture en silence et
+  un seul nouvel essai, sans dialogue. **Côté serveur**, une écriture qui ne change **que** `last` (`onlyLastChanged`,
+  décidé en comparant les deux configs aux clés triées, jamais sur la foi de la page) est écrite sans `backupConfig()`
+  (la sauvegarde d'avant reste celle d'un vrai réglage) ni `reloadAll()` (ni relecture GitHub ni scan Local pour une
+  navigation). Pendant « Modifier la vue », rien n'est noté ; Annuler repart de l'enregistré (`open(…, { reset })`).
+  Enregistrer : un panneau dont le site change perd son adresse (`keepLast` ; échanger deux sites oublie les deux,
+  voulu : chaque adresse appartient à son site), passer en Messagerie les efface toutes. Clic droit → *Repartir du début*.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
@@ -444,7 +454,8 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
 - `accounts.remoteVersion()` ne bouge que si le distant change : chaque nouvelle version relance un
   scan Local complet du disque.
 - Une écriture de config déclenche `reloadAll()` (relecture GitHub) : ne pas écrire à chaque
-  navigation (cf. onglets temporaires gardés).
+  navigation (cf. onglets temporaires gardés). Seule exception : une écriture qui ne change que `splitViews[].last`
+  (#180, `onlyLastChanged`).
 
 **Front**
 - Erreurs : jamais de jargon à l'écran (nom de fichier, code HTTP, `Failed to fetch`). `shown(où, e)`
