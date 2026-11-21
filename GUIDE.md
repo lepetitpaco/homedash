@@ -47,7 +47,7 @@ même sans aucun site : son **＋** ajoute le premier.
   fenêtre. La barre du haut revient quand la souris touche le bord haut (ou avec ⌘K), celle de gauche au bord gauche.
   ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi. **Aussi dans une vue scindée** (même ouverte sur
   l'accueil) : les panneaux prennent toute la fenêtre, bord à bord, avec un en-tête réduit (numéro, site, son, ⤢) ;
-  la barre de la vue (Messagerie / Flux, Options, Fermer) revient avec la barre du haut quand la souris touche le bord haut.
+  la barre de la vue (Flux / Messagerie, Options, Fermer) revient avec la barre du haut quand la souris touche le bord haut.
   Fermer la vue sort du focus.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
   et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
@@ -191,9 +191,14 @@ enregistrée, et se supprime au clic droit.
 Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles démarrent sur la page d'accueil du site, ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (leur position est alors perdue ; chaque copie est une page de plus en mémoire). La composition d'une vue
 est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
 (sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
-les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `X` en mode Flux) l'agrandit. En fermant la
-vue (*Fermer*, `Échap` en mode Flux, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
-ne se met pas en veille.
+les proportions sont gardées ; au clavier, `Tab` jusqu'au séparateur puis les flèches le déplacent de 2 %. **Double-clic sur le titre**
+d'un panneau (ou `X` en mode Flux) l'agrandit. En fermant la vue (*Fermer*, `Échap` en mode Flux, ou en ouvrant une autre
+page), chaque site retrouve sa place ; un site affiché ne se met pas en veille. **Lancer une recherche** (taper dans la barre
+du haut) ferme aussi la vue : voulu, les résultats prennent la place.
+
+L'en-tête d'un panneau montre son numéro, son site, *copie* (vue Flux), l'état du son (haut-parleur : le panneau a le son,
+barré : son coupé à la main) et, en Flux, **En pause** pour un panneau sans le son. **ⓘ** ouvre l'aide (raccourcis, Maj,
+molette) dans une bulle ; **Options** ouvre le menu des cases : les deux se ferment avec `Échap`, qui rend le focus au bouton.
 
 Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajouter → Ajouter une vue scindée). Le changer passe tous les panneaux en copies ou en vrais sites : depuis la barre de la vue, le temps de la vue ; dans *Modifier la vue…*, enregistré ; *Réglages → Vue scindée* ne sert qu'à pré-remplir une nouvelle vue :
 
@@ -437,7 +442,7 @@ garde tes modifications en brouillon, retrouvées au retour.
 | 🗂 Mes sites | Tes sites (une ligne chacun, ▾ pour tous ses réglages), dossiers, comptes ; repliés : où s'ouvrent les liens, onglets temporaires gardés, veille, Docker, extensions (appli) ; dans ▾ de chaque site : pause quand je n'y suis pas (appli) |
 | 🧭 Barres et onglets | Barre de gauche ou onglets en haut, disposition, style et taille des onglets, masquage automatique, place de Raccourcis/GitHub/Local (⚡) |
 | 🎛 Affichage | Ce qui s'affiche (horloge, tuiles…), largeur de la page ; repliés : densité de Raccourcis, colonnes GitHub / Local, tuiles, test des voyants |
-| ◫ Vue scindée | Ce qui pré-remplit une nouvelle vue (Messagerie / Flux, défilement synchronisé, actions par site) ; les lettres affichées du clavier (automatique, AZERTY, QWERTY) |
+| ◫ Vue scindée | Ce qui pré-remplit une nouvelle vue (Flux / Messagerie, défilement synchronisé, actions par site) ; les lettres affichées du clavier (automatique, AZERTY, QWERTY) |
 | 🔔 Notifications | Ce qui compte dans la cloche (par type : compter, discret, masqué), notifications du bureau, compteur sur l'icône de l'appli |
 | 💾 Sauvegardes | Les 5 dernières à restaurer, *Voir tout* pour faire le ménage ; export complet pour une autre machine |
 | 📖 Aide | Ce guide, et *Diagnostic* : journal d'erreurs et journal de performance. le numéro de version, en haut : le changelog complet et **✨ Quoi de neuf** |

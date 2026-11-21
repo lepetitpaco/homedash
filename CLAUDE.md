@@ -452,6 +452,16 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, son,
   ⤡), compact, car le son et le panneau actif doivent rester lisibles ; (6) le pied de page de l'accueil (z-index 40) passait
   par-dessus le bas des panneaux : caché tant qu'une vue est ouverte.
+- **Revue UX/UI de la vue scindée** (#184). Décisions : l'état du son est une **icône SVG** (`SoundIcon`), jamais un emoji (un emoji
+  ignore `color` : le vert « a le son » ne se voyait pas, et le contraste était de 3 à 3,8:1) ; un panneau Flux sans le son
+  affiche **En pause** dans son en-tête, pas de voile (les copies sont au-dessus de la grille, un voile serait invisible) ;
+  **Flux avant Messagerie** partout (`MODE_LABELS`, lexique) ; ⓘ est un bouton qui ouvre une bulle `role="dialog"`
+  (`layerOpen()` la voit), jamais l'infobulle native (688 caractères). **Lancer une recherche ferme la vue** : voulu (#160),
+  les résultats prennent la place. Pièges : (1) `.split-menu.split-bubble` (et non `.split-bubble` seul) : `.split-menu`
+  est défini plus loin et écrasait la largeur ; (2) le menu Options et la bulle sont des portails dans `<body>` : sans
+  `focus()` à l'ouverture et sans piège de Tab, ils étaient injoignables au clavier ; (3) la zone sensible d'un séparateur
+  (16 px) est obtenue par une marge négative (le visuel et l'espace ne changent pas) ; (4) `.split-copy` a `background:
+  var(--bg)`, pas `#fff` : un coin blanc perçait au bout d'une barre de défilement.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
