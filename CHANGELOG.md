@@ -4,6 +4,19 @@ Une version par livraison visible, la plus récente en haut (règles : `CLAUDE.m
 aussi un tag git `vX.Y.Z`. Affiché en cliquant sur le numéro de version, en haut à droite ; une version
 plus récente sur GitHub déclenche la notification « mise à jour disponible ».
 
+## 2.6.0 — 2026-11-21
+Appli de bureau : 2.6.0
+
+- **◫ La vue scindée** : 2 à 4 sites côte à côte dans un seul onglet, avec 6 dispositions, des séparateurs à glisser et un panneau qu'on agrandit. *Ajouter* → une vue (un nom, une disposition, des sites) : elle se range dans la barre de gauche comme un site, se place où tu veux, se modifie ou se supprime au clic droit. Deux types :
+  **Flux** pour défiler TikTok, X ou Instagram : chaque panneau est une copie du site (ta connexion, mais une page à part : défiler la vue ne fait pas défiler ton onglet), le panneau où tu agis a le son et les autres sont en pause ; **Messagerie** pour suivre tes conversations : les vrais sites, tous les sons, aucune touche prise.
+- **Une vue Flux reprend où tu en étais** : chaque panneau rouvre la dernière page où tu étais (un reel, un post), même après avoir quitté l'appli ; clic droit → *Repartir du début*. Ces adresses restent sur ta machine, sans ce qui ressemble à un jeton.
+- **Au clavier, sans réglage** (Flux) : `A Q`, `Z S`, `E D`, `R F` font défiler le panneau 1 à 4 (en QWERTY `Q A`, `W S`…), `↓ ↑` le panneau sous la souris, `& é " '` (`1 2 3 4`) choisissent le panneau, `X` l'agrandit, `Maj` agit sur tous les panneaux (`Maj` + molette inverse le défilement synchronisé). Mêmes touches sur Mac et Windows, jamais dans un champ de saisie. Des actions par site (J'aime, Enregistrer, Repartager, Commenter) sont sur `L B T C` (case *Actions par site*, grisée en Messagerie).
+- **Mode focus aussi en vue scindée** (`⌘⇧F`) : les panneaux prennent toute la fenêtre, la barre de la vue revient quand la souris touche le bord haut.
+- **Pause quand je n'y suis pas** : un site de scroll (X, Instagram, TikTok…) qui n'est plus affiché met ses vidéos et ses sons en pause et reprend à son retour. Les lecteurs (YouTube, Spotify, Twitch, Netflix…) et les appels ou messageries ne sont jamais coupés. Réglable site par site, *Réglages → Mes sites*.
+- **Les actions par site relues sur de vraies pages** (J'aime, Enregistrer sur X, TikTok, Instagram).
+- **Une vue scindée plus claire** : plus de place pour les pages, le son en icône (et « En pause » sur un panneau sans le son), des textes qui disent où agir, l'aide ⓘ en bulle, les séparateurs et le menu Options au clavier.
+- **Pour les développeurs** : `build-local.sh` relance `homedash-dev` après le build.
+
 ## 2.5.0 — 2026-11-05
 Appli de bureau : 2.5.0
 

@@ -27,6 +27,31 @@ export type WhatsNewCard = {
 
 /** `{focus}` devient le raccourci du mode focus de la machine (`withKeys`). */
 export const WHATS_NEW: Record<string, WhatsNewCard[]> = {
+  '2.6.0': [
+    {
+      id: 'split',
+      icon: '◫',
+      title: 'La vue scindée',
+      text: 'Plusieurs sites côte à côte : un Flux pour défiler TikTok, X, Instagram (le panneau où tu agis a le son, les autres sont en pause), une Messagerie pour suivre tes conversations. ＋ Ajouter la crée ; A Q Z S E D R F, les flèches et & é " \' pilotent les panneaux.',
+      go: { section: 'set-split' },
+      desktop: 'split-view',
+    },
+    {
+      id: 'resume',
+      icon: '↩',
+      title: 'Reprends où tu en étais',
+      text: 'Une vue Flux rouvre chaque panneau sur le dernier reel ou post, même après avoir quitté l’appli. Clic droit sur la vue : Repartir du début.',
+      go: { section: 'set-split' },
+      desktop: 'split-view',
+    },
+    {
+      id: 'pause-hidden',
+      icon: '⏸',
+      title: 'Pause quand je n’y suis pas',
+      text: 'Un site de scroll (X, Instagram, TikTok…) qui n’est plus affiché met ses vidéos et ses sons en pause, et reprend à ton retour. Les lecteurs et les appels ne sont jamais coupés ; ça se règle site par site.',
+      go: { section: 'set-tabs' },
+    },
+  ],
   '2.5.0': [
     {
       id: 'bell',

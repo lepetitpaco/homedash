@@ -188,7 +188,7 @@ un autre panneau est grisé). La vue apparaît **dans la barre de gauche comme u
 entre tes sites, dans ou hors d'un dossier. Un clic l'ouvre. Il n'y a pas de vue « jetable » : toute vue est
 enregistrée, et se supprime au clic droit.
 
-Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles démarrent sur la page d'accueil du site, ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (leur position est alors perdue ; chaque copie est une page de plus en mémoire). La composition d'une vue
+Les sites sont ceux de *Mes sites*, avec leur connexion. Une vue *Messagerie* affiche le **vrai site** (rien n'est rechargé, ses compteurs comptent dans celui de la vue). Une vue *Flux* ouvre des **copies** : la même connexion, mais une page à part (son historique, sa position) ; elles rouvrent la dernière page où tu étais (voir plus bas), ne comptent ni dans le compteur ni dans l'Activité, et se ferment avec la vue (chaque copie est une page de plus en mémoire). La composition d'une vue
 est **fixe** (pas de sélecteur de site dans les panneaux) : pour la changer, clic droit sur la vue → **Modifier la vue…**
 (sélecteurs et dispositions visibles, puis *Enregistrer* ou *Annuler*). **Glisse un séparateur** pour redimensionner :
 les proportions sont gardées ; au clavier, `Tab` jusqu'au séparateur puis les flèches le déplacent de 2 %. **Double-clic sur le titre**
