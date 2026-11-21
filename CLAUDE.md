@@ -439,6 +439,19 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   navigation). Pendant « Modifier la vue », rien n'est noté ; Annuler repart de l'enregistré (`open(…, { reset })`).
   Enregistrer : un panneau dont le site change perd son adresse (`keepLast` ; échanger deux sites oublie les deux,
   voulu : chaque adresse appartient à son site), passer en Messagerie les efface toutes. Clic droit → *Repartir du début*.
+- **Mode focus d'une vue scindée** (#183, demande de Paco : « ya du blanc, c'est dommage » en ⌘⇧F). `canFocus(site, vue)`
+  (`splitView.ts`) : permis sur un site ou une vue ouverte, même sur l'accueil ; le focus s'oublie à la fermeture de la vue
+  (`App.tsx`). Les règles de masquage de la barre du haut sont sous `.app.is-focus`, **pas** `.app.is-site.is-focus` (une vue
+  sur l'accueil n'a pas `is-site`). Pièges, tous mesurés : (1) `.split-root` se place sous `--strip-h`, hauteur **mesurée** de la
+  barre, que le `transform` de focus ne change pas : en focus la racine est à `top: 0`, sinon bande vide ; (2) la racine devient
+  **transparente, traversable** (`pointer-events: none`) et passe à `z-index: 6` : la barre de la vue, surcouche qui revient
+  avec la barre du haut, doit être au-dessus des copies (`z-index: 5`, dans la **même** racine, donc la barre est à 8) ; un
+  fond `.app.is-focus::before` (z-index 4, sous les copies) évite que la page du dessous se voie entre les panneaux ;
+  (3) la barre de la vue se place sous la barre du haut grâce à `--focus-bar-top`, mesurée (`offsetHeight` ignore le
+  `transform`) : `--topbar-h` n'est **jamais posée** (son repli 0 est partout), ne pas s'en servir ; (4) `:has()` ne
+  s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, son,
+  ⤡), compact, car le son et le panneau actif doivent rester lisibles ; (6) le pied de page de l'accueil (z-index 40) passait
+  par-dessus le bas des panneaux : caché tant qu'une vue est ouverte.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

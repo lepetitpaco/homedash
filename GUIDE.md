@@ -45,7 +45,10 @@ même sans aucun site : son **＋** ajoute le premier.
   côté de la recherche, et le site prend toute la place qui reste, bord à bord, quelle que soit la disposition.
 - **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F (Ctrl+Maj+F), même en tapant dans le site : le site prend toute la
   fenêtre. La barre du haut revient quand la souris touche le bord haut (ou avec ⌘K), celle de gauche au bord gauche.
-  ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi.
+  ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi. **Aussi dans une vue scindée** (même ouverte sur
+  l'accueil) : les panneaux prennent toute la fenêtre, bord à bord, avec un en-tête réduit (numéro, site, son, ⤢) ;
+  la barre de la vue (Messagerie / Flux, Options, Fermer) revient avec la barre du haut quand la souris touche le bord haut.
+  Fermer la vue sort du focus.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres
   et onglets*. Propre à chaque écran, appliqué tout de suite. D'abord **où sont les onglets**, et juste dessous **Masquer
   automatiquement** (la barre se cache et revient quand la souris passe au bord gauche, ou en haut de la page ; les sites
@@ -159,7 +162,7 @@ homedash dans sa propre fenêtre, sur Mac et Windows. Elle n'ouvre aucun port ; 
 | `⇧⌘R` | `Ctrl+Maj+R` | Recharger tout homedash (tous les sites se rechargent) |
 | `⌘[` `⌘]` | `Ctrl+[` `Ctrl+]` | Page précédente / suivante (aussi les boutons de la souris) |
 | `Ctrl+Tab` | `Ctrl+Tab` | Revenir au site d'avant. `Ctrl` gardé appuyé : tes sites s'affichent en tuiles. `Tab` ou `Maj+Tab` pour choisir, relâcher `Ctrl` ou cliquer pour ouvrir, `1` à `9` pour ouvrir directement, `Échap` pour rester (⌘Tab et Alt+Tab restent ceux du système) |
-| `⌘⇧F` | `Ctrl+Maj+F` | Mode focus : le site affiché prend toute la fenêtre, même quand tu tapes dans le site ; les barres reviennent au bord. Encore une fois pour en sortir |
+| `⌘⇧F` | `Ctrl+Maj+F` | Mode focus : le site affiché (ou la vue scindée) prend toute la fenêtre, même quand tu tapes dans le site ; les barres reviennent au bord. Encore une fois pour en sortir |
 | `⌘,` | `Ctrl+,` | Réglages |
 | `⌘Q` | Clic droit sur l'icône près de l'horloge → *Quitter* | Quitter. Fermer la fenêtre la cache seulement : compteurs et cloche continuent |
 
