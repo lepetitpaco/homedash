@@ -90,9 +90,11 @@ supprimées. Branche refusée en preprod : `git revert` de sa fusion. Correctif 
 s'il n'est pas connu), et jamais directement sur `main` ou `preprod`.
 
 **Qui peut quoi.** Dépôt personnel : seul `lepetitpaco` peut être admin, et GitHub ne réserve pas le bouton Fusionner à des
-comptes choisis. `lepetitpaco` et `davidgennaoui` sont la même personne, tous deux owners (CODEOWNERS) : l'un approuve la PR
-de l'autre, et `lepetitpaco` peut passer outre (`gh pr merge <n> --merge --admin`). Les autres collaborateurs : branches,
-push, fusion vers `preprod` ; pas de validation vers `main`. Ne jamais retirer l'approbation de `main` : ils pourraient publier.
+comptes choisis. `lepetitpaco` est **le seul owner** (CODEOWNERS) et le seul administrateur : la règle « main protégée » exige une
+approbation, mais l'administrateur passe outre en permanence, donc il fusionne vers `main` tout seul (`gh pr merge <n> --merge
+--admin`, ou la case « Merge without waiting » de GitHub), sans second compte (GitHub n'autorise pas à approuver sa propre PR).
+Les autres collaborateurs, `davidgennaoui` compris : branches, push, fusion vers `preprod` ; pas de validation vers `main`. Ne jamais
+retirer l'approbation de `main` : ils pourraient publier. (Décision de Paco, 2026-11-21 : « je veux juste lepetitpaco pour l'approbation ».)
 
 **Avant la pull request** (on ne pousse directement ni sur `main` ni sur `preprod`) :
 - `git pull --rebase` et `git fetch --tags` d'abord : la version suivante se lit en tête du
