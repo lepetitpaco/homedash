@@ -439,6 +439,41 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   navigation). Pendant « Modifier la vue », rien n'est noté ; Annuler repart de l'enregistré (`open(…, { reset })`).
   Enregistrer : un panneau dont le site change perd son adresse (`keepLast` ; échanger deux sites oublie les deux,
   voulu : chaque adresse appartient à son site), passer en Messagerie les efface toutes. Clic droit → *Repartir du début*.
+- **Mode focus d'une vue scindée** (#183, demande de Paco : « ya du blanc, c'est dommage » en ⌘⇧F). `canFocus(site, vue)`
+  (`splitView.ts`) : permis sur un site ou une vue ouverte, même sur l'accueil ; le focus s'oublie à la fermeture de la vue
+  (`App.tsx`). Les règles de masquage de la barre du haut sont sous `.app.is-focus`, **pas** `.app.is-site.is-focus` (une vue
+  sur l'accueil n'a pas `is-site`). Pièges, tous mesurés : (1) `.split-root` se place sous `--strip-h`, hauteur **mesurée** de la
+  barre, que le `transform` de focus ne change pas : en focus la racine est à `top: 0`, sinon bande vide ; (2) la racine devient
+  **transparente, traversable** (`pointer-events: none`) et passe à `z-index: 6` : la barre de la vue, surcouche qui revient
+  avec la barre du haut, doit être au-dessus des copies (`z-index: 5`, dans la **même** racine, donc la barre est à 8) ; un
+  fond `.app.is-focus:has(.split-root)::before` (z-index 4, sous les copies) évite que la page du dessous se voie entre les panneaux ;
+  (3) la barre de la vue se place sous la barre du haut grâce à `--focus-bar-top`, mesurée (`offsetHeight` ignore le
+  `transform`) : `--topbar-h` n'est **jamais posée** (son repli 0 est partout), ne pas s'en servir ; (4) `:has()` ne
+  s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, site, son,
+  agrandir), compact, car le son et le panneau actif doivent rester lisibles ; (6) le pied de page de l'accueil (z-index 40) passait
+  par-dessus le bas des panneaux : caché tant qu'une vue est ouverte ; (7) **la racine à `pointer-events: none` est héritée par
+  les copies** (filles directes de la racine) et la grille, plein cadre, avalait la souris des vrais sites de Messagerie
+  (dessous, z-index 5) : en focus, ni clic ni molette n'arrivaient aux pages (le vérificateur : 0 / 0, alors que la géométrie
+  était parfaite). Seuls l'en-tête, la barre de la vue et les séparateurs captent la souris ; les copies la reprennent
+  (`auto`) ; **toute règle qui pose `pointer-events: none` sur une racine se vérifie par de vrais clics et de vraie molette
+  comptés dans les pages**, pas par des rectangles ; (8) l'espace entre deux panneaux est celui du séparateur (6 px) plus les bordures : 8 px en focus.
+- **Revue UX/UI de la vue scindée** (#184). Décisions : l'état du son est une **icône SVG** (`SoundIcon`), jamais un emoji (un emoji
+  ignore `color` : le vert « a le son » ne se voyait pas, et le contraste était de 3 à 3,8:1) ; un panneau Flux sans le son
+  affiche **En pause** dans son en-tête, pas de voile (les copies sont au-dessus de la grille, un voile serait invisible) ;
+  **Flux avant Messagerie** partout (`MODE_LABELS`, lexique) ; ⓘ est un bouton qui ouvre une bulle `role="dialog"`
+  (`layerOpen()` la voit), jamais l'infobulle native (688 caractères). **Lancer une recherche ferme la vue** : voulu (#160),
+  les résultats prennent la place. Pièges : (1) `.split-menu.split-bubble` (et non `.split-bubble` seul) : `.split-menu`
+  est défini plus loin et écrasait la largeur ; (2) le menu Options et la bulle sont des portails dans `<body>` : sans
+  `focus()` à l'ouverture et sans piège de Tab, ils étaient injoignables au clavier ; (3) la zone sensible d'un séparateur
+  (16 px) est obtenue par une marge négative (le visuel et l'espace ne changent pas) ; (4) `.split-copy` a `background:
+  var(--bg)`, pas `#fff` : un coin blanc perçait au bout d'une barre de défilement ; (5) les flèches d'un séparateur
+  **n'écrivent pas la config à chaque appui** (une flèche tenue = une écriture + `reloadAll()` par répétition, mesuré : 5 PUT
+  pour 5 appuis) : aperçu à chaque appui, écriture 600 ms après le dernier ou à la sortie du séparateur ; (6) la zone de prise
+  d'un séparateur est une marge négative : il doit être **au-dessus des copies** (`z-index: 6` > 5), sinon elles la mangent
+  (12 px réels au lieu de 16) ; (7) en mode focus, Échap dans Options **lâche** le focus au lieu de le rendre au bouton : un
+  bouton gardé au focus clavier (`:focus-visible`) laisse les barres affichées sans fin ; (8) *En pause* ne s'affiche que dans
+  l'appli (`desktop.splitDo`) : la pause n'existe pas dans un navigateur ; (9) la barre d'une vue ouverte est compacte (32 px),
+  mais le composeur garde ses pastilles à 44 px (`.svc .split-chip`).
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.

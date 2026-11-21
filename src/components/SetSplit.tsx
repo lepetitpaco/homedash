@@ -15,7 +15,7 @@ import {
 type SplitSettings = SplitPrefs & { keyboard: KeyboardChoice }
 
 /**
- * Réglages → Vue scindée (issue #160) : le mode de départ d'une nouvelle vue (Messagerie / Flux), ses deux cases, et
+ * Réglages → Vue scindée (issue #160) : le mode de départ d'une nouvelle vue (Flux / Messagerie), ses deux cases, et
  * le clavier (ici seulement, #177 : la détection automatique suffit presque toujours, et il ne change que les étiquettes).
  */
 export default function SetSplit({ value, onChange }: { value: unknown; onChange: (next: SplitSettings) => void }) {

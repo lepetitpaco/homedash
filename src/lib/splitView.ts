@@ -73,9 +73,10 @@ export function normalizeKeyboard(raw: unknown): KeyboardChoice {
 
 // ── libellés partagés (barre de la vue et Réglages) ───────────────────────
 
+/** Flux d'abord, Messagerie ensuite : l'ordre du lexique (`CLAUDE.md`), le même dans la barre de la vue, le composeur et Réglages (#187). */
 export const MODE_LABELS: { id: SplitMode; label: string; hint: string }[] = [
-  { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
   { id: 'scroll', label: 'Flux', hint: 'Défiler TikTok, X, Instagram : le panneau où tu agis a le son, les autres sont en pause ; table de mixage et raccourcis' },
+  { id: 'classic', label: 'Messagerie', hint: 'Suivre Instagram, Discord… : tous les sons, jamais de pause, aucune touche interceptée' },
 ]
 
 /** Seulement dans Réglages : la détection automatique se trompe rarement, et le choix ne change que les étiquettes. */
@@ -169,10 +170,41 @@ export function dragRatios(ratios: number[], index: number, delta: number, min =
   return out
 }
 
+/** Séparateur au clavier (#188) : un pas de 2 % de la longueur du nœud par flèche. */
+export const SEP_STEP = 0.02
+export function nudgeRatios(ratios: number[], index: number, dir: -1 | 1): number[] {
+  return dragRatios(ratios, index, dir * SEP_STEP)
+}
+/**
+ * Ce qu'annonce un séparateur (`aria-valuenow / min / max`, en % de la longueur) : les vraies bornes de `dragRatios`, pas des
+ * valeurs rondes. `now` est la part du panneau qui précède le séparateur (ARIA : la taille du premier côté) : pour le 2e
+ * séparateur c'est donc celle du 2e panneau, et la plage annoncée suit la taille du voisin.
+ */
+export function separatorValue(ratios: number[], index: number, min = 0.12): { now: number; min: number; max: number } {
+  const total = ratios.reduce((s, r) => s + r, 0)
+  const a = ratios[index]
+  const b = ratios[index + 1]
+  if (a === undefined || b === undefined || total <= 0) return { now: 50, min: 0, max: 100 }
+  const now = Math.round((100 * a) / total)
+  const lo = Math.round(100 * min)
+  // Deux voisins trop serrés pour bouger (`dragRatios` refuse) : plage réduite à la valeur courante, jamais `max < min`.
+  if (a + b < 2 * min * total) return { now, min: now, max: now }
+  return { now, min: lo, max: Math.max(lo, Math.round((100 * (a + b - min * total)) / total)) }
+}
+
 // ── son ────────────────────────────────────────────────────────────────────
 
 /** Qui a le son et les touches : le panneau actif, et celui qui joue (`null` = aucun). */
 export type Focus = { active: number; sound: number | null }
+
+/**
+ * Le mode focus (⌘⇧F, ⤢ : les barres se cachent, #144) est permis sur un site affiché ET sur une vue scindée ouverte,
+ * quel que soit l'onglet dessous, même l'accueil (#183). Avant, la vue scindée n'avait ni bouton ni raccourci à elle :
+ * ⌘⇧F ne marchait que par hasard, quand le site dessous en était un.
+ */
+export function canFocus(siteShown: boolean, splitOpen: boolean): boolean {
+  return siteShown || splitOpen
+}
 
 /**
  * Un geste sur un panneau : survol, molette, touche de mixage, Alt+chiffre, clic. En Flux il devient actif et prend

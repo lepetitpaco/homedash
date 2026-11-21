@@ -10,8 +10,8 @@
   top: calc(var(--topbar-h, 0px) + var(--strip-h, 0px));
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 8px;
+  gap: 4px;
+  padding: 4px;
   background: var(--bg);
   color: var(--text);
 }
@@ -28,7 +28,7 @@
   gap: 4px;
 }
 .split-chip {
-  min-height: 44px;
+  min-height: 32px;
   padding: 0 0.65rem;
   border: 1px solid var(--border);
   border-radius: 10px;
@@ -52,8 +52,8 @@
   opacity: 0.7;
 }
 .split-lay {
-  width: 44px;
-  padding: 6px;
+  width: 40px;
+  padding: 5px;
   display: flex;
 }
 .split-mini {
@@ -63,7 +63,7 @@
   height: 100%;
 }
 .split-lay > .split-mini {
-  height: 30px;
+  height: 20px;
 }
 .split-mini .split-mini {
   flex: 1;
@@ -94,12 +94,33 @@
 }
 /* Les raccourcis : en toutes lettres sur un grand écran, sinon dans la bulle de ⓘ. */
 .split-info {
+  position: relative;
   display: inline-grid;
   place-items: center;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  font: inherit;
   color: var(--text-dim);
-  cursor: help;
+  cursor: pointer;
+}
+.split-info::before {
+  content: '';
+  position: absolute;
+  inset: -6px; /* 44 px de zone pour 32 px visibles */
+}
+.split-info:hover,
+.split-info[aria-expanded='true'] {
+  color: var(--sig-info);
+}
+.split-menu.split-bubble {
+  width: min(520px, calc(100vw - 16px));
+  font-size: 0.85rem;
+  line-height: 1.45;
+  color: var(--text-dim);
 }
 .split-legend {
   display: none;
@@ -163,11 +184,15 @@
   touch-action: none;
 }
 .split-node.is-row > .split-sep {
-  width: 10px;
+  width: 16px;
+  margin: 0 -3px; /* zone sensible élargie (#188), même espace visible */
+  z-index: 6; /* au-dessus des copies (5) : sinon elles mangent la marge négative */
   cursor: col-resize;
 }
 .split-node.is-col > .split-sep {
-  height: 10px;
+  height: 16px;
+  margin: -3px 0;
+  z-index: 6;
   cursor: row-resize;
 }
 .split-sep::after {
@@ -208,7 +233,7 @@
   align-items: center;
   gap: 8px;
   min-width: 0;
-  min-height: 44px;
+  min-height: 32px;
   padding: 0 6px 0 10px;
   overflow: hidden;
   border-bottom: 1px solid var(--border);
@@ -229,14 +254,29 @@
   color: var(--bg);
 }
 .split-sound {
-  color: var(--text-faint);
+  display: inline-flex;
+  color: var(--text-dim);
+}
+.split-sound svg {
+  width: 16px;
+  height: 16px;
 }
 .split-sound.is-on {
   color: var(--sig-ok);
 }
+.split-paused {
+  color: var(--text-dim);
+  font-size: 0.75rem;
+  white-space: nowrap;
+}
+@container (max-width: 300px) {
+  .split-paused {
+    display: none;
+  }
+}
 .split-btn {
-  width: 44px;
-  height: 44px;
+  width: 36px;
+  height: 32px;
   border: 0;
   background: transparent;
   color: var(--text-dim);
@@ -323,6 +363,7 @@
 .split-head .pick-btn {
   min-width: 0;
   max-width: 100%;
+  min-height: 32px; /* mode édition : la hauteur de l'en-tête (32 px, #185), pas 29 */
 }
 .split-site {
   display: inline-flex;
@@ -351,7 +392,8 @@
   position: fixed;
   z-index: 5;
   display: flex;
-  background: #fff;
+  /* le fond de la page, pas du blanc : un coin blanc perçait au bout d'une barre de défilement (#185) */
+  background: var(--bg);
 }
 .split-copy.is-parked {
   left: -200vw;
@@ -410,4 +452,120 @@
   color: var(--sig-warn);
   font-size: 0.8rem;
   line-height: 30px;
+}
+
+/* ═══ Mode focus d'une vue scindée (#183) ════════════════════════════════════
+   ⌘⇧F / ⤢ : la barre du haut sort de l'écran par `transform`, mais `--strip-h` (sa hauteur mesurée) reste à sa valeur :
+   sans ces règles la vue gardait une bande vide de 69 px, et la barre de la vue + l'en-tête de panneau prenaient encore
+   ~120 px (la page n'avait que 78 % de la fenêtre). Ici : la grille part du haut de la fenêtre, bord à bord ; la barre de
+   la vue devient une surcouche qui revient avec la barre du haut (survol du bord haut) ; l'en-tête de panneau reste (numéro,
+   son, ⤡) mais compact. La racine passe au-dessus des sites posés (z-index 6 > 5) pour que la surcouche se voie, en étant
+   transparente et traversable (`pointer-events: none`) : elle ne masque ni ne capte rien de ce qui est dessous. */
+/* Fond de la fenêtre, juste sous les sites posés (z-index 5) : la racine est transparente en focus, sans lui la page
+   du dessous (accueil, site) se verrait entre les panneaux. */
+.app.is-focus:has(.split-root)::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  background: var(--bg);
+}
+.app.is-focus .split-root {
+  top: 0;
+  z-index: 6;
+  gap: 0;
+  padding: 0;
+  background: transparent;
+  pointer-events: none;
+}
+/* Seuls l'en-tête, la barre de la vue et les séparateurs captent la souris ; tout le reste la laisse passer. La grille
+   elle-même est traversable (en Messagerie les vrais sites sont dessous : sinon elle avalait clics et molette), et les
+   copies (filles de la racine, donc héritières de `none`) la reprennent (vérificateur de #183 : 0 clic, 0 molette). */
+.app.is-focus .split-head,
+.app.is-focus .split-bar,
+.app.is-focus .split-sep {
+  pointer-events: auto;
+}
+.app.is-focus .split-copy {
+  pointer-events: auto;
+}
+/* le fond du panneau ne couvre plus la page (la racine est au-dessus) ; l'en-tête garde le sien */
+.app.is-focus .split-pane {
+  background: transparent;
+  border-radius: 0;
+}
+.app.is-focus .split-head {
+  min-height: 30px;
+  background: var(--panel);
+}
+.app.is-focus .split-btn {
+  width: 34px;
+  height: 30px;
+}
+.app.is-focus .split-bar {
+  position: absolute;
+  z-index: 8; /* au-dessus des copies (5), qui sont dans la même racine */
+  top: var(--focus-bar-top, 0px);
+  left: 8px;
+  right: 8px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--bg);
+  box-shadow: var(--shadow);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.15s ease 0.35s, visibility 0s linear 0.5s;
+}
+/* revient avec la barre du haut (même délai de départ qu'elle) : survol du bord haut, de l'une ou de l'autre barre, et tant
+   que le menu Options (portail dans <body>, accroché à sa pastille) est ouvert */
+.app.is-focus:has(.topbar-hot:hover, .topbar:hover, .topbar :focus-visible, .split-bar:hover, .split-bar :focus-visible, .split-bar [aria-expanded='true']) .split-bar {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+/* la barre du haut reste là tant que celle de la vue est utilisée (sinon elle flotte seule sous un vide) */
+.app.is-focus:has(.split-bar:hover, .split-bar :focus-visible, .split-bar [aria-expanded='true']) .topbar {
+  transform: none;
+  transition-delay: 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .app.is-focus .split-bar {
+    transition: none;
+  }
+}
+
+/* Une vue scindée ouverte sur l'accueil : le pied de page de l'accueil (z-index 40) passait par-dessus le bas des
+   panneaux, en focus comme hors focus (#183). Rien de la page du dessous ne doit recouvrir la vue. */
+.app:has(.split-root) .footer {
+  display: none;
+}
+
+/* Composeur « Ajouter une vue scindée » (#189) : Annuler, Ajouter et les sélecteurs de site à 44 px comme le reste. */
+.svc .modal-foot .btn,
+.svc .svc-slot .pick-btn {
+  min-height: 44px;
+}
+
+/* En focus l'espace entre deux panneaux est celui du séparateur : 6 px, plus les bordures = 8 px (12 avant, #183). */
+.app.is-focus .split-node.is-row > .split-sep {
+  width: 16px;
+  margin: 0 -5px; /* zone de prise de 16 px, 6 px d'espace visible */
+}
+.app.is-focus .split-node.is-col > .split-sep {
+  height: 16px;
+  margin: -5px 0;
+}
+
+/* Composeur : les pastilles de type et de disposition gardent 44 px (elles côtoient Annuler, Ajouter et les sélecteurs) ;
+   seule la barre d'une vue ouverte est compacte (#185, #189). */
+.svc .split-chip {
+  min-height: 44px;
+}
+.svc .split-lay {
+  width: 44px;
+  padding: 6px;
+}
+.svc .split-lay > .split-mini {
+  height: 30px;
 }
