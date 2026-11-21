@@ -39,7 +39,8 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
-import { copiesFor, keepLast, moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, sameLast, siteNames, viewCounter, viewMode, viewSlots, withLast } from './lib/splitViews'
+import { copiesFor, keepLast, moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewMode, viewSlots, withLast } from './lib/splitViews'
+import { createLastKeeper } from './lib/lastKeeper'
 import SplitViewComposer from './components/SplitViewComposer'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
@@ -183,7 +184,7 @@ function readBadgeHidden(): Record<string, number> {
 }
 
 export default function App() {
-  const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad } = useConfigState()
+  const { raw, cfg, error, saveState, setSaveState, persist, reload, retry: retryLoad, latest: latestRaw } = useConfigState()
   // Fonctionnalités coupées dans Réglages : ni onglet, ni commande, ni résultat de recherche.
   const on = {
     github: featureOn(raw, 'github'),
@@ -1205,75 +1206,76 @@ export default function App() {
   // Vues enregistrées (#169) : lues dans la config, jamais d'erreur si la clé manque.
   const savedViews = useMemo(() => normalizeViews(raw?.splitViews), [raw?.splitViews])
   const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
-  const openSavedView = (v: (typeof savedViews)[number]) => {
+  const openSavedView = (v: (typeof savedViews)[number], opts: { reset?: boolean } = {}) => {
     leavePage()
     const { keys, gone, copies } = viewSlots(v, embedSites, splitDefaults.mode)
     setSplitNotes([null, null, null, null])
     const prefs = v.prefs ?? splitDefaults
     // #180 : les copies reprennent à la dernière adresse notée (celle en attente d'écriture, si c'est la même vue).
-    if (lastPending.current?.viewId !== v.id) {
-      flushLast()
-      lastPending.current = { viewId: v.id, last: [...(v.last ?? [null, null, null, null])] }
-    }
-    setCopyStart([...lastPending.current.last])
+    setCopyStart(lastKeeper.open(v.id, opts))
     setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs, focus: { active: 0, sound: prefs.mode === 'scroll' ? 0 : null } })
   }
-  const rawRef = useRef(raw)
-  rawRef.current = raw
+  // La config la plus récente, écritures en cours comprises (`useConfigState`) : toute écriture part d'ici.
+  const rawRef = latestRaw
   const [composing, setComposing] = useState(false)
   const [editWarn, setEditWarn] = useState('')
-  /** Écrit la liste des vues dans la config d'aujourd'hui (relue : elle a pu changer pendant une attente). */
+  /** Écrit la liste des vues dans la config la plus récente ; `quiet` : écriture de fond, rejouée en silence sur un conflit. */
   const writeViews = (f: (views: typeof savedViews) => typeof savedViews, opts?: { quiet?: boolean }) => {
     const now = rawRef.current
-    if (now) persist({ ...now, splitViews: f(normalizeViews(now.splitViews)) }, opts)
+    if (!now) return
+    const build = (c: typeof now) => ({ ...c, splitViews: f(normalizeViews(c.splitViews)) })
+    persist(build(now), opts?.quiet ? { quiet: true, rebase: build } : undefined)
   }
   // ── dernière adresse des copies (#180) ──────────────────────────────────
-  // Notée à chaque navigation d'une copie, écrite plus tard et regroupée : 5 s après la dernière navigation, et pas plus
-  // d'une fois par minute (une écriture de config relance la lecture GitHub : un reel = une navigation) ; tout de suite
-  // à la fermeture ou au changement de vue. Écriture discrète (pas d'« Enregistré »), seulement si les adresses ont changé.
-  const lastPending = useRef<{ viewId: string; last: (string | null)[] } | null>(null)
-  const lastTimer = useRef(0)
-  const lastWrote = useRef(0)
+  // Notée à chaque navigation d'une copie, écrite regroupée et en silence par `lastKeeper` (règles dans lastKeeper.ts).
+  const writeViewsRef = useRef(writeViews)
+  writeViewsRef.current = writeViews
+  const lastKeeper = useMemo(
+    () =>
+      createLastKeeper(
+        {
+          stored: (id) => {
+            const v = normalizeViews(latestRaw.current?.splitViews).find((x) => x.id === id)
+            return v ? (v.last ?? []) : null
+          },
+          write: (id, last) => writeViewsRef.current((views) => views.map((v) => (v.id === id ? withLast(v, last) : v)), { quiet: true }),
+        },
+        { now: () => Date.now(), set: (fn, ms) => window.setTimeout(fn, ms), clear: (t) => window.clearTimeout(t) },
+      ),
+    [], // eslint-disable-line react-hooks/exhaustive-deps
+  )
   // Adresse de départ notée par panneau, lue par les copies à leur création seulement (jamais rechargées après).
   const [copyStart, setCopyStart] = useState<(string | null)[]>([null, null, null, null])
-  const flushLast = () => {
-    window.clearTimeout(lastTimer.current)
-    lastTimer.current = 0
-    const p = lastPending.current
-    const now = rawRef.current
-    if (!p || !now) return
-    const cur = normalizeViews(now.splitViews).find((v) => v.id === p.viewId)
-    if (!cur || sameLast(cur.last, p.last)) return
-    lastWrote.current = Date.now()
-    writeViews((views) => views.map((v) => (v.id === p.viewId ? withLast(v, p.last) : v)), { quiet: true })
-  }
-  const flushLastRef = useRef(flushLast)
-  flushLastRef.current = flushLast
   const noteLast = (slot: number, url: string | null) => {
-    const p = lastPending.current
-    if (!p || p.viewId !== splitRef.current?.viewId || p.last[slot] === url) return
-    p.last[slot] = url
-    window.clearTimeout(lastTimer.current)
-    const wait = Math.max(5000, lastWrote.current + 60000 - Date.now())
-    lastTimer.current = window.setTimeout(() => flushLastRef.current(), wait)
+    const s = splitRef.current
+    // Pendant « Modifier la vue », rien n'est noté : Annuler repart de l'enregistré, sans adresse perdue.
+    if (!s?.viewId || s.editing) return
+    lastKeeper.note(s.viewId, slot, url)
   }
   /** Clic droit → « Repartir du début » : la vue oublie ses adresses (la prochaine ouverture repart de l'accueil des sites). */
   const restartView = (id: string) => {
-    if (lastPending.current?.viewId === id) {
-      window.clearTimeout(lastTimer.current)
-      lastPending.current = { viewId: id, last: [null, null, null, null] }
-    }
+    lastKeeper.adopt(id, [])
     writeViews((views) => views.map((v) => (v.id === id ? withLast(v, []) : v)))
   }
   // La vue se ferme (ou on en ouvre une autre) : les adresses en attente sont écrites tout de suite.
   const openViewId = split?.viewId
   useEffect(() => {
     if (!openViewId) return
+    return () => lastKeeper.close(openViewId)
+  }, [openViewId, lastKeeper])
+  // Page cachée (fenêtre fermée, qui cache l'appli) ou quittée : ce qui attend part tout de suite, au mieux.
+  useEffect(() => {
+    const now = () => lastKeeper.flush()
+    const hidden = () => document.visibilityState === 'hidden' && now()
+    window.addEventListener('pagehide', now)
+    window.addEventListener('beforeunload', now)
+    document.addEventListener('visibilitychange', hidden)
     return () => {
-      flushLastRef.current()
-      if (lastPending.current?.viewId === openViewId) lastPending.current = null
+      window.removeEventListener('pagehide', now)
+      window.removeEventListener('beforeunload', now)
+      document.removeEventListener('visibilitychange', hidden)
     }
-  }, [openViewId])
+  }, [lastKeeper])
   /** Les cases qu'une vue ne gardera pas (onglet temporaire, container Docker) : on le dit avant d'enregistrer. */
   const confirmDropped = async (slots: (string | null)[], layout: string) => {
     const dropped = droppedSlots(slots.slice(0, layoutOf(layout).n), embedSites)
@@ -1293,6 +1295,8 @@ export default function App() {
     // Le mode choisi garde les cases de Réglages s'il est celui de Réglages ; sinon il prend la synchro par défaut du mode.
     const mode = v.kind === 'flux' ? 'scroll' : 'classic'
     const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, copiesFor(mode), splitDefaults.mode === mode ? splitDefaults : withMode(splitDefaults, mode))
+    // Les adresses en attente d'une autre vue partent d'abord : l'ajout s'écrit ensuite sur la config qui les contient.
+    lastKeeper.flush()
     writeViews((views) => [...views, view])
     setComposing(false)
     openSavedView(view)
@@ -1309,22 +1313,25 @@ export default function App() {
     }
     if (!(await confirmDropped(s.slots, s.layout))) return
     const made = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, copiesFor(s.prefs.mode), s.prefs)
-    // #180 : un panneau dont le site a changé perd son adresse ; les autres gardent la plus récente (en attente comprise).
-    const pending = lastPending.current?.viewId === cur.id ? lastPending.current.last : cur.last
-    const last = keepLast({ slots: cur.slots, last: pending }, made.slots)
-    if (lastPending.current?.viewId === cur.id) lastPending.current.last = [...last]
-    window.clearTimeout(lastTimer.current)
+    // #180 : un panneau dont le site a changé perd son adresse, les autres la gardent ; passée en Messagerie, la vue les
+    // oublie toutes (pas de copies).
+    const last = s.prefs.mode === 'scroll' ? keepLast({ slots: cur.slots, last: lastKeeper.pendingOf(cur.id) ?? cur.last }, made.slots) : []
+    lastKeeper.adopt(cur.id, last)
     const view = withLast(made, last)
     writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
     setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites, splitDefaults.mode).gone } : x))
   }
   const cancelEditRef = useRef<() => void>(() => undefined)
   const cancelEdit = () => {
-    const cur = splitRef.current?.viewId ? savedViews.find((v) => v.id === splitRef.current?.viewId) : undefined
-    if (cur) openSavedView(cur)
+    const id = splitRef.current?.viewId
+    const cur = id ? normalizeViews(rawRef.current?.splitViews).find((v) => v.id === id) : undefined
+    // Les adresses repartent de l'enregistré (rien n'a été noté pendant l'édition).
+    if (cur) openSavedView(cur, { reset: true })
   }
   cancelEditRef.current = cancelEdit
   const editView = (v: (typeof savedViews)[number]) => {
+    // Ce qui attend est écrit avant l'édition : Annuler repartira de là.
+    lastKeeper.flush()
     openSavedView(v)
     setSplit((x) => (x ? { ...x, editing: true } : x))
   }

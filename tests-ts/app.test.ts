@@ -248,3 +248,34 @@ describe('repos par outil (#26)', () => {
     expect((await call('PUT', '/api/config', { body: { ...BASE, basecamp: { repos: 'o/x' } } })).status).toBe(422)
   })
 })
+
+describe('vue Flux : écriture des seules dernières adresses (#180)', () => {
+  const view = (last?: (string | null)[]) => ({ id: 'sv-1', name: 'Flux', layout: 'c2', slots: ['x-a', 'x-b'], ...(last ? { last } : {}) })
+  it('ne change que `last` : écrite, sans écraser la sauvegarde d’avant', async () => {
+    store.write(store.CONFIG, { ...BASE, splitViews: [view()] })
+    store.write(store.CONFIG_PREV, { marque: 'avant' })
+    const r = await call('PUT', '/api/config', { body: { ...BASE, splitViews: [view(['https://x.com/a', null])] } })
+    expect(r.status).toBe(200)
+    expect(r.headers['X-Config-Version']).toBe(store.version(store.CONFIG))
+    expect(store.read<any>(store.CONFIG, {}).splitViews[0].last).toEqual(['https://x.com/a', null])
+    expect(store.read<any>(store.CONFIG_PREV, {}).marque).toBe('avant')
+  })
+  it('un autre changement dans la même écriture : chemin normal, sauvegarde d’avant refaite', async () => {
+    store.write(store.CONFIG, { ...BASE, splitViews: [view()] })
+    store.write(store.CONFIG_PREV, { marque: 'avant' })
+    const r = await call('PUT', '/api/config', { body: { ...BASE, title: 'autre', splitViews: [view(['https://x.com/a'])] } })
+    expect(r.status).toBe(200)
+    expect(store.read<any>(store.CONFIG_PREV, {}).marque).toBeUndefined()
+  })
+  it('la décision se fait en comparant les configs, pas sur la foi de la page', () => {
+    const a = { ...BASE, splitViews: [view()] }
+    expect(store.onlyLastChanged(a, { ...BASE, splitViews: [view(['https://x.com/a'])] })).toBe(true)
+    // ordre des clés différent : même config
+    expect(store.onlyLastChanged({ splitViews: a.splitViews, groups: a.groups, title: a.title }, { ...a, splitViews: [view(['https://x.com/a'])] })).toBe(true)
+    // identique : pas un changement d'adresse (chemin normal)
+    expect(store.onlyLastChanged(a, a)).toBe(false)
+    expect(store.onlyLastChanged(a, { ...a, title: 'x' })).toBe(false)
+    expect(store.onlyLastChanged(a, { ...BASE, splitViews: [{ ...view(['https://x.com/a']), name: 'Autre' }] })).toBe(false)
+    expect(store.onlyLastChanged(a, { ...BASE, splitViews: [] })).toBe(false)
+  })
+})

@@ -36,11 +36,15 @@ export function useConfigState() {
   // Écritures en file : la suivante part avec la version rendue par la
   // précédente, sinon deux clics rapprochés se refuseraient l'un l'autre.
   const queue = useRef<Promise<unknown>>(Promise.resolve())
+  // La config la plus récente, écritures en cours comprises : une écriture suivante part d'ici, jamais de l'état React
+  // du dernier rendu (sinon deux écritures rapprochées, ajouter une vue puis noter des adresses, s'écrasaient : #180).
+  const latest = useRef<Config | null>(null)
 
   const load = useCallback(
     () =>
       fetchConfig().then(({ config, version: v }) => {
         version.current = v
+        latest.current = config
         setRaw(config)
       }),
     [],
@@ -71,10 +75,12 @@ export function useConfigState() {
   const cfg = useMemo(() => (raw ? normalizeConfig(raw) : null), [raw])
 
   // --- persistance ---------------------------------------------------------
-  // `quiet` : une écriture de fond (adresses des copies, #180) n'affiche ni « Enregistrement… » ni « Enregistré » ;
-  // une erreur s'affiche toujours.
+  // `quiet` : une écriture de fond (adresses des copies, #180) n'affiche ni « Enregistrement… » ni « Enregistré » ; si la
+  // config a changé ailleurs (409), aucun dialogue : on la relit en silence et on rejoue `rebase` dessus, une fois.
+  // Une autre erreur s'affiche toujours.
   const persist = useCallback(
-    (next: Config, opts?: { quiet?: boolean }) => {
+    (next: Config, opts?: { quiet?: boolean; rebase?: (fresh: Config) => Config }) => {
+      latest.current = next
       setRaw(next)
       if (!opts?.quiet) setSaveState({ kind: 'saving' })
       queue.current = queue.current
@@ -86,6 +92,20 @@ export function useConfigState() {
           window.setTimeout(() => setSaveState((s) => (s.kind === 'saved' ? { kind: 'idle' } : s)), 1600)
         })
         .catch((e: unknown) => {
+          if (opts?.quiet && e instanceof ConfigConflict) {
+            return fetchConfig()
+              .then(({ config, version: v }) => {
+                version.current = v
+                const again = opts.rebase ? opts.rebase(config) : config
+                latest.current = again
+                setRaw(again)
+                if (again === config) return
+                return saveConfig(again, v).then((v2) => {
+                  version.current = v2
+                })
+              })
+              .catch(() => void load().catch(() => undefined))
+          }
           if (!(e instanceof ConfigConflict)) {
             setSaveState({ kind: 'error', message: `Pas enregistré : ${shown('enregistrement', e)}` })
             return
@@ -114,5 +134,5 @@ export function useConfigState() {
   /** Après une réparation (restauration de la dernière sauvegarde) : on recharge. */
   const retry = useCallback(() => setAttempt((a) => a + 1), [])
 
-  return { raw, cfg, error, saveState, setSaveState, persist, reload, retry }
+  return { raw, cfg, error, saveState, setSaveState, persist, reload, retry, latest }
 }

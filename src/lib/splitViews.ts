@@ -51,12 +51,16 @@ export function normalizeViews(raw: unknown): SavedSplitView[] {
 
 // ── dernière adresse des copies (#180) ─────────────────────────────────────
 
-/** Longueur au plus d'une adresse notée (la même borne que `store.validateConfig`). */
+/**
+ * Longueur au plus d'une adresse notée. **Même borne et même règle que `store.validateConfig`** (`server/store.ts`, qui ne
+ * peut pas importer ce fichier) : le client n'accepte jamais ce que le serveur refuserait (test croisé).
+ */
 export const LAST_MAX = 2048
+const PAGE_RE = /^https?:\/\//i
 
 /** Une adresse de page qu'on peut rouvrir : http(s), bornée. Jamais `about:blank`, une page d'erreur, un `data:`… */
 export function isPageUrl(u: unknown): u is string {
-  if (typeof u !== 'string' || !u || u.length > LAST_MAX) return false
+  if (typeof u !== 'string' || !u || u.length > LAST_MAX || !PAGE_RE.test(u)) return false
   try {
     const p = new URL(u).protocol
     return p === 'https:' || p === 'http:'
@@ -65,31 +69,85 @@ export function isPageUrl(u: unknown): u is string {
   }
 }
 
-/** Même site : même protocole et même hôte, au `www.` près (instagram.com ↔ www.instagram.com), même port. */
+/** Paramètres d'adresse qui peuvent porter un secret : jamais gardés (#180, vie privée). */
+const SENSITIVE = /token|auth|code|key|pass|secret|sig|session|jwt/i
+
+/**
+ * L'adresse telle qu'on la garde : sans `#…`, sans identifiants `user:pass@`, sans paramètre sensible (`SENSITIVE`).
+ * `null` si ce n'est pas une page http(s) gardable.
+ */
+export function cleanUrl(u: unknown): string | null {
+  if (typeof u !== 'string' || !PAGE_RE.test(u)) return null
+  let x: URL
+  try {
+    x = new URL(u)
+  } catch {
+    return null
+  }
+  x.hash = ''
+  x.username = ''
+  x.password = ''
+  for (const k of [...new Set(x.searchParams.keys())]) if (SENSITIVE.test(k)) x.searchParams.delete(k)
+  const out = x.href
+  return isPageUrl(out) ? out : null
+}
+
+/** Même site : même hôte, au `www.` près (instagram.com ↔ www.instagram.com), même port ; http et https confondus. */
 export function sameSite(a: string, b: string): boolean {
   try {
     const x = new URL(a)
     const y = new URL(b)
     const host = (h: string) => h.replace(/^www\./, '')
-    return x.protocol === y.protocol && host(x.hostname) === host(y.hostname) && x.port === y.port
+    const port = (u: URL) => (u.port === '' || u.port === '80' || u.port === '443' ? '' : u.port)
+    return host(x.hostname) === host(y.hostname) && port(x) === port(y)
   } catch {
     return false
   }
 }
 
+/** Une adresse ramenée à sa forme comparable : https, sans `www.`, sans `/` final, nettoyée. */
+function comparable(u: string): string {
+  const c = cleanUrl(u)
+  if (!c) return u
+  const x = new URL(c)
+  const path = x.pathname.replace(/\/+$/, '')
+  return `https://${x.hostname.replace(/^www\./, '')}${x.port && x.port !== '443' && x.port !== '80' ? `:${x.port}` : ''}${path}${x.search}`
+}
+
 /**
- * L'adresse à noter pour une copie qui vient de naviguer vers `url` : elle-même si c'est une page du même site que le
- * panneau (`home` = l'adresse de départ du site) ; `null` sinon (autre site, page vide ou en erreur) ou si c'est
- * l'adresse de départ elle-même (rien à reprendre).
+ * L'adresse à noter pour une copie qui vient de naviguer vers `url` : elle-même, nettoyée (`cleanUrl`), si c'est une page
+ * du même site que le panneau (`home` = l'adresse de départ du site) ; `null` sinon (autre site, page vide ou en erreur)
+ * ou si c'est l'accueil lui-même, au `/` final, au `www.` et au passage http → https près (rien à reprendre).
  */
 export function notedUrl(url: unknown, home: string): string | null {
-  if (!isPageUrl(url) || !sameSite(url, home)) return null
-  return url === home ? null : url
+  const c = cleanUrl(url)
+  if (!c || !sameSite(c, home)) return null
+  return comparable(c) === comparable(home) ? null : c
 }
 
 /** Où démarre une copie à l'ouverture : l'adresse notée si elle est encore valable pour ce site, sinon l'adresse de départ. */
 export function startUrl(noted: string | null | undefined, home: string): string {
-  return noted && notedUrl(noted, home) ? noted : home
+  return noted && notedUrl(noted, home) ? (cleanUrl(noted) as string) : home
+}
+
+/**
+ * Ce qu'une copie retient de ses navigations (#180) : la page affichée (`current`, celle qu'on note) et la précédente
+ * bonne. Une réponse en erreur (HTTP ≥ 400) n'est pas notée ; un échec de chargement rend la précédente bonne adresse
+ * si la page en erreur avait pris sa place (sauf -3, chargement remplacé, et -302, schéma inconnu : rien n'a changé).
+ */
+export type CopyNav = { current: string | null; previous: string | null }
+export const NAV_START: CopyNav = { current: null, previous: null }
+
+export function navOk(s: CopyNav, url: unknown, home: string, httpCode?: number): CopyNav {
+  if (typeof httpCode === 'number' && httpCode >= 400) return s
+  const noted = notedUrl(url, home)
+  return noted === s.current ? s : { current: noted, previous: s.current }
+}
+
+export function navFail(s: CopyNav, failedUrl: unknown, home: string, errorCode: number, mainFrame = true): CopyNav {
+  if (!mainFrame || errorCode === -3 || errorCode === -302) return s
+  const failed = notedUrl(failedUrl, home)
+  return failed !== null && failed === s.current ? { current: s.previous, previous: null } : s
 }
 
 /** Les adresses d'une vue, remplacées (`null` partout = rien de noté : la clé disparaît, comme une vue d'avant). */

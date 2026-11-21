@@ -172,6 +172,32 @@ export function backupConfig(): void {
   }
 }
 
+/** JSON aux clés triées : deux configs égales ont la même forme, quel que soit l'ordre des clés. */
+function canonical(v: unknown): string {
+  if (Array.isArray(v)) return `[${v.map(canonical).join(',')}]`
+  if (v && typeof v === 'object')
+    return `{${Object.keys(v as Obj)
+      .sort()
+      .filter((k) => (v as Obj)[k] !== undefined)
+      .map((k) => `${JSON.stringify(k)}:${canonical((v as Obj)[k])}`)
+      .join(',')}}`
+  return JSON.stringify(v) ?? 'null'
+}
+
+/**
+ * Vue Flux (#180) : l'écriture ne change-t-elle **que** les dernières adresses des copies (`splitViews[].last`) ? Alors le
+ * serveur l'écrit sans relire GitHub ni le disque (`reloadAll`) et sans écraser la sauvegarde d'avant (`backupConfig`) :
+ * une navigation n'est pas un changement de réglage. Décidé en comparant les deux configs, jamais sur la foi de la page.
+ */
+export function onlyLastChanged(before: unknown, after: unknown): boolean {
+  const strip = (c: unknown): unknown => {
+    if (!isObj(c) || !Array.isArray(c.splitViews)) return c
+    return { ...c, splitViews: c.splitViews.map((v) => (isObj(v) ? { ...v, last: undefined } : v)) }
+  }
+  if (!isObj(before) || !isObj(after)) return false
+  return canonical(strip(before)) === canonical(strip(after)) && canonical(before) !== canonical(after)
+}
+
 // ── Validation de config.json ──────────────────────────────────────────────────
 /** Fonctionnalités qu'on peut couper (Réglages → Fonctionnalités) : clé absente = active. */
 export const FEATURES = ['github', 'basecamp', 'local', 'trello'] as const
@@ -313,6 +339,7 @@ export function validateConfig(cfg: unknown): string | null {
         // #180 : dernière adresse de chaque copie (http(s) seulement, bornée), ou null.
         const last = f.last
         if (last !== undefined && last !== null) {
+          // même borne et même règle que `LAST_MAX` / `isPageUrl` (src/lib/splitViews.ts, que le serveur n'importe pas)
           const page = (x: unknown) => isStr(x) && x.length <= 2048 && /^https?:\/\//i.test(x)
           if (!Array.isArray(last) || last.length > 4 || last.some((x) => x !== null && !page(x)))
             return `splitViews[${i}].last doit être une liste de 4 adresses web au plus (ou null)`

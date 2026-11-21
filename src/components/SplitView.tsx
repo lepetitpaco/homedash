@@ -2,7 +2,7 @@ import { createPortal } from 'react-dom'
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 import Pick from './Pick'
 import { desktop } from '../lib/desktop'
-import { copyFrame, notedUrl, startUrl } from '../lib/splitViews'
+import { NAV_START, copyFrame, navFail, navOk, startUrl } from '../lib/splitViews'
 import {
   ACTIONS_OFF_HINT,
   FLAG_HELP,
@@ -127,17 +127,22 @@ function CopyPane({
       }
     }
     w.addEventListener('dom-ready', ready)
-    // #180 : chaque navigation (page ou reel changé sans recharger) est notée ; une page en erreur ne l'est jamais.
+    // #180 : chaque navigation (page ou reel changé sans recharger) est notée, nettoyée (navOk / navFail, splitViews.ts) :
+    // une réponse HTTP en erreur n'est jamais notée, un échec de chargement rend la dernière bonne adresse.
     const home = site.url ?? ''
+    let state = NAV_START
+    const emit = (next: typeof state) => {
+      if (next.current !== state.current) navRef.current(next.current)
+      state = next
+    }
     const nav = (e: Event) => {
-      const ev = e as Event & { url?: string; isMainFrame?: boolean }
+      const ev = e as Event & { url?: string; isMainFrame?: boolean; httpResponseCode?: number }
       if (ev.type === 'did-navigate-in-page' && ev.isMainFrame === false) return
-      navRef.current(notedUrl(ev.url, home))
+      emit(navOk(state, ev.url, home, ev.httpResponseCode))
     }
     const fail = (e: Event) => {
-      const ev = e as Event & { errorCode?: number; isMainFrame?: boolean }
-      // -3 : chargement annulé (une autre navigation l'a remplacé), pas une erreur
-      if (ev.isMainFrame !== false && ev.errorCode !== -3) navRef.current(null)
+      const ev = e as Event & { errorCode?: number; isMainFrame?: boolean; validatedURL?: string }
+      emit(navFail(state, ev.validatedURL, home, ev.errorCode ?? 0, ev.isMainFrame !== false))
     }
     w.addEventListener('did-navigate', nav)
     w.addEventListener('did-navigate-in-page', nav)
