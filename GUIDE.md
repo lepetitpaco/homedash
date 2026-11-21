@@ -192,12 +192,12 @@ les proportions sont gardées. **Double-clic sur le titre** d'un panneau (ou `X`
 vue (*Fermer*, `Échap` en mode Flux, ou en ouvrant une autre page), chaque site retrouve sa place ; un site affiché
 ne se met pas en veille.
 
-Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajouter → Ajouter une vue scindée) et changeable dans *Modifier la vue…* ; *Réglages → Vue scindée* ne sert qu'à pré-remplir une nouvelle vue :
+Chaque vue a un **type** (*Flux* ou *Messagerie*), choisi à sa création (Ajouter → Ajouter une vue scindée). Le changer passe tous les panneaux en copies ou en vrais sites : depuis la barre de la vue, le temps de la vue ; dans *Modifier la vue…*, enregistré ; *Réglages → Vue scindée* ne sert qu'à pré-remplir une nouvelle vue :
 
 | | Messagerie | Flux |
 | --- | --- | --- |
 | Pour | Suivre plusieurs messageries : Instagram et Discord côte à côte | Défiler plusieurs flux en parallèle (TikTok, X, Instagram…) |
-| Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre : défiler la tuile ne bouge jamais l'onglet du site, et inversement. **Toujours** des copies, vues anciennes comprises ; changer le type dans *Modifier la vue…* passe tous les panneaux en copies ou en vrais sites |
+| Panneaux | Le **vrai site** (ses notifications, ses compteurs, ses appels) | Des **copies** : une page à part avec ta connexion, son propre historique, sans toucher au site de la barre : défiler la tuile ne bouge jamais l'onglet du site. Toujours des copies, vues anciennes comprises |
 | Son | **Tous les sons** : un appel Discord reste audible, jamais de pause | **Le panneau où tu agis** : le dernier geste gagne (survol, molette, touche de mixage, `Alt` + chiffre, clic) ; les autres sont coupés et leurs vidéos en pause, elles reprennent quand le panneau retrouve le son |
 | Clavier | **Aucune touche interceptée** : tu tapes dans les sites comme d'habitude | Table de mixage et raccourcis, toujours actifs (tableau ci-dessous) |
 
