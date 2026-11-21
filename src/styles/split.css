@@ -477,9 +477,15 @@
   background: transparent;
   pointer-events: none;
 }
-.app.is-focus .split-grid,
+/* Seuls l'en-tête, la barre de la vue et les séparateurs captent la souris ; tout le reste la laisse passer. La grille
+   elle-même est traversable (en Messagerie les vrais sites sont dessous : sinon elle avalait clics et molette), et les
+   copies (filles de la racine, donc héritières de `none`) la reprennent (vérificateur de #183 : 0 clic, 0 molette). */
 .app.is-focus .split-head,
-.app.is-focus .split-bar {
+.app.is-focus .split-bar,
+.app.is-focus .split-sep {
+  pointer-events: auto;
+}
+.app.is-focus .split-copy {
   pointer-events: auto;
 }
 /* le fond du panneau ne couvre plus la page (la racine est au-dessus) ; l'en-tête garde le sien */
@@ -538,4 +544,14 @@
 .svc .modal-foot .btn,
 .svc .svc-slot .pick-btn {
   min-height: 44px;
+}
+
+/* En focus l'espace entre deux panneaux est celui du séparateur : 6 px, plus les bordures = 8 px (12 avant, #183). */
+.app.is-focus .split-node.is-row > .split-sep {
+  width: 16px;
+  margin: 0 -5px; /* zone de prise de 16 px, 6 px d'espace visible */
+}
+.app.is-focus .split-node.is-col > .split-sep {
+  height: 16px;
+  margin: -5px 0;
 }

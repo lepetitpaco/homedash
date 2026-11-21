@@ -2754,7 +2754,7 @@ export default function App() {
       {focus ? <div className="topbar-hot" aria-hidden="true" /> : null}
       <TopBar
         site={view.startsWith('x:')}
-        focus={view.startsWith('x:') || (!!split && view !== 'search') ? { on: focus, toggle: toggleFocus } : undefined}
+        focus={view.startsWith('x:') || !!split ? { on: focus, toggle: toggleFocus } : undefined}
         unread={(() => {
           // Barres masquées : les compteurs des sites ne se voient plus nulle part (issue #130).
           // Rien à lire = rien d'affiché ; pas de réglage.
