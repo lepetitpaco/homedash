@@ -39,7 +39,7 @@ import { useDocker } from './lib/docker'
 import { dockerStopped, dockerTabId, dockerTabs } from './lib/dockerTabs'
 import { keepFolderPlaces, placeForNew, railEntries } from './lib/railOrder'
 import { orderSites, stepIndex, touchRecent } from './lib/siteSwitch'
-import { moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
+import { copiesFor, moveView, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from './lib/splitViews'
 import SplitViewComposer from './components/SplitViewComposer'
 import SplitView, { type PaneSite, type Rect } from './components/SplitView'
 import {
@@ -1207,7 +1207,7 @@ export default function App() {
   const embedSites = allTabs.filter((t) => t.embed && !isTemp(t) && !t.id.startsWith('dk-'))
   const openSavedView = (v: (typeof savedViews)[number]) => {
     leavePage()
-    const { keys, gone, copies } = viewSlots(v, embedSites)
+    const { keys, gone, copies } = viewSlots(v, embedSites, splitDefaults.mode)
     setSplitNotes([null, null, null, null])
     const prefs = v.prefs ?? splitDefaults
     setSplit({ viewId: v.id, copies, gone, ratios: v.ratios ?? {}, layout: v.layout, slots: keys, zoom: null, prefs, focus: { active: 0, sound: prefs.mode === 'scroll' ? 0 : null } })
@@ -1235,11 +1235,11 @@ export default function App() {
     })
   }
   /** « Ajouter une vue scindée » : crée la vue enregistrée, à la fin de la barre, et l'ouvre. */
-  const createView = (v: { name: string; layout: string; slots: (string | null)[]; copies: boolean[]; kind: 'flux' | 'messagerie' }) => {
+  const createView = (v: { name: string; layout: string; slots: (string | null)[]; kind: 'flux' | 'messagerie' }) => {
     const id = newViewId(savedViews.map((x) => x.id))
     // Le mode choisi garde les cases de Réglages s'il est celui de Réglages ; sinon il prend la synchro par défaut du mode.
     const mode = v.kind === 'flux' ? 'scroll' : 'classic'
-    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, v.copies, splitDefaults.mode === mode ? splitDefaults : withMode(splitDefaults, mode))
+    const view = makeView(id, v.name, v.layout, v.slots, embedSites, undefined, undefined, copiesFor(mode), splitDefaults.mode === mode ? splitDefaults : withMode(splitDefaults, mode))
     writeViews((views) => [...views, view])
     setComposing(false)
     openSavedView(view)
@@ -1255,9 +1255,9 @@ export default function App() {
       return
     }
     if (!(await confirmDropped(s.slots, s.layout))) return
-    const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, s.copies, s.prefs)
+    const view = makeView(cur.id, cur.name, s.layout, s.slots, embedSites, s.ratios, { before: cur.before, folder: cur.folder }, copiesFor(s.prefs.mode), s.prefs)
     writeViews((views) => views.map((v) => (v.id === cur.id ? view : v)))
-    setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites).gone } : x))
+    setSplit((x) => (x ? { ...x, editing: false, gone: viewSlots(view, embedSites, splitDefaults.mode).gone } : x))
   }
   const cancelEditRef = useRef<() => void>(() => undefined)
   const cancelEdit = () => {
@@ -2534,7 +2534,7 @@ export default function App() {
           id: `f:view-${v.id}` as TabId,
           icon: '◫',
           label: v.name,
-          badge: viewCounter(v, tabCounts, embedSites),
+          badge: viewCounter(v, tabCounts, embedSites, splitDefaults.mode),
           badgeAlert: true,
           onOpen: () => openSavedView(v),
           onContext: (ev: React.MouseEvent) => viewMenu(ev, v),
@@ -2814,7 +2814,7 @@ export default function App() {
             name: v.name,
             folder: v.folder,
             before: v.before,
-            counter: viewCounter(v, tabCounts, embedSites),
+            counter: viewCounter(v, tabCounts, embedSites, splitDefaults.mode),
             open: split?.viewId === v.id,
             onOpen: () => openSavedView(v),
             onContext: (e) => viewMenu(e, v),
@@ -2972,7 +2972,6 @@ export default function App() {
           }}
           gone={split.gone}
           copies={split.copies}
-          onCopy={(slot, copy) => setSplit((x) => (x ? { ...x, copies: x.copies.map((c, i) => (i === slot ? copy : c)) } : x))}
           onCopyGuest={(slot, id) => {
             if (id === null) {
               copyGuests.current.delete(slot)
@@ -2993,7 +2992,13 @@ export default function App() {
           prefs={split.prefs}
           preset={splitPreset}
           onProfile={(id) =>
-            setSplit({ ...split, prefs: withMode(split.prefs, id), focus: id === 'scroll' ? { active: split.focus.active, sound: split.focus.active } : { ...split.focus, sound: null } })
+            // Le type décide copie ou vrai site (#179) : Messagerie → Flux ouvre des copies tout de suite, et l'inverse.
+            setSplit({
+              ...split,
+              prefs: withMode(split.prefs, id),
+              copies: copiesFor(id),
+              focus: id === 'scroll' ? { active: split.focus.active, sound: split.focus.active } : { ...split.focus, sound: null },
+            })
           }
           onPrefs={(patch) => setSplit({ ...split, prefs: { ...split.prefs, ...patch } })}
           active={split.focus.active}

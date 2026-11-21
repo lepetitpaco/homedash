@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { validateConfig } from '../server/store'
 import { DEFAULT_SPLIT, withMode } from '../src/lib/splitView'
-import { moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
+import { copiesFor, moveView, viewsAt, droppedSlots, makeView, newViewId, normalizeViews, removeView, renameView, siteNames, viewCounter, viewSlots } from '../src/lib/splitViews'
 import type { CustomTab, TabSession } from '../src/types'
 
 const tab = (id: string, label: string, session?: string): CustomTab => ({ id, label, url: `https://${id}.example`, embed: true, session })
@@ -36,7 +36,7 @@ describe('vues scindées enregistrées (#169)', () => {
 
   it('un site supprimé de Mes sites : la case est signalée, la vue ne casse pas', () => {
     const v = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c2', slots: ['x-a', 'x-zzz'] }])[0]
-    const r = viewSlots(v, sites)
+    const r = viewSlots(v, sites, 'classic')
     expect(r.keys).toEqual(['x:x-a', null, null, null])
     expect(r.gone).toEqual([false, true, false, false])
   })
@@ -60,13 +60,13 @@ describe('vues scindées enregistrées (#169)', () => {
   it('compteur d’une vue : seulement les sites qui comptent comme le Dock', () => {
     const quiet = [tab('x-a', 'X'), { ...tab('x-b', 'X'), notify: false }, { ...tab('x-c', 'Doc'), embed: false }]
     const v = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'] }])[0]
-    expect(viewCounter(v, { 'x:x-a': 2, 'x:x-b': 5, 'x:x-c': 7 }, quiet)).toBe(2)
+    expect(viewCounter(v, { 'x:x-a': 2, 'x:x-b': 5, 'x:x-c': 7 }, quiet, 'classic')).toBe(2)
   })
 
   it('compteur d’une vue : la somme de ses sites, chacun une fois', () => {
     const v = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-a'] }])[0]
-    expect(viewCounter(v, { 'x:x-a': 3, 'x:x-b': 4, 'x:x-c': 9 }, sites)).toBe(7)
-    expect(viewCounter(v, {}, sites)).toBe(0)
+    expect(viewCounter(v, { 'x:x-a': 3, 'x:x-b': 4, 'x:x-c': 9 }, sites, 'classic')).toBe(7)
+    expect(viewCounter(v, {}, sites, 'classic')).toBe(0)
   })
 
   it('renommer, supprimer, nouvel id', () => {
@@ -125,15 +125,31 @@ describe('vues scindées enregistrées (#169)', () => {
     expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', before: 4 }] })).toMatch(/before/)
   })
 
-  it('copies (#172) : absentes = tous les sites réels ; seuls les sites réels comptent dans le compteur', () => {
-    const old = normalizeViews([{ id: 'sv-1', name: 'V', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'] }])[0]
-    expect(old.copies).toBeUndefined()
-    expect(viewSlots(old, sites).copies).toEqual([false, false, false, false])
-    const v = normalizeViews([{ id: 'sv-2', name: 'Flux', layout: 'c3', slots: ['x-a', 'x-b', 'x-c'], copies: [true, false, true, true] }])[0]
-    expect(v.copies).toEqual([true, false, true, false])
-    expect(normalizeViews([v])).toEqual([v])
-    expect(viewCounter(v, { 'x:x-a': 5, 'x:x-b': 2, 'x:x-c': 9 }, sites)).toBe(2)
-    expect(validateConfig({ groups: [], splitViews: [v] })).toBeNull()
+  it('copies (#179) : le type décide seul, quel que soit le `copies[]` stocké (vue d’avant comprise, sans migration)', () => {
+    const counts = { 'x:x-a': 5, 'x:x-b': 2, 'x:x-c': 9 }
+    const slots = ['x-a', 'x-b', 'x-c']
+    // vue Flux d'avant #172 : pas de `copies` → des copies partout, aucun vrai site (donc rien lié à l'onglet), compteur 0
+    const oldFlux = normalizeViews([{ id: 'sv-1', name: 'Doomscrolling', layout: 'c3', slots, prefs: { mode: 'scroll' } }])[0]
+    expect(oldFlux.copies).toBeUndefined()
+    expect(viewSlots(oldFlux, sites, 'classic').copies).toEqual([true, true, true, true])
+    expect(viewCounter(oldFlux, counts, sites, 'classic')).toBe(0)
+    // vue sans type du tout (avant #172) : le type de Réglages décide
+    const bare = normalizeViews([{ id: 'sv-0', name: 'V', layout: 'c3', slots }])[0]
+    expect(viewSlots(bare, sites, 'scroll').copies).toEqual([true, true, true, true])
+    expect(viewSlots(bare, sites, 'classic').copies).toEqual([false, false, false, false])
+    expect(viewCounter(bare, counts, sites, 'classic')).toBe(16)
+    // mixte stocké (bascule par panneau d'avant #179) : en Flux tout est copie, en Messagerie tout est vrai site
+    const mixFlux = normalizeViews([{ id: 'sv-2', name: 'F', layout: 'c3', slots, copies: [true, false, true, true], prefs: { mode: 'scroll' } }])[0]
+    expect(mixFlux.copies).toEqual([true, false, true, false])
+    expect(normalizeViews([mixFlux])).toEqual([mixFlux])
+    expect(viewSlots(mixFlux, sites, 'classic').copies).toEqual([true, true, true, true])
+    expect(viewCounter(mixFlux, counts, sites, 'classic')).toBe(0)
+    const mixMsg = { ...mixFlux, prefs: { mode: 'classic' as const, sync: false, actions: true } }
+    expect(viewSlots(mixMsg, sites, 'scroll').copies).toEqual([false, false, false, false])
+    expect(viewCounter(mixMsg, counts, sites, 'scroll')).toBe(16)
+    expect(copiesFor('scroll')).toEqual([true, true, true, true])
+    expect(copiesFor('classic')).toEqual([false, false, false, false])
+    expect(validateConfig({ groups: [], splitViews: [mixFlux] })).toBeNull()
     expect(validateConfig({ groups: [], splitViews: [{ id: 'a', name: 'n', copies: [1] }] })).toMatch(/copies/)
   })
 

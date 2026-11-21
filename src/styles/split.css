@@ -366,8 +366,7 @@
   min-width: 0;
   border: 0;
 }
-.split-copy-badge,
-.split-copy-toggle {
+.split-copy-badge {
   flex: none;
   padding: 0 6px;
   border: 1px solid var(--border);
@@ -375,14 +374,6 @@
   background: transparent;
   color: var(--text-dim);
   font-size: 0.72rem;
-}
-.split-copy-toggle {
-  min-height: 30px;
-  cursor: pointer;
-}
-.split-copy-toggle.is-on {
-  color: var(--sig-info);
-  border-color: var(--sig-info);
 }
 @container (max-width: 300px) {
   .split-copy-badge {

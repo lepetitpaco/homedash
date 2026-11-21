@@ -20,7 +20,7 @@ export default function SplitViewComposer({
   names: Record<string, string>
   /** Clés des sites les plus récents : ils remplissent les panneaux au départ. */
   recent: string[]
-  onCreate: (v: { name: string; layout: string; slots: (string | null)[]; copies: boolean[]; kind: 'flux' | 'messagerie' }) => void
+  onCreate: (v: { name: string; layout: string; slots: (string | null)[]; kind: 'flux' | 'messagerie' }) => void
   onClose: () => void
 }) {
   const [name, setName] = useState('')
@@ -43,7 +43,7 @@ export default function SplitViewComposer({
   }, [onClose])
   const filled = slots.slice(0, n).filter(Boolean).length
   const ok = name.trim().length > 0 && filled >= 2
-  const submit = () => ok && onCreate({ name: name.trim(), layout, slots, copies: Array.from({ length: 4 }, () => kind === 'flux'), kind })
+  const submit = () => ok && onCreate({ name: name.trim(), layout, slots, kind })
 
   return createPortal(
     <div className="modal-backdrop" onPointerDown={(e) => e.target === e.currentTarget && onClose()}>

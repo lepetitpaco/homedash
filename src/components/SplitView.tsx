@@ -39,9 +39,8 @@ type Props = {
   onRatios: (next: Record<string, number[]>, commit: boolean) => void
   /** Cases dont le site a été retiré de Mes sites. */
   gone: boolean[]
-  /** Par case : une COPIE du site (nouvelle page, même connexion) plutôt que le vrai site. */
+  /** Par case : une COPIE du site (nouvelle page, même connexion) plutôt que le vrai site ; décidé par le type (#179). */
   copies: boolean[]
-  onCopy: (slot: number, copy: boolean) => void
   /** La webview d'une copie est prête (id) ; `null` quand elle disparaît. */
   onCopyGuest: (slot: number, id: number | null) => void
   /** Son coupé d'office pour une copie (le panneau n'a pas le son). */
@@ -245,16 +244,8 @@ export default function SplitView(p: Props) {
               <span className="split-site-name">{key ? (p.names[key] ?? site?.label ?? '') : '—'}</span>
             </span>
           )}
-          {p.editing && key && site ? (
-            <button
-              className={`split-copy-toggle${isCopy ? ' is-on' : ''}`}
-              aria-pressed={isCopy}
-              title={isCopy ? 'Copie : une page à part, avec ta connexion (clic : revenir au vrai site)' : 'Vrai site : ses notifications et ses compteurs (clic : en faire une copie à part)'}
-              onClick={() => p.onCopy(i, !isCopy)}
-            >
-              {isCopy ? 'Copie' : 'Site réel'}
-            </button>
-          ) : isCopy ? (
+          {/* Copie ou vrai site : le type de la vue décide (#179), pas de bascule par panneau. */}
+          {isCopy ? (
             <span className="split-copy-badge" title="Copie : une page à part, avec ta connexion">
               copie
             </span>
