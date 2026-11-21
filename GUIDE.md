@@ -46,7 +46,7 @@ même sans aucun site : son **＋** ajoute le premier.
 - **Mode focus** : ⤢ en haut à droite, ou ⌘⇧F (Ctrl+Maj+F), même en tapant dans le site : le site prend toute la
   fenêtre. La barre du haut revient quand la souris touche le bord haut (ou avec ⌘K), celle de gauche au bord gauche.
   ⤡ ou ⌘⇧F pour en sortir ; quitter le site en sort aussi. **Aussi dans une vue scindée** (même ouverte sur
-  l'accueil) : les panneaux prennent toute la fenêtre, bord à bord, avec un en-tête réduit (numéro, site, son, ⤢) ;
+  l'accueil) : les panneaux prennent toute la fenêtre (6 px seulement entre deux), avec un en-tête réduit (numéro, site, son, agrandir) ;
   la barre de la vue (Messagerie / Flux, Options, Fermer) revient avec la barre du haut quand la souris touche le bord haut.
   Fermer la vue sort du focus.
 - **Disposition et taille** : clic droit sur une barre, hors d'une icône, puis *Disposition et taille…*, ou *Réglages → Barres

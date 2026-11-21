@@ -449,9 +449,14 @@ Les versions publiées sont construites par `.github/workflows/release.yml` (Mac
   fond `.app.is-focus::before` (z-index 4, sous les copies) évite que la page du dessous se voie entre les panneaux ;
   (3) la barre de la vue se place sous la barre du haut grâce à `--focus-bar-top`, mesurée (`offsetHeight` ignore le
   `transform`) : `--topbar-h` n'est **jamais posée** (son repli 0 est partout), ne pas s'en servir ; (4) `:has()` ne
-  s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, son,
-  ⤡), compact, car le son et le panneau actif doivent rester lisibles ; (6) le pied de page de l'accueil (z-index 40) passait
-  par-dessus le bas des panneaux : caché tant qu'une vue est ouverte.
+  s'imbrique pas dans `:has()` : la règle est ignorée en entier, sans erreur ; (5) l'en-tête de panneau reste (numéro, site, son,
+  agrandir), compact, car le son et le panneau actif doivent rester lisibles ; (6) le pied de page de l'accueil (z-index 40) passait
+  par-dessus le bas des panneaux : caché tant qu'une vue est ouverte ; (7) **la racine à `pointer-events: none` est héritée par
+  les copies** (filles directes de la racine) et la grille, plein cadre, avalait la souris des vrais sites de Messagerie
+  (dessous, z-index 5) : en focus, ni clic ni molette n'arrivaient aux pages (le vérificateur : 0 / 0, alors que la géométrie
+  était parfaite). Seuls l'en-tête, la barre de la vue et les séparateurs captent la souris ; les copies la reprennent
+  (`auto`) ; **toute règle qui pose `pointer-events: none` sur une racine se vérifie par de vrais clics et de vraie molette
+  comptés dans les pages**, pas par des rectangles ; (8) l'espace entre deux panneaux est celui du séparateur : 6 px en focus.
 - Un lien s'ouvre en onglet **dans son espace** : le dash (`DASH` = `links`) ou un site (`x:<id>`),
   noté dans `tab.parent` (`openChild`, `spaceOf`). Barre du haut = l'espace affiché et ses onglets ;
   barre de gauche = sites et onglets temporaires **sans** espace. Espace disparu = onglet temporaire seul.
