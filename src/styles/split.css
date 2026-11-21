@@ -186,13 +186,13 @@
 .split-node.is-row > .split-sep {
   width: 16px;
   margin: 0 -3px; /* zone sensible élargie (#188), même espace visible */
-  z-index: 1;
+  z-index: 6; /* au-dessus des copies (5) : sinon elles mangent la marge négative */
   cursor: col-resize;
 }
 .split-node.is-col > .split-sep {
   height: 16px;
   margin: -3px 0;
-  z-index: 1;
+  z-index: 6;
   cursor: row-resize;
 }
 .split-sep::after {
@@ -554,4 +554,21 @@
 .app.is-focus .split-node.is-col > .split-sep {
   height: 16px;
   margin: -5px 0;
+}
+
+/* Composeur : les pastilles de type et de disposition gardent 44 px (elles côtoient Annuler, Ajouter et les sélecteurs) ;
+   seule la barre d'une vue ouverte est compacte (#185, #189). */
+.svc .split-chip {
+  min-height: 44px;
+}
+.svc .split-lay {
+  width: 44px;
+  padding: 6px;
+}
+.svc .split-lay > .split-mini {
+  height: 30px;
+}
+/* Mode édition : le sélecteur de site prend toute la hauteur de l'en-tête (32 px, #185), pas 29. */
+.split-head .pick-btn {
+  min-height: 32px;
 }

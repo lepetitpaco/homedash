@@ -132,7 +132,7 @@ export default function TopBar({
           <button
             className={`icon-btn focus-btn${focus.on ? ' is-on' : ''}`}
             onClick={focus.toggle}
-            title={focus.on ? `Quitter le mode focus (${keys('F', true)})` : `Mode focus : le site prend toute la fenêtre, les barres reviennent au bord (${keys('F', true)})`}
+            title={focus.on ? `Quitter le mode focus (${keys('F', true)})` : `Mode focus : le site ou la vue prend toute la fenêtre, les barres reviennent au bord (${keys('F', true)})`}
             aria-label={focus.on ? 'Quitter le mode focus' : 'Mode focus'}
             aria-pressed={focus.on}
           >

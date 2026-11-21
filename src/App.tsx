@@ -607,7 +607,7 @@ export default function App() {
   useEffect(() => {
     if (!focusable) setFocusWanted(false)
   }, [focusable])
-  // Fermer la vue rend la fenêtre telle qu'elle était : le focus de la vue ne reste pas sur le site dessous.
+  // Fermer la vue sort du focus (case de #183), même si le focus avait été pris sur le site avant d'ouvrir la vue.
   const hadSplit = useRef(false)
   useEffect(() => {
     if (hadSplit.current && !split) setFocusWanted(false)

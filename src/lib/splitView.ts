@@ -170,6 +170,20 @@ export function dragRatios(ratios: number[], index: number, delta: number, min =
   return out
 }
 
+/** Séparateur au clavier (#188) : un pas de 2 % de la longueur du nœud par flèche. */
+export const SEP_STEP = 0.02
+export function nudgeRatios(ratios: number[], index: number, dir: -1 | 1): number[] {
+  return dragRatios(ratios, index, dir * SEP_STEP)
+}
+/** Ce qu'annonce un séparateur (`aria-valuenow / min / max`, en % de la longueur) : les vraies bornes de `dragRatios`, pas des valeurs rondes. */
+export function separatorValue(ratios: number[], index: number, min = 0.12): { now: number; min: number; max: number } {
+  const total = ratios.reduce((s, r) => s + r, 0)
+  const a = ratios[index]
+  const b = ratios[index + 1]
+  if (a === undefined || b === undefined || total <= 0) return { now: 50, min: 0, max: 100 }
+  return { now: Math.round((100 * a) / total), min: Math.round(100 * min), max: Math.round((100 * (a + b - min * total)) / total) }
+}
+
 // ── son ────────────────────────────────────────────────────────────────────
 
 /** Qui a le son et les touches : le panneau actif, et celui qui joue (`null` = aucun). */

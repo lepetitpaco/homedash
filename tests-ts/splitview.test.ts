@@ -12,6 +12,9 @@ import {
   pauseWanted,
   LAYER_SELECTOR,
   canFocus,
+  SEP_STEP,
+  nudgeRatios,
+  separatorValue,
   focusOnGesture,
   interceptTable,
   layoutOf,
@@ -383,4 +386,36 @@ describe('mode focus : site ou vue scindée (#183)', () => {
   it('permis sur une vue scindée, même sans site dessous (accueil)', () => expect(canFocus(false, true)).toBe(true))
   it('permis quand les deux sont là', () => expect(canFocus(true, true)).toBe(true))
   it('refusé sur une page sans site ni vue', () => expect(canFocus(false, false)).toBe(false))
+})
+
+describe('séparateur au clavier (#188)', () => {
+  it('une flèche déplace de 2 % de la longueur, dans les deux sens', () => {
+    const r = [1, 1]
+    const a = nudgeRatios(r, 0, 1)
+    expect(a[0] / (a[0] + a[1])).toBeCloseTo(0.5 + SEP_STEP, 5)
+    const b = nudgeRatios(r, 0, -1)
+    expect(b[0] / (b[0] + b[1])).toBeCloseTo(0.5 - SEP_STEP, 5)
+  })
+  it('chaque voisin garde au moins 12 % : plus de mouvement au-delà', () => {
+    let r = [1, 1]
+    for (let i = 0; i < 60; i++) r = nudgeRatios(r, 0, -1)
+    expect(r[0] / (r[0] + r[1])).toBeCloseTo(0.12, 5)
+    expect(nudgeRatios(r, 0, -1)).toEqual(r)
+  })
+  it('la somme est conservée', () => {
+    const r = nudgeRatios([2, 1, 1], 1, 1)
+    expect(r.reduce((s, x) => s + x, 0)).toBeCloseTo(4, 10)
+  })
+  it('annonce les vraies bornes (12 % à 88 % pour deux panneaux), pas 10 et 90', () => {
+    expect(separatorValue([1, 1], 0)).toEqual({ now: 50, min: 12, max: 88 })
+  })
+  it('trois panneaux : les bornes tiennent compte du voisin d\'après', () => {
+    const v = separatorValue([1, 1, 2], 0)
+    expect(v.now).toBe(25)
+    expect(v.min).toBe(12)
+    expect(v.max).toBe(Math.round((100 * (2 - 0.12 * 4)) / 4))
+  })
+  it('séparateur inconnu : valeur neutre, sans plantage', () => {
+    expect(separatorValue([1, 1], 5)).toEqual({ now: 50, min: 0, max: 100 })
+  })
 })

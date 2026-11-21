@@ -10,6 +10,8 @@ import {
   MODE_LABELS,
   ZOOM_LABEL,
   dragRatios,
+  nudgeRatios,
+  separatorValue,
   layoutOf,
   splitLegend,
   type Preset,
@@ -216,6 +218,16 @@ export default function SplitView(p: Props) {
   const [copyRects, setCopyRects] = useState<(Rect | null)[]>([])
   const ratios = p.ratios
   const [dragging, setDragging] = useState(false)
+  // Séparateur aux flèches : l'aperçu suit chaque appui, l'écriture de la config est groupée (600 ms après le dernier appui,
+  // ou à la sortie du séparateur) : une flèche tenue ne doit pas écrire la config à chaque répétition du clavier (#188).
+  const kbLatest = useRef<Record<string, number[]> | null>(null)
+  const kbTimer = useRef<number | undefined>(undefined)
+  const kbCommit = () => {
+    window.clearTimeout(kbTimer.current)
+    const next = kbLatest.current
+    kbLatest.current = null
+    if (next) p.onRatios(next, true)
+  }
   const [menu, setMenu] = useState<{ left: number; top: number } | null>(null)
   // L'aide (ⓘ) : une vraie bulle (`role="dialog"`), pas l'infobulle native de 688 caractères (#188).
   const [info, setInfo] = useState<{ left: number; top: number } | null>(null)
@@ -271,7 +283,9 @@ export default function SplitView(p: Props) {
         const back = menu ? '.split-menu-btn' : '.split-info'
         setMenu(null)
         setInfo(null)
-        document.querySelector<HTMLElement>(`.split-bar ${back}`)?.focus()
+        // Mode focus : le bouton gardé au focus clavier ferait rester les barres affichées (`:focus-visible`) ; on lâche le focus.
+        if (document.querySelector('.app.is-focus')) (document.activeElement as HTMLElement | null)?.blur()
+        else document.querySelector<HTMLElement>(`.split-bar ${back}`)?.focus()
         return
       }
       if (e.key !== 'Tab') return
@@ -377,7 +391,7 @@ export default function SplitView(p: Props) {
             </span>
           ) : null}
           {/* Flux : un panneau sans le son est en pause (les pages sont au-dessus de la grille : un voile ne se verrait pas). */}
-          {key && p.prefs.mode === 'scroll' && !plays && !manual ? (
+          {key && desktop?.splitDo && p.prefs.mode === 'scroll' && !plays && !manual ? (
             <span className="split-paused" title="La vidéo de ce panneau est en pause : elle reprend quand il a le son">
               En pause
             </span>
@@ -435,16 +449,22 @@ export default function SplitView(p: Props) {
             tabIndex={0}
             aria-label="Redimensionner les panneaux (flèches)"
             aria-orientation={node.dir === 'row' ? 'vertical' : 'horizontal'}
-            aria-valuemin={10}
-            aria-valuemax={90}
-            aria-valuenow={Math.round((100 * r[i]) / r.reduce((a, b) => a + b, 0))}
+            aria-valuemin={separatorValue(r, i).min}
+            aria-valuemax={separatorValue(r, i).max}
+            aria-valuenow={separatorValue(r, i).now}
+            onBlur={kbCommit}
             onKeyDown={(e) => {
-              // Flèches : le séparateur bouge de 2 % ; même règle que la souris (`dragRatios`), écrite à la fin du geste.
+              // Flèches : le séparateur bouge de 2 % ; même règle que la souris (`dragRatios`).
               const back = node.dir === 'row' ? 'ArrowLeft' : 'ArrowUp'
               const fwd = node.dir === 'row' ? 'ArrowRight' : 'ArrowDown'
               if (e.key !== back && e.key !== fwd) return
               e.preventDefault()
-              p.onRatios({ ...ratios, [id]: dragRatios(r, i, e.key === fwd ? 0.02 : -0.02) }, true)
+              const cur = kbLatest.current?.[id] ?? r
+              const next = { ...(kbLatest.current ?? ratios), [id]: nudgeRatios(cur, i, e.key === fwd ? 1 : -1) }
+              kbLatest.current = next
+              p.onRatios(next, false)
+              window.clearTimeout(kbTimer.current)
+              kbTimer.current = window.setTimeout(kbCommit, 600)
             }}
             onPointerDown={(e) => {
               const el = e.currentTarget
@@ -584,6 +604,9 @@ export default function SplitView(p: Props) {
                 role="dialog"
                 aria-label="Aide de la vue scindée"
                 tabIndex={-1}
+                onBlur={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setInfo(null)
+                }}
                 style={{ left: info.left, top: info.top, maxHeight: Math.max(160, window.innerHeight - info.top - 8), overflowY: 'auto' }}
               >
                 {legend.long.split('. ').map((t, k, all) => (
