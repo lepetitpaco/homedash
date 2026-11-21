@@ -266,7 +266,7 @@ function watchFocusKey(wc) {
 // La page dit ce qui est ouvert et quelles touches intercepter (table tirée de src/lib/splitView.ts) ; les sites
 // (guest-preload.js) l'appliquent et relaient à la page, qui décide de l'action. Vue fermée ou Messagerie :
 // table vide, les sites ne retiennent ni ne relaient rien.
-const NO_SPLIT = { open: false, table: { codes: [], shift: [], alt: [], relay: [] }, field: '', spaceKeep: '', sync: false, ids: [] }
+const NO_SPLIT = { open: false, table: { codes: [], shift: [], alt: [], relay: [] }, field: '', sync: false, ids: [] }
 let splitConfig = NO_SPLIT
 // Un site hors de la grille ne retient rien : il reçoit la config « fermée ».
 const splitFor = (id) => (splitConfig.open && splitConfig.ids.includes(id) ? splitConfig : NO_SPLIT)
@@ -303,7 +303,6 @@ ipcMain.on('homedash:split-config', (e, cfg) => {
         table: { codes: list(t.codes), shift: list(t.shift), alt: list(t.alt), relay: list(t.relay) },
         // Champ de saisie : la même liste que la page (splitView.ts), pour les sites et pour le focus du survol.
         field: typeof cfg.field === 'string' ? cfg.field.slice(0, 300) : '',
-        spaceKeep: typeof cfg.spaceKeep === 'string' ? cfg.spaceKeep.slice(0, 200) : '',
         sync: !!cfg.sync,
         ids: (Array.isArray(cfg.ids) ? cfg.ids : []).filter((n) => guests.has(n)).slice(0, 4),
       }
